@@ -1,0 +1,248 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// MODELO: User (Usuario del sistema)
+// ============================================
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  email       String   @unique @db.VarChar(255)
+  fullName    String   @map("full_name") @db.VarChar(255)
+  passwordHash String?  @map("password_hash") @db.VarChar(255)
+  avatarUrl   String?  @map("avatar_url") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relaciones
+  ownedProjects      Project[]        @relation("ProjectOwner")
+  projectMemberships ProjectMember[]
+  references         Reference[]      @relation("ReferenceReviewer")
+  articleVersions    ArticleVersion[]
+  activityLogs       ActivityLog[]
+
+  @@index([email])
+  @@map("users")
+}
+
+// ============================================
+// MODELO: Project (Proyecto RSL)
+// ============================================
+model Project {
+  id                          String        @id @default(uuid()) @db.Uuid
+  title                       String        @db.VarChar(500)
+  description                 String?       @db.Text
+  status                      ProjectStatus @default(Configuracion)
+  ownerId                     String        @map("owner_id") @db.Uuid
+  createdAt                   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deadline                    DateTime?     @db.Date
+  
+  // Estadísticas
+  totalReferences             Int           @default(0) @map("total_references")
+  screenedReferences          Int           @default(0) @map("screened_references")
+  includedReferences          Int           @default(0) @map("included_references")
+  excludedReferences          Int           @default(0) @map("excluded_references")
+  prismaCompliancePercentage  Decimal       @default(0.00) @map("prisma_compliance_percentage") @db.Decimal(5, 2)
+
+  // Relaciones
+  owner          User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members        ProjectMember[]
+  protocols      Protocol[]
+  references     Reference[]
+  prismaItems    PrismaItem[]
+  articleVersions ArticleVersion[]
+  activityLogs   ActivityLog[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  Configuracion  @map("Configuración")
+  EnProgreso     @map("En Progreso")
+  Revision       @map("Revisión")
+  Completado
+
+  @@map("project_status")
+}
+
+// ============================================
+// MODELO: ProjectMember (Colaboradores)
+// ============================================
+model ProjectMember {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  joinedAt  DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
+
+  // Relaciones
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+
+// ============================================
+// MODELO: Protocol (Protocolo de investigación)
+// ============================================
+model Protocol {
+  id                     String   @id @default(uuid()) @db.Uuid
+  projectId              String   @unique @map("project_id") @db.Uuid
+  researchQuestions      String[] @map("research_questions")
+  picoPopulation         String?  @map("pico_population") @db.Text
+  picoIntervention       String?  @map("pico_intervention") @db.Text
+  picoComparison         String?  @map("pico_comparison") @db.Text
+  picoOutcome            String?  @map("pico_outcome") @db.Text
+  inclusionCriteria      String[] @map("inclusion_criteria")
+  exclusionCriteria      String[] @map("exclusion_criteria")
+  searchStrategy         String?  @map("search_strategy") @db.Text
+  databases              String[] @default([])
+  version                Int      @default(1)
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relaciones
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("protocols")
+}
+
+// ============================================
+// MODELO: Reference (Referencias bibliográficas)
+// ============================================
+model Reference {
+  id              String           @id @default(uuid()) @db.Uuid
+  projectId       String           @map("project_id") @db.Uuid
+  title           String           @db.VarChar(1000)
+  authors         String[]
+  publicationYear Int              @map("publication_year")
+  abstract        String?          @db.Text
+  doi             String?          @db.VarChar(255)
+  source          String?          @db.VarChar(500)
+  status          ReferenceStatus  @default(Pendiente)
+  screeningScore  Decimal?         @map("screening_score") @db.Decimal(5, 2)
+  reviewedBy      String?          @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?        @map("reviewed_at") @db.Timestamptz(6)
+  exclusionReason String?          @map("exclusion_reason") @db.Text
+  notes           String?          @db.Text
+  importSource    String?          @map("import_source") @db.VarChar(255)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relaciones
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reviewer User?   @relation("ReferenceReviewer", fields: [reviewedBy], references: [id])
+
+  @@index([projectId])
+  @@index([status])
+  @@index([reviewedBy])
+  @@index([doi])
+  @@map("references")
+}
+
+enum ReferenceStatus {
+  Pendiente
+  Incluida
+  Excluida
+  Duplicada
+
+  @@map("reference_status")
+}
+
+// ============================================
+// MODELO: PrismaItem (Checklist PRISMA)
+// ============================================
+model PrismaItem {
+  id          String       @id @default(uuid()) @db.Uuid
+  projectId   String       @map("project_id") @db.Uuid
+  section     String       @db.VarChar(100)
+  itemNumber  String       @map("item_number") @db.VarChar(10)
+  description String       @db.Text
+  status      PrismaStatus @default(Pendiente)
+  pageNumber  String?      @map("page_number") @db.VarChar(50)
+  notes       String?      @db.Text
+  aiValidated Boolean      @default(false) @map("ai_validated")
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relaciones
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([section])
+  @@map("prisma_items")
+}
+
+enum PrismaStatus {
+  Pendiente
+  Cumplido
+  Parcial
+  NoCumplido @map("No Cumplido")
+
+  @@map("prisma_status")
+}
+
+// ============================================
+// MODELO: ArticleVersion (Versiones del artículo)
+// ============================================
+model ArticleVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  version     Int
+  title       String?  @db.VarChar(1000)
+  abstract    String?  @db.Text
+  introduction String? @db.Text
+  methodology  String? @db.Text
+  results      String? @db.Text
+  discussion   String? @db.Text
+  conclusion   String? @db.Text
+  references   String? @db.Text
+  authorId     String  @map("author_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relaciones
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@index([projectId])
+  @@index([version])
+  @@map("article_versions")
+}
+
+// ============================================
+// MODELO: ActivityLog (Log de actividades)
+// ============================================
+model ActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  action      String   @db.VarChar(255)
+  description String?  @db.Text
+  metadata    Json?    @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relaciones
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("activity_logs")
+}
