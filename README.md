@@ -280,5 +280,6 @@ Para consultas sobre el proyecto: [email]
 ---
 
 **Desarrollado con ❤️ usando Clean Architecture y Next.js**
-#   T e s i s _ R S L  
+#   T e s i s _ R S L 
+ 
  
