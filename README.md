@@ -512,9 +512,12 @@ Este proyecto está desarrollado como **trabajo de tesis** para la Universidad d
 
 ---
 
+<<<<<<< HEAD
 <div align="center">
 
-**Desarrollado con ❤️ para la comunidad académica**
+### 🌟 ¡Dale una estrella si este proyecto te ayuda!
+
+</div>
 
 [![Universidad ESPE](https://img.shields.io/badge/Universidad-ESPE-red)](https://www.espe.edu.ec/)
 [![Tesis de Grado](https://img.shields.io/badge/Proyecto-Tesis%20de%20Grado-blue)](https://github.com/Stefanny26/Tesis_RSL)
@@ -526,3 +529,9 @@ Este proyecto está desarrollado como **trabajo de tesis** para la Universidad d
 #   T e s i s _ R S L 
  
  
+=======
+**Desarrollado con ❤️ usando Clean Architecture y Next.js**
+#   T e s i s _ R S L 
+ 
+ 
+>>>>>>> 1797e3abe785ab5606883e4c65289bb9221e9e53
