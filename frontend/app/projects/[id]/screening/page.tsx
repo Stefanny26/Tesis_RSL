@@ -7,11 +7,14 @@ import { ReferenceTable } from "@/components/screening/reference-table"
 import { AIScreeningPanel } from "@/components/screening/ai-screening-panel"
 import { BulkActionsBar } from "@/components/screening/bulk-actions-bar"
 import { ScreeningFilters } from "@/components/screening/screening-filters"
+import { AcademicSearchDialog } from "@/components/screening/academic-search-dialog"
+import { RayyanIntegration } from "@/components/screening/rayyan-integration"
 import { apiClient } from "@/lib/api-client"
 import type { Reference } from "@/lib/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, FileDown, Loader2, AlertCircle } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Upload, FileDown, Loader2, AlertCircle, Database, ClipboardCheck, ExternalLink } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ScreeningPage({ params }: { params: { id: string } }) {
@@ -23,6 +26,8 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<"manual" | "rayyan">("manual")
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -101,6 +106,25 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
       setSelectedIds([])
     } catch (error) {
       toast({ title: "Error", description: "No se pudieron actualizar las referencias", variant: "destructive" })
+    }
+  }
+
+  const handleImportComplete = async () => {
+    // Recargar referencias después de importar desde bases de datos académicas
+    try {
+      const data = await apiClient.getReferences(params.id)
+      setReferences(data.references || [])
+      setStats(data.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
+      toast({ 
+        title: "Referencias importadas", 
+        description: "Las nuevas referencias se han agregado al proyecto" 
+      })
+    } catch (error) {
+      toast({ 
+        title: "Error al recargar", 
+        description: "Las referencias se importaron pero hubo un error al actualizar la vista", 
+        variant: "destructive" 
+      })
     }
   }
 
@@ -193,6 +217,13 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
               <p className="text-muted-foreground">Revisa y clasifica referencias con asistencia de IA</p>
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="default"
+                onClick={() => setIsSearchDialogOpen(true)}
+              >
+                <Database className="mr-2 h-4 w-4" />
+                Buscar en Bases de Datos
+              </Button>
               <Button variant="outline">
                 <Upload className="mr-2 h-4 w-4" />
                 Importar
@@ -240,42 +271,74 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
             </Card>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Referencias</CardTitle>
-                  <CardDescription>
-                    {filteredReferences.length} de {references.length} referencias
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ScreeningFilters
-                    statusFilter={statusFilter}
-                    onStatusFilterChange={setStatusFilter}
-                    searchQuery={searchQuery}
-                    onSearchQueryChange={setSearchQuery}
-                  />
-                  <ReferenceTable
-                    references={filteredReferences}
-                    onStatusChange={handleStatusChange}
-                    selectedIds={selectedIds}
-                    onSelectionChange={setSelectedIds}
-                  />
-                </CardContent>
-              </Card>
-            </div>
+          {/* Tabs para diferentes modos de cribado */}
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "manual" | "rayyan")} className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="manual" className="flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4" />
+                Cribado Manual
+              </TabsTrigger>
+              <TabsTrigger value="rayyan" className="flex items-center gap-2">
+                <ExternalLink className="h-4 w-4" />
+                Revisión Individual
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Sidebar */}
-            <div className="space-y-4">
-              <AIScreeningPanel
-                totalReferences={stats.total}
-                pendingReferences={stats.pending}
-                onRunScreening={handleRunScreening}
+            {/* Tab de Cribado Manual */}
+            <TabsContent value="manual" className="space-y-6">
+              <div className="grid lg:grid-cols-3 gap-6">
+                {/* Main Content */}
+                <div className="lg:col-span-2 space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Referencias</CardTitle>
+                      <CardDescription>
+                        {filteredReferences.length} de {references.length} referencias
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <ScreeningFilters
+                        statusFilter={statusFilter}
+                        onStatusFilterChange={setStatusFilter}
+                        searchQuery={searchQuery}
+                        onSearchQueryChange={setSearchQuery}
+                      />
+                      <ReferenceTable
+                        references={filteredReferences}
+                        onStatusChange={handleStatusChange}
+                        selectedIds={selectedIds}
+                        onSelectionChange={setSelectedIds}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Sidebar */}
+                <div className="space-y-4">
+                  <AIScreeningPanel
+                    totalReferences={stats.total}
+                    pendingReferences={stats.pending}
+                    onRunScreening={handleRunScreening}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Tab de Integración Rayyan */}
+            <TabsContent value="rayyan" className="space-y-6">
+              <RayyanIntegration
+                projectId={params.id}
+                references={references}
+                onSyncComplete={() => {
+                  // Recargar referencias después de sincronizar con Rayyan
+                  apiClient.getReferences(params.id).then((data) => {
+                    setReferences(data.references || [])
+                    setStats(data.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
+                  })
+                }}
               />
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
@@ -284,6 +347,13 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
         onIncludeAll={handleBulkInclude}
         onExcludeAll={handleBulkExclude}
         onClearSelection={() => setSelectedIds([])}
+      />
+
+      <AcademicSearchDialog
+        open={isSearchDialogOpen}
+        onOpenChange={setIsSearchDialogOpen}
+        projectId={params.id}
+        onImportComplete={handleImportComplete}
       />
     </div>
   )

@@ -1,6 +1,8 @@
 const ReferenceRepository = require('../../infrastructure/repositories/reference.repository');
+const SearchAcademicDatabasesUseCase = require('../../domain/use-cases/search-academic-databases.use-case');
 
 const referenceRepository = new ReferenceRepository();
+const searchAcademicDatabases = new SearchAcademicDatabasesUseCase();
 
 /**
  * GET /api/references/:projectId
@@ -323,6 +325,67 @@ const getSourceDistribution = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/references/search-academic
+ * Buscar referencias en bases de datos académicas (Scopus, IEEE)
+ */
+const searchAcademicReferences = async (req, res) => {
+  try {
+    const { query, database = 'scopus', maxResultsPerSource = 50 } = req.body;
+
+    if (!query || query.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'La cadena de búsqueda es requerida'
+      });
+    }
+
+    // Obtener API keys del entorno
+    const scopusApiKey = process.env.SCOPUS_API_KEY;
+    const ieeeApiKey = process.env.IEEE_API_KEY;
+
+    // Validar que exista la API key para la base de datos seleccionada
+    if (database === 'scopus' && !scopusApiKey) {
+      return res.status(500).json({
+        success: false,
+        message: 'API key de Scopus no configurada en el servidor'
+      });
+    }
+
+    if (database === 'ieee' && !ieeeApiKey) {
+      return res.status(500).json({
+        success: false,
+        message: 'API key de IEEE no configurada en el servidor'
+      });
+    }
+
+    // Solo pasar la API key de la base de datos seleccionada
+    const apiKeys = {};
+    if (database === 'scopus') {
+      apiKeys.scopusApiKey = scopusApiKey;
+    } else if (database === 'ieee') {
+      apiKeys.ieeeApiKey = ieeeApiKey;
+    }
+
+    const results = await searchAcademicDatabases.execute({
+      query,
+      ...apiKeys,
+      maxResultsPerSource: parseInt(maxResultsPerSource)
+    });
+
+    res.status(200).json({
+      success: true,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error en búsqueda académica:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al buscar referencias académicas'
+    });
+  }
+};
+
 module.exports = {
   getProjectReferences,
   createReference,
@@ -333,5 +396,6 @@ module.exports = {
   findDuplicates,
   deleteReference,
   getYearDistribution,
-  getSourceDistribution
+  getSourceDistribution,
+  searchAcademicReferences
 };

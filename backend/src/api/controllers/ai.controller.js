@@ -2,11 +2,15 @@ const GenerateProtocolAnalysisUseCase = require('../../domain/use-cases/generate
 const GenerateTitleFromQuestionUseCase = require('../../domain/use-cases/generate-title-from-question.use-case');
 const ScreenReferencesWithAIUseCase = require('../../domain/use-cases/screen-references-with-ai.use-case');
 const RefineSearchStringUseCase = require('../../domain/use-cases/refine-search-string.use-case');
+const GenerateTitlesUseCase = require('../../domain/use-cases/generate-titles.use-case');
+const GenerateSearchStrategiesUseCase = require('../../domain/use-cases/generate-search-strategies.use-case');
 
 const generateProtocolAnalysisUseCase = new GenerateProtocolAnalysisUseCase();
 const generateTitleUseCase = new GenerateTitleFromQuestionUseCase();
 const screenReferencesUseCase = new ScreenReferencesWithAIUseCase();
 const refineSearchStringUseCase = new RefineSearchStringUseCase();
+const generateTitlesUseCase = new GenerateTitlesUseCase();
+const generateSearchStrategiesUseCase = new GenerateSearchStrategiesUseCase();
 
 /**
  * POST /api/ai/protocol-analysis
@@ -201,11 +205,101 @@ const refineSearchString = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/ai/generate-titles
+ * Genera 5 opciones de títulos con validación Cochrane
+ */
+const generateTitles = async (req, res) => {
+  try {
+    const { matrixData, picoData, aiProvider } = req.body;
+
+    // Validaciones básicas
+    if (!matrixData && !picoData) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere al menos matrixData o picoData'
+      });
+    }
+
+    console.log('🤖 Generando 5 títulos con validación Cochrane...');
+    console.log('   Proveedor:', aiProvider || 'gemini');
+    console.log('   Matriz:', matrixData ? '✓' : '✗');
+    console.log('   PICO:', picoData ? '✓' : '✗');
+
+    const result = await generateTitlesUseCase.execute({
+      matrixData,
+      picoData,
+      aiProvider: aiProvider || 'gemini'
+    });
+
+    console.log('✅ Títulos generados exitosamente');
+    console.log('   Cantidad:', result.data?.titles?.length || 0);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('❌ Error generando títulos:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al generar títulos con IA'
+    });
+  }
+};
+
+/**
+ * POST /api/ai/generate-search-strategies
+ * Genera estrategias de búsqueda específicas por base de datos
+ */
+const generateSearchStrategies = async (req, res) => {
+  try {
+    const { matrixData, picoData, keyTerms, databases, aiProvider } = req.body;
+
+    // Validaciones
+    if (!matrixData && !picoData) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere al menos matrixData o picoData'
+      });
+    }
+
+    if (!databases || !Array.isArray(databases) || databases.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere un array de bases de datos'
+      });
+    }
+
+    console.log('🤖 Generando estrategias de búsqueda por base de datos...');
+    console.log('   Proveedor:', aiProvider || 'gemini');
+    console.log('   Bases de datos:', databases.join(', '));
+
+    const result = await generateSearchStrategiesUseCase.execute({
+      matrixData,
+      picoData,
+      keyTerms,
+      databases,
+      aiProvider: aiProvider || 'gemini'
+    });
+
+    console.log('✅ Estrategias generadas exitosamente');
+    console.log('   Bases de datos procesadas:', Object.keys(result.data?.strategies || {}).length);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('❌ Error generando estrategias:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al generar estrategias de búsqueda'
+    });
+  }
+};
+
 module.exports = {
   generateProtocolAnalysis,
   generateTitle,
   screenReference,
   screenReferencesBatch,
-  refineSearchString
+  refineSearchString,
+  generateTitles,
+  generateSearchStrategies
 };
 

@@ -22,7 +22,7 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
   const { toast } = useToast()
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>('gemini')
   const [loading, setLoading] = useState(false)
-  const [showAIPanel, setShowAIPanel] = useState(true)
+  const [showAIPanel, setShowAIPanel] = useState(false) // Inicialmente oculto
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   
@@ -73,9 +73,21 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
             keyTerms: protocol.keyTerms || { technology: [], domain: [], studyType: [], themes: [] },
             prismaCompliance: protocol.prismaCompliance || []
           })
+          
+          // Solo mostrar panel de IA si el protocolo está vacío (recién creado sin wizard)
+          const isEmpty = !protocol.pico?.population && 
+                          !protocol.isMatrix?.length && 
+                          !protocol.inclusionCriteria?.length &&
+                          !protocol.prismaCompliance?.length
+          setShowAIPanel(isEmpty)
+        } else {
+          // Protocolo no existe, mostrar panel de IA
+          setShowAIPanel(true)
         }
       } catch (error) {
         console.error("Error cargando protocolo:", error)
+        // Si hay error, asumir que es nuevo y mostrar IA
+        setShowAIPanel(true)
       }
     }
     loadProtocol()
@@ -269,6 +281,17 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
               <CardDescription>El sistema analizará tu propuesta y generará un protocolo PRISMA/Cochrane completo</CardDescription>
             </div>
             <div className="flex items-center gap-4">
+              {!showAIPanel && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowAIPanel(true)}
+                  className="gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Re-analizar con IA
+                </Button>
+              )}
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />

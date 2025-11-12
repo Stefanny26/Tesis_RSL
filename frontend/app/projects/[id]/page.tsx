@@ -17,12 +17,10 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const [project, setProject] = useState<Project | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [referenceStats, setReferenceStats] = useState({
-    total: 0,
-    pending: 0,
-    included: 0,
-    excluded: 0,
-    maybe: 0
+  const [protocolStats, setProtocolStats] = useState({
+    criteriaCount: 0,
+    definitionsCount: 0,
+    databasesCount: 0
   })
   const { toast } = useToast()
 
@@ -33,15 +31,26 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         const data = await apiClient.getProject(params.id)
         setProject(data)
         
-        // Load reference statistics
+        // Load protocol statistics
         try {
-          const referencesData = await apiClient.getReferences(params.id)
-          if (referencesData.stats) {
-            setReferenceStats(referencesData.stats)
+          const protocol = await apiClient.getProtocol(params.id)
+          if (protocol) {
+            const criteriaCount = (protocol.inclusionCriteria?.length || 0) + (protocol.exclusionCriteria?.length || 0)
+            const definitionsCount = (protocol.keyTerms?.technology?.length || 0) + 
+                                     (protocol.keyTerms?.domain?.length || 0) + 
+                                     (protocol.keyTerms?.studyType?.length || 0) + 
+                                     (protocol.keyTerms?.themes?.length || 0)
+            const databasesCount = protocol.databases?.length || 0
+            
+            setProtocolStats({
+              criteriaCount,
+              definitionsCount,
+              databasesCount
+            })
           }
-        } catch (refErr) {
-          console.error("Error cargando estadísticas de referencias:", refErr)
-          // Don't show error toast for references, just keep default stats
+        } catch (protocolErr) {
+          console.error("Error cargando estadísticas del protocolo:", protocolErr)
+          // Keep default stats
         }
       } catch (err: any) {
         console.error("Error cargando proyecto:", err)
@@ -93,9 +102,18 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     )
   }
 
-  const screeningProgress = project.references ? (project.references.screened / project.references.total) * 100 : 0
+  const protocolProgress = (protocolStats.criteriaCount > 0 && protocolStats.databasesCount > 0) ? 100 : 50
   const createdDate = new Date(project.createdAt)
   const updatedDate = new Date(project.updatedAt)
+  
+  // Calcular cumplimiento PRISMA desde el protocolo
+  const prismaCompliance = project.protocol?.prismaCompliance 
+    ? Math.round((project.protocol.prismaCompliance.filter((item: any) => item.complies === 'si').length / project.protocol.prismaCompliance.length) * 100)
+    : 0
+  const prismaItemsCompleted = project.protocol?.prismaCompliance 
+    ? project.protocol.prismaCompliance.filter((item: any) => item.complies === 'si').length
+    : 0
+  const prismaTotalItems = project.protocol?.prismaCompliance?.length || 27
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,7 +126,12 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight">{project.title}</h1>
-                <p className="text-muted-foreground max-w-3xl">{project.description}</p>
+                <p className="text-muted-foreground max-w-3xl">
+                  {project.protocol?.picoFramework?.population 
+                    ? `Investigación sobre ${project.protocol.picoFramework.population}` 
+                    : project.description?.substring(0, 200) || 'Proyecto de revisión sistemática'}
+                  {project.description && project.description.length > 200 && '...'}
+                </p>
               </div>
               <Badge variant={project.status === "completed" ? "outline" : "default"}>
                 {project.status === "draft"
@@ -176,21 +199,20 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               <div className="grid md:grid-cols-3 gap-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Referencias</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Criterios de I/E</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="text-2xl font-bold">{referenceStats.total}</div>
-                      <Progress value={referenceStats.total > 0 
-                        ? ((referenceStats.included + referenceStats.excluded) / referenceStats.total) * 100 
-                        : 0} />
+                      <div className="text-2xl font-bold">{protocolStats.criteriaCount}</div>
+                      <Progress value={protocolStats.criteriaCount > 0 ? 100 : 0} />
                       <p className="text-xs text-muted-foreground">
-                        {referenceStats.included + referenceStats.excluded} cribadas de {referenceStats.total}
+                        Criterios definidos para inclusión y exclusión
                       </p>
-                      <div className="flex gap-2 text-xs pt-1">
-                        <span className="text-green-600">✓ {referenceStats.included} incluidas</span>
-                        <span className="text-red-600">✗ {referenceStats.excluded} excluidas</span>
-                      </div>
+                      {protocolStats.criteriaCount > 0 && (
+                        <div className="flex gap-2 text-xs pt-1">
+                          <span className="text-blue-600">✓ Configurado</span>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -201,10 +223,10 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="text-2xl font-bold">{project.prismaCompliance || 0}%</div>
-                      <Progress value={project.prismaCompliance || 0} />
+                      <div className="text-2xl font-bold">{prismaCompliance}%</div>
+                      <Progress value={prismaCompliance} />
                       <p className="text-xs text-muted-foreground">
-                        {Math.round(((project.prismaCompliance || 0) / 100) * 27)} de 27 ítems
+                        {prismaItemsCompleted} de {prismaTotalItems} ítems
                       </p>
                     </div>
                   </CardContent>

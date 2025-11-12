@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { ProjectCard } from "@/components/dashboard/project-card"
-import { CreateProjectDialog } from "@/components/dashboard/create-project-dialog"
 import { apiClient } from "@/lib/api-client"
 import type { Project } from "@/lib/types"
 import { BookOpen, FileText, CheckCircle, Clock, Loader2 } from "lucide-react"
@@ -151,7 +150,12 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Mis Proyectos</h2>
-            <CreateProjectDialog />
+            <button
+              onClick={() => router.push('/new-project')}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            >
+              + Nuevo Proyecto
+            </button>
           </div>
 
           {isLoading ? (
@@ -166,7 +170,12 @@ export default function DashboardPage() {
               <p className="text-muted-foreground mb-4">
                 Crea tu primer proyecto de revisión sistemática
               </p>
-              <CreateProjectDialog />
+              <button
+                onClick={() => router.push('/new-project')}
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+              >
+                + Crear Proyecto
+              </button>
             </div>
           ) : (
             <Tabs defaultValue="active" className="w-full">

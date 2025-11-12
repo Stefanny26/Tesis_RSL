@@ -152,10 +152,32 @@ class ApiClient {
     return data.data
   }
 
+  async generateTitles(matrixData: any, picoData: any, aiProvider: 'chatgpt' | 'gemini' = 'gemini') {
+    const data = await this.request('/api/ai/generate-titles', {
+      method: 'POST',
+      body: JSON.stringify({ matrixData, picoData, aiProvider }),
+    })
+    return data.data
+  }
+
+  async generateSearchStrategies(
+    matrixData: any, 
+    picoData: any, 
+    databases: string[], 
+    keyTerms?: string[], 
+    aiProvider: 'chatgpt' | 'gemini' = 'gemini'
+  ) {
+    const data = await this.request('/api/ai/generate-search-strategies', {
+      method: 'POST',
+      body: JSON.stringify({ matrixData, picoData, keyTerms, databases, aiProvider }),
+    })
+    return data.data
+  }
+
   // Protocol
   async getProtocol(projectId: string) {
     const data = await this.request(`/api/projects/${projectId}/protocol`)
-    return data.data.protocol
+    return data.data // Retorna todo el objeto { protocol }
   }
 
   async updateProtocol(projectId: string, protocolData: any) {
@@ -241,6 +263,18 @@ class ApiClient {
 
   async getSourceDistribution(projectId: string) {
     const data = await this.request(`/api/references/${projectId}/source-distribution`)
+    return data.data
+  }
+
+  async searchAcademicReferences(searchData: {
+    query: string
+    database?: 'scopus' | 'ieee'
+    maxResultsPerSource?: number
+  }) {
+    const data = await this.request('/api/references/search-academic', {
+      method: 'POST',
+      body: JSON.stringify(searchData),
+    })
     return data.data
   }
 }

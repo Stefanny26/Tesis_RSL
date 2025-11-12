@@ -33,21 +33,34 @@ class ProtocolRepository {
 
     const query = `
       INSERT INTO protocols (
-        project_id, is_matrix, is_not_matrix, population, intervention,
-        comparison, outcomes, research_questions, inclusion_criteria,
-        exclusion_criteria, databases, search_string, date_range_start,
-        date_range_end, completed
+        project_id, proposed_title, is_matrix, is_not_matrix, population, 
+        intervention, comparison, outcomes, research_questions, inclusion_criteria,
+        exclusion_criteria, databases, search_string, temporal_range,
+        key_terms, prisma_compliance, completed
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *
     `;
 
     const db = protocol.toDatabase();
     const values = [
-      db.project_id, db.is_matrix, db.is_not_matrix, db.population,
-      db.intervention, db.comparison, db.outcomes, db.research_questions,
-      db.inclusion_criteria, db.exclusion_criteria, db.databases,
-      db.search_string, db.date_range_start, db.date_range_end, db.completed
+      db.project_id, 
+      db.proposed_title,
+      db.is_matrix, 
+      db.is_not_matrix, 
+      db.population,
+      db.intervention, 
+      db.comparison, 
+      db.outcomes, 
+      db.research_questions,
+      db.inclusion_criteria, 
+      db.exclusion_criteria, 
+      db.databases,
+      db.search_string, 
+      db.temporal_range,
+      db.key_terms,
+      db.prisma_compliance,
+      db.completed
     ];
 
     const result = await database.query(query, values);

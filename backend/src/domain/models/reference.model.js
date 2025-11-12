@@ -9,7 +9,20 @@ class Reference {
     
     // Información bibliográfica
     this.title = data.title;
-    this.authors = data.authors;
+    
+    // Convertir authors a array si es string
+    if (typeof data.authors === 'string') {
+      // Si es un string separado por comas, punto y coma, o salto de línea
+      this.authors = data.authors
+        .split(/[,;]\s*|\n/)
+        .map(a => a.trim())
+        .filter(a => a.length > 0);
+    } else if (Array.isArray(data.authors)) {
+      this.authors = data.authors;
+    } else {
+      this.authors = [];
+    }
+    
     this.year = data.year;
     this.journal = data.journal;
     this.doi = data.doi;
@@ -95,7 +108,7 @@ class Reference {
       id: this.id,
       project_id: this.projectId,
       title: this.title,
-      authors: this.authors,
+      authors: Array.isArray(this.authors) ? this.authors.join(', ') : this.authors,
       year: this.year,
       journal: this.journal,
       doi: this.doi,

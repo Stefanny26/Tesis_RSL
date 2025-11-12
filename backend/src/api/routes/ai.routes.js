@@ -5,7 +5,9 @@ const {
   generateTitle,
   screenReference,
   screenReferencesBatch,
-  refineSearchString
+  refineSearchString,
+  generateTitles,
+  generateSearchStrategies
 } = require('../controllers/ai.controller');
 const { authMiddleware } = require('../../infrastructure/middlewares/auth.middleware');
 
@@ -62,6 +64,28 @@ router.post(
   '/refine-search-string',
   authMiddleware,
   refineSearchString
+);
+
+/**
+ * @route   POST /api/ai/generate-titles
+ * @desc    Generar 5 opciones de títulos con validación Cochrane
+ * @access  Private (requiere JWT)
+ */
+router.post(
+  '/generate-titles',
+  authMiddleware,
+  generateTitles
+);
+
+/**
+ * @route   POST /api/ai/generate-search-strategies
+ * @desc    Generar estrategias de búsqueda específicas por base de datos
+ * @access  Private (requiere JWT)
+ */
+router.post(
+  '/generate-search-strategies',
+  authMiddleware,
+  generateSearchStrategies
 );
 
 module.exports = router;

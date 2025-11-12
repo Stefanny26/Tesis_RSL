@@ -10,9 +10,22 @@ const {
   findDuplicates,
   deleteReference,
   getYearDistribution,
-  getSourceDistribution
+  getSourceDistribution,
+  searchAcademicReferences
 } = require('../controllers/reference.controller');
 const { authMiddleware } = require('../../infrastructure/middlewares/auth.middleware');
+
+/**
+ * @route   POST /api/references/search-academic
+ * @desc    Buscar referencias en bases de datos académicas (Scopus, IEEE)
+ * @access  Private
+ * @important Esta ruta debe estar ANTES de /:projectId para evitar conflictos
+ */
+router.post(
+  '/search-academic',
+  authMiddleware,
+  searchAcademicReferences
+);
 
 /**
  * @route   GET /api/references/:projectId
