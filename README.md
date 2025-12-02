@@ -1,55 +1,90 @@
-# 🎓 Thesis RSL System - Sistema de Revisión Sistemática de Literatura con IA
+# 📚 Sistema RSL - Revisión Sistemática de Literatura con IA
 
-Sistema web para gestionar revisiones sistemáticas de literatura (RSL) siguiendo protocolos **PRISMA**, **Cochrane** y **WPOM**, con análisis automático mediante **Inteligencia Artificial** (Google Gemini).
+> Sistema completo para gestionar revisiones sistemáticas siguiendo protocolos **PRISMA** y **Cochrane**, con generación automática mediante **Inteligencia Artificial**.
 
----
-
-## 🌟 Características Principales
-
-### 🤖 Análisis con IA
-- **Evaluación automática** de propuestas de investigación
-- **Generación de protocolos** siguiendo estándares PRISMA/Cochrane
-- **Marco PICO** para preguntas de investigación
-- **Matriz Es/No Es** para delimitar alcance
-- **Términos clave** y estrategias de búsqueda
-- **Análisis de cumplimiento** PRISMA
-
-### 📋 Gestión de Proyectos RSL
-- Creación y gestión de proyectos de revisión sistemática
-- Protocolo interactivo con 5 pestañas:
-  - **Análisis**: Evaluación de la propuesta y título refinado
-  - **PICO**: Marco de pregunta de investigación
-  - **Es/No Es**: Matriz de delimitación de alcance
-  - **Criterios**: Inclusión/exclusión de estudios
-  - **Búsqueda**: Estrategias de búsqueda en bases de datos
-
-### 🔐 Autenticación
-- **Login local** (email + contraseña)
-- **OAuth 2.0 con Google** (inicio de sesión rápido)
-- **JWT** para sesiones seguras
-
-### 📊 Dashboard
-- Vista general de proyectos
-- Estadísticas de progreso
-- Gestión de referencias bibliográficas
+[![Node.js](https://img.shields.io/badge/Node.js-20.x-green)](https://nodejs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.2-black)](https://nextjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## 🚀 Inicio Rápido
+
+### 1. Backend (Puerto 3001)
+```bash
+cd backend
+npm install
+node src/server.js
+```
+
+### 2. Frontend (Puerto 3000)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 3. Acceder
+Abre http://localhost:3000 en tu navegador.
+
+---
+
+## ✨ Funcionalidades
+
+### 🔬 Protocolo de Investigación (7 Pasos)
+1. **Pregunta de Investigación** → Análisis con IA
+2. **Títulos** → Genera 5 títulos válidos (Cochrane)
+3. **PICO** → Population, Intervention, Comparison, Outcome
+4. **Términos del Protocolo** → Tecnología, Dominio, Focos (IA)
+5. **Criterios I/E** → Inclusión/Exclusión (IA)
+6. **Cadenas de Búsqueda** → Para 8 bases de datos
+7. **Estrategia** → Plan completo de búsqueda
+
+### 📊 Búsqueda Académica
+- **Scopus** (API automática) ✅
+- **IEEE Xplore** (Manual)
+- **Web of Science** (Manual)
+- **PubMed** (Manual)
+- **Google Scholar** (Manual)
+- Import **RIS/BibTeX**
+
+### 🎯 Screening PRISMA
+- **Detección de duplicados** automática
+- **Screening por título/abstract:**
+  - Manual (botones Incluir/Excluir)
+  - Con IA (Gemini/ChatGPT)
+  - Con embeddings (similarity search)
+- **Vista Rayyan** (interfaz simplificada)
+- **Full-text screening**
+
+### 📝 Extracción de Datos
+- Formularios PRISMA personalizables
+- Validación con IA
+- Exportación a Excel
+
+### ✍️ Redacción de Artículo
+- Editor con 8 secciones RSL
+- Generación de contenido con IA
+- Historial de versiones
+- Estadísticas de completitud
+
+---
+
+## 🛠️ Stack Tecnológico
 
 ### Backend
-- **Arquitectura Limpia** (Clean Architecture)
-- **Domain-Driven Design** (DDD)
-- **PostgreSQL** como base de datos
-- **Google Gemini AI** para análisis
+- **Node.js 20** + **Express 4**
+- **PostgreSQL 15** + **pgvector** (embeddings)
+- **Google Gemini AI** + **ChatGPT** (fallback)
+- **Scopus API** para búsqueda automática
+- **Passport.js** (OAuth Google)
 
 ### Frontend
-- **Next.js 14** (App Router)
-- **TypeScript** para type safety
-- **Tailwind CSS** + **shadcn/ui** para UI moderna
-- **React Context** para estado global
-
-📖 Ver documentación completa: [`ARQUITECTURA-LIMPIA.md`](./ARQUITECTURA-LIMPIA.md)
+- **Next.js 14** + **React 19** + **TypeScript**
+- **Tailwind CSS** + **shadcn/ui**
+- **Recharts** (gráficas)
+- **React Hook Form** + **Zod** (validación)
 
 ---
 
@@ -57,285 +92,255 @@ Sistema web para gestionar revisiones sistemáticas de literatura (RSL) siguiend
 
 ```
 thesis-rsl-system/
-├── backend/           # API Node.js + Express
+├── backend/                 # API REST Node.js
 │   ├── src/
-│   │   ├── api/       # Controllers + Routes
-│   │   ├── domain/    # Lógica de negocio
-│   │   └── infrastructure/  # DB + Middlewares
-│   └── package.json
+│   │   ├── api/            # Controllers + Routes
+│   │   ├── domain/         # Models + Use Cases (lógica negocio)
+│   │   ├── infrastructure/ # Repositories + DB
+│   │   └── config/         # Configuración
+│   └── .env                # Variables de entorno
 │
-├── frontend/          # Next.js 14 App
-│   ├── app/           # Páginas (App Router)
-│   ├── components/    # Componentes React
-│   ├── lib/           # Utilidades
-│   └── package.json
+├── frontend/               # Next.js 14 App Router
+│   ├── app/               # Pages (routing)
+│   ├── components/        # Componentes reutilizables
+│   ├── lib/              # Servicios y utilidades
+│   └── .env.local        # Variables de entorno
 │
-├── docs/              # Documentación del proyecto
-├── scripts/           # Scripts SQL de BD
-└── start-dev.ps1      # Iniciar todo el proyecto
+├── docs/                  # Documentación
+│   ├── CAPITULO-III-METODOLOGIA.md  # Para tesis
+│   ├── SOLUCION-QUERIES-SCOPUS.md   # Fix queries
+│   ├── USER-GUIDE.md                # Guía usuario
+│   └── ...
+│
+└── scripts/               # Migraciones SQL
+    ├── 01-create-users-table.sql
+    ├── 02-create-projects-table.sql
+    └── ...
 ```
 
 ---
 
-## 🚀 Instalación y Configuración
+## ⚙️ Configuración
 
-### 1️⃣ Pre-requisitos
-- **Node.js** 18+ ([Descargar](https://nodejs.org/))
-- **PostgreSQL** 14+ ([Descargar](https://www.postgresql.org/download/))
-- **Git** ([Descargar](https://git-scm.com/))
+### Variables de Entorno
 
-### 2️⃣ Clonar el repositorio
-```bash
-git clone <url-del-repositorio>
-cd thesis-rsl-system
-```
-
-### 3️⃣ Configurar Base de Datos
-
-1. Crear la base de datos:
-```sql
-CREATE DATABASE "Tesis_RSL";
-```
-
-2. Ejecutar scripts de creación de tablas:
-```bash
-cd scripts
-psql -U postgres -d Tesis_RSL -f 01-create-users-table.sql
-psql -U postgres -d Tesis_RSL -f 02-create-projects-table.sql
-# ... ejecutar todos los scripts en orden
-```
-
-### 4️⃣ Configurar Backend
-
-1. Ir a la carpeta del backend:
-```bash
-cd backend
-```
-
-2. Instalar dependencias:
-```bash
-npm install
-```
-
-3. Crear archivo `.env`:
+#### Backend (.env):
 ```env
-# Database
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_NAME=Tesis_RSL
-DATABASE_USER=postgres
-DATABASE_PASSWORD=tu_contraseña
-
-# JWT
-JWT_SECRET=tu_secreto_jwt_muy_largo_y_aleatorio
-
-# Google OAuth
-GOOGLE_CLIENT_ID=tu_client_id_de_google
-GOOGLE_CLIENT_SECRET=tu_client_secret_de_google
-GOOGLE_CALLBACK_URL=http://localhost:3001/api/auth/google/callback
-
-# Google Gemini AI
-GEMINI_API_KEY=tu_api_key_de_gemini
-
-# URLs
+DATABASE_URL=postgresql://user:password@localhost:5432/thesis_rsl
+SCOPUS_API_KEY=tu_scopus_api_key
+OPENAI_API_KEY=tu_openai_api_key
+GEMINI_API_KEY=tu_gemini_api_key
+GOOGLE_CLIENT_ID=tu_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=tu_google_oauth_secret
+SESSION_SECRET=secret_aleatorio_largo
 FRONTEND_URL=http://localhost:3000
-PORT=3001
 ```
 
-### 5️⃣ Configurar Frontend
-
-1. Ir a la carpeta del frontend:
-```bash
-cd ../frontend
-```
-
-2. Instalar dependencias:
-```bash
-npm install
-```
-
-3. Crear archivo `.env.local`:
+#### Frontend (.env.local):
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3001
-```
-
-### 6️⃣ Iniciar el Proyecto
-
-**Opción A: Iniciar todo con un comando (Recomendado)**
-```powershell
-.\start-dev.ps1
-```
-
-**Opción B: Iniciar manualmente**
-
-Terminal 1 (Backend):
-```bash
-cd backend
-npm run dev
-```
-
-Terminal 2 (Frontend):
-```bash
-cd frontend
-npm run dev
-```
-
----
-
-## 🌐 Acceso al Sistema
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001
-- **Health Check**: http://localhost:3001/health
-
----
-
-## 🧹 Limpieza de Archivos Duplicados
-
-Si tienes archivos duplicados en la raíz del proyecto (de versiones anteriores), ejecuta:
-
-```powershell
-.\cleanup-duplicates.ps1
-```
-
-Este script eliminará:
-- `app/`, `components/`, `lib/`, `hooks/` de la raíz
-- Archivos de configuración duplicados (`package.json`, `tsconfig.json`, etc.)
-
-**La estructura correcta es:**
-```
-thesis-rsl-system/
-├── backend/    ✅
-├── frontend/   ✅
-└── docs/       ✅
 ```
 
 ---
 
 ## 📚 Documentación
 
-- **[Arquitectura Limpia](./ARQUITECTURA-LIMPIA.md)** - Principios de diseño y estructura del código
-- **[Flujo de Datos](./FLUJO-DE-DATOS.md)** - Cómo fluyen los datos en el sistema
-- **[Requerimientos](./docs/01-requerimientos.md)** - Requerimientos funcionales y no funcionales
-- **[Épicas e Historias de Usuario](./docs/02-epicas.md)** - Funcionalidades del sistema
+### Documentos Clave:
+- **[CAPITULO-III-METODOLOGIA.md](docs/CAPITULO-III-METODOLOGIA.md)** - Metodología completa para tesis
+- **[SOLUCION-QUERIES-SCOPUS.md](backend/SOLUCION-QUERIES-SCOPUS.md)** - Solución al problema de búsquedas
+- **[USER-GUIDE.md](docs/USER-GUIDE.md)** - Guía completa de usuario
+- **[EMBEDDINGS-SCREENING.md](docs/EMBEDDINGS-SCREENING.md)** - Screening con vectores
+- **[RAYYAN-INTEGRATION.md](docs/RAYYAN-INTEGRATION.md)** - Vista Rayyan replicada
+- **[PROMPTS-Y-REGLAS-IA.md](docs/PROMPTS-Y-REGLAS-IA.md)** - Prompts de IA completos
 
 ---
 
-## 🔧 Tecnologías
+## 🎯 Queries de Búsqueda (Scopus)
 
-### Backend
-- Node.js 18+
-- Express 4.18
-- PostgreSQL 14+
-- JWT (jsonwebtoken)
-- Passport.js (Google OAuth)
-- Google Gemini AI API
-
-### Frontend
-- Next.js 14.2 (App Router)
-- React 18
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Lucide Icons
-
----
-
-## 🐛 Solución de Problemas
-
-### Error: "No se recibió token de autenticación"
-**Solución**: Reinicia el backend después de cambios en el código:
-```bash
-cd backend
-npm run dev
+### ✅ Formato Correcto:
+```
+NoSQL OR MongoDB AND scalability OR performance
 ```
 
-### Error: "password_hash column doesn't exist"
-**Solución**: Ejecuta el script de migración:
-```bash
-node add-password-hash-column.js
+### ❌ Formato Incorrecto (genera 0 resultados):
+```
+TITLE-ABS-KEY( "NoSQL" AND "MongoDB" AND ("document-oriented" OR "document model") ... )
 ```
 
-### Error: "role column cannot be null"
-**Solución**: Ya corregido en la última versión. Asegúrate de tener el código actualizado.
-
-### Error al hacer logout
-**Solución**: Ya corregido. El logout ahora redirige correctamente a la página inicial.
+### Reglas de Oro:
+1. ✅ Máximo 2 grupos AND
+2. ✅ Sin `TITLE-ABS-KEY()` en búsqueda web
+3. ✅ Comillas solo para frases de 2+ palabras
+4. ✅ Longitud < 100 caracteres
+5. ✅ Términos técnicos específicos
 
 ---
 
-## 🧪 Testing (Próximamente)
+## 🗄️ Base de Datos
 
+### Tablas Principales:
+- `users` - Usuarios (OAuth Google)
+- `projects` - Proyectos RSL
+- `protocols` - Protocolos de búsqueda
+- `references` - Referencias importadas (con embeddings)
+- `prisma_items` - Items PRISMA (extracción)
+- `article_versions` - Versiones del artículo
+- `activity_log` - Log de actividades
+
+### pgvector Extension:
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Índice para similarity search
+CREATE INDEX references_embedding_idx 
+ON references 
+USING ivfflat (embedding vector_cosine_ops);
+```
+
+---
+
+## 🤖 Integración IA
+
+### Proveedores:
+1. **Gemini 2.0 Flash** (primario)
+   - Gratis: 15 req/min
+   - Uso: Análisis, términos, criterios
+
+2. **ChatGPT 4.0** (fallback automático)
+   - Pago: Ilimitado
+   - Se activa si Gemini falla
+
+### Funciones IA:
+- Análisis de propuesta de investigación
+- Generación de títulos (validación Cochrane)
+- Extracción de términos del protocolo
+- Generación de criterios inclusión/exclusión
+- Clasificación de referencias (relevante/irrelevante)
+- Generación de contenido para artículo
+
+---
+
+## 🧪 Testing
+
+### Backend:
 ```bash
-# Backend
 cd backend
 npm test
+```
 
-# Frontend
+### Frontend:
+```bash
 cd frontend
-npm test
+npm run build
+npm start
+```
+
+Ver [TESTING-GUIDE.md](docs/TESTING-GUIDE.md) para más detalles.
+
+---
+
+## 🚨 Troubleshooting
+
+### Problema: Queries Scopus retornan 0 resultados
+**Solución:** Ver [SOLUCION-QUERIES-SCOPUS.md](backend/SOLUCION-QUERIES-SCOPUS.md)
+
+### Problema: Gemini quota exceeded
+**Solución:** Sistema cambia automáticamente a ChatGPT (sin acción requerida)
+
+### Problema: pgvector no está instalado
+**Solución:**
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+### Problema: Frontend no conecta con backend
+**Solución:** Verificar `.env.local`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
 
 ---
 
-## 👥 Contribuciones
+## 📦 Dependencias Principales
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -m 'Agregar nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
+### Backend:
+- `express` 4.x - API REST
+- `pg` 8.x - PostgreSQL
+- `@xenova/transformers` 2.x - Embeddings
+- `@google/generative-ai` 0.21.x - Gemini
+- `passport` 0.7.x - OAuth
+
+### Frontend:
+- `next` 14.2.x - Framework
+- `react` 19.x - UI library
+- `shadcn/ui` - Componentes
+- `tailwindcss` 3.x - Estilos
+
+---
+
+## 🎓 Para Tesis
+
+### Capítulos Documentados:
+- ✅ **Capítulo III:** Metodología completa ([ver documento](docs/CAPITULO-III-METODOLOGIA.md))
+- 🔄 **Capítulo IV:** Resultados (en progreso)
+- ⏳ **Capítulo V:** Conclusiones (pendiente)
+
+### Figuras Generadas:
+- Arquitectura del sistema (5 capas)
+- Diagrama de casos de uso
+- Modelo de datos (12 tablas)
+- Flujo PRISMA completo
+
+---
+
+## ✅ Estado Actual (Noviembre 2024)
+
+### Completado:
+- ✅ Autenticación OAuth Google
+- ✅ CRUD Proyectos/Protocolos
+- ✅ Wizard de protocolo (7 pasos con IA)
+- ✅ Generación de queries (8 bases de datos)
+- ✅ Búsqueda Scopus API
+- ✅ Import RIS/BibTeX
+- ✅ Screening: Manual + IA + Embeddings
+- ✅ Vista Rayyan
+- ✅ Extracción de datos PRISMA
+- ✅ Editor de artículo con IA
+- ✅ Dashboard y estadísticas
+
+### En Progreso:
+- 🔄 Testing end-to-end
+- 🔄 Optimización de performance
+
+### Pendiente:
+- ⏳ Despliegue en producción
+- ⏳ Más integraciones de bases de datos
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detalles.
+MIT License - ver [LICENSE](LICENSE) para más detalles.
 
 ---
 
-## 📞 Contacto
+## 👤 Autor
 
-**Proyecto de Tesis** - Sistema de Revisión Sistemática de Literatura
-
-Para preguntas o problemas, por favor abre un Issue en el repositorio.
-
----
-
-## ✅ Checklist de Instalación
-
-- [ ] Node.js 18+ instalado
-- [ ] PostgreSQL 14+ instalado
-- [ ] Base de datos "Tesis_RSL" creada
-- [ ] Scripts SQL ejecutados
-- [ ] Backend: `npm install` completado
-- [ ] Backend: `.env` configurado
-- [ ] Frontend: `npm install` completado
-- [ ] Frontend: `.env.local` configurado
-- [ ] Google OAuth configurado (Client ID + Secret)
-- [ ] Google Gemini API Key obtenida
-- [ ] Servidor backend corriendo en :3001
-- [ ] Servidor frontend corriendo en :3000
-- [ ] Login con Google funcionando
-- [ ] Generación de protocolo con IA funcionando
+**Stefanny Hernández**
+- GitHub: [@Stefanny26](https://github.com/Stefanny26)
+- Repositorio: [Tesis_RSL](https://github.com/Stefanny26/Tesis_RSL)
 
 ---
 
-## 🎯 Roadmap
+## 🙏 Agradecimientos
 
-- [x] Sistema de autenticación (local + OAuth)
-- [x] Gestión de proyectos RSL
-- [x] Protocolo interactivo con 5 pestañas
-- [x] Integración con Google Gemini AI
-- [x] Análisis PRISMA/Cochrane/WPOM
-- [x] Matriz PICO y Es/No Es
-- [ ] Sistema de cribado de artículos
-- [ ] Generación de diagramas PRISMA
-- [ ] Exportación de protocolos (PDF/Word)
-- [ ] Gestión de referencias bibliográficas
-- [ ] Sistema de colaboración (múltiples revisores)
-- [ ] Dashboard de estadísticas avanzadas
+- **PRISMA** por las directrices de revisión sistemática
+- **Cochrane** por los estándares de calidad
+- **Google Gemini AI** por la integración de IA
+- **shadcn/ui** por los componentes UI
 
 ---
 
-**¡Gracias por usar Thesis RSL System!** 🎓✨
+**Última actualización:** 24 de noviembre de 2025
+
+📧 Para soporte, abre un issue en el repositorio.

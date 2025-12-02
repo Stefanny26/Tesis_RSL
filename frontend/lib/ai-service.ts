@@ -1,7 +1,7 @@
 // AI Service for generating protocol content using backend API
 // Todas las llamadas pasan por el backend para proteger las API keys
 
-export type AIProvider = 'chatgpt' | 'gemini'
+export type AIProvider = 'deepseek' | 'chatgpt' | 'gemini'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -23,7 +23,7 @@ export const aiService = {
   async generateProtocolAnalysis(
     title: string,
     description: string,
-    aiProvider: AIProvider = 'chatgpt'
+    aiProvider: AIProvider = 'deepseek'
   ) {
     const response = await fetch(`${API_URL}/api/ai/protocol-analysis`, {
       method: 'POST',
@@ -47,7 +47,7 @@ export const aiService = {
    */
   async generateTitle(
     researchQuestion: string,
-    aiProvider: AIProvider = 'chatgpt'
+    aiProvider: AIProvider = 'deepseek'
   ) {
     const response = await fetch(`${API_URL}/api/ai/generate-title`, {
       method: 'POST',
@@ -140,7 +140,7 @@ export const aiService = {
     searchResults: any[],
     researchQuestion: string,
     databases: string[] = ['IEEE Xplore', 'ACM', 'Scopus'],
-    aiProvider: AIProvider = 'chatgpt'
+    aiProvider: AIProvider = 'deepseek'
   ) {
     const response = await fetch(`${API_URL}/api/ai/refine-search-string`, {
       method: 'POST',

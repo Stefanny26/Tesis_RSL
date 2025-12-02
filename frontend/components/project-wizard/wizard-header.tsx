@@ -4,6 +4,7 @@ import { useWizard } from "./wizard-context"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ThemeSwitch } from "@/components/ui/theme-switch"
 import { Home, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -11,10 +12,10 @@ const stepNames = [
   "Propuesta",
   "PICO + Matriz",
   "Títulos",
-  "Búsqueda",
   "Definición",
-  "PRISMA",
-  "Confirmación"
+  "Criterios I/E",
+  "Búsqueda",
+  "PRISMA y Confirmación"
 ]
 
 interface WizardHeaderProps {
@@ -28,7 +29,7 @@ export function WizardHeader({ onSaveDraft, isSaving }: WizardHeaderProps) {
   const progress = (currentStep / totalSteps) * 100
 
   return (
-    <div className="bg-white border-b sticky top-0 z-50 shadow-sm">
+    <div className="bg-background border-b sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
@@ -55,6 +56,7 @@ export function WizardHeader({ onSaveDraft, isSaving }: WizardHeaderProps) {
                 Guardado {new Date(data.lastSaved).toLocaleTimeString()}
               </span>
             )}
+            <ThemeSwitch />
             <Button
               variant="outline"
               size="sm"

@@ -75,7 +75,7 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
           })
           
           // Solo mostrar panel de IA si el protocolo está vacío (recién creado sin wizard)
-          const isEmpty = !protocol.pico?.population && 
+          const isEmpty = !protocol.picoFramework?.population && 
                           !protocol.isMatrix?.length && 
                           !protocol.inclusionCriteria?.length &&
                           !protocol.prismaCompliance?.length
@@ -331,8 +331,8 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
                 </Button>
               </div>
             </div>
-            <div className="bg-white p-4 rounded-lg space-y-2 border-2 border-dashed border-gray-300">
-              <p className="text-xs text-gray-500 uppercase font-semibold mb-2">📋 Propuesta inicial del usuario:</p>
+            <div className="bg-card p-4 rounded-lg space-y-2 border-2 border-dashed border-border">
+              <p className="text-xs text-muted-foreground uppercase font-semibold mb-2">📋 Propuesta inicial del usuario:</p>
               <div>
                 <span className="text-sm font-medium">Tema / Idea de investigación:</span>
                 <p className="text-sm text-muted-foreground mt-1">{projectTitle}</p>
@@ -365,7 +365,7 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
               )}
             </Button>
             {loading && (
-              <p className="text-xs text-center text-gray-500 italic">
+              <p className="text-xs text-center text-muted-foreground italic">
                 ⏱️ Esto puede tomar 40-60 segundos. La IA está evaluando tu propuesta con criterios PRISMA/Cochrane...
               </p>
             )}
@@ -391,19 +391,19 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
         <TabsContent value="resumen">
           <div className="space-y-6">
             {/* Propuesta Original */}
-            <Card className="border-gray-200 bg-gray-50/30">
+            <Card className="border-border bg-muted/30">
               <CardHeader>
-                <CardTitle className="text-gray-800">📝 Tu Propuesta Inicial</CardTitle>
+                <CardTitle className="text-foreground">📝 Tu Propuesta Inicial</CardTitle>
                 <CardDescription>Tema e idea de investigación proporcionada</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Tema / Idea:</p>
-                  <p className="text-sm text-gray-700">{projectTitle}</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Tema / Idea:</p>
+                  <p className="text-sm text-foreground">{projectTitle}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Descripción / Contexto:</p>
-                  <p className="text-sm text-gray-700">{projectDescription}</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Descripción / Contexto:</p>
+                  <p className="text-sm text-foreground">{projectDescription}</p>
                 </div>
               </CardContent>
             </Card>
@@ -416,8 +416,8 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
               </CardHeader>
               <CardContent>
                 {protocolData.proposedTitle ? (
-                  <div className="p-4 bg-white rounded-lg border-2 border-blue-300">
-                    <p className="text-lg font-semibold text-gray-800">{protocolData.proposedTitle}</p>
+                  <div className="p-4 bg-card rounded-lg border-2 border-primary">
+                    <p className="text-lg font-semibold text-foreground">{protocolData.proposedTitle}</p>
                     <p className="text-xs text-blue-600 mt-2">
                       💡 Este título sigue el formato: [Tecnología] in [Contexto]: A Systematic Literature Review on [Aspectos Clave]
                     </p>
@@ -442,32 +442,32 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
                 {protocolData.evaluationInitial?.comment ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="p-3 bg-gray-50 rounded-lg text-center">
-                        <p className="text-xs text-gray-600 mb-1">Tema Claro</p>
+                      <div className="p-3 bg-muted rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Tema Claro</p>
                         <Badge variant={protocolData.evaluationInitial.themeClear === 'si' ? 'default' : 'secondary'}>
                           {protocolData.evaluationInitial.themeClear === 'si' ? '✅ Sí' : '⚠️ No'}
                         </Badge>
                       </div>
-                      <div className="p-3 bg-gray-50 rounded-lg text-center">
-                        <p className="text-xs text-gray-600 mb-1">Delimitación</p>
+                      <div className="p-3 bg-muted rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Delimitación</p>
                         <Badge variant={protocolData.evaluationInitial.delimitation === 'si' ? 'default' : 'secondary'}>
                           {protocolData.evaluationInitial.delimitation === 'si' ? '✅ Sí' : '⚠️ No'}
                         </Badge>
                       </div>
-                      <div className="p-3 bg-gray-50 rounded-lg text-center">
-                        <p className="text-xs text-gray-600 mb-1">Viabilidad SLR</p>
+                      <div className="p-3 bg-muted rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Viabilidad SLR</p>
                         <Badge variant={protocolData.evaluationInitial.viability === 'si' ? 'default' : 'secondary'}>
                           {protocolData.evaluationInitial.viability === 'si' ? '✅ Sí' : '⚠️ No'}
                         </Badge>
                       </div>
                     </div>
-                    <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                      <p className="text-xs font-semibold text-amber-800 mb-1">📋 Comentario de la IA:</p>
-                      <p className="text-sm text-gray-700">{protocolData.evaluationInitial.comment}</p>
+                    <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 mb-1">📋 Comentario de la IA:</p>
+                      <p className="text-sm text-foreground">{protocolData.evaluationInitial.comment}</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                  <div className="p-4 bg-card rounded-lg border-2 border-dashed border-border">
                     <p className="text-sm text-muted-foreground italic text-center">
                       La IA evaluará si tu propuesta tiene: <strong>tema claro</strong>, <strong>delimitación adecuada</strong> y <strong>viabilidad como SLR</strong>
                     </p>

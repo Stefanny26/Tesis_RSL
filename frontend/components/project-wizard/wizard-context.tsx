@@ -5,9 +5,13 @@ import { createContext, useContext, useState, ReactNode } from "react"
 export type AIProvider = 'chatgpt' | 'gemini'
 
 export interface WizardData {
+  // Metadata del proyecto (se crea al avanzar al Paso 6)
+  projectId?: string
+  
   // Paso 1: Propuesta
   projectName: string
   projectDescription: string
+  researchArea: string // Nueva: área/disciplina de investigación
   
   // Paso 2: PICO + Matriz Es/No Es
   pico: {
@@ -20,29 +24,69 @@ export interface WizardData {
     is: string[]
     isNot: string[]
   }
+  matrixTable?: Array<{
+    pregunta: string
+    presente: 'si' | 'no' | 'parcial'
+    justificacion: string
+  }>
   
-  // Paso 3: Títulos (5 opciones generadas)
+  // Paso 3: Títulos
   generatedTitles: Array<{
     title: string
+    spanishTitle: string
     justification: string
     cochraneCompliance: string
   }>
   selectedTitle: string
+  // Paso 4: Términos del Protocolo (ANTES de criterios)
+  protocolTerms?: {
+    tecnologia?: string[]
+    dominio?: string[]
+    tipoEstudio?: string[]
+    focosTematicos?: string[]
+  }
   
-  // Paso 4: Plan de búsqueda + Criterios
+  // Paso 5: Criterios I/E (alimentados por términos)
+  inclusionCriteria: string[]
+  exclusionCriteria: string[]
+  
+  // Paso 6: Búsqueda (Plan de búsqueda + Estrategia)
   searchPlan: {
     databases: Array<{
       name: string
       searchString: string
+      explanation?: string
       dateRange: string
+      resultCount?: number | null
+      status?: 'pending' | 'searching' | 'completed' | 'error'
+      hasAPI?: boolean
+      connectionStatus?: 'requires_key' | 'available' | 'manual'
     }>
-    keywords: string[]
-    temporalRange: { start: number; end: number; justification: string }
+    temporalRange: {
+      start: number
+      end: number
+    }
+    searchQueries?: Array<{
+      databaseId: string
+      databaseName: string
+      query: string
+      baseQuery: string
+      hasAPI: boolean
+      apiRequired: boolean
+      status: 'pending' | 'searching' | 'completed' | 'error'
+      resultCount: number | null
+      lastSearched: string | null
+      connectionStatus: 'requires_key' | 'available' | 'manual'
+      note?: string
+    }>
+    uploadedFiles?: Array<{
+      filename: string
+      format: 'csv' | 'ris' | 'bibtex'
+      recordCount: number
+      uploadedAt: string
+    }>
   }
-  inclusionCriteria: string[]
-  exclusionCriteria: string[]
   
-  // Paso 5: Definición de Términos del Protocolo
   protocolDefinition: {
     technologies: string[]
     applicationDomain: string[]
@@ -50,7 +94,7 @@ export interface WizardData {
     thematicFocus: string[]
   }
   
-  // Paso 6: PRISMA Checklist
+  // Paso 7: PRISMA Checklist
   prismaItems: Array<{
     number: number
     item: string
@@ -79,17 +123,28 @@ const WizardContext = createContext<WizardContextType | undefined>(undefined)
 const initialData: WizardData = {
   projectName: "",
   projectDescription: "",
+  researchArea: "",
   pico: { population: "", intervention: "", comparison: "", outcome: "" },
   matrixIsNot: { is: [], isNot: [] },
   generatedTitles: [],
   selectedTitle: "",
-  searchPlan: {
-    databases: [],
-    keywords: [],
-    temporalRange: { start: 2019, end: 2025, justification: "" }
+  protocolTerms: {
+    tecnologia: [],
+    dominio: [],
+    tipoEstudio: [],
+    focosTematicos: []
   },
   inclusionCriteria: [],
   exclusionCriteria: [],
+  searchPlan: {
+    databases: [],
+    temporalRange: {
+      start: 2019,
+      end: new Date().getFullYear()
+    },
+    searchQueries: [],
+    uploadedFiles: []
+  },
   protocolDefinition: {
     technologies: [],
     applicationDomain: [],
@@ -97,7 +152,7 @@ const initialData: WizardData = {
     thematicFocus: []
   },
   prismaItems: [],
-  aiProvider: 'gemini',
+  aiProvider: 'chatgpt',
   lastSaved: null,
   currentStep: 1
 }

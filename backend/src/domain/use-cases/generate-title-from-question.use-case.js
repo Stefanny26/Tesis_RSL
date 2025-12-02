@@ -7,12 +7,14 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
  */
 class GenerateTitleFromQuestionUseCase {
   constructor() {
+    // Inicializar OpenAI/ChatGPT (PRIORIDAD 1)
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
       });
     }
     
+    // Inicializar Gemini (PRIORIDAD 2)
     if (process.env.GEMINI_API_KEY) {
       this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     }
@@ -28,12 +30,16 @@ class GenerateTitleFromQuestionUseCase {
     try {
       let result;
       
-      if (aiProvider === 'chatgpt') {
+      if (aiProvider === 'chatgpt' && this.openai) {
         result = await this.generateWithChatGPT(prompt);
-      } else if (aiProvider === 'gemini') {
+      } else if (aiProvider === 'gemini' && this.gemini) {
+        result = await this.generateWithGemini(prompt);
+      } else if (this.openai) {
+        result = await this.generateWithChatGPT(prompt);
+      } else if (this.gemini) {
         result = await this.generateWithGemini(prompt);
       } else {
-        throw new Error('Proveedor de IA no soportado');
+        throw new Error('No hay proveedores de IA configurados');
       }
 
       return {
@@ -111,7 +117,7 @@ Responde SOLO con JSON válido, sin texto adicional.`;
     }
 
     const model = this.gemini.getGenerativeModel({ 
-      model: "gemini-1.5-pro",
+      model: "models/gemini-2.5-pro",
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2000,
@@ -132,3 +138,4 @@ Responde SOLO con JSON válido, sin texto adicional.`;
 }
 
 module.exports = GenerateTitleFromQuestionUseCase;
+

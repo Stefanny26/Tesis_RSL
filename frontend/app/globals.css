@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
   /* Updated color scheme for academic/professional theme */
   --background: oklch(0.99 0.005 240);

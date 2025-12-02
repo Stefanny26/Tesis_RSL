@@ -7,10 +7,11 @@ interface BulkActionsBarProps {
   selectedCount: number
   onIncludeAll: () => void
   onExcludeAll: () => void
+  onDeleteAll: () => void
   onClearSelection: () => void
 }
 
-export function BulkActionsBar({ selectedCount, onIncludeAll, onExcludeAll, onClearSelection }: BulkActionsBarProps) {
+export function BulkActionsBar({ selectedCount, onIncludeAll, onExcludeAll, onDeleteAll, onClearSelection }: BulkActionsBarProps) {
   if (selectedCount === 0) return null
 
   return (
@@ -26,8 +27,12 @@ export function BulkActionsBar({ selectedCount, onIncludeAll, onExcludeAll, onCl
             <XCircle className="mr-2 h-4 w-4" />
             Excluir Todas
           </Button>
-          <Button size="sm" variant="ghost" onClick={onClearSelection}>
-            <Trash2 className="h-4 w-4" />
+          <Button size="sm" variant="destructive" onClick={onDeleteAll}>
+            <Trash2 className="mr-2 h-4 w-4" />
+            Eliminar
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onClearSelection} className="hover:bg-primary-foreground/10">
+            Cancelar
           </Button>
         </div>
       </div>

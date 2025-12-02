@@ -11,6 +11,10 @@ const projectRoutes = require('./api/routes/project.routes');
 const protocolRoutes = require('./api/routes/protocol.routes');
 const aiRoutes = require('./api/routes/ai.routes');
 const referenceRoutes = require('./api/routes/reference.routes');
+const usageRoutes = require('./api/routes/usage.routes');
+
+// Importar middleware BSON
+const { bsonMiddleware } = require('./infrastructure/middlewares/bson.middleware');
 
 /**
  * Servidor principal de la aplicación
@@ -41,6 +45,9 @@ class Server {
     // Body parsers
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+    // BSON middleware para respuestas grandes
+    this.app.use(bsonMiddleware);
 
     // Logging middleware
     this.app.use((req, res, next) => {
@@ -79,6 +86,7 @@ class Server {
     this.app.use('/api/projects', protocolRoutes);
     this.app.use('/api/ai', aiRoutes);
     this.app.use('/api/references', referenceRoutes);
+    this.app.use('/api/usage', usageRoutes);
 
     // Ruta 404
     this.app.use('*', (req, res) => {

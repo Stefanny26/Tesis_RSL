@@ -4,14 +4,13 @@ import type { NextRequest } from "next/server"
 export function middleware(request: NextRequest) {
   // Verificar si hay token JWT en las cookies
   const authToken = request.cookies.get("authToken")
-  
-  const isAuthPage = request.nextUrl.pathname.startsWith("/login") || 
-                     request.nextUrl.pathname.startsWith("/register")
-  
+
+  const isAuthPage = request.nextUrl.pathname.startsWith("/login")
+
   const isCallbackPage = request.nextUrl.pathname.startsWith("/auth/callback")
-  
-  const isProtectedPage = request.nextUrl.pathname.startsWith("/dashboard") || 
-                          request.nextUrl.pathname.startsWith("/projects")
+
+  const isProtectedPage = request.nextUrl.pathname.startsWith("/dashboard") ||
+    request.nextUrl.pathname.startsWith("/projects")
 
   // Permitir acceso a la página de callback sin autenticación
   if (isCallbackPage) {
@@ -32,5 +31,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/projects/:path*", "/login", "/register", "/auth/callback"],
+  matcher: ["/dashboard/:path*", "/projects/:path*", "/login", "/auth/callback"],
 }

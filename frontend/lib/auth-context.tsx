@@ -15,7 +15,6 @@ interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<void>
   loginWithGoogle: () => void
-  register: (email: string, password: string, name: string) => Promise<void>
   logout: () => void
   isLoading: boolean
 }
@@ -60,15 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = googleAuthUrl
   }
 
-  const register = async (email: string, password: string, name: string) => {
-    try {
-      const { user: userData } = await apiClient.register(email, name, password)
-      setUser(userData)
-      router.push('/dashboard')
-    } catch (error: any) {
-      throw new Error(error.message || 'Error al registrar usuario')
-    }
-  }
+  // DEPRECATED: El registro directo ya no se usa, solo OAuth Google
+  // const register = async (email: string, password: string, name: string) => {
+  //   try {
+  //     const { user: userData } = await apiClient.register(email, name, password)
+  //     setUser(userData)
+  //     router.push('/dashboard')
+  //   } catch (error: any) {
+  //     throw new Error(error.message || 'Error al registrar usuario')
+  //   }
+  // }
 
   const logout = () => {
     apiClient.clearToken()
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithGoogle, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, loginWithGoogle, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

@@ -161,23 +161,140 @@ class ApiClient {
   }
 
   async generateSearchStrategies(
-    matrixData: any, 
+    protocolTerms: any,
     picoData: any, 
     databases: string[], 
-    keyTerms?: string[], 
+    researchArea?: string,
     aiProvider: 'chatgpt' | 'gemini' = 'gemini'
   ) {
     const data = await this.request('/api/ai/generate-search-strategies', {
       method: 'POST',
-      body: JSON.stringify({ matrixData, picoData, keyTerms, databases, aiProvider }),
+      body: JSON.stringify({ protocolTerms, picoData, databases, researchArea, aiProvider }),
     })
     return data.data
+  }
+
+  async generateProtocolTerms(
+    projectTitle: string,
+    projectDescription: string,
+    picoData: any,
+    matrixData: any,
+    aiProvider: 'chatgpt' | 'gemini' = 'gemini',
+    specificSection?: 'tecnologia' | 'dominio' | 'focosTematicos',
+    customFocus?: string
+  ) {
+    const data = await this.request('/api/ai/generate-protocol-terms', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        projectTitle, 
+        projectDescription, 
+        picoData, 
+        matrixData, 
+        aiProvider,
+        specificSection,
+        customFocus
+      }),
+    })
+    return data.data
+  }
+
+  async generateInclusionExclusionCriteria(
+    protocolTerms: {
+      tecnologia?: string[]
+      dominio?: string[]
+      tipoEstudio?: string[]
+      focosTematicos?: string[]
+    },
+    picoData: any,
+    aiProvider: 'chatgpt' | 'gemini' = 'gemini',
+    specificType?: 'inclusion' | 'exclusion',
+    customFocus?: string
+  ) {
+    const data = await this.request('/api/ai/generate-inclusion-exclusion-criteria', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        protocolTerms, 
+        picoData, 
+        aiProvider,
+        specificType,
+        customFocus
+      }),
+    })
+    return data.data
+  }
+
+  // Search Strategies - New Query Generator
+  async generateSearchQueries(
+    protocolTerms: {
+      tecnologia?: string[]
+      dominio?: string[]
+      tipoEstudio?: string[]
+      focosTematicos?: string[]
+    },
+    picoData: any,
+    selectedDatabases: string[],
+    researchArea?: string,
+    matrixData?: any
+  ) {
+    const data = await this.request('/api/ai/generate-search-strategies', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        databases: selectedDatabases,
+        picoData, 
+        matrixData,
+        researchArea,
+        protocolTerms 
+      }),
+    })
+    return data.data
+  }
+
+  async getSupportedDatabases() {
+    const data = await this.request('/api/ai/supported-databases')
+    return data
+  }
+
+  async scopusCount(query: string) {
+    const data = await this.request('/api/ai/scopus-count', {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+    })
+    return data
+  }
+
+  async googleScholarCount(query: string, startYear?: number, endYear?: number) {
+    const data = await this.request('/api/ai/google-scholar-count', {
+      method: 'POST',
+      body: JSON.stringify({ query, startYear, endYear }),
+    })
+    return data
+  }
+
+  async scopusSearch(query: string, start = 0, count = 25, sortBy = 'relevance') {
+    const data = await this.request('/api/ai/scopus-search', {
+      method: 'POST',
+      body: JSON.stringify({ query, start, count, sortBy }),
+    })
+    return data
+  }
+
+  async scopusValidate() {
+    const data = await this.request('/api/ai/scopus-validate')
+    return data
+  }
+
+  async scopusFetch(query: string, projectId: string, count = 25) {
+    const data = await this.request('/api/ai/scopus-fetch', {
+      method: 'POST',
+      body: JSON.stringify({ query, projectId, count }),
+    })
+    return data
   }
 
   // Protocol
   async getProtocol(projectId: string) {
     const data = await this.request(`/api/projects/${projectId}/protocol`)
-    return data.data // Retorna todo el objeto { protocol }
+    return data.data.protocol // Retorna solo el objeto protocol
   }
 
   async updateProtocol(projectId: string, protocolData: any) {
@@ -245,6 +362,13 @@ class ApiClient {
     return data.data
   }
 
+  async detectDuplicates(projectId: string) {
+    const data = await this.request(`/api/references/${projectId}/detect-duplicates`, {
+      method: 'POST',
+    })
+    return data.data
+  }
+
   async findDuplicates(referenceId: string, projectId: string) {
     const data = await this.request(`/api/references/${referenceId}/duplicates?projectId=${projectId}`)
     return data.data
@@ -266,6 +390,62 @@ class ApiClient {
     return data.data
   }
 
+  async importReferences(projectId: string, formData: FormData) {
+    const response = await fetch(`${this.baseUrl}/api/references/${projectId}/import`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.token}`,
+      },
+      body: formData, // FormData se envía directamente sin Content-Type
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Error al importar referencias')
+    }
+
+    return response.json()
+  }
+
+  async exportReferences(projectId: string, format: string = 'bibtex') {
+    const response = await fetch(`${this.baseUrl}/api/references/${projectId}/export?format=${format}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.token}`,
+      },
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Error al exportar referencias')
+    }
+
+    return response.blob()
+  }
+
+  // IA - Screening automático
+  async runScreeningEmbeddings(projectId: string, options: { threshold?: number } = {}) {
+    const data = await this.request('/api/ai/run-project-screening-embeddings', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId,
+        threshold: options.threshold || 0.7
+      }),
+    })
+    return data
+  }
+
+  async runScreeningLLM(projectId: string, options: { llmProvider?: 'gemini' | 'chatgpt' } = {}) {
+    const data = await this.request('/api/ai/run-project-screening-llm', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId,
+        llmProvider: options.llmProvider || 'gemini'
+      }),
+    })
+    return data
+  }
+
   async searchAcademicReferences(searchData: {
     query: string
     database?: 'scopus' | 'ieee'
@@ -274,6 +454,94 @@ class ApiClient {
     const data = await this.request('/api/references/search-academic', {
       method: 'POST',
       body: JSON.stringify(searchData),
+    })
+    return data.data
+  }
+
+  // AI Screening with Embeddings
+  async screenReferenceWithEmbeddings(referenceData: {
+    reference: any
+    protocol: any
+    threshold?: number
+  }) {
+    const data = await this.request('/api/ai/screen-reference-embeddings', {
+      method: 'POST',
+      body: JSON.stringify(referenceData),
+    })
+    return data.data
+  }
+
+  async screenReferencesBatchWithEmbeddings(batchData: {
+    references: any[]
+    protocol: any
+    threshold?: number
+  }) {
+    const data = await this.request('/api/ai/screen-references-batch-embeddings', {
+      method: 'POST',
+      body: JSON.stringify(batchData),
+    })
+    return data.data
+  }
+
+  async generateRankingWithEmbeddings(rankingData: {
+    references: any[]
+    protocol: any
+    models?: string[]
+  }) {
+    const data = await this.request('/api/ai/ranking-embeddings', {
+      method: 'POST',
+      body: JSON.stringify(rankingData),
+    })
+    return data.data
+  }
+
+  // AI Screening with LLM (existing)
+  async screenReferenceWithLLM(referenceData: {
+    reference: any
+    inclusionCriteria?: string[]
+    exclusionCriteria?: string[]
+    researchQuestion?: string
+    aiProvider?: 'chatgpt' | 'gemini'
+  }) {
+    const data = await this.request('/api/ai/screen-reference', {
+      method: 'POST',
+      body: JSON.stringify(referenceData),
+    })
+    return data.data
+  }
+
+  async screenReferencesBatchWithLLM(batchData: {
+    references: any[]
+    inclusionCriteria?: string[]
+    exclusionCriteria?: string[]
+    researchQuestion?: string
+    aiProvider?: 'chatgpt' | 'gemini'
+  }) {
+    const data = await this.request('/api/ai/screen-references-batch', {
+      method: 'POST',
+      body: JSON.stringify(batchData),
+    })
+    return data.data
+  }
+
+  async analyzeScreeningResults(projectId: string) {
+    const data = await this.request(`/api/ai/analyze-screening-results/${projectId}`, {
+      method: 'GET',
+    })
+    return data.data
+  }
+
+  // === API USAGE STATS ===
+  async getApiUsageStats() {
+    const data = await this.request('/api/usage/stats', {
+      method: 'GET',
+    })
+    return data.data
+  }
+
+  async getRecentApiUsage(days: number = 30) {
+    const data = await this.request(`/api/usage/recent?days=${days}`, {
+      method: 'GET',
     })
     return data.data
   }

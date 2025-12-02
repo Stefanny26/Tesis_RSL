@@ -27,3 +27,4 @@ class GetUserProjectsUseCase {
 }
 
 module.exports = GetUserProjectsUseCase;
+

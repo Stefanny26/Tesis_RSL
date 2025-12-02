@@ -6,10 +6,10 @@ import { WizardNavigation } from "@/components/project-wizard/wizard-navigation"
 import { ProposalStep } from "@/components/project-wizard/steps/1-proposal-step"
 import { PicoMatrixStep } from "@/components/project-wizard/steps/2-pico-matrix-step"
 import { TitlesStep } from "@/components/project-wizard/steps/3-titles-step"
-import { SearchPlanStep } from "@/components/project-wizard/steps/4-search-plan-step"
+import { CriteriaStep } from "@/components/project-wizard/steps/4-criteria-step"
 import { ProtocolDefinitionStep } from "@/components/project-wizard/steps/5-protocol-definition-step"
-import { PrismaCheckStep } from "@/components/project-wizard/steps/6-prisma-check-step"
-import { ConfirmationStep } from "@/components/project-wizard/steps/7-confirmation-step"
+import { SearchPlanStep } from "@/components/project-wizard/steps/6-search-plan-step"
+import { PrismaCheckStep } from "@/components/project-wizard/steps/7-prisma-check-step"
 import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
 
@@ -50,19 +50,32 @@ function WizardContent() {
 
   const validateStep = () => {
     if (currentStep === 1) {
-      return !!(data.projectName && data.projectDescription)
+      return !!(data.projectName && data.projectDescription && data.researchArea)
     }
     if (currentStep === 2) {
-      return !!(
-        data.pico?.population && data.pico?.intervention && data.pico?.outcome &&
-        data.matrixIsNot?.is?.length > 0 && data.matrixIsNot?.isNot?.length > 0
-      )
+      const hasBasicPICO = !!(data.pico?.population && data.pico?.intervention && data.pico?.outcome)
+      const hasMatrix = (data.matrixIsNot?.is?.length > 0 && data.matrixIsNot?.isNot?.length > 0) || 
+                        (data.matrixTable && data.matrixTable.length > 0)
+      return hasBasicPICO && hasMatrix
     }
     if (currentStep === 3) {
       return !!data.selectedTitle
     }
     if (currentStep === 4) {
+      // Paso 4: Definición (Términos del Protocolo)
+      return !!(data.protocolTerms?.tecnologia?.length > 0 || data.protocolTerms?.dominio?.length > 0)
+    }
+    if (currentStep === 5) {
+      // Paso 5: Criterios I/E (alimentados por términos)
+      return data.inclusionCriteria.length > 0 && data.exclusionCriteria.length > 0
+    }
+    if (currentStep === 6) {
+      // Paso 6: Búsqueda - Al menos una base seleccionada
       return data.searchPlan?.databases && data.searchPlan.databases.length > 0
+    }
+    if (currentStep === 7) {
+      // Paso 7: PRISMA y Confirmación - último paso
+      return true
     }
     return true
   }
@@ -78,20 +91,20 @@ function WizardContent() {
       case 3:
         return <TitlesStep />
       case 4:
-        return <SearchPlanStep />
-      case 5:
         return <ProtocolDefinitionStep />
+      case 5:
+        return <CriteriaStep />
       case 6:
-        return <PrismaCheckStep />
+        return <SearchPlanStep />
       case 7:
-        return <ConfirmationStep />
+        return <PrismaCheckStep />
       default:
         return <ProposalStep />
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-background">
       <WizardHeader 
         onSaveDraft={handleSaveDraft}
         isSaving={isSaving}
@@ -105,6 +118,7 @@ function WizardContent() {
 
       <WizardNavigation 
         canGoNext={canGoNext}
+        isLastStep={currentStep === 7}
         onNext={() => {
           if (validateStep()) {
             updateData({ currentStep: currentStep + 1 })

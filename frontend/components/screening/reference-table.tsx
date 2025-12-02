@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { Reference } from "@/lib/types"
-import { Eye, CheckCircle, XCircle } from "lucide-react"
+import { Eye, CheckCircle, XCircle, Trash2 } from "lucide-react"
 import { ReferenceDetailDialog } from "./reference-detail-dialog"
 
 interface ReferenceTableProps {
   references: Reference[]
   onStatusChange: (id: string, status: Reference["status"]) => void
+  onDelete?: (id: string) => void
   selectedIds: string[]
   onSelectionChange: (ids: string[]) => void
 }
@@ -23,7 +24,7 @@ const statusConfig = {
   duplicate: { label: "Duplicado", variant: "outline" as const, color: "text-gray-600" },
 }
 
-export function ReferenceTable({ references, onStatusChange, selectedIds, onSelectionChange }: ReferenceTableProps) {
+export function ReferenceTable({ references, onStatusChange, onDelete, selectedIds, onSelectionChange }: ReferenceTableProps) {
   const [selectedReference, setSelectedReference] = useState<Reference | null>(null)
 
   const toggleSelection = (id: string) => {
@@ -81,12 +82,31 @@ export function ReferenceTable({ references, onStatusChange, selectedIds, onSele
                   <TableCell className="max-w-md">
                     <p className="font-medium line-clamp-2">{reference.title}</p>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {typeof reference.authors === 'string' 
-                      ? reference.authors.split(',').slice(0, 2).join(', ') + (reference.authors.split(',').length > 2 ? ' et al.' : '')
-                      : Array.isArray(reference.authors) 
-                        ? reference.authors.slice(0, 2).join(", ") + (reference.authors.length > 2 ? " et al." : "")
-                        : reference.authors}
+                  <TableCell className="text-sm text-muted-foreground max-w-xs">
+                    {(() => {
+                      if (!reference.authors) return '-'
+                      
+                      if (Array.isArray(reference.authors)) {
+                        const authors = reference.authors.filter(a => a && a.trim())
+                        if (authors.length === 0) return '-'
+                        if (authors.length === 1) return authors[0]
+                        if (authors.length === 2) return authors.join(', ')
+                        return `${authors.slice(0, 2).join(', ')} et al.`
+                      }
+                      
+                      if (typeof reference.authors === 'string') {
+                        const authors = reference.authors
+                          .split(/[;,]/)
+                          .map(a => a.trim())
+                          .filter(a => a)
+                        if (authors.length === 0) return '-'
+                        if (authors.length === 1) return authors[0]
+                        if (authors.length === 2) return authors.join(', ')
+                        return `${authors.slice(0, 2).join(', ')} et al.`
+                      }
+                      
+                      return String(reference.authors)
+                    })()}
                   </TableCell>
                   <TableCell>{reference.year}</TableCell>
                   <TableCell className="text-sm">{reference.source}</TableCell>
@@ -126,6 +146,20 @@ export function ReferenceTable({ references, onStatusChange, selectedIds, onSele
                             <XCircle className="h-4 w-4" />
                           </Button>
                         </>
+                      )}
+                      {onDelete && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (confirm('¿Estás seguro de que deseas eliminar esta referencia?')) {
+                              onDelete(reference.id)
+                            }
+                          }}
+                          className="text-destructive hover:text-destructive/80"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </TableCell>

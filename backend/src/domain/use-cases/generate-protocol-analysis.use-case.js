@@ -1,4 +1,4 @@
-﻿const OpenAI = require('openai');
+const OpenAI = require('openai');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Ajv = require('ajv');
 const ajv = new Ajv({ allErrors: true, strict: false });
@@ -25,7 +25,7 @@ class GenerateProtocolAnalysisUseCase {
 
   normalizeText(text) {
     if (!text || typeof text !== 'string') return '';
-    let s = text.replace(/[\u201C\u201D\u201E\u201F""]/g, '"').replace(/[\u2018\u2019\u201A\u201B'']/g, "'").replace(/[\u2013\u2014–—]/g, '-').replace(/\u2026…/g, '...').replace(/\uFEFF/g, '').replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    let s = text.replace(/[\u201C\u201D\u201E\u201F""]/g, '"').replace(/[\u2018\u2019\u201A\u201B'']/g, "'").replace(/[\u2013\u2014��]/g, '-').replace(/\u2026�/g, '...').replace(/\uFEFF/g, '').replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const first = s.indexOf('{');
     const last = s.lastIndexOf('}');
     if (first !== -1 && last !== -1 && last > first) s = s.slice(first, last + 1);
@@ -72,7 +72,7 @@ class GenerateProtocolAnalysisUseCase {
 
   async generateWithGemini(prompt) {
     if (!this.gemini) throw new Error('Gemini no configurado');
-    const model = this.gemini.getGenerativeModel({ model: 'models/gemini-2.5-flash' });
+    const model = this.gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
     const result = await this.retry(async () => {
       const r = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt + '. Responde SOLO JSON.' }] }],
@@ -114,13 +114,37 @@ class GenerateProtocolAnalysisUseCase {
     const geminiCaller = async (p) => await this.generateWithGemini(p);
     let raw, usedProvider = aiProvider;
     try {
-      if (aiProvider === 'chatgpt') raw = await chatgptCaller(prompt);
-      else if (aiProvider === 'gemini') raw = await geminiCaller(prompt);
-      else throw new Error('Proveedor no soportado');
+      if (aiProvider === 'chatgpt' && this.openai) {
+        raw = await chatgptCaller(prompt);
+      } else if (aiProvider === 'gemini' && this.gemini) {
+        raw = await geminiCaller(prompt);
+      } else if (this.openai) {
+        // Fallback a ChatGPT si el proveedor solicitado no está disponible
+        usedProvider = 'chatgpt';
+        raw = await chatgptCaller(prompt);
+      } else if (this.gemini) {
+        // Fallback a Gemini si ChatGPT no está disponible
+        usedProvider = 'gemini';
+        raw = await geminiCaller(prompt);
+      } else {
+        throw new Error('No hay proveedores de IA configurados');
+      }
     } catch (firstErr) {
-      if (aiProvider === 'chatgpt' && this.gemini) { usedProvider = 'gemini'; raw = await geminiCaller(prompt); }
-      else if (aiProvider === 'gemini' && this.openai) { usedProvider = 'chatgpt'; raw = await chatgptCaller(prompt); }
-      else throw firstErr;
+      console.error(`❌ Error en ${aiProvider}:`, firstErr.message);
+      console.error('Detalles del error:', firstErr);
+      
+      // Intentar con el otro proveedor disponible
+      if (aiProvider === 'chatgpt' && this.gemini) { 
+        console.log('⚠️  ChatGPT falló, intentando con Gemini...');
+        usedProvider = 'gemini'; 
+        raw = await geminiCaller(prompt); 
+      } else if (aiProvider === 'gemini' && this.openai) {
+        console.log('⚠️  Gemini falló, intentando con ChatGPT...');
+        usedProvider = 'chatgpt';
+        raw = await chatgptCaller(prompt);
+      } else {
+        throw firstErr;
+      }
     }
     const parseResult = await this.parseAndValidateJson(raw, this.openai ? chatgptCaller : geminiCaller);
     if (!parseResult.ok) {
@@ -141,3 +165,4 @@ class GenerateProtocolAnalysisUseCase {
 }
 
 module.exports = GenerateProtocolAnalysisUseCase;
+

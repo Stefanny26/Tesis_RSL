@@ -1,15 +1,27 @@
 "use client"
 
+import { useState } from "react"
 import { useWizard } from "../wizard-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Info, Lightbulb } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Info, Lightbulb, ChevronDown, ChevronUp } from "lucide-react"
+
+// ✅ Áreas de investigación (clasificación oficial universitaria)
+const RESEARCH_AREAS = [
+  { value: "ingenieria-tecnologia", label: "🟦 Ingeniería y Tecnología", description: "Sistemas, Software, Electrónica, Industrial, Mecánica" },
+  { value: "medicina-salud", label: "🟥 Medicina y Ciencias de la Salud", description: "Medicina, Enfermería, Odontología, Veterinaria" },
+  { value: "ciencias-sociales", label: "🟩 Ciencias Sociales y Humanidades", description: "Educación, Sociología, Psicología, Derecho, Economía" },
+  { value: "arquitectura-diseño", label: "🟪 Arquitectura, Diseño y Urbanismo", description: "Arquitectura, Construcción, Diseño, Planeación Urbana" },
+]
 
 export function ProposalStep() {
   const { data, updateData } = useWizard()
+  const [showDetailedRules, setShowDetailedRules] = useState(false)
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -20,9 +32,9 @@ export function ProposalStep() {
         </p>
       </div>
 
-      <Alert className="bg-blue-50 border-blue-200">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-900">
+      <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <AlertDescription className="text-blue-900 dark:text-blue-100">
           No necesitas tener todo definido ahora. Solo proporciona una descripción básica 
           y el asistente te ayudará a estructurar tu protocolo completo.
         </AlertDescription>
@@ -68,39 +80,175 @@ export function ProposalStep() {
               Describe tu idea en 2-3 frases. ¿Qué quieres investigar y por qué?
             </p>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="researchArea" className="text-base">
+              Área de Investigación <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={data.researchArea}
+              onValueChange={(value) => updateData({ researchArea: value })}
+            >
+              <SelectTrigger id="researchArea" className="text-base h-12">
+                <SelectValue placeholder="Selecciona el área o disciplina de tu investigación" />
+              </SelectTrigger>
+              <SelectContent>
+                {RESEARCH_AREAS.map((area) => (
+                  <SelectItem key={area.value} value={area.value}>
+                    {area.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Esto ayuda al sistema a generar análisis y recomendaciones más precisas para tu campo de estudio
+            </p>
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-purple-600" />
-            <CardTitle>Ejemplos de propuestas</CardTitle>
+            <Lightbulb className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <CardTitle className="dark:text-blue-100">Reglas para definir un tema de Revisión Sistemática de Literatura (SLR)</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3 text-sm">
-            <div className="p-3 bg-white rounded-lg border">
-              <p className="font-medium mb-1">Ejemplo 1:</p>
-              <p className="text-muted-foreground">
-                "Evaluar el impacto de la inteligencia artificial en el aprendizaje de estudiantes 
-                universitarios de ingeniería, comparando métodos tradicionales con sistemas adaptativos."
+          <div className="space-y-4">
+            {/* ESTRUCTURA RECOMENDADA - PRINCIPAL */}
+            <div className="p-4 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg border-2 border-blue-300 dark:border-blue-700">
+              <p className="font-semibold text-base text-blue-900 dark:text-blue-200 mb-3">📐 Estructura Recomendada:</p>
+              <p className="text-sm text-blue-800 dark:text-blue-300 font-mono bg-white/50 dark:bg-black/30 p-3 rounded mb-3">
+                [TECNOLOGÍA/HERRAMIENTA] + [ASPECTO A ANALIZAR] + [CONTEXTO/POBLACIÓN]
+              </p>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>Ejemplo completo:</strong><br />
+                "Prácticas de desarrollo con Mongoose ODM en aplicaciones Node.js: Una revisión sistemática"
               </p>
             </div>
-            <div className="p-3 bg-white rounded-lg border">
-              <p className="font-medium mb-1">Ejemplo 2:</p>
-              <p className="text-muted-foreground">
-                "Analizar patrones de diseño en arquitecturas de microservicios usando Docker y Kubernetes, 
-                enfocándose en escalabilidad y mantenibilidad."
-              </p>
+
+            {/* BOTÓN PARA EXPANDIR REGLAS DETALLADAS */}
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => setShowDetailedRules(!showDetailedRules)}
+                className="text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+              >
+                {showDetailedRules ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-2" />
+                    Ocultar ejemplos detallados
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-2" />
+                    Ver más ejemplos y reglas detalladas
+                  </>
+                )}
+              </Button>
             </div>
-            <div className="p-3 bg-white rounded-lg border">
-              <p className="font-medium mb-1">Ejemplo 3:</p>
-              <p className="text-muted-foreground">
-                "Revisión sistemática sobre técnicas de ciberseguridad en aplicaciones web modernas, 
-                comparando frameworks de autenticación OAuth vs JWT."
-              </p>
-            </div>
+
+            {/* REGLAS DETALLADAS - COLAPSABLES */}
+            {showDetailedRules && (
+              <div className="space-y-3 text-sm animate-in slide-in-from-top-2">
+                <p className="font-semibold text-base text-blue-900 dark:text-blue-200">📋 Reglas Generales:</p>
+                
+                <div className="p-3 bg-card rounded-lg border border-green-200 dark:border-green-800">
+                  <p className="font-medium mb-1 flex items-center gap-2">
+                    <span className="text-green-600 dark:text-green-400">✓</span>
+                    1. Intervención/Tecnología/Fenómeno
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    El tema debe describir claramente <strong>qué se va a analizar</strong>.
+                    <br />
+                    <span className="text-green-600 dark:text-green-400">✅ Ejemplo:</span> "Object Document Mapping con Mongoose en aplicaciones Node.js"
+                    <br />
+                    <span className="text-red-600 dark:text-red-400">❌ Evitar:</span> "MongoDB en aplicaciones" (muy genérico)
+                  </p>
+                </div>
+
+                <div className="p-3 bg-card rounded-lg border border-green-200 dark:border-green-800">
+                  <p className="font-medium mb-1 flex items-center gap-2">
+                    <span className="text-green-600 dark:text-green-400">✓</span>
+                    2. Contexto o Población
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    Debe definirse el <strong>ámbito de aplicación</strong>.
+                    <br />
+                    <span className="text-green-600 dark:text-green-400">✅ Ejemplo:</span> "Aplicaciones backend Node.js con MongoDB"
+                    <br />
+                    <span className="text-red-600 dark:text-red-400">❌ Evitar:</span> "Desarrollo web" (demasiado amplio)
+                  </p>
+                </div>
+
+                <div className="p-3 bg-card rounded-lg border border-green-200 dark:border-green-800">
+                  <p className="font-medium mb-1 flex items-center gap-2">
+                    <span className="text-green-600 dark:text-green-400">✓</span>
+                    3. Enfoque del Análisis
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    Especificar <strong>qué aspecto se estudia</strong> (prácticas, rendimiento, impacto, diseño).
+                    <br />
+                    <span className="text-green-600 dark:text-green-400">✅ Ejemplo:</span> "Prácticas de desarrollo y patrones de diseño con Mongoose"
+                  </p>
+                </div>
+
+                <div className="p-3 bg-card rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="font-medium mb-1 flex items-center gap-2">
+                    <span className="text-blue-600 dark:text-blue-400">✓</span>
+                    4. Alineación Metodológica
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    Debe ser compatible con <strong>PRISMA/Cochrane</strong>.
+                    <br />
+                    <span className="text-green-600 dark:text-green-400">✅ Ejemplo:</span> "Revisión sistemática de..." o "Scoping review de..."
+                  </p>
+                </div>
+
+                <div className="p-3 bg-card rounded-lg border border-orange-200 dark:border-orange-800">
+                  <p className="font-medium mb-1 flex items-center gap-2">
+                    <span className="text-orange-600 dark:text-orange-400">!</span>
+                    5. Sin Resultados Anticipados
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    El título <strong>no debe incluir conclusiones</strong>.
+                    <br />
+                    <span className="text-green-600 dark:text-green-400">✅ Correcto:</span> "Implicaciones de rendimiento del uso de Mongoose en Node.js"
+                    <br />
+                    <span className="text-red-600 dark:text-red-400">❌ Incorrecto:</span> "Mongoose mejora el rendimiento en Node.js"
+                  </p>
+                </div>
+
+                <div className="p-3 bg-card rounded-lg border border-purple-200 dark:border-purple-800">
+                  <p className="font-medium mb-1 flex items-center gap-2">
+                    <span className="text-purple-600 dark:text-purple-400">✓</span>
+                    6. Claridad y Acotación
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    Tema <strong>específico, no genérico</strong>.
+                    <br />
+                    <span className="text-green-600 dark:text-green-400">✅ Específico:</span> "Mongoose ODM en aplicaciones Node.js"
+                    <br />
+                    <span className="text-red-600 dark:text-red-400">❌ Genérico:</span> "Bases de datos NoSQL"
+                  </p>
+                </div>
+
+                <div className="p-3 bg-card rounded-lg border border-indigo-200 dark:border-indigo-800">
+                  <p className="font-medium mb-1 flex items-center gap-2">
+                    <span className="text-indigo-600 dark:text-indigo-400">✓</span>
+                    7. Orientación Técnica/Científica
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    Debe apuntar a <strong>literatura académica o técnica revisada por pares</strong>.
+                    <br />
+                    <span className="text-green-600 dark:text-green-400">✅ Fuentes:</span> Journals, conferencias científicas
+                    <br />
+                    <span className="text-red-600 dark:text-red-400">❌ Evitar:</span> Blogs, tutoriales personales
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -8,17 +8,42 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Sparkles, Loader2, RefreshCw, CheckCircle2, Languages } from "lucide-react"
+import { Sparkles, Loader2, RefreshCw, CheckCircle2, Pencil, Check } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
+
+// Helper function para obtener nombre del proveedor de IA
+const getProviderName = (provider: 'chatgpt' | 'gemini') => {
+  const names = {
+    chatgpt: 'ChatGPT',
+    gemini: 'Gemini'
+  }
+  return names[provider]
+}
 
 export function TitlesStep() {
   const { data, updateData } = useWizard()
   const { toast } = useToast()
   const [isGenerating, setIsGenerating] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState<number>(-1)
-  const [translations, setTranslations] = useState<{ [key: number]: string }>({})
-  const [translating, setTranslating] = useState<{ [key: number]: boolean }>({})
+  const [editingIndex, setEditingIndex] = useState<number>(-1)
+
+  // Función para traducir un texto usando MyMemory API
+  const translateText = async (text: string): Promise<string> => {
+    try {
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|es`
+      const res = await fetch(url)
+      const data = await res.json()
+      
+      if (data.responseData && data.responseData.translatedText) {
+        return data.responseData.translatedText
+      }
+      return text // Si falla, retorna el original
+    } catch (error) {
+      console.error('Error traduciendo:', error)
+      return text
+    }
+  }
 
   const handleGenerateTitles = async () => {
     if (!data.pico.population || !data.pico.intervention) {
@@ -34,7 +59,7 @@ export function TitlesStep() {
     try {
       toast({
         title: "Generando títulos...",
-        description: `Usando ${data.aiProvider === 'chatgpt' ? 'ChatGPT' : 'Gemini'} para crear 5 opciones...`
+        description: `Usando ${getProviderName(data.aiProvider)} para crear 5 opciones...`
       })
 
       const result = await apiClient.generateTitles(
@@ -47,19 +72,40 @@ export function TitlesStep() {
       console.log('📝 Títulos recibidos:', result?.titles)
 
       if (result && result.titles) {
-        const titles = result.titles.map((t: any) => ({
-          title: t.title,
-          justification: t.reasoning || t.justification || "",
-          cochraneCompliance: t.cochraneCompliance || "partial"
-        }))
+        // Traducir todos los títulos automáticamente
+        toast({
+          title: "Traduciendo títulos...",
+          description: "Generando versiones en español..."
+        })
 
-        console.log('✅ Títulos procesados:', titles)
+        const titlesWithTranslations = await Promise.all(
+          result.titles.map(async (t: any) => {
+            const spanishTitle = await translateText(t.title)
+            const spanishJustification = await translateText(t.reasoning || t.justification || "")
+            return {
+              title: t.title,
+              spanishTitle: spanishTitle,
+              justification: t.reasoning || t.justification || "",
+              spanishJustification: spanishJustification,
+              cochraneCompliance: t.cochraneCompliance || "partial",
+              components: t.components || {
+                population: "unspecified",
+                intervention: "unspecified",
+                comparator: null,
+                outcome: "unspecified"
+              },
+              wordCount: t.wordCount || 0
+            }
+          })
+        )
 
-        updateData({ generatedTitles: titles })
+        console.log('✅ Títulos procesados con traducciones:', titlesWithTranslations)
+
+        updateData({ generatedTitles: titlesWithTranslations })
 
         toast({
-          title: "✅ Títulos generados",
-          description: `${titles.length} opciones creadas. Selecciona la que más te guste o edítala.`
+          title: "✅ Títulos generados y traducidos",
+          description: `${titlesWithTranslations.length} opciones creadas con traducciones al español.`
         })
       }
     } catch (error: any) {
@@ -78,43 +124,14 @@ export function TitlesStep() {
     updateData({ selectedTitle: data.generatedTitles[index].title })
   }
 
-  const handleTranslate = async (index: number, text: string) => {
-    if (translations[index]) {
-      // Si ya está traducido, limpiamos la traducción para mostrar el original
-      setTranslations(prev => {
-        const newTranslations = { ...prev }
-        delete newTranslations[index]
-        return newTranslations
-      })
-      return
-    }
-
-    setTranslating(prev => ({ ...prev, [index]: true }))
+  const handleUpdateTitle = (index: number, field: 'title' | 'spanishTitle', value: string) => {
+    const updatedTitles = [...data.generatedTitles]
+    updatedTitles[index] = { ...updatedTitles[index], [field]: value }
+    updateData({ generatedTitles: updatedTitles })
     
-    try {
-      // Usar MyMemory Translation API (gratuita, sin API key)
-      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|es`
-      const res = await fetch(url)
-      const data = await res.json()
-      
-      if (data.responseData && data.responseData.translatedText) {
-        setTranslations(prev => ({ ...prev, [index]: data.responseData.translatedText }))
-        toast({
-          title: "✅ Título traducido",
-          description: "Haz clic nuevamente para ver el original",
-        })
-      } else {
-        throw new Error('No se recibió traducción')
-      }
-    } catch (error) {
-      console.error('Error traduciendo:', error)
-      toast({
-        title: "Error al traducir",
-        description: "Intenta nuevamente en unos segundos",
-        variant: "destructive"
-      })
-    } finally {
-      setTranslating(prev => ({ ...prev, [index]: false }))
+    // Si es el título seleccionado, actualizamos también selectedTitle
+    if (selectedIndex === index && field === 'title') {
+      updateData({ selectedTitle: value })
     }
   }
 
@@ -130,16 +147,22 @@ export function TitlesStep() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="text-center space-y-3 mb-8">
-        <h2 className="text-3xl font-bold">Generación de Títulos</h2>
-        <p className="text-lg text-muted-foreground">
-          La IA generará 5 títulos académicos según criterios Cochrane Review
-        </p>
+      <div className="text-center space-y-4 mb-8">
+        <h2 className="text-3xl font-bold text-foreground">
+          Gestión de Títulos
+        </h2>
+        <div className="max-w-3xl mx-auto p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+          <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
+            💡 La IA ha generado 5 títulos académicos bilingües con sus justificaciones siguiendo los criterios de Cochrane Review. 
+            Revisa las opciones y <strong>selecciona el que más te convenza</strong>, o bien, 
+            <strong> edita cualquiera</strong> usando el botón de edición para adaptarlo a tus necesidades específicas.
+          </p>
+        </div>
       </div>
 
       {/* Generate Button */}
       {data.generatedTitles.length === 0 && (
-        <Card className="border-primary/30 bg-gradient-to-r from-purple-50 to-pink-50">
+        <Card className="border-primary/30 bg-card">
           <CardHeader>
             <CardTitle>Generar Títulos con IA</CardTitle>
             <CardDescription>
@@ -188,92 +211,122 @@ export function TitlesStep() {
             </Button>
           </div>
 
-          <RadioGroup value={String(selectedIndex)} onValueChange={(v) => handleSelectTitle(Number(v))}>
-            <div className="space-y-4">
-              {data.generatedTitles.map((titleData, index) => (
+          <div className="space-y-4">
+            {data.generatedTitles.map((titleData, index) => {
+              const isEditing = editingIndex === index
+              
+              return (
                 <Card
                   key={index}
-                  className={`cursor-pointer transition-all ${
+                  className={`transition-all ${
                     selectedIndex === index
-                      ? 'border-primary border-2 shadow-lg'
-                      : 'hover:border-primary/50'
-                  }`}
-                  onClick={() => handleSelectTitle(index)}
+                      ? 'border-primary border-2 shadow-lg bg-primary/5'
+                      : 'hover:border-primary/50 hover:shadow-md'
+                  } ${!isEditing && 'cursor-pointer'}`}
+                  onClick={() => !isEditing && handleSelectTitle(index)}
                 >
-                  <CardHeader>
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem value={String(index)} id={`title-${index}`} className="mt-1" />
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <Label htmlFor={`title-${index}`} className="text-lg font-semibold leading-tight cursor-pointer flex-1">
-                            {translations[index] || titleData.title}
-                          </Label>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleTranslate(index, titleData.title)
-                              }}
-                              disabled={translating[index]}
-                              className="h-8 w-8 p-0"
-                            >
-                              {translating[index] ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Languages className={`h-4 w-4 ${translations[index] ? 'text-primary' : ''}`} />
-                              )}
-                            </Button>
-                            {selectedIndex === index && (
-                              <CheckCircle2 className="h-5 w-5 text-primary" />
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">Opción {index + 1}</Badge>
-                          {getComplianceBadge(titleData.cochraneCompliance)}
-                          {translations[index] && (
-                            <Badge variant="secondary" className="text-xs">
-                              🇪🇸 Traducido
-                            </Badge>
-                          )}
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-6">
+                      {/* Número grande circular */}
+                      <div className="flex-shrink-0">
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl font-bold transition-colors ${
+                          selectedIndex === index 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {index + 1}
                         </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">Justificación:</p>
-                      <p className="text-sm">{titleData.justification}</p>
+
+                      {/* Contenido bilingüe */}
+                      <div className="flex-1 space-y-4">
+                        {/* Título en Inglés */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 font-semibold">
+                              EN
+                            </Badge>
+                            <span className="text-sm font-medium text-muted-foreground">English Title</span>
+                          </div>
+                          {isEditing ? (
+                            <Textarea
+                              value={titleData.title}
+                              onChange={(e) => handleUpdateTitle(index, 'title', e.target.value)}
+                              rows={2}
+                              className="text-base font-semibold resize-none"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <p className="text-base font-semibold leading-relaxed">
+                              {titleData.title}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Título en Español */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200 font-semibold">
+                              ES
+                            </Badge>
+                            <span className="text-sm font-medium text-muted-foreground">Título en Español</span>
+                          </div>
+                          {isEditing ? (
+                            <Textarea
+                              value={titleData.spanishTitle || ''}
+                              onChange={(e) => handleUpdateTitle(index, 'spanishTitle', e.target.value)}
+                              rows={2}
+                              className="text-base resize-none"
+                              placeholder="Traducción en español..."
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <p className="text-base leading-relaxed text-muted-foreground">
+                              {titleData.spanishTitle || 'Generando traducción...'}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Justificación */}
+                        {titleData.justification && (
+                          <div className="pt-3 border-t border-border">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                💡 Justificación
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {titleData.justification}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Botón de editar/guardar */}
+                      <Button
+                        variant={isEditing ? "default" : "ghost"}
+                        size="icon"
+                        className="flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingIndex(isEditing ? -1 : index)
+                        }}
+                      >
+                        {isEditing ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Pencil className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          </RadioGroup>
-
-          {/* Custom Title Editor */}
-          {selectedIndex >= 0 && (
-            <Card className="border-primary/50 bg-blue-50/30">
-              <CardHeader>
-                <CardTitle>Editar título seleccionado</CardTitle>
-                <CardDescription>
-                  Puedes modificar el título según tus necesidades
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={data.selectedTitle}
-                  onChange={(e) => updateData({ selectedTitle: e.target.value })}
-                  rows={3}
-                  className="text-lg font-semibold"
-                />
-              </CardContent>
-            </Card>
-          )}
+              )
+            })}
+          </div>
         </>
       )}
     </div>
   )
 }
+

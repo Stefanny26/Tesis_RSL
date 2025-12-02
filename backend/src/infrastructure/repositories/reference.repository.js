@@ -39,6 +39,34 @@ class ReferenceRepository {
     return result.rows.map(row => new Reference(row));
   }
 
+  // Método para exportación (sin límites)
+  async findByProject(projectId, filters = {}) {
+    let query = 'SELECT * FROM "references" WHERE project_id = $1';
+    const values = [projectId];
+    let paramCount = 2;
+
+    // Filtros opcionales
+    if (filters.screeningStatus) {
+      query += ` AND screening_status = $${paramCount++}`;
+      values.push(filters.screeningStatus);
+    }
+
+    if (filters.year) {
+      query += ` AND year = $${paramCount++}`;
+      values.push(filters.year);
+    }
+
+    if (filters.source) {
+      query += ` AND source = $${paramCount++}`;
+      values.push(filters.source);
+    }
+
+    query += ` ORDER BY created_at DESC`;
+
+    const result = await database.query(query, values);
+    return result.rows.map(row => new Reference(row));
+  }
+
   async create(referenceData) {
     const reference = new Reference(referenceData);
     reference.validate();
@@ -52,8 +80,13 @@ class ReferenceRepository {
       RETURNING *
     `;
 
+    // Convertir array de autores a string separado por comas
+    const authorsStr = Array.isArray(reference.authors) 
+      ? reference.authors.join(', ') 
+      : reference.authors;
+
     const values = [
-      reference.projectId, reference.title, reference.authors,
+      reference.projectId, reference.title, authorsStr,
       reference.year, reference.journal, reference.doi, reference.abstract,
       reference.keywords, reference.url, reference.screeningStatus, reference.source
     ];
@@ -149,8 +182,13 @@ class ReferenceRepository {
           RETURNING *
         `;
 
+        // Convertir array de autores a string separado por comas
+        const authorsStr = Array.isArray(reference.authors) 
+          ? reference.authors.join(', ') 
+          : reference.authors;
+
         const values = [
-          reference.projectId, reference.title, reference.authors,
+          reference.projectId, reference.title, authorsStr,
           reference.year, reference.journal, reference.doi, reference.abstract,
           reference.keywords, reference.url, reference.screeningStatus, reference.source
         ];
@@ -167,6 +205,86 @@ class ReferenceRepository {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Obtener referencias con sus puntajes de screening para análisis estadístico
+   */
+  async findByProjectWithScores(projectId) {
+    const query = `
+      SELECT 
+        id, title, authors, year, abstract, keywords,
+        screening_status, screening_score, ai_classification,
+        ai_confidence_score, created_at
+      FROM "references" 
+      WHERE project_id = $1
+      ORDER BY screening_score DESC NULLS LAST, created_at DESC
+    `;
+    
+    const result = await database.query(query, [projectId]);
+    return result.rows.map(row => new Reference(row));
+  }
+
+  /**
+   * Buscar referencia por DOI o título (para detección de duplicados durante importación)
+   */
+  async findByDoiOrTitle(projectId, doi, title) {
+    let query = 'SELECT * FROM "references" WHERE project_id = $1 AND (';
+    const conditions = [];
+    const values = [projectId];
+    let paramCount = 2;
+
+    if (doi) {
+      conditions.push(`doi = $${paramCount++}`);
+      values.push(doi);
+    }
+
+    if (title) {
+      conditions.push(`LOWER(title) = LOWER($${paramCount++})`);
+      values.push(title);
+    }
+
+    if (conditions.length === 0) {
+      return null;
+    }
+
+    query += conditions.join(' OR ') + ') LIMIT 1';
+
+    const result = await database.query(query, values);
+    return result.rows[0] ? new Reference(result.rows[0]) : null;
+  }
+
+  /**
+   * Obtener estadísticas de screening para un proyecto
+   */
+  async getScreeningStats(projectId) {
+    const query = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE screening_status = 'included') as included,
+        COUNT(*) FILTER (WHERE screening_status = 'excluded') as excluded,
+        COUNT(*) FILTER (WHERE screening_status = 'pending') as pending,
+        COUNT(*) FILTER (WHERE screening_status = 'duplicate') as duplicates,
+        COUNT(DISTINCT source) as sources,
+        AVG(CASE WHEN ai_confidence_score IS NOT NULL THEN ai_confidence_score ELSE NULL END) as avg_confidence,
+        COUNT(*) FILTER (WHERE ai_classification IS NOT NULL) as ai_reviewed
+      FROM "references"
+      WHERE project_id = $1
+    `;
+
+    const result = await database.query(query, [projectId]);
+    const stats = result.rows[0];
+
+    return {
+      total: parseInt(stats.total) || 0,
+      included: parseInt(stats.included) || 0,
+      excluded: parseInt(stats.excluded) || 0,
+      pending: parseInt(stats.pending) || 0,
+      duplicates: parseInt(stats.duplicates) || 0,
+      sources: parseInt(stats.sources) || 0,
+      avgConfidence: parseFloat(stats.avg_confidence) || 0,
+      aiReviewed: parseInt(stats.ai_reviewed) || 0
+    };
   }
 }
 

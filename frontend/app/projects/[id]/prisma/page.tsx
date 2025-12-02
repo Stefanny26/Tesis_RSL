@@ -12,6 +12,88 @@ import { FileDown, Save, Loader2 } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
 
+// Función para generar contenido basado en datos del wizard
+function generateItemContent(itemId: number, protocolData: any): string {
+  switch (itemId) {
+    case 1: // Título
+      return protocolData.selectedTitle || "Pendiente de completar"
+    
+    case 2: // Resumen estructurado
+      return protocolData.projectDescription || "Pendiente de completar"
+    
+    case 3: // Justificación (background)
+      const pico = protocolData.pico
+      if (pico && (pico.population || pico.intervention)) {
+        return `Contexto: ${pico.population || 'N/A'}\nIntervención estudiada: ${pico.intervention || 'N/A'}\nObjetivo: ${pico.outcome || 'N/A'}`
+      }
+      return "Marco PICO completado en Paso 2"
+    
+    case 4: // Objetivos usando PICO
+      if (protocolData.pico) {
+        const { population, intervention, comparison, outcome } = protocolData.pico
+        return `Población: ${population || 'N/A'}\nIntervención: ${intervention || 'N/A'}\nComparación: ${comparison || 'N/A'}\nResultados: ${outcome || 'N/A'}`
+      }
+      return "Marco PICO definido en Paso 2"
+    
+    case 5: // Criterios de elegibilidad
+      const inclusion = protocolData.inclusionCriteria || []
+      const exclusion = protocolData.exclusionCriteria || []
+      if (inclusion.length > 0 || exclusion.length > 0) {
+        return `Criterios de Inclusión:\n${inclusion.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}\n\nCriterios de Exclusión:\n${exclusion.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}`
+      }
+      return "Criterios definidos en Paso 4"
+    
+    case 6: // Fuentes de información
+      const databases = protocolData.searchPlan?.databases || []
+      if (databases.length > 0) {
+        return `Bases de datos consultadas:\n${databases.map((db: any) => `• ${db.name}`).join('\n')}`
+      }
+      return "Bases de datos seleccionadas en Paso 5"
+    
+    case 7: // Estrategia de búsqueda
+      if (protocolData.searchPlan?.databases) {
+        const strategies = protocolData.searchPlan.databases.map((db: any) => 
+          `${db.name}:\n${db.searchString || 'Sin cadena definida'}\n`
+        ).join('\n')
+        return strategies || "Cadenas de búsqueda definidas en Paso 5"
+      }
+      return "Estrategia de búsqueda completa en Paso 5"
+    
+    case 8: // Proceso de selección
+      const matrix = protocolData.matrixIsNot || { is: [], isNot: [] }
+      if (matrix.is.length > 0 || matrix.isNot.length > 0) {
+        return `Matriz Es/No Es aplicada:\nES: ${matrix.is.join(', ')}\nNO ES: ${matrix.isNot.join(', ')}`
+      }
+      return "Matriz Es/No Es definida en Paso 2"
+    
+    case 9: // Proceso extracción de datos
+      const terms = protocolData.protocolDefinition
+      if (terms && (terms.technologies?.length > 0 || terms.applicationDomain?.length > 0)) {
+        return `Términos del protocolo:\nTecnologías: ${terms.technologies?.join(', ') || 'N/A'}\nDominio: ${terms.applicationDomain?.join(', ') || 'N/A'}`
+      }
+      return "Términos del protocolo definidos en Paso 6"
+    
+    case 10: // Datos extraídos
+      return "Datos a extraer según términos definidos en Paso 6"
+    
+    case 11: // Síntesis de resultados
+      const tableData = protocolData.matrixTable || []
+      if (tableData.length > 0) {
+        return `Tabla de elementos de matriz completada (${tableData.length} elementos)`
+      }
+      return "Método de síntesis basado en matriz Es/No Es"
+    
+    case 12: // Diagrama de flujo
+      return "Diagrama PRISMA a generar con resultados de screening"
+    
+    case 13: // Cumplimiento general
+      return "Checklist PRISMA completado - Revisar todos los ítems"
+    
+    default:
+      return "Pendiente de completar"
+  }
+}
+
 export default function PrismaPage({ params }: { params: { id: string } }) {
   const { toast } = useToast()
   const [currentSection, setCurrentSection] = useState("Todos")
@@ -20,6 +102,7 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
   const [aiSuggestions, setAiSuggestions] = useState<Record<number, string>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [protocolData, setProtocolData] = useState<any>(null)
 
   // Cargar datos del protocolo al montar
   useEffect(() => {
@@ -29,36 +112,54 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
         
         // El backend puede devolver { protocol: {...} } o directamente el protocolo
         const protocol = result.protocol || result
+        setProtocolData(protocol)
         
-        if (protocol && protocol.prismaCompliance) {
-          // Cargar ítems completados desde el protocolo
-          const completed = new Set<number>()
-          const contents: Record<number, string> = {}
+        if (protocol) {
+          // Auto-generar contenido para todos los ítems basado en datos del wizard
+          const autoGeneratedContents: Record<number, string> = {}
+          const autoCompleted = new Set<number>()
           
-          protocol.prismaCompliance.forEach((item: any) => {
-            // El wizard guarda con 'number' (1-13)
-            const itemId = item.number || item.id
+          prismaChecklist.forEach(item => {
+            const content = generateItemContent(item.id, protocol)
+            autoGeneratedContents[item.id] = content
             
-            if (item.complies === 'si' || item.complies === true) {
-              completed.add(itemId)
-            }
-            if (item.evidence) {
-              contents[itemId] = item.evidence
+            // Marcar como completado si tiene contenido válido
+            if (content && !content.startsWith("Pendiente")) {
+              autoCompleted.add(item.id)
             }
           })
           
-          setCompletedItems(completed)
-          setItemContents(contents)
+          // Si hay datos guardados previamente, sobrescribir
+          if (protocol.prismaCompliance) {
+            protocol.prismaCompliance.forEach((item: any) => {
+              const itemId = item.number || item.id
+              
+              if (item.complies === 'si' || item.complies === true) {
+                autoCompleted.add(itemId)
+              }
+              if (item.evidence) {
+                autoGeneratedContents[itemId] = item.evidence
+              }
+            })
+          }
+          
+          setCompletedItems(autoCompleted)
+          setItemContents(autoGeneratedContents)
         }
       } catch (error) {
         console.error("Error cargando protocolo:", error)
+        toast({
+          title: "Error",
+          description: "No se pudo cargar el protocolo",
+          variant: "destructive"
+        })
       } finally {
         setIsLoading(false)
       }
     }
     
     loadProtocol()
-  }, [params.id])
+  }, [params.id, toast])
 
   const toggleItemComplete = (itemId: number) => {
     setCompletedItems((prev) => {

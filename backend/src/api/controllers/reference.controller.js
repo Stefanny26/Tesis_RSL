@@ -1,8 +1,14 @@
 const ReferenceRepository = require('../../infrastructure/repositories/reference.repository');
-const SearchAcademicDatabasesUseCase = require('../../domain/use-cases/search-academic-databases.use-case');
+const ScopusSearchUseCase = require('../../domain/use-cases/scopus-search.use-case');
+const ImportReferencesUseCase = require('../../domain/use-cases/import-references.use-case');
+const ExportReferencesUseCase = require('../../domain/use-cases/export-references.use-case');
+const DetectDuplicatesUseCase = require('../../domain/use-cases/detect-duplicates.use-case');
 
 const referenceRepository = new ReferenceRepository();
-const searchAcademicDatabases = new SearchAcademicDatabasesUseCase();
+const scopusSearch = new ScopusSearchUseCase(referenceRepository);
+const importReferences = new ImportReferencesUseCase(referenceRepository);
+const exportReferences = new ExportReferencesUseCase(referenceRepository);
+const detectDuplicates = new DetectDuplicatesUseCase();
 
 /**
  * GET /api/references/:projectId
@@ -250,6 +256,29 @@ const findDuplicates = async (req, res) => {
 };
 
 /**
+ * POST /api/references/:projectId/detect-duplicates
+ * Detectar y marcar duplicados en un proyecto
+ */
+const detectProjectDuplicates = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    const result = await detectDuplicates.execute(projectId);
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error detectando duplicados:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al detectar duplicados'
+    });
+  }
+};
+
+/**
  * DELETE /api/references/:id
  * Eliminar una referencia
  */
@@ -327,7 +356,7 @@ const getSourceDistribution = async (req, res) => {
 
 /**
  * POST /api/references/search-academic
- * Buscar referencias en bases de datos académicas (Scopus, IEEE)
+ * Buscar referencias en Scopus (IEEE y otros requieren carga manual)
  */
 const searchAcademicReferences = async (req, res) => {
   try {
@@ -340,48 +369,125 @@ const searchAcademicReferences = async (req, res) => {
       });
     }
 
-    // Obtener API keys del entorno
-    const scopusApiKey = process.env.SCOPUS_API_KEY;
-    const ieeeApiKey = process.env.IEEE_API_KEY;
+    // Solo soportamos búsqueda API para Scopus
+    if (database !== 'scopus') {
+      return res.status(400).json({
+        success: false,
+        message: `Búsqueda API no disponible para ${database}. Use carga manual de archivos.`
+      });
+    }
 
-    // Validar que exista la API key para la base de datos seleccionada
-    if (database === 'scopus' && !scopusApiKey) {
+    // Buscar en Scopus
+    const scopusApiKey = process.env.SCOPUS_API_KEY;
+    if (!scopusApiKey) {
       return res.status(500).json({
         success: false,
         message: 'API key de Scopus no configurada en el servidor'
       });
     }
 
-    if (database === 'ieee' && !ieeeApiKey) {
-      return res.status(500).json({
-        success: false,
-        message: 'API key de IEEE no configurada en el servidor'
-      });
-    }
-
-    // Solo pasar la API key de la base de datos seleccionada
-    const apiKeys = {};
-    if (database === 'scopus') {
-      apiKeys.scopusApiKey = scopusApiKey;
-    } else if (database === 'ieee') {
-      apiKeys.ieeeApiKey = ieeeApiKey;
-    }
-
-    const results = await searchAcademicDatabases.execute({
+    const results = await scopusSearch.search({
       query,
-      ...apiKeys,
-      maxResultsPerSource: parseInt(maxResultsPerSource)
+      apiKey: scopusApiKey,
+      start: 0,
+      count: parseInt(maxResultsPerSource)
     });
 
     res.status(200).json({
       success: true,
-      data: results
+      data: {
+        scopus: results.references,
+        ieee: [],
+        combined: results.references,
+        stats: {
+          totalScopus: results.total,
+          totalIEEE: 0,
+          totalCombined: results.count,
+          duplicatesRemoved: 0
+        }
+      }
     });
   } catch (error) {
     console.error('Error en búsqueda académica:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Error al buscar referencias académicas'
+    });
+  }
+};
+
+/**
+ * POST /api/references/:projectId/import
+ * Importar referencias desde archivos (BibTeX, RIS, CSV)
+ */
+const importReferencesFromFiles = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    
+    console.log('📥 POST /api/references/:projectId/import');
+    console.log('   Project ID:', projectId);
+    console.log('   Files recibidos:', req.files ? req.files.length : 0);
+    
+    if (req.files) {
+      req.files.forEach((file, i) => {
+        console.log(`   Archivo ${i + 1}:`, {
+          nombre: file.originalname,
+          tipo: file.mimetype,
+          tamaño: file.size,
+          extensión: file.originalname.split('.').pop()
+        });
+      });
+    }
+    
+    if (!req.files || req.files.length === 0) {
+      console.log('❌ No se proporcionaron archivos');
+      return res.status(400).json({
+        success: false,
+        message: 'No se proporcionaron archivos para importar'
+      });
+    }
+
+    console.log('🔄 Ejecutando importación...');
+    const result = await importReferences.execute(projectId, req.files);
+    
+    console.log('✅ Importación completada:', result);
+
+    res.status(200).json({
+      success: true,
+      message: `Se importaron ${result.success} referencias exitosamente`,
+      data: result
+    });
+  } catch (error) {
+    console.error('❌ Error importando referencias:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al importar referencias'
+    });
+  }
+};
+
+/**
+ * GET /api/references/:projectId/export
+ * Exportar referencias a diferentes formatos
+ */
+const exportReferencesToFile = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { format = 'bibtex', status } = req.query;
+
+    const filters = {};
+    if (status) filters.screeningStatus = status;
+
+    const result = await exportReferences.execute(projectId, format, filters);
+
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="references-${projectId}.${result.extension}"`);
+    res.status(200).send(result.content);
+  } catch (error) {
+    console.error('Error exportando referencias:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al exportar referencias'
     });
   }
 };
@@ -394,8 +500,11 @@ module.exports = {
   updateReferencesBatch,
   getScreeningStats,
   findDuplicates,
+  detectProjectDuplicates,
   deleteReference,
   getYearDistribution,
   getSourceDistribution,
-  searchAcademicReferences
+  searchAcademicReferences,
+  importReferencesFromFiles,
+  exportReferencesToFile
 };

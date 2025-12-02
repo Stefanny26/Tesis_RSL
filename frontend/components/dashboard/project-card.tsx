@@ -5,18 +5,14 @@ import { Progress } from "@/components/ui/progress"
 import type { Project } from "@/lib/types"
 import { Calendar, Users, FileText, ArrowRight } from "lucide-react"
 import Link from "next/link"
-
-const statusConfig = {
-  draft: { label: "Borrador", variant: "secondary" as const },
-  "in-progress": { label: "En Progreso", variant: "default" as const },
-  screening: { label: "Cribado", variant: "default" as const },
-  analysis: { label: "Análisis", variant: "default" as const },
-  completed: { label: "Completado", variant: "outline" as const },
-}
+import { getEffectiveProjectStatus, statusLabels, statusVariants } from "@/lib/project-status-utils"
 
 export function ProjectCard({ project }: { project: Project }) {
-  const statusInfo = statusConfig[project.status]
-  const screeningProgress = project.references ? (project.references.screened / project.references.total) * 100 || 0 : 0
+  // Detectar el estado efectivo usando la utilidad compartida
+  const effectiveStatus = getEffectiveProjectStatus(project);
+  const statusLabel = statusLabels[effectiveStatus];
+  const statusVariant = statusVariants[effectiveStatus];
+  const screeningProgress = project.references ? (project.references.screened / project.references.total) * 100 || 0 : 0;
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -26,7 +22,7 @@ export function ProjectCard({ project }: { project: Project }) {
             <CardTitle className="text-xl line-clamp-1">{project.title}</CardTitle>
             <CardDescription className="line-clamp-2">{project.description}</CardDescription>
           </div>
-          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+          <Badge variant={statusVariant}>{statusLabel}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -55,8 +51,10 @@ export function ProjectCard({ project }: { project: Project }) {
 
         {project.prismaCompliance !== undefined && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Cumplimiento PRISMA</span>
-            <span className="font-medium">{project.prismaCompliance}%</span>
+            <span className="text-muted-foreground">Cumplimiento PRISMA 2020</span>
+            <span className="font-medium">
+              {Math.round((project.prismaCompliance / 100) * 27)} de 27 ítems ({project.prismaCompliance}%)
+            </span>
           </div>
         )}
 

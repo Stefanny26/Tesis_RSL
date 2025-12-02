@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const {
   getProjectReferences,
   createReference,
@@ -8,12 +9,32 @@ const {
   updateReferencesBatch,
   getScreeningStats,
   findDuplicates,
+  detectProjectDuplicates,
   deleteReference,
   getYearDistribution,
   getSourceDistribution,
-  searchAcademicReferences
+  searchAcademicReferences,
+  importReferencesFromFiles,
+  exportReferencesToFile
 } = require('../controllers/reference.controller');
 const { authMiddleware } = require('../../infrastructure/middlewares/auth.middleware');
+
+// Configurar multer para subida de archivos
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedExtensions = ['.bib', '.ris', '.csv', '.txt', '.nbib', '.ciw'];
+    const ext = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
+    if (allowedExtensions.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Formato no soportado: ${ext}. Use BibTeX, RIS o CSV`));
+    }
+  }
+});
 
 /**
  * @route   POST /api/references/search-academic
@@ -94,6 +115,17 @@ router.get(
 );
 
 /**
+ * @route   POST /api/references/:projectId/detect-duplicates
+ * @desc    Detectar y marcar duplicados en el proyecto
+ * @access  Private
+ */
+router.post(
+  '/:projectId/detect-duplicates',
+  authMiddleware,
+  detectProjectDuplicates
+);
+
+/**
  * @route   GET /api/references/:id/duplicates
  * @desc    Buscar duplicados potenciales
  * @access  Private
@@ -135,6 +167,29 @@ router.get(
   '/:projectId/source-distribution',
   authMiddleware,
   getSourceDistribution
+);
+
+/**
+ * @route   POST /api/references/:projectId/import
+ * @desc    Importar referencias desde archivos (BibTeX, RIS, CSV)
+ * @access  Private
+ */
+router.post(
+  '/:projectId/import',
+  authMiddleware,
+  upload.array('files', 10), // Máximo 10 archivos
+  importReferencesFromFiles
+);
+
+/**
+ * @route   GET /api/references/:projectId/export
+ * @desc    Exportar referencias a diferentes formatos
+ * @access  Private
+ */
+router.get(
+  '/:projectId/export',
+  authMiddleware,
+  exportReferencesToFile
 );
 
 module.exports = router;

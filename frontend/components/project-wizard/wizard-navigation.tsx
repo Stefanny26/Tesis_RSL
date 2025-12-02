@@ -61,7 +61,7 @@ export function WizardNavigation({
   }
 
   return (
-    <div className="flex items-center justify-between pt-6 border-t bg-white sticky bottom-0 pb-6">
+    <div className="flex items-center justify-between pt-6 border-t bg-background sticky bottom-0 pb-6">
       <div className="flex gap-3">
         <AlertDialog>
           <AlertDialogTrigger asChild>

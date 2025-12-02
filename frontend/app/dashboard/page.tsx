@@ -11,6 +11,7 @@ import type { Project } from "@/lib/types"
 import { BookOpen, FileText, CheckCircle, Clock, Loader2 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
+import { getEffectiveProjectStatus, countActiveProjects, getScreeningProjects } from "@/lib/project-status-utils"
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
@@ -88,20 +89,24 @@ export default function DashboardPage() {
     )
   }
 
-  // Calcular estadísticas
+  // Calcular estadísticas con detección automática de estado
   const stats = {
     totalProjects: projects.length,
-    activeProjects: projects.filter((p) => 
-      p.status === "in-progress" || p.status === "screening" || p.status === "analysis"
-    ).length,
-    completedProjects: projects.filter((p) => p.status === "completed").length,
+    activeProjects: countActiveProjects(projects),
+    // PRISMA compliant: por ahora 0, TODO: agregar endpoint para obtener este dato
+    prismaCompliantProjects: 0,
     totalReferences: projects.reduce((acc, p) => acc + (p.references?.total || 0), 0),
   }
 
-  const activeProjects = projects.filter((p) => 
-    p.status !== "completed" && p.status !== "draft"
-  )
-  const completedProjects = projects.filter((p) => p.status === "completed")
+  // Proyectos en screening: solo los que están en fase de cribado
+  const screeningProjects = getScreeningProjects(projects)
+  
+  // Proyectos activos: cualquiera que no esté completado (incluye drafts con contenido)
+  const activeProjects = projects.filter((p) => {
+    const effectiveStatus = getEffectiveProjectStatus(p);
+    return effectiveStatus !== "completed";
+  })
+  const completedProjects = projects.filter((p) => getEffectiveProjectStatus(p) === "completed")
 
   return (
     <div className="min-h-screen bg-background">
@@ -114,17 +119,17 @@ export default function DashboardPage() {
             Bienvenido, {user?.fullName || 'Usuario'}
           </h1>
           <p className="text-muted-foreground">
-            Gestiona tus revisiones sistemáticas de literatura con IA
+            Gestiona tus Revisiones Sistemáticas con validación PRISMA 2020 y asistencia de IA
           </p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
           <StatsCard
-            title="Proyectos Totales"
+            title="Total de Proyectos RSL"
             value={stats.totalProjects}
             icon={BookOpen}
-            description="Todos tus proyectos RSL"
+            description="Revisiones sistemáticas"
           />
           <StatsCard
             title="Proyectos Activos"
@@ -133,16 +138,16 @@ export default function DashboardPage() {
             description="En progreso o cribado"
           />
           <StatsCard
-            title="Proyectos Completados"
-            value={stats.completedProjects}
+            title="Validaciones PRISMA"
+            value={stats.prismaCompliantProjects}
             icon={CheckCircle}
-            description="Finalizados exitosamente"
+            description="Proyectos con 100% de cumplimiento PRISMA 2020"
           />
           <StatsCard
             title="Referencias Totales"
             value={stats.totalReferences}
             icon={FileText}
-            description="En todos los proyectos"
+            description="Artículos en todos los proyectos"
           />
         </div>
 
@@ -178,27 +183,35 @@ export default function DashboardPage() {
               </button>
             </div>
           ) : (
-            <Tabs defaultValue="active" className="w-full">
+            <Tabs defaultValue="all" className="w-full">
               <TabsList>
-                <TabsTrigger value="active">
-                  Activos ({activeProjects.length})
+                <TabsTrigger value="all">
+                  Todos ({projects.length})
+                </TabsTrigger>
+                <TabsTrigger value="screening">
+                  Cribado ({screeningProjects.length})
                 </TabsTrigger>
                 <TabsTrigger value="completed">
                   Completados ({completedProjects.length})
                 </TabsTrigger>
-                <TabsTrigger value="all">
-                  Todos ({projects.length})
-                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="active" className="mt-6">
-                {activeProjects.length === 0 ? (
+              <TabsContent value="all" className="mt-6">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {projects.map((project) => (
+                    <ProjectCard key={project.id} project={project} />
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="screening" className="mt-6">
+                {screeningProjects.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No hay proyectos activos
+                    No hay proyectos en cribado
                   </div>
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {activeProjects.map((project) => (
+                    {screeningProjects.map((project) => (
                       <ProjectCard key={project.id} project={project} />
                     ))}
                   </div>
@@ -217,14 +230,6 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 )}
-              </TabsContent>
-
-              <TabsContent value="all" className="mt-6">
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {projects.map((project) => (
-                    <ProjectCard key={project.id} project={project} />
-                  ))}
-                </div>
               </TabsContent>
             </Tabs>
           )}

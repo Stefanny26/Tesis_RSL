@@ -39,7 +39,10 @@ export interface Reference {
   abstract: string
   source: string
   doi?: string
-  status: "pending" | "included" | "excluded" | "duplicate"
+  url?: string
+  database?: string
+  keywords?: string
+  status: "pending" | "included" | "excluded" | "duplicate" | "maybe"
   screeningScore?: number
   reviewedBy?: string
   reviewedAt?: Date
