@@ -103,7 +103,8 @@ class ReferenceRepository {
     const allowedFields = [
       'title', 'authors', 'year', 'journal', 'doi', 'abstract', 'keywords', 'url',
       'screeningStatus', 'aiClassification', 'aiConfidenceScore', 'aiReasoning',
-      'manualReviewStatus', 'manualReviewNotes', 'reviewedBy'
+      'manualReviewStatus', 'manualReviewNotes', 'reviewedBy',
+      'fullTextAvailable', 'fullTextUrl', 'screeningScore', 'aiDecision', 'exclusionReason'
     ];
 
     const fieldMap = {
@@ -113,7 +114,12 @@ class ReferenceRepository {
       aiReasoning: 'ai_reasoning',
       manualReviewStatus: 'manual_review_status',
       manualReviewNotes: 'manual_review_notes',
-      reviewedBy: 'reviewed_by'
+      reviewedBy: 'reviewed_by',
+      fullTextAvailable: 'full_text_available',
+      fullTextUrl: 'full_text_url',
+      screeningScore: 'screening_score',
+      aiDecision: 'ai_decision',
+      exclusionReason: 'exclusion_reason'
     };
 
     for (const field of allowedFields) {
@@ -149,6 +155,36 @@ class ReferenceRepository {
   async delete(id) {
     await database.query('DELETE FROM "references" WHERE id = $1', [id]);
     return true;
+  }
+
+  /**
+   * Actualizar resultado de screening automático
+   */
+  async updateScreeningResult({ referenceId, aiRecommendation, aiReasoning, aiConfidence, similarityScore, screeningStatus }) {
+    const query = `
+      UPDATE "references"
+      SET 
+        ai_classification = $2,
+        ai_reasoning = $3,
+        ai_confidence_score = $4,
+        screening_score = $5,
+        screening_status = $6,
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+
+    const values = [
+      referenceId,
+      aiRecommendation || null,
+      aiReasoning || null,
+      aiConfidence || null,
+      similarityScore || null,
+      screeningStatus || 'pending'
+    ];
+
+    const result = await database.query(query, values);
+    return result.rows[0] ? new Reference(result.rows[0]) : null;
   }
 
   async countByProject(projectId, filters = {}) {
@@ -252,6 +288,20 @@ class ReferenceRepository {
 
     const result = await database.query(query, values);
     return result.rows[0] ? new Reference(result.rows[0]) : null;
+  }
+
+  /**
+   * Obtener referencias pendientes de un proyecto
+   */
+  async getPendingReferences(projectId) {
+    const query = `
+      SELECT * FROM "references" 
+      WHERE project_id = $1 
+      AND screening_status = 'pending'
+      ORDER BY created_at DESC
+    `;
+    const result = await database.query(query, [projectId]);
+    return result.rows.map(row => new Reference(row));
   }
 
   /**

@@ -10,7 +10,8 @@ pnpm-debug.log*
 .env.local
 .env.development.local
 .env.test.local
-.env.production.local
+# Mantener .env.production como template
+# .env.production
 
 # Archivos de base de datos
 *.db

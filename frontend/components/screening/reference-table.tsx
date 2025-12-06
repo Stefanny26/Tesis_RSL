@@ -15,6 +15,8 @@ interface ReferenceTableProps {
   onDelete?: (id: string) => void
   selectedIds: string[]
   onSelectionChange: (ids: string[]) => void
+  showActions?: boolean // Si es false, solo muestra el botón de ver detalles
+  enableSelection?: boolean // Si es false, no muestra los checkboxes de selección
 }
 
 const statusConfig = {
@@ -22,9 +24,21 @@ const statusConfig = {
   included: { label: "Incluido", variant: "default" as const, color: "text-green-600" },
   excluded: { label: "Excluido", variant: "destructive" as const, color: "text-red-600" },
   duplicate: { label: "Duplicado", variant: "outline" as const, color: "text-gray-600" },
+  maybe: { label: "Revisar", variant: "secondary" as const, color: "text-orange-600" },
+  fulltext_included: { label: "Incluido (Texto)", variant: "default" as const, color: "text-green-600" },
+  fulltext_excluded: { label: "Excluido (Texto)", variant: "destructive" as const, color: "text-red-600" },
+  phase1_included: { label: "Fase 1: Incluido", variant: "default" as const, color: "text-green-600" },
+  phase1_excluded: { label: "Fase 1: Excluido", variant: "destructive" as const, color: "text-red-600" },
+  phase2_included: { label: "Fase 2: Incluido", variant: "default" as const, color: "text-green-600" },
+  phase2_excluded: { label: "Fase 2: Excluido", variant: "destructive" as const, color: "text-red-600" },
+  Pendiente: { label: "Pendiente", variant: "secondary" as const, color: "text-yellow-600" },
+  'En Revisión': { label: "En Revisión", variant: "secondary" as const, color: "text-blue-600" },
+  Incluida: { label: "Incluida", variant: "default" as const, color: "text-green-600" },
+  Excluida: { label: "Excluida", variant: "destructive" as const, color: "text-red-600" },
+  Duplicada: { label: "Duplicada", variant: "outline" as const, color: "text-gray-600" },
 }
 
-export function ReferenceTable({ references, onStatusChange, onDelete, selectedIds, onSelectionChange }: ReferenceTableProps) {
+export function ReferenceTable({ references, onStatusChange, onDelete, selectedIds, onSelectionChange, showActions = true, enableSelection = true }: ReferenceTableProps) {
   const [selectedReference, setSelectedReference] = useState<Reference | null>(null)
 
   const toggleSelection = (id: string) => {
@@ -57,7 +71,9 @@ export function ReferenceTable({ references, onStatusChange, onDelete, selectedI
           <TableHeader>
             <TableRow>
               <TableHead className="w-12">
-                <Checkbox checked={selectedIds.length === references.length} onCheckedChange={toggleSelectAll} />
+                {enableSelection && (
+                  <Checkbox checked={selectedIds.length === references.length} onCheckedChange={toggleSelectAll} />
+                )}
               </TableHead>
               <TableHead>Título</TableHead>
               <TableHead>Autores</TableHead>
@@ -70,14 +86,18 @@ export function ReferenceTable({ references, onStatusChange, onDelete, selectedI
           </TableHeader>
           <TableBody>
             {references.map((reference) => {
-              const statusInfo = statusConfig[reference.status]
+              // Usar screeningStatus si está disponible, si no, usar status
+              const statusKey = (reference.screeningStatus || reference.status) as keyof typeof statusConfig
+              const statusInfo = statusConfig[statusKey] || statusConfig.pending
               return (
                 <TableRow key={reference.id}>
                   <TableCell>
-                    <Checkbox
-                      checked={selectedIds.includes(reference.id)}
-                      onCheckedChange={() => toggleSelection(reference.id)}
-                    />
+                    {enableSelection && (
+                      <Checkbox
+                        checked={selectedIds.includes(reference.id)}
+                        onCheckedChange={() => toggleSelection(reference.id)}
+                      />
+                    )}
                   </TableCell>
                   <TableCell className="max-w-md">
                     <p className="font-medium line-clamp-2">{reference.title}</p>
@@ -112,22 +132,62 @@ export function ReferenceTable({ references, onStatusChange, onDelete, selectedI
                   <TableCell className="text-sm">{reference.source}</TableCell>
                   <TableCell>
                     {reference.screeningScore ? (
-                      <span className={getScoreColor(reference.screeningScore)}>
-                        {(reference.screeningScore * 100).toFixed(0)}%
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={getScoreColor(reference.screeningScore)}>
+                          {(reference.screeningScore * 100).toFixed(0)}%
+                        </span>
+                        {reference.aiReasoning && (
+                          <Badge 
+                            variant="outline" 
+                            className={`text-[10px] ${
+                              reference.aiReasoning.includes('🤖 Embeddings') && reference.aiReasoning.includes('🧠 CHATGPT')
+                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                : reference.aiReasoning.includes('🧠 CHATGPT')
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : 'bg-gray-50 text-gray-700 border-gray-200'
+                            }`}
+                          >
+                            {reference.aiReasoning.includes('🤖 Embeddings') && reference.aiReasoning.includes('🧠 CHATGPT')
+                              ? '🔀 Híbrido'
+                              : reference.aiReasoning.includes('🧠 CHATGPT')
+                              ? '🧠 ChatGPT'
+                              : '🤖 Embeddings'}
+                          </Badge>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                      {reference.aiClassification && (
+                        <Badge 
+                          variant="outline" 
+                          className={`text-[10px] ${
+                            reference.aiClassification === 'include'
+                              ? 'bg-green-50 text-green-700 border-green-200'
+                              : reference.aiClassification === 'exclude'
+                              ? 'bg-red-50 text-red-700 border-red-200'
+                              : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                          }`}
+                        >
+                          {reference.aiClassification === 'include'
+                            ? '✅ IA: Incluir'
+                            : reference.aiClassification === 'exclude'
+                            ? '❌ IA: Excluir'
+                            : '🤔 IA: Revisar'}
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setSelectedReference(reference)}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {reference.status === "pending" && (
+                      {showActions && reference.status === "pending" && (
                         <>
                           <Button
                             size="sm"
@@ -147,7 +207,7 @@ export function ReferenceTable({ references, onStatusChange, onDelete, selectedI
                           </Button>
                         </>
                       )}
-                      {onDelete && (
+                      {showActions && onDelete && (
                         <Button
                           size="sm"
                           variant="ghost"

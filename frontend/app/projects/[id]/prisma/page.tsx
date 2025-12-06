@@ -83,8 +83,34 @@ function generateItemContent(itemId: number, protocolData: any): string {
       }
       return "Método de síntesis basado en matriz Es/No Es"
     
-    case 12: // Diagrama de flujo
-      return "Diagrama PRISMA a generar con resultados de screening"
+    case 12: // Diagrama de flujo PRISMA
+      // Cargar datos reales del cribado si existen
+      if (protocolData.screeningResults && protocolData.screeningResults.summary) {
+        const { processed, included, excluded, phase1, phase2 } = protocolData.screeningResults.summary
+        return `📊 PRISMA Flow Diagram - Datos del Cribado Automático
+
+**Identificación:**
+- Referencias identificadas: ${processed}
+- Duplicados removidos: 0 (pendiente detección)
+
+**Cribado (Fase 1 - Embeddings):**
+- Alta confianza - Incluir: ${phase1?.highConfidenceInclude || 0} (similitud >30%)
+- Alta confianza - Excluir: ${phase1?.highConfidenceExclude || 0} (similitud <10%)
+- Zona gris: ${phase1?.greyZone || 0} (requirió análisis ChatGPT)
+
+**Elegibilidad (Fase 2 - ChatGPT):**
+- Analizadas en zona gris: ${phase2?.analyzed || 0}
+- Tiempo total: ${phase2?.totalTime || 0}s
+- Costo estimado: $${phase2?.estimatedCost || 0}
+
+**Resultados Finales:**
+- ✅ Incluidas: ${included} (${Math.round((included / processed) * 100)}%)
+- ❌ Excluidas: ${excluded} (${Math.round((excluded / processed) * 100)}%)
+- 📋 Para revisión manual: ${protocolData.screeningResults.summary.reviewManual || 0}
+
+Nota: Este diagrama se actualizará automáticamente con cada fase completada.`
+      }
+      return "⏳ Diagrama PRISMA pendiente - Ejecuta el cribado automático en la sección 'Cribado de Referencias' para generar el diagrama de flujo con datos reales."
     
     case 13: // Cumplimiento general
       return "Checklist PRISMA completado - Revisar todos los ítems"

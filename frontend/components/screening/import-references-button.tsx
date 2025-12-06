@@ -7,70 +7,62 @@ import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 
 interface ImportReferencesButtonProps {
-  projectId: string
-  onImportComplete?: (count: number) => void
-  variant?: "default" | "outline" | "ghost" | "secondary"
-  size?: "default" | "sm" | "lg" | "icon"
-  showLabel?: boolean
-  buttonText?: string // Texto personalizable del botón
-  databaseName?: string // Para mostrar en el toast
+  readonly projectId: string
+  readonly onImportSuccess?: () => void
+  readonly variant?: "default" | "outline" | "ghost"
+  readonly size?: "default" | "sm" | "lg"
+  readonly showLabel?: boolean
 }
 
-export function ImportReferencesButton({
-  projectId,
-  onImportComplete,
-  variant = "outline",
-  size = "sm",
-  showLabel = true,
-  buttonText = "Subir",
-  databaseName
-}: ImportReferencesButtonProps) {
+export function ImportReferencesButton({ 
+  projectId, 
+  onImportSuccess,
+  variant = "default",
+  size = "default",
+  showLabel = true
+}: Readonly<ImportReferencesButtonProps>) {
   const { toast } = useToast()
-  const [isImporting, setIsImporting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
-  const handleImport = () => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('files', file)
+
+    setIsUploading(true)
+    try {
+      const result = await apiClient.importReferences(projectId, formData)
+      
+      toast({
+        title: "✅ Referencias importadas",
+        description: `Se importaron ${result.imported || 0} referencias exitosamente`,
+        duration: 3000
+      })
+
+      if (onImportSuccess) {
+        onImportSuccess()
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error al importar referencias",
+        description: error.message || "No se pudieron importar las referencias",
+        variant: "destructive",
+        duration: 5000
+      })
+    } finally {
+      setIsUploading(false)
+      // Limpiar el input para permitir subir el mismo archivo nuevamente
+      e.target.value = ''
+    }
+  }
+
+  const handleClick = () => {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = '.bib,.ris,.csv,.txt,.nbib,.ciw'
-    input.multiple = true
-    input.onchange = async (e) => {
-      const files = (e.target as HTMLInputElement).files
-      if (!files || files.length === 0) return
-
-      setIsImporting(true)
-      try {
-        const formData = new FormData()
-        Array.from(files).forEach(file => {
-          formData.append('files', file)
-        })
-
-        const dbInfo = databaseName ? ` de ${databaseName}` : ''
-        toast({
-          title: "📤 Importando referencias...",
-          description: `Procesando ${files.length} archivo(s)${dbInfo}...`
-        })
-
-        const result = await apiClient.importReferences(projectId, formData)
-
-        toast({
-          title: "✅ Importación exitosa",
-          description: `${result.imported} referencias importadas correctamente${dbInfo}`
-        })
-
-        // Notificar al componente padre
-        if (onImportComplete) {
-          onImportComplete(result.imported)
-        }
-      } catch (error: any) {
-        toast({
-          title: "❌ Error al importar",
-          description: error.message || "No se pudieron importar las referencias",
-          variant: "destructive"
-        })
-      } finally {
-        setIsImporting(false)
-      }
-    }
+    input.accept = '.csv,.ris,.bib'
+    input.onchange = handleFileSelect as any
     input.click()
   }
 
@@ -78,15 +70,20 @@ export function ImportReferencesButton({
     <Button
       variant={variant}
       size={size}
-      onClick={handleImport}
-      disabled={isImporting}
+      onClick={handleClick}
+      disabled={isUploading}
     >
-      {isImporting ? (
-        <Loader2 className={showLabel ? "mr-2 h-4 w-4 animate-spin" : "h-4 w-4 animate-spin"} />
+      {isUploading ? (
+        <>
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          {showLabel && "Importando..."}
+        </>
       ) : (
-        <Upload className={showLabel ? "mr-2 h-4 w-4" : "h-4 w-4"} />
+        <>
+          <Upload className="h-4 w-4 mr-2" />
+          {showLabel && "Importar Referencias"}
+        </>
       )}
-      {showLabel && (isImporting ? "Importando..." : buttonText)}
     </Button>
   )
 }

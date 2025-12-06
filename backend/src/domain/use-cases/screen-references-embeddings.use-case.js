@@ -17,10 +17,13 @@ class ScreenReferencesWithEmbeddingsUseCase {
    */
   async initializeModel() {
     if (!this.model) {
-      console.log(`🔄 Cargando modelo de embeddings: ${this.modelName}...`);
+      console.log(`\n⏳ IMPORTANTE: Cargando modelo de embeddings: ${this.modelName}...`);
+      console.log(`   (Esto puede tardar 30-60 segundos la primera vez)`);
+      const loadStartTime = Date.now();
       try {
         this.model = await pipeline('feature-extraction', this.modelName);
-        console.log('✅ Modelo de embeddings cargado correctamente');
+        const loadDuration = ((Date.now() - loadStartTime) / 1000).toFixed(1);
+        console.log(`✅ Modelo de embeddings cargado correctamente en ${loadDuration}s\n`);
       } catch (error) {
         console.error('❌ Error cargando modelo de embeddings:', error);
         throw new Error(`No se pudo cargar el modelo de embeddings: ${error.message}`);
@@ -101,10 +104,18 @@ Criterios de exclusión: ${exclusionCriteria.join('; ')}
       keywords = []
     } = reference;
 
+    // Convertir keywords a array si es necesario
+    let keywordsArray = [];
+    if (Array.isArray(keywords)) {
+      keywordsArray = keywords;
+    } else if (typeof keywords === 'string') {
+      keywordsArray = keywords.split(',').map(k => k.trim()).filter(k => k);
+    }
+
     return `
 Título: ${title}
 Resumen: ${abstract}
-Palabras clave: ${keywords.join(', ')}
+Palabras clave: ${keywordsArray.join(', ')}
     `.trim();
   }
 
@@ -165,8 +176,10 @@ Palabras clave: ${keywords.join(', ')}
       const startTime = Date.now();
 
       // Generar embedding del protocolo una sola vez
+      console.log(`📝 Generando embedding del protocolo...`);
       const categoryText = this.buildCategoryText(protocol);
       const categoryEmbedding = await this.generateEmbedding(categoryText);
+      console.log(`✅ Embedding del protocolo generado (dimensión: ${categoryEmbedding.length})`);
 
       const results = [];
       let toInclude = 0;
@@ -174,8 +187,15 @@ Palabras clave: ${keywords.join(', ')}
       let totalSimilarity = 0;
 
       // Procesar cada referencia
-      for (const reference of references) {
+      console.log(`🔄 Procesando ${references.length} referencias...`);
+      for (let i = 0; i < references.length; i++) {
+        const reference = references[i];
         try {
+          // Log cada 10 referencias para no saturar
+          if (i % 10 === 0 || i === references.length - 1) {
+            console.log(`   [${i + 1}/${references.length}] Procesando embeddings...`);
+          }
+          
           const referenceText = this.buildReferenceText(reference);
           const referenceEmbedding = await this.generateEmbedding(referenceText);
           const similarity = this.cosineSimilarity(categoryEmbedding, referenceEmbedding);
@@ -282,6 +302,167 @@ Palabras clave: ${keywords.join(', ')}
       console.error('❌ Error generando ranking:', error);
       throw error;
     }
+  }
+
+  /**
+   * Analiza la distribución de similitudes y recomienda punto de corte
+   * Similar al análisis del Colab del docente
+   */
+  async analyzeDistribution({ references, protocol }) {
+    try {
+      console.log(`📊 Analizando distribución de similitudes para ${references.length} referencias...`);
+
+      const categoryText = this.buildCategoryText(protocol);
+      const categoryEmbedding = await this.generateEmbedding(categoryText);
+
+      const similarities = [];
+
+      for (const reference of references) {
+        const referenceText = this.buildReferenceText(reference);
+        const referenceEmbedding = await this.generateEmbedding(referenceText);
+        const similarity = this.cosineSimilarity(categoryEmbedding, referenceEmbedding);
+        
+        similarities.push({
+          referenceId: reference.id,
+          title: reference.title,
+          similarity: parseFloat(similarity.toFixed(4))
+        });
+      }
+
+      // Ordenar por similitud descendente
+      similarities.sort((a, b) => b.similarity - a.similarity);
+
+      // Calcular estadísticas
+      const scores = similarities.map(s => s.similarity);
+      const stats = this.calculateStatistics(scores);
+
+      // Calcular punto de corte recomendado (elbow point)
+      const recommendedCutoff = this.findElbowPoint(scores);
+
+      // Calcular cuántos artículos quedarían con diferentes umbrales
+      const thresholdAnalysis = this.analyzeThresholds(scores);
+
+      console.log('✅ Análisis de distribución completado');
+
+      return {
+        similarities,
+        statistics: stats,
+        recommendedCutoff,
+        thresholdAnalysis,
+        totalReferences: references.length
+      };
+
+    } catch (error) {
+      console.error('❌ Error analizando distribución:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calcula estadísticas descriptivas de los puntajes
+   */
+  calculateStatistics(scores) {
+    if (scores.length === 0) return null;
+
+    const sorted = [...scores].sort((a, b) => a - b);
+    const sum = sorted.reduce((acc, val) => acc + val, 0);
+    
+    return {
+      count: sorted.length,
+      min: parseFloat(sorted[0].toFixed(4)),
+      max: parseFloat(sorted[sorted.length - 1].toFixed(4)),
+      mean: parseFloat((sum / sorted.length).toFixed(4)),
+      median: this.calculatePercentile(sorted, 50),
+      percentile50: this.calculatePercentile(sorted, 50), // Alias para compatibilidad
+      percentile25: this.calculatePercentile(sorted, 25),
+      percentile75: this.calculatePercentile(sorted, 75),
+      percentile90: this.calculatePercentile(sorted, 90),
+      percentile95: this.calculatePercentile(sorted, 95),
+      stdDev: this.calculateStdDev(sorted, sum / sorted.length)
+    };
+  }
+
+  /**
+   * Calcula un percentil específico
+   */
+  calculatePercentile(sortedArray, percentile) {
+    const index = (percentile / 100) * (sortedArray.length - 1);
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    const weight = index % 1;
+
+    if (lower === upper) {
+      return parseFloat(sortedArray[lower].toFixed(4));
+    }
+
+    return parseFloat(
+      (sortedArray[lower] * (1 - weight) + sortedArray[upper] * weight).toFixed(4)
+    );
+  }
+
+  /**
+   * Calcula desviación estándar
+   */
+  calculateStdDev(values, mean) {
+    const squareDiffs = values.map(value => Math.pow(value - mean, 2));
+    const avgSquareDiff = squareDiffs.reduce((acc, val) => acc + val, 0) / values.length;
+    return parseFloat(Math.sqrt(avgSquareDiff).toFixed(4));
+  }
+
+  /**
+   * Encuentra el punto de inflexión (elbow point) en la distribución
+   * Usa el método de la segunda derivada
+   */
+  findElbowPoint(sortedScoresDesc) {
+    if (sortedScoresDesc.length < 10) {
+      // Para datasets pequeños, usar percentil 75
+      const threshold = this.calculatePercentile(sortedScoresDesc, 75);
+      const elbowIndex = sortedScoresDesc.findIndex(s => s <= threshold);
+      
+      return {
+        threshold: parseFloat(threshold.toFixed(4)),
+        position: elbowIndex,
+        percentageOfTotal: parseFloat(((elbowIndex / sortedScoresDesc.length) * 100).toFixed(1)),
+        articlesToReview: elbowIndex + 1
+      };
+    }
+
+    // Calcular la segunda derivada (aceleración de la caída)
+    const derivatives = [];
+    for (let i = 1; i < sortedScoresDesc.length - 1; i++) {
+      const secondDerivative = sortedScoresDesc[i - 1] - 2 * sortedScoresDesc[i] + sortedScoresDesc[i + 1];
+      derivatives.push({ index: i, value: secondDerivative });
+    }
+
+    // Encontrar el punto con mayor aceleración (mayor segunda derivada)
+    derivatives.sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+    const elbowIndex = derivatives[0]?.index || Math.floor(sortedScoresDesc.length * 0.25);
+
+    return {
+      threshold: parseFloat(sortedScoresDesc[elbowIndex].toFixed(4)),
+      position: elbowIndex,
+      percentageOfTotal: parseFloat(((elbowIndex / sortedScoresDesc.length) * 100).toFixed(1)),
+      articlesToReview: elbowIndex + 1
+    };
+  }
+
+  /**
+   * Analiza cuántos artículos quedarían con diferentes umbrales
+   */
+  analyzeThresholds(sortedScoresDesc) {
+    const thresholds = [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8];
+    
+    return thresholds.map(threshold => {
+      const included = sortedScoresDesc.filter(s => s >= threshold).length;
+      const excluded = sortedScoresDesc.length - included;
+      
+      return {
+        threshold: parseFloat(threshold.toFixed(2)),
+        included,
+        excluded,
+        inclusionRate: parseFloat(((included / sortedScoresDesc.length) * 100).toFixed(1))
+      };
+    });
   }
 }
 

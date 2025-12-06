@@ -9,12 +9,19 @@ import { AIScreeningPanel } from "@/components/screening/ai-screening-panel"
 import { BulkActionsBar } from "@/components/screening/bulk-actions-bar"
 import { ScreeningFilters } from "@/components/screening/screening-filters"
 import { IndividualReview } from "@/components/screening/individual-review"
+import { IndividualReviewEnhanced } from "@/components/screening/individual-review-enhanced"
+import { DuplicateDetectionDialog } from "@/components/screening/duplicate-detection-dialog"
+import { HybridScreeningStats } from "@/components/screening/hybrid-screening-stats"
+import { ClassifiedReferencesView } from "@/components/screening/classified-references-view"
+import { ExclusionReasonsTable } from "@/components/screening/exclusion-reasons-table"
+import { PrismaFlowDiagram } from "@/components/screening/prisma-flow-diagram"
+import { FullTextReview } from "@/components/screening/full-text-review"
 import { apiClient } from "@/lib/api-client"
 import type { Reference } from "@/lib/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileDown, Loader2, AlertCircle, ClipboardCheck, ExternalLink, Database, Copy, Trash2, CheckCircle2 } from "lucide-react"
+import { FileDown, Loader2, AlertCircle, ClipboardCheck, ExternalLink, Database, Copy, Trash2, CheckCircle2, Brain } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ScreeningPage({ params }: { params: { id: string } }) {
@@ -23,11 +30,12 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
   const [references, setReferences] = useState<Reference[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState("all")
+  const [methodFilter, setMethodFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
-  const [activeTab, setActiveTab] = useState<"manual" | "rayyan">("manual")
+  const [activeTab, setActiveTab] = useState<"fase1" | "fase2" | "fase3" | "exclusiones" | "prisma">("fase1")
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -39,6 +47,10 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
   const [keyTerms, setKeyTerms] = useState<any>(null)
   const [duplicatesStats, setDuplicatesStats] = useState<any>(null)
   const [isDetectingDuplicates, setIsDetectingDuplicates] = useState(false)
+  const [duplicateGroups, setDuplicateGroups] = useState<any[]>([])
+  const [showDuplicatesDialog, setShowDuplicatesDialog] = useState(false)
+  const [lastScreeningResult, setLastScreeningResult] = useState<any>(null)
+  const [fase2Unlocked, setFase2Unlocked] = useState(false)
 
   // Cargar referencias del proyecto y protocolo (search queries)
   useEffect(() => {
@@ -46,12 +58,14 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
       setIsLoading(true)
       setError(null)
       try {
-        // Cargar referencias
-        const refData = await apiClient.getReferences(params.id)
+        // Cargar TODAS las referencias (sin límite de paginación para screening)
+        console.log('🔄 Cargando TODAS las referencias del proyecto...')
+        const refData = await apiClient.getAllReferences(params.id)
+        console.log(`✅ Referencias cargadas: ${refData.references?.length || 0}`)
         setReferences(refData.references || [])
         setStats(refData.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
 
-        // Cargar protocolo para obtener search queries y keyTerms
+        // Cargar protocolo para obtener search queries, keyTerms y resultados de cribado
         try {
           const protocol = await apiClient.getProtocol(params.id)
           if (protocol?.searchPlan?.searchQueries) {
@@ -59,6 +73,18 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
           }
           if (protocol?.keyTerms) {
             setKeyTerms(protocol.keyTerms)
+          }
+          if (protocol?.screeningResults) {
+            // Validar que tenga el formato correcto con phase1 y phase2
+            if (protocol.screeningResults.summary?.phase1 && protocol.screeningResults.summary?.phase2) {
+              setLastScreeningResult(protocol.screeningResults)
+            } else {
+              console.warn('Resultados de screening en formato antiguo, se ignorarán:', protocol.screeningResults)
+              setLastScreeningResult(null)
+            }
+          }
+          if (protocol?.fase2Unlocked) {
+            setFase2Unlocked(protocol.fase2Unlocked)
           }
         } catch (protocolErr) {
           console.log("No se pudo cargar el protocolo (probablemente no existe aún)")
@@ -73,10 +99,22 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
     loadData()
   }, [params.id])
 
-  const handleStatusChange = async (id: string, status: Reference["status"]) => {
+  // Función para recargar solo las referencias (útil después de subir PDFs)
+  const reloadReferences = async () => {
     try {
-      await apiClient.updateReferenceStatus(id, { status })
-      setReferences((prev) => prev.map((ref) => (ref.id === id ? { ...ref, status } : ref)))
+      const refData = await apiClient.getAllReferences(params.id)
+      setReferences(refData.references || [])
+      setStats(refData.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
+      console.log('🔄 Referencias recargadas:', refData.references?.length)
+    } catch (err) {
+      console.error('Error recargando referencias:', err)
+    }
+  }
+
+  const handleStatusChange = async (id: string, status: Reference["status"], exclusionReason?: string) => {
+    try {
+      await apiClient.updateReferenceStatus(id, { status, exclusionReason })
+      setReferences((prev) => prev.map((ref) => (ref.id === id ? { ...ref, status, exclusionReason } : ref)))
       
       // Actualizar stats
       setStats(prev => {
@@ -99,6 +137,7 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
       toast({ title: "Estado actualizado", description: `Referencia marcada como ${status}` })
     } catch (error) {
       toast({ title: "Error", description: "No se pudo actualizar el estado", variant: "destructive" })
+      throw error // Re-throw para que el componente pueda manejarlo
     }
   }
 
@@ -253,25 +292,29 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
     setIsDetectingDuplicates(true)
     try {
       toast({
-        title: "Detectando duplicados...",
+        title: "🔍 Detectando duplicados...",
         description: "Analizando referencias para encontrar duplicados"
       })
 
       const result = await apiClient.detectDuplicates(params.id)
       setDuplicatesStats(result.stats)
+      setDuplicateGroups(result.groups || [])
 
-      // Recargar referencias para reflejar los cambios
-      const data = await apiClient.getReferences(params.id)
-      setReferences(data.references || [])
-      setStats(data.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
-
-      toast({
-        title: "✅ Detección completada",
-        description: `Se encontraron ${result.stats.duplicates} duplicados en ${result.stats.duplicateGroups} grupos`
-      })
+      if (result.groups && result.groups.length > 0) {
+        setShowDuplicatesDialog(true)
+        toast({
+          title: "✅ Detección completada",
+          description: `Se encontraron ${result.stats.duplicates} duplicados en ${result.stats.duplicateGroups} grupos`
+        })
+      } else {
+        toast({
+          title: "✅ Sin duplicados",
+          description: "No se encontraron referencias duplicadas",
+        })
+      }
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: error.message || "No se pudieron detectar duplicados",
         variant: "destructive"
       })
@@ -280,52 +323,115 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
     }
   }
 
+  const handleKeepReference = async (groupId: string, referenceId: string) => {
+    try {
+      await apiClient.resolveDuplicateGroup(params.id, groupId, referenceId)
+      
+      // Recargar referencias
+      const data = await apiClient.getReferences(params.id)
+      setReferences(data.references || [])
+      setStats(data.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
+      
+      // Remover el grupo resuelto de la lista
+      setDuplicateGroups(prev => prev.filter(g => g.id !== groupId))
+      
+      // Si no quedan más grupos, cerrar el diálogo
+      if (duplicateGroups.length <= 1) {
+        setShowDuplicatesDialog(false)
+      }
+    } catch (error: any) {
+      throw new Error(error.message || "No se pudo resolver el grupo de duplicados")
+    }
+  }
+
   const handleRunScreening = async (threshold: number, method: 'embeddings' | 'llm', llmProvider?: 'gemini' | 'chatgpt') => {
     try {
       const pending = references.filter(r => r.status === 'pending')
-      if (pending.length === 0) {
+      const totalRefs = references.length
+      
+      // Permitir re-ejecución incluso si no hay pendientes
+      if (totalRefs === 0) {
         toast({ 
-          title: "Sin referencias pendientes", 
-          description: "Todas las referencias ya han sido evaluadas", 
+          title: "Sin referencias", 
+          description: "No hay referencias para analizar", 
           variant: "destructive" 
         })
         return
       }
 
-      const methodName = method === 'embeddings' ? 'Embeddings' : (llmProvider === 'gemini' ? 'Gemini' : 'ChatGPT')
+      const methodName = method === 'embeddings' ? 'Híbrido (Embeddings + ChatGPT)' : (llmProvider === 'gemini' ? 'Gemini' : 'ChatGPT')
+      const isRerun = pending.length === 0 && totalRefs > 0
+      
       toast({ 
-        title: "Ejecutando cribado...", 
-        description: `Analizando ${pending.length} referencias con ${methodName}` 
+        title: isRerun ? "Re-ejecutando cribado..." : "Ejecutando cribado...", 
+        description: `Analizando ${totalRefs} referencias con ${methodName}` 
       })
 
       if (method === 'embeddings') {
+        // Método HÍBRIDO: Embeddings + ChatGPT para zona gris
+        console.log(`🚀 Iniciando cribado híbrido para ${totalRefs} referencias...`)
         const result = await apiClient.runScreeningEmbeddings(params.id, { threshold })
-        const updatedRefs = result.results.map(r => ({
-          ...references.find(ref => ref.id === r.referenceId)!,
-          status: r.decision as Reference["status"],
-          score: r.similarity
-        }))
-        setReferences(prev => prev.map(ref => updatedRefs.find(u => u.id === ref.id) || ref))
         
-        const toInclude = updatedRefs.filter(r => r.status === 'included').length
-        const toExclude = updatedRefs.filter(r => r.status === 'excluded').length
-        toast({ 
-          title: "Cribado completado", 
-          description: `${toInclude} incluidas, ${toExclude} excluidas con ${methodName}` 
-        })
+        if (result.success && result.summary) {
+          console.log('📊 Resultado del cribado recibido:', result)
+          
+          // Validar formato antes de guardar
+          if (!result.summary.phase1 || !result.summary.phase2) {
+            console.error('❌ Error: resultado sin phase1 o phase2', result)
+            throw new Error('Formato de respuesta del backend inválido')
+          }
+          
+          // Guardar resultado para mostrar estadísticas
+          setLastScreeningResult(result)
+          
+          // Persistir resultados en el protocolo para que no se pierdan
+          try {
+            const protocol = await apiClient.getProtocol(params.id)
+            if (protocol) {
+              await apiClient.updateProtocol(params.id, {
+                ...protocol,
+                screeningResults: result
+              })
+            }
+          } catch (err) {
+            console.warn('No se pudieron guardar los resultados en el protocolo:', err)
+          }
+          
+          // Recargar TODAS las referencias para obtener los resultados actualizados
+          const refData = await apiClient.getAllReferences(params.id)
+          setReferences(refData.references || [])
+          setStats(refData.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
+          
+          const { included, excluded, reviewManual, phase1, phase2 } = result.summary
+          
+          toast({ 
+            title: "✅ Cribado híbrido completado", 
+            description: `Fase 1 (Embeddings): ${phase1.highConfidenceInclude} incluidas, ${phase1.highConfidenceExclude} excluidas
+Fase 2 (ChatGPT): ${phase2.analyzed} analizadas en zona gris
+Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${reviewManual} para revisión manual` : ''}`,
+            duration: 8000
+          })
+        } else {
+          throw new Error('Formato de respuesta inválido')
+        }
       } else {
         const result = await apiClient.runScreeningLLM(params.id, { llmProvider: llmProvider! })
-        setReferences(prev => prev.map(ref => {
-          const updated = result.results.find(r => r.referenceId === ref.id)
-          return updated ? { ...ref, status: updated.decision as Reference["status"] } : ref
-        }))
         
-        const toInclude = result.results.filter(r => r.decision === 'included').length
-        const toExclude = result.results.filter(r => r.decision === 'excluded').length
-        toast({ 
-          title: "Cribado completado", 
-          description: `${toInclude} incluidas, ${toExclude} excluidas con ${methodName}` 
-        })
+        if (result.results) {
+          setReferences(prev => prev.map(ref => {
+            const updated = result.results.find(r => r.referenceId === ref.id)
+            return updated ? { ...ref, status: updated.decision as Reference["status"] } : ref
+          }))
+          
+          const toInclude = result.results.filter(r => r.decision === 'included').length
+          const toExclude = result.results.filter(r => r.decision === 'excluded').length
+          toast({ 
+            title: "Cribado completado", 
+            description: `${toInclude} incluidas, ${toExclude} excluidas con ${methodName}` 
+          })
+        } else {
+          throw new Error('Formato de respuesta inválido')
+        }
       }
 
     } catch (error: any) {
@@ -376,16 +482,39 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
   }
 
   // Filter references
-
-  // Filter references
   const filteredReferences = references.filter((ref) => {
     const matchesStatus = statusFilter === "all" || ref.status === statusFilter
+    
+    // Filtro por método de clasificación
+    let matchesMethod = true
+    if (methodFilter !== 'all' && ref.aiReasoning) {
+      const reasoning = ref.aiReasoning.toLowerCase()
+      if (methodFilter === 'embeddings') {
+        // Solo embeddings (no tiene ChatGPT)
+        matchesMethod = reasoning.includes('embeddings') && !reasoning.includes('chatgpt')
+      } else if (methodFilter === 'chatgpt') {
+        // Solo ChatGPT (no tiene solo embeddings)
+        matchesMethod = reasoning.includes('chatgpt') && !reasoning.includes('embeddings')
+      } else if (methodFilter === 'hybrid') {
+        // Híbrido (tiene ambos)
+        matchesMethod = reasoning.includes('embeddings') && reasoning.includes('chatgpt')
+      } else if (methodFilter === 'manual') {
+        // Manual (no tiene razonamiento de IA)
+        matchesMethod = !ref.aiReasoning || ref.aiReasoning === ''
+      }
+    } else if (methodFilter === 'manual') {
+      matchesMethod = !ref.aiReasoning || ref.aiReasoning === ''
+    }
+    
     const matchesSearch =
       searchQuery === "" ||
       ref.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ref.authors.some((author) => author.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      ref.abstract.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesStatus && matchesSearch
+      (Array.isArray(ref.authors) 
+        ? ref.authors.some((author) => author.toLowerCase().includes(searchQuery.toLowerCase()))
+        : (ref.authors || '').toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (ref.abstract || '').toLowerCase().includes(searchQuery.toLowerCase())
+    
+    return matchesStatus && matchesMethod && matchesSearch
   })
 
   // Loading state
@@ -629,78 +758,498 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
             </Card>
           )}
 
-          {/* Tabs para diferentes modos de cribado */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "manual" | "rayyan")} className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="manual" className="flex items-center gap-2">
-                <ClipboardCheck className="h-4 w-4" />
-                Cribado Manual
+          {/* Tabs de Fases del Cribado */}
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-5 h-auto">
+              <TabsTrigger value="fase1" className="flex flex-col items-center gap-1 py-3">
+                <div className="flex items-center gap-2">
+                  <Brain className="h-4 w-4" />
+                  <span className="font-semibold">Fase 1</span>
+                </div>
+                <span className="text-xs text-muted-foreground">Clasificación IA</span>
               </TabsTrigger>
-              <TabsTrigger value="rayyan" className="flex items-center gap-2">
-                <ExternalLink className="h-4 w-4" />
-                Revisión Individual
+              <TabsTrigger value="fase2" className="flex flex-col items-center gap-1 py-3">
+                <div className="flex items-center gap-2">
+                  <ClipboardCheck className="h-4 w-4" />
+                  <span className="font-semibold">Fase 2</span>
+                </div>
+                <span className="text-xs text-muted-foreground">Revisión Manual</span>
+              </TabsTrigger>
+              <TabsTrigger value="fase3" className="flex flex-col items-center gap-1 py-3">
+                <div className="flex items-center gap-2">
+                  <FileDown className="h-4 w-4" />
+                  <span className="font-semibold">Fase 3</span>
+                </div>
+                <span className="text-xs text-muted-foreground">Texto Completo</span>
+              </TabsTrigger>
+              <TabsTrigger value="exclusiones" className="flex flex-col items-center gap-1 py-3">
+                <div className="flex items-center gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  <span className="font-semibold">Exclusiones</span>
+                </div>
+                <span className="text-xs text-muted-foreground">Motivos</span>
+              </TabsTrigger>
+              <TabsTrigger value="prisma" className="flex flex-col items-center gap-1 py-3">
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  <span className="font-semibold">PRISMA</span>
+                </div>
+                <span className="text-xs text-muted-foreground">Diagrama</span>
               </TabsTrigger>
             </TabsList>
 
-            {/* Tab de Cribado Manual */}
-            <TabsContent value="manual" className="space-y-6">
-              <div className="grid lg:grid-cols-3 gap-6">
-                {/* Main Content */}
-                <div className="lg:col-span-2 space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Referencias</CardTitle>
-                      <CardDescription>
-                        {filteredReferences.length} de {references.length} referencias
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <ScreeningFilters
-                        statusFilter={statusFilter}
-                        onStatusFilterChange={setStatusFilter}
-                        searchQuery={searchQuery}
-                        onSearchQueryChange={setSearchQuery}
-                      />
-                      <ReferenceTable
-                        references={filteredReferences}
-                        onStatusChange={handleStatusChange}
+            {/* FASE 1: Clasificación Automática con IA */}
+            <TabsContent value="fase1" className="space-y-6">
+              {/* Panel de IA en un solo cuerpo */}
+              <AIScreeningPanel
+                totalReferences={stats.total}
+                pendingReferences={stats.pending}
+                projectId={params.id}
+                onRunScreening={handleRunScreening}
+              />
+              
+              {lastScreeningResult && (
+                <HybridScreeningStats result={lastScreeningResult} />
+              )}
+
+              {/* Tabla de Referencias */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5" />
+                    Todas las Referencias ({references.length})
+                  </CardTitle>
+                  <CardDescription>
+                    Ejecuta el cribado automático para que la IA clasifique todas tus referencias
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ScreeningFilters
+                    statusFilter={statusFilter}
+                    onStatusFilterChange={setStatusFilter}
+                    searchQuery={searchQuery}
+                    onSearchQueryChange={setSearchQuery}
+                    methodFilter={methodFilter}
+                    onMethodFilterChange={setMethodFilter}
+                  />
+                  
+                  <ReferenceTable
+                    references={filteredReferences}
+                    onStatusChange={handleStatusChange}
                         onDelete={handleDeleteReference}
                         selectedIds={selectedIds}
                         onSelectionChange={setSelectedIds}
+                        showActions={false}
+                        enableSelection={false}
                       />
                     </CardContent>
                   </Card>
-                </div>
 
-                {/* Sidebar */}
-                <div className="space-y-4">
-                  <AIScreeningPanel
-                    totalReferences={stats.total}
-                    pendingReferences={stats.pending}
-                    onRunScreening={handleRunScreening}
-                  />
-                </div>
-              </div>
+              {lastScreeningResult && (
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle>📊 Resultados de la Clasificación</CardTitle>
+                    <CardDescription>
+                      Referencias organizadas por método de clasificación
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ClassifiedReferencesView 
+                      references={references.filter(r => r.aiReasoning || r.aiClassification || r.screeningScore !== undefined)} 
+                    />
+                    
+                    <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-2 border-dashed">
+                      <div className="flex items-start gap-4">
+                        <CheckCircle2 className="h-10 w-10 text-green-600 flex-shrink-0 mt-1" />
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-lg mb-2">✅ Clasificación Automática Completada</h4>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            La IA ha clasificado {lastScreeningResult.summary.processed} referencias. Las referencias que necesitan tu revisión están listas en la Fase 2.
+                          </p>
+                          <Button onClick={() => {
+                            setFase2Unlocked(true)
+                            setActiveTab("fase2")
+                            // Guardar en el protocolo
+                            apiClient.getProtocol(params.id).then(protocol => {
+                              if (protocol) {
+                                apiClient.updateProtocol(params.id, { ...protocol, fase2Unlocked: true })
+                              }
+                            }).catch(err => console.warn('No se pudo actualizar el protocolo:', err))
+                          }} size="lg">
+                            Continuar a Fase 2: Revisión Manual →
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
-            {/* Tab de Revisión Individual */}
-            <TabsContent value="rayyan" className="space-y-6">
-              <IndividualReview
-                references={references}
-                keyTerms={keyTerms}
-                onStatusChange={handleStatusChange}
-              />
+            {/* FASE 2: Revisión Manual */}
+            <TabsContent value="fase2" className="space-y-6">
+              {(() => {
+                // Verificar si se ha ejecutado el cribado de Fase 1
+                const hasAIClassification = references.some(r => r.aiClassification)
+                
+                // Solo mostrar referencias que NECESITAN revisión manual:
+                // 1. Las que la IA recomendó INCLUIR (para confirmar)
+                // 2. Las que están en duda/revisar
+                // NO mostrar las que la IA ya excluyó automáticamente
+                const referencesForReview = references.filter(r => 
+                  r.aiClassification === 'include' || 
+                  r.aiClassification === 'review'
+                )
+                
+                const reviewFilteredRefs = referencesForReview.filter((ref) => {
+                  const matchesStatus = statusFilter === "all" || ref.status === statusFilter
+                  const matchesSearch =
+                    searchQuery === "" ||
+                    ref.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    ref.authors.some((author) => author.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    ref.abstract.toLowerCase().includes(searchQuery.toLowerCase())
+                  return matchesStatus && matchesSearch
+                })
+
+                // Si no hay clasificación de IA O no se ha desbloqueado Fase 2, mostrar mensaje
+                if (!hasAIClassification || !fase2Unlocked) {
+                  return (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ClipboardCheck className="h-5 w-5 text-blue-600" />
+                          Referencias para Revisión Manual
+                        </CardTitle>
+                        <CardDescription>
+                          Revisa manualmente las referencias clasificadas por la IA para confirmar inclusiones
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">
+                            {!hasAIClassification ? 'No hay referencias clasificadas aún' : 'Fase 2 bloqueada'}
+                          </h3>
+                          <p className="text-sm text-muted-foreground max-w-md mb-6">
+                            {!hasAIClassification 
+                              ? 'Primero debes completar la Fase 1: Clasificación IA para obtener referencias clasificadas que requieran revisión manual.'
+                              : 'Debes hacer clic en el botón "Continuar a Fase 2" al final de la Fase 1 para desbloquear esta fase.'
+                            }
+                          </p>
+                          <Button
+                            variant="outline"
+                            onClick={() => setActiveTab('fase1')}
+                          >
+                            ← Volver a Fase 1
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                }
+
+                return (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <ClipboardCheck className="h-5 w-5 text-blue-600" />
+                            Referencias para Revisión Manual
+                          </CardTitle>
+                          <CardDescription className="mt-2">
+                            Revisa las {referencesForReview.length} referencias que la IA recomendó <strong>incluir</strong> o que están en <strong>duda</strong>. Las excluidas automáticamente no requieren tu revisión.
+                          </CardDescription>
+                        </div>
+                        {referencesForReview.length === 0 && (
+                          <Badge variant="secondary" className="text-sm px-3 py-1">
+                            Ejecuta el cribado en Fase 1
+                          </Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {referencesForReview.length > 0 ? (
+                        <>
+                          <div className="grid grid-cols-3 gap-4 mb-6">
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                              <p className="text-sm text-green-700 mb-1">🤖 IA Recomendó: Incluir</p>
+                              <p className="text-2xl font-bold text-green-900">
+                                {referencesForReview.filter(r => r.aiClassification === 'include').length}
+                              </p>
+                              <p className="text-xs text-green-600 mt-1">Confirma o ajusta la decisión</p>
+                            </div>
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                              <p className="text-sm text-yellow-700 mb-1">⚠️ IA Sugiere: Revisar</p>
+                              <p className="text-2xl font-bold text-yellow-900">
+                                {referencesForReview.filter(r => r.aiClassification === 'review').length}
+                              </p>
+                              <p className="text-xs text-yellow-600 mt-1">Requiere tu evaluación manual</p>
+                            </div>
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <p className="text-sm text-blue-700 mb-1">🔵 Sin clasificar</p>
+                              <p className="text-2xl font-bold text-blue-900">
+                                {referencesForReview.filter(r => !r.aiClassification).length}
+                              </p>
+                              <p className="text-xs text-blue-600 mt-1">Pendiente de análisis</p>
+                            </div>
+                          </div>
+
+                          <ScreeningFilters
+                            statusFilter={statusFilter}
+                            onStatusFilterChange={setStatusFilter}
+                            searchQuery={searchQuery}
+                            onSearchQueryChange={setSearchQuery}
+                            methodFilter={methodFilter}
+                            onMethodFilterChange={setMethodFilter}
+                          />
+                          
+                          <ReferenceTable
+                            references={reviewFilteredRefs}
+                            onStatusChange={handleStatusChange}
+                            onDelete={handleDeleteReference}
+                            selectedIds={selectedIds}
+                            onSelectionChange={setSelectedIds}
+                            showActions={false}
+                          />
+
+                          {referencesForReview.every(r => r.status !== 'pending') && (
+                            <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-dashed">
+                              <div className="flex items-start gap-4">
+                                <CheckCircle2 className="h-10 w-10 text-green-600 flex-shrink-0 mt-1" />
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-lg mb-2">✅ Revisión Manual Completada</h4>
+                                  <p className="text-sm text-muted-foreground mb-4">
+                                    Has revisado todas las referencias. Ahora puedes pasar a la Fase 3 para analizar el texto completo de los artículos incluidos.
+                                  </p>
+                                  <Button onClick={() => setActiveTab("fase3")} size="lg">
+                                    Continuar a Fase 3: Análisis Texto Completo →
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No hay referencias para revisar</h3>
+                          <p className="text-sm text-muted-foreground max-w-md mb-6">
+                            Primero debes ejecutar el cribado automático en la <strong>Fase 1</strong> para que la IA clasifique tus referencias.
+                          </p>
+                          <Button onClick={() => setActiveTab("fase1")} variant="outline">
+                            ← Volver a Fase 1
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })()}
             </TabsContent>
+
+            {/* FASE 3: Análisis de Texto Completo */}
+            <TabsContent value="fase3" className="space-y-6">
+              {(() => {
+                const includedReferences = references.filter(r => r.status === 'included')
+                
+                return (
+                  <div className="space-y-6">
+                    {/* Stats Card */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <Card className="border-2 border-green-200 bg-green-50">
+                        <CardHeader className="pb-3">
+                          <CardDescription className="text-green-700">Artículos Incluidos</CardDescription>
+                          <CardTitle className="text-3xl text-green-900">{includedReferences.length}</CardTitle>
+                        </CardHeader>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardDescription>Con PDF Cargado</CardDescription>
+                          <CardTitle className="text-3xl">0</CardTitle>
+                        </CardHeader>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardDescription>Datos Extraídos</CardDescription>
+                          <CardTitle className="text-3xl">0</CardTitle>
+                        </CardHeader>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardDescription>Revisión Completa</CardDescription>
+                          <CardTitle className="text-3xl">0</CardTitle>
+                        </CardHeader>
+                      </Card>
+                    </div>
+
+                    {/* Main Card */}
+                    {includedReferences.length > 0 ? (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileDown className="h-5 w-5 text-purple-600" />
+                            Análisis de Texto Completo
+                          </CardTitle>
+                          <CardDescription>
+                            Revisa y extrae datos de los {includedReferences.length} artículos incluidos después del cribado
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          {/* Sección: Próximos pasos */}
+                          <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-8 border-2 border-dashed border-purple-200">
+                            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                              <FileDown className="h-6 w-6 text-purple-600" />
+                              Flujo de Análisis de Texto Completo
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <div className="bg-white rounded-lg p-6 shadow-sm">
+                                <div className="bg-purple-100 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                                  <FileDown className="h-6 w-6 text-purple-600" />
+                                </div>
+                                <h4 className="font-semibold mb-2">1. Carga de PDFs</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Sube los artículos completos de cada referencia incluida
+                                </p>
+                              </div>
+                              <div className="bg-white rounded-lg p-6 shadow-sm">
+                                <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                                  <Brain className="h-6 w-6 text-blue-600" />
+                                </div>
+                                <h4 className="font-semibold mb-2">2. Análisis IA</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Extracción automática de datos relevantes del texto completo
+                                </p>
+                              </div>
+                              <div className="bg-white rounded-lg p-6 shadow-sm">
+                                <div className="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                                  <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                </div>
+                                <h4 className="font-semibold mb-2">3. Síntesis</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Genera la revisión sistemática con resultados extraídos
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Lista de referencias incluidas con carga de PDFs */}
+                          <FullTextReview 
+                            references={includedReferences}
+                            projectId={params.id}
+                            onReferencesChange={reloadReferences}
+                          />
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileDown className="h-5 w-5 text-purple-600" />
+                            Análisis de Texto Completo
+                          </CardTitle>
+                          <CardDescription>
+                            Revisa y extrae datos de los artículos incluidos después del cribado
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No hay artículos incluidos aún</h3>
+                            <p className="text-sm text-muted-foreground max-w-md mb-6">
+                              Primero debes completar la <strong>Fase 2: Revisión Manual</strong> para confirmar los artículos que serán incluidos en tu revisión sistemática.
+                            </p>
+                            <Button onClick={() => setActiveTab("fase2")} variant="outline">
+                              ← Volver a Fase 2
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )
+              })()}
+            </TabsContent>
+
+            {/* PESTAÑA: Tabla de Exclusiones */}
+            <TabsContent value="exclusiones" className="space-y-6">
+              <ExclusionReasonsTable references={references} />
+            </TabsContent>
+
+            {/* PESTAÑA: Diagrama PRISMA */}
+            <TabsContent value="prisma" className="space-y-6">
+              {(() => {
+                // Calcular estadísticas PRISMA desde las referencias reales
+                const totalRefs = references.length
+                const classifiedRefs = references.filter(r => r.aiClassification)
+                const excludedByAI = references.filter(r => r.aiClassification === 'exclude')
+                const excludedManual = references.filter(r => r.status === 'excluded' && r.aiClassification !== 'exclude')
+                const includedRefs = references.filter(r => r.status === 'included')
+                
+                // Calcular referencias procesadas en Fase 1 (las que tienen clasificación de IA)
+                const screenedInPhase1 = classifiedRefs.length
+                const excludedInPhase1 = excludedByAI.length
+                
+                // Referencias que pasaron a Fase 2 (incluidas por IA o en revisión)
+                const passedToPhase2 = references.filter(r => 
+                  r.aiClassification === 'include' || r.aiClassification === 'review'
+                ).length
+                
+                const prismaStats = {
+                  identified: totalRefs,
+                  duplicates: 0, // TODO: Implementar detección de duplicados
+                  afterDedup: totalRefs,
+                  screenedTitleAbstract: screenedInPhase1 > 0 ? screenedInPhase1 : totalRefs,
+                  excludedTitleAbstract: excludedInPhase1,
+                  fullTextAssessed: includedRefs.length,
+                  excludedFullText: excludedManual.length,
+                  includedFinal: includedRefs.length
+                }
+
+                return (
+                  <div className="space-y-6">
+                    <PrismaFlowDiagram stats={prismaStats} />
+                    
+                    {lastScreeningResult && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Detalles del Cribado Automático</CardTitle>
+                          <CardDescription>
+                            Resultados del análisis híbrido (Embeddings + ChatGPT)
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <HybridScreeningStats result={lastScreeningResult} />
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )
+              })()}
+            </TabsContent>
+
           </Tabs>
         </div>
       </main>
 
-      <BulkActionsBar
-        selectedCount={selectedIds.length}
-        onIncludeAll={handleBulkInclude}
-        onExcludeAll={handleBulkExclude}
-        onDeleteAll={handleBulkDelete}
-        onClearSelection={() => setSelectedIds([])}
+      {/* Barra de acciones masivas - Solo en Fase 2 y Fase 3 */}
+      {(activeTab === "fase2" || activeTab === "fase3") && (
+        <BulkActionsBar
+          selectedCount={selectedIds.length}
+          onIncludeAll={handleBulkInclude}
+          onExcludeAll={handleBulkExclude}
+          onDeleteAll={handleBulkDelete}
+          onClearSelection={() => setSelectedIds([])}
+        />
+      )}
+
+      {/* Diálogo de Duplicados */}
+      <DuplicateDetectionDialog
+        open={showDuplicatesDialog}
+        onOpenChange={setShowDuplicatesDialog}
+        duplicateGroups={duplicateGroups}
+        onKeepReference={handleKeepReference}
+        isProcessing={isDetectingDuplicates}
       />
     </div>
   )

@@ -11,6 +11,7 @@ import { Loader2, Sparkles, Brain, Zap, Save, BookOpen, Target, Search, Plus, X,
 import { aiService, type AIProvider } from "@/lib/ai-service"
 import { apiClient } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
+import { ImportReferencesButton } from "@/components/screening/import-references-button"
 
 interface ProtocolWizardProps {
   projectId: string
@@ -281,6 +282,20 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
               <CardDescription>El sistema analizará tu propuesta y generará un protocolo PRISMA/Cochrane completo</CardDescription>
             </div>
             <div className="flex items-center gap-4">
+              {/* Botón para importar referencias */}
+              <ImportReferencesButton 
+                projectId={projectId}
+                variant="outline"
+                size="sm"
+                onImportSuccess={() => {
+                  toast({
+                    title: "✅ Referencias cargadas",
+                    description: "Las referencias están listas para el cribado",
+                    duration: 3000
+                  })
+                }}
+              />
+              
               {!showAIPanel && (
                 <Button 
                   variant="outline" 

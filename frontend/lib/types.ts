@@ -47,4 +47,11 @@ export interface Reference {
   reviewedBy?: string
   reviewedAt?: Date
   notes?: string
+  fullTextAvailable?: boolean
+  fullTextUrl?: string
+  aiClassification?: string
+  aiReasoning?: string
+  aiConfidenceScore?: number
+  screeningStatus?: string // 'pending', 'phase1_included', 'phase1_excluded', 'phase2_included', 'phase2_excluded', 'fulltext_included', 'fulltext_excluded'
+  exclusionReason?: string
 }

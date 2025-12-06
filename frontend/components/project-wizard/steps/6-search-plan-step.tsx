@@ -63,7 +63,6 @@ export function SearchPlanStep() {
   const [queries, setQueries] = useState<any[]>(data.searchPlan?.searchQueries || [])
   const [isGenerating, setIsGenerating] = useState(false)
   const [countingDatabases, setCountingDatabases] = useState<Set<string>>(new Set())
-  const [isCreatingProject, setIsCreatingProject] = useState(false)
   const [availableDatabases, setAvailableDatabases] = useState<any[]>([])
   const [loadingDatabases, setLoadingDatabases] = useState(false)
   const [detectedArea, setDetectedArea] = useState<string>("")
@@ -190,62 +189,8 @@ export function SearchPlanStep() {
     }))
   }
 
-  // Crear proyecto temporal al llegar a este paso (si no existe)
-  useEffect(() => {
-    const createTemporaryProject = async () => {
-      // Si ya existe projectId, no crear otro
-      if (data.projectId || isCreatingProject) return
-      
-      // Validar que tengamos datos mínimos para crear el proyecto
-      if (!data.selectedTitle || !data.projectDescription) return
-
-      setIsCreatingProject(true)
-      try {
-        const projectData = {
-          title: data.selectedTitle,
-          description: data.projectDescription,
-          protocol: {
-            proposedTitle: data.selectedTitle,
-            population: data.pico.population,
-            intervention: data.pico.intervention,
-            comparison: data.pico.comparison || '',
-            outcomes: data.pico.outcome,
-            isMatrix: data.matrixIsNot.is,
-            isNotMatrix: data.matrixIsNot.isNot,
-            inclusionCriteria: data.inclusionCriteria,
-            exclusionCriteria: data.exclusionCriteria,
-            databases: selectedDatabases,
-            searchString: '',
-            temporalRange: '',
-            keyTerms: {
-              technology: data.protocolDefinition?.technologies || [],
-              domain: data.protocolDefinition?.applicationDomain || [],
-              studyType: data.protocolDefinition?.studyType || [],
-              themes: data.protocolDefinition?.thematicFocus || []
-            }
-          }
-        }
-
-        const result = await apiClient.createProject(projectData)
-        
-        if (result.success && result.data?.project?.id) {
-          updateData({ projectId: result.data.project.id })
-          
-          toast({
-            title: "✅ Proyecto guardado",
-            description: "Ahora puedes importar referencias desde las bases de datos"
-          })
-        }
-      } catch (error: any) {
-        console.error('Error creando proyecto temporal:', error)
-        // No mostrar error al usuario, es silencioso
-      } finally {
-        setIsCreatingProject(false)
-      }
-    }
-
-    createTemporaryProject()
-  }, []) // Solo ejecutar al montar el componente
+  // ELIMINADO: Ya no creamos proyecto temporal en este paso
+  // El proyecto se crea solo una vez en el paso final (Paso 7)
 
   // Sincronizar con context
   useEffect(() => {
@@ -305,7 +250,9 @@ export function SearchPlanStep() {
         data.pico,
         selectedDatabases,
         data.researchArea,
-        data.matrixIsNot
+        data.matrixIsNot,
+        data.yearStart,
+        data.yearEnd
       )
 
       console.log('📥 Respuesta de generateSearchQueries:', result)
@@ -674,14 +621,12 @@ export function SearchPlanStep() {
                       {data.projectId ? (
                         <ImportReferencesButton
                           projectId={data.projectId}
-                          databaseName={query.databaseName}
-                          variant="default"
                           size="sm"
-                          showLabel={false}
-                          onImportComplete={(count) => {
+                          showLabel={true}
+                          onImportSuccess={() => {
                             toast({
                               title: "✅ Referencias importadas",
-                              description: `${count} referencias de ${query.databaseName} agregadas`
+                              description: `Referencias de ${query.databaseName} agregadas exitosamente`
                             })
                           }}
                         />

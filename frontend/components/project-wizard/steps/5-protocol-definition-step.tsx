@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Sparkles, Loader2, Wrench, Microscope, Focus, Check, X, Pencil, RefreshCw } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 
@@ -19,6 +19,7 @@ export function ProtocolDefinitionStep() {
   const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false)
   const [regenerateSection, setRegenerateSection] = useState<'tecnologia' | 'dominio' | 'focosTematicos' | null>(null)
   const [regenerateFocus, setRegenerateFocus] = useState('')
+  const [hasFilteredTerms, setHasFilteredTerms] = useState(false)
   
   // Estado para términos confirmados
   const [confirmedTerms, setConfirmedTerms] = useState<{
@@ -67,6 +68,33 @@ export function ProtocolDefinitionStep() {
     focosTematicos: data.protocolTerms?.focosTematicos || []
   }
 
+  // Efecto para filtrar términos descartados del contexto cuando el usuario navega
+  useEffect(() => {
+    // Solo filtrar una vez cuando el componente se desmonta o cuando hay cambios significativos
+    return () => {
+      if (!hasFilteredTerms) {
+        const filteredTerms = {
+          tecnologia: protocolTerms.tecnologia.filter((_, i) => !discardedTerms.tecnologia.has(i)),
+          dominio: protocolTerms.dominio.filter((_, i) => !discardedTerms.dominio.has(i)),
+          tipoEstudio: protocolTerms.tipoEstudio.filter((_, i) => !discardedTerms.tipoEstudio.has(i)),
+          focosTematicos: protocolTerms.focosTematicos.filter((_, i) => !discardedTerms.focosTematicos.has(i))
+        }
+        
+        // Solo actualizar si realmente hay términos descartados
+        const hasDiscarded = 
+          discardedTerms.tecnologia.size > 0 ||
+          discardedTerms.dominio.size > 0 ||
+          discardedTerms.tipoEstudio.size > 0 ||
+          discardedTerms.focosTematicos.size > 0
+        
+        if (hasDiscarded) {
+          updateData({ protocolTerms: filteredTerms })
+          setHasFilteredTerms(true)
+        }
+      }
+    }
+  }, []) // Solo ejecutar en unmount
+
   const toggleConfirmTerm = (field: keyof typeof protocolTerms, index: number) => {
     setConfirmedTerms(prev => {
       const newSet = new Set(prev[field])
@@ -75,6 +103,13 @@ export function ProtocolDefinitionStep() {
       } else {
         newSet.add(index)
       }
+      return { ...prev, [field]: newSet }
+    })
+    
+    // Si confirmamos un término, quitarlo de descartados
+    setDiscardedTerms(prev => {
+      const newSet = new Set(prev[field])
+      newSet.delete(index)
       return { ...prev, [field]: newSet }
     })
   }
@@ -167,6 +202,13 @@ export function ProtocolDefinitionStep() {
       } else {
         newSet.add(index)
       }
+      return { ...prev, [field]: newSet }
+    })
+    
+    // Si descartamos un término, quitarlo de confirmados
+    setConfirmedTerms(prev => {
+      const newSet = new Set(prev[field])
+      newSet.delete(index)
       return { ...prev, [field]: newSet }
     })
   }

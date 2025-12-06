@@ -28,7 +28,18 @@ export function CriteriaStep() {
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false)
   const [regenerateType, setRegenerateType] = useState<'inclusion' | 'exclusion' | null>(null)
+  const [regenerateCategory, setRegenerateCategory] = useState<number | null>(null) // Índice de la categoría
   const [regenerateFocus, setRegenerateFocus] = useState('')
+
+  // Nombres de las categorías
+  const categoryNames = [
+    'Cobertura Temática',
+    'Tecnologías Abordadas',
+    'Tipo de Estudio',
+    'Tipo de Documento',
+    'Rango Temporal',
+    'Idioma'
+  ]
 
   const handleGenerateCriteria = async () => {
     if (!data.protocolTerms || (!data.protocolTerms.tecnologia?.length && !data.protocolTerms.dominio?.length)) {
@@ -51,7 +62,13 @@ export function CriteriaStep() {
       const result = await apiClient.generateInclusionExclusionCriteria(
         data.protocolTerms,
         data.pico,
-        data.aiProvider
+        data.aiProvider,
+        undefined, // specificType
+        undefined, // customFocus
+        undefined, // categoryIndex
+        undefined, // categoryName
+        data.yearStart,
+        data.yearEnd
       )
 
       // Backend returns structured criteria with categories
@@ -96,51 +113,78 @@ export function CriteriaStep() {
     }
   }
 
-  const openRegenerateDialog = (type: 'inclusion' | 'exclusion') => {
+  const openRegenerateDialog = (type: 'inclusion' | 'exclusion', categoryIndex: number) => {
     setRegenerateType(type)
+    setRegenerateCategory(categoryIndex)
     setRegenerateFocus('')
     setRegenerateDialogOpen(true)
   }
 
   const handleRegenerateCriteria = async () => {
-    if (!regenerateType) return
+    if (!regenerateType || regenerateCategory === null) return
 
     setIsRegenerating(true)
     try {
+      const categoryName = categoryNames[regenerateCategory]
+      
       toast({
-        title: "Regenerando criterios...",
-        description: `Enfoque personalizado: ${regenerateFocus || 'predeterminado'}`
+        title: "Regenerando criterio...",
+        description: `${categoryName} - ${regenerateType === 'inclusion' ? 'Inclusión' : 'Exclusión'}`
       })
 
-      // Llamar al endpoint con tipo específico y enfoque personalizado
+      // Llamar al endpoint con categoría específica
       const result = await apiClient.generateInclusionExclusionCriteria(
         data.protocolTerms,
         data.pico,
         data.aiProvider,
         regenerateType,
-        regenerateFocus
+        regenerateFocus || undefined,
+        regenerateCategory,
+        categoryName,
+        data.yearStart,
+        data.yearEnd
       )
 
-      // Actualizar solo los criterios del tipo regenerado
-      if (regenerateType === 'inclusion') {
-        const inclusionCriteria = result.inclusionCriteria.map((item: any) => item.criterio)
-        updateData({ inclusionCriteria })
+      // Si el backend retorna un solo criterio (isSingleCriterion = true)
+      if (result.isSingleCriterion && result.singleCriterion) {
+        if (regenerateType === 'inclusion') {
+          const inclusionCriteria = [...data.inclusionCriteria]
+          inclusionCriteria[regenerateCategory] = result.singleCriterion
+          updateData({ inclusionCriteria })
+        } else {
+          const exclusionCriteria = [...data.exclusionCriteria]
+          exclusionCriteria[regenerateCategory] = result.singleCriterion
+          updateData({ exclusionCriteria })
+        }
       } else {
-        const exclusionCriteria = result.exclusionCriteria.map((item: any) => item.criterio)
-        updateData({ exclusionCriteria })
+        // Fallback: usar el formato antiguo si el backend no retorna isSingleCriterion
+        if (regenerateType === 'inclusion') {
+          const inclusionCriteria = [...data.inclusionCriteria]
+          const newCriterio = result.inclusionCriteria?.[regenerateCategory]?.criterio || 
+                             result.inclusionCriteria?.[0]?.criterio || ''
+          inclusionCriteria[regenerateCategory] = newCriterio
+          updateData({ inclusionCriteria })
+        } else {
+          const exclusionCriteria = [...data.exclusionCriteria]
+          const newCriterio = result.exclusionCriteria?.[regenerateCategory]?.criterio || 
+                             result.exclusionCriteria?.[0]?.criterio || ''
+          exclusionCriteria[regenerateCategory] = newCriterio
+          updateData({ exclusionCriteria })
+        }
       }
 
       toast({
-        title: "✅ Criterios regenerados",
-        description: `Criterios de ${regenerateType === 'inclusion' ? 'Inclusión' : 'Exclusión'} actualizados con tu enfoque`
+        title: "✅ Criterio regenerado",
+        description: `${categoryName} actualizado exitosamente`
       })
 
       setRegenerateDialogOpen(false)
       setRegenerateFocus('')
+      setRegenerateCategory(null)
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "No se pudieron regenerar los criterios",
+        description: error.message || "No se pudo regenerar el criterio",
         variant: "destructive"
       })
     } finally {
@@ -191,36 +235,10 @@ export function CriteriaStep() {
       {(data.inclusionCriteria.length > 0 || data.exclusionCriteria.length > 0) && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Matriz de Criterios de Inclusión/Exclusión</CardTitle>
-                <CardDescription>
-                  Criterios estructurados por categoría según metodología PRISMA
-                </CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openRegenerateDialog('inclusion')}
-                  disabled={isRegenerating}
-                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Regenerar Inclusión
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openRegenerateDialog('exclusion')}
-                  disabled={isRegenerating}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Regenerar Exclusión
-                </Button>
-              </div>
-            </div>
+            <CardTitle>Matriz de Criterios de Inclusión/Exclusión</CardTitle>
+            <CardDescription>
+              Criterios estructurados por categoría según metodología PRISMA. Usa el botón de regenerar en cada celda para actualizar criterios individuales.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -235,127 +253,271 @@ export function CriteriaStep() {
                 <TableRow className="hover:bg-muted/50">
                   <TableCell className="font-semibold bg-muted">Cobertura Temática</TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.inclusionCriteria[0] || ''}
-                      onChange={(e) => updateCriterion('inclusion', 0, e.target.value)}
-                      placeholder="Ej: Estudios que mencionen explícitamente MongoDB..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.inclusionCriteria[0] || ''}
+                        onChange={(e) => updateCriterion('inclusion', 0, e.target.value)}
+                        placeholder="Ej: Estudios que mencionen explícitamente MongoDB..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('inclusion', 0)}
+                        disabled={isRegenerating}
+                        className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.exclusionCriteria[0] || ''}
-                      onChange={(e) => updateCriterion('exclusion', 0, e.target.value)}
-                      placeholder="Ej: Publicaciones donde estos términos no aparecen..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.exclusionCriteria[0] || ''}
+                        onChange={(e) => updateCriterion('exclusion', 0, e.target.value)}
+                        placeholder="Ej: Publicaciones donde estos términos no aparecen..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('exclusion', 0)}
+                        disabled={isRegenerating}
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-muted/50">
                   <TableCell className="font-semibold bg-muted">Tecnologías Abordadas</TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.inclusionCriteria[1] || ''}
-                      onChange={(e) => updateCriterion('inclusion', 1, e.target.value)}
-                      placeholder="Ej: Uso de Mongoose como ODM..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.inclusionCriteria[1] || ''}
+                        onChange={(e) => updateCriterion('inclusion', 1, e.target.value)}
+                        placeholder="Ej: Uso de Mongoose como ODM..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('inclusion', 1)}
+                        disabled={isRegenerating}
+                        className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.exclusionCriteria[1] || ''}
-                      onChange={(e) => updateCriterion('exclusion', 1, e.target.value)}
-                      placeholder="Ej: Investigaciones centradas en otros ODM..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.exclusionCriteria[1] || ''}
+                        onChange={(e) => updateCriterion('exclusion', 1, e.target.value)}
+                        placeholder="Ej: Investigaciones centradas en otros ODM..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('exclusion', 1)}
+                        disabled={isRegenerating}
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-muted/50">
                   <TableCell className="font-semibold bg-muted">Tipo de Estudio</TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.inclusionCriteria[2] || ''}
-                      onChange={(e) => updateCriterion('inclusion', 2, e.target.value)}
-                      placeholder="Ej: Estudios relevantes para el análisis de prácticas..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.inclusionCriteria[2] || ''}
+                        onChange={(e) => updateCriterion('inclusion', 2, e.target.value)}
+                        placeholder="Ej: Estudios relevantes para el análisis de prácticas..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('inclusion', 2)}
+                        disabled={isRegenerating}
+                        className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.exclusionCriteria[2] || ''}
-                      onChange={(e) => updateCriterion('exclusion', 2, e.target.value)}
-                      placeholder="Ej: Artículos puramente descriptivos..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.exclusionCriteria[2] || ''}
+                        onChange={(e) => updateCriterion('exclusion', 2, e.target.value)}
+                        placeholder="Ej: Artículos puramente descriptivos..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('exclusion', 2)}
+                        disabled={isRegenerating}
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-muted/50">
                   <TableCell className="font-semibold bg-muted">Tipo de Documento</TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.inclusionCriteria[3] || ''}
-                      onChange={(e) => updateCriterion('inclusion', 3, e.target.value)}
-                      placeholder="Ej: Artículos publicados en journals..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.inclusionCriteria[3] || ''}
+                        onChange={(e) => updateCriterion('inclusion', 3, e.target.value)}
+                        placeholder="Ej: Artículos publicados en journals..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('inclusion', 3)}
+                        disabled={isRegenerating}
+                        className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.exclusionCriteria[3] || ''}
-                      onChange={(e) => updateCriterion('exclusion', 3, e.target.value)}
-                      placeholder="Ej: Trabajos fuera del ámbito académico técnico..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.exclusionCriteria[3] || ''}
+                        onChange={(e) => updateCriterion('exclusion', 3, e.target.value)}
+                        placeholder="Ej: Trabajos fuera del ámbito académico técnico..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('exclusion', 3)}
+                        disabled={isRegenerating}
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-muted/50">
                   <TableCell className="font-semibold bg-muted">Rango Temporal</TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.inclusionCriteria[4] || ''}
-                      onChange={(e) => updateCriterion('inclusion', 4, e.target.value)}
-                      placeholder="Ej: Publicaciones entre 2019 y 2025..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.inclusionCriteria[4] || ''}
+                        onChange={(e) => updateCriterion('inclusion', 4, e.target.value)}
+                        placeholder="Ej: Publicaciones entre 2019 y 2025..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('inclusion', 4)}
+                        disabled={isRegenerating}
+                        className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.exclusionCriteria[4] || ''}
-                      onChange={(e) => updateCriterion('exclusion', 4, e.target.value)}
-                      placeholder="Ej: Estudios anteriores a 2019..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.exclusionCriteria[4] || ''}
+                        onChange={(e) => updateCriterion('exclusion', 4, e.target.value)}
+                        placeholder="Ej: Estudios anteriores a 2019..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('exclusion', 4)}
+                        disabled={isRegenerating}
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-muted/50">
                   <TableCell className="font-semibold bg-muted">Idioma</TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.inclusionCriteria[5] || ''}
-                      onChange={(e) => updateCriterion('inclusion', 5, e.target.value)}
-                      placeholder="Ej: Publicaciones en inglés..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.inclusionCriteria[5] || ''}
+                        onChange={(e) => updateCriterion('inclusion', 5, e.target.value)}
+                        placeholder="Ej: Publicaciones en inglés..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('inclusion', 5)}
+                        disabled={isRegenerating}
+                        className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Textarea
-                      value={data.exclusionCriteria[5] || ''}
-                      onChange={(e) => updateCriterion('exclusion', 5, e.target.value)}
-                      placeholder="Ej: Artículos en otros idiomas..."
-                      rows={3}
-                      className="resize-none"
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        value={data.exclusionCriteria[5] || ''}
+                        onChange={(e) => updateCriterion('exclusion', 5, e.target.value)}
+                        placeholder="Ej: Artículos en otros idiomas..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRegenerateDialog('exclusion', 5)}
+                        disabled={isRegenerating}
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -368,9 +530,11 @@ export function CriteriaStep() {
       <Dialog open={regenerateDialogOpen} onOpenChange={setRegenerateDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle>Regenerar Criterios de {regenerateType === 'inclusion' ? 'Inclusión' : 'Exclusión'}</DialogTitle>
+            <DialogTitle>
+              Regenerar: {regenerateCategory === null ? '' : categoryNames[regenerateCategory]} - {regenerateType === 'inclusion' ? 'Inclusión' : 'Exclusión'}
+            </DialogTitle>
             <DialogDescription>
-              Describe en qué quieres centrar el análisis para los criterios de {regenerateType === 'inclusion' ? 'inclusión' : 'exclusión'}
+              Describe en qué quieres centrar el análisis para este criterio específico (opcional)
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

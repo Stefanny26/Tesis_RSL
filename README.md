@@ -318,6 +318,37 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 
 ---
 
+## 🌐 Despliegue en Producción
+
+### Opción Recomendada: Vercel + Railway (~$5-10/mes)
+
+**Frontend en Vercel** (Gratis)
+- Deploy automático desde GitHub
+- SSL incluido
+- CDN global
+
+**Backend + PostgreSQL en Railway** ($5/mes)
+- Deploy automático
+- Base de datos incluida
+- Fácil configuración
+
+### 📚 Guías de Despliegue
+
+1. **[QUICKSTART-DEPLOY.md](./QUICKSTART-DEPLOY.md)** - Guía rápida (20 min)
+2. **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Guía completa paso a paso
+3. **[DEPLOYMENT-CHECKLIST.md](./DEPLOYMENT-CHECKLIST.md)** - Checklist verificación
+
+### 🔐 Generar Secrets de Producción
+
+```bash
+# Desde backend/
+node generate-secrets.js
+# o
+.\generate-secrets.ps1
+```
+
+---
+
 ## 📄 Licencia
 
 MIT License - ver [LICENSE](LICENSE) para más detalles.

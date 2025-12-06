@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
@@ -32,7 +32,6 @@ export default function DashboardPage() {
     async function loadProjects() {
       try {
         const response = await apiClient.getProjects()
-        // apiClient.getProjects() ya devuelve { projects: [], pagination: {} }
         const projectsList = response.projects || []
         
         // Cargar estadísticas de referencias para cada proyecto
@@ -77,6 +76,27 @@ export default function DashboardPage() {
     }
   }, [user, toast])
 
+  // Handler para eliminar proyecto
+  const handleDeleteProject = (projectId: string) => {
+    setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId))
+  }
+
+  // Memoizar filtros de proyectos (DEBE estar antes de los returns condicionales)
+  const screeningProjects = useMemo(() => getScreeningProjects(projects), [projects])
+  const filteredActiveProjects = useMemo(() => projects.filter((p) => {
+    const effectiveStatus = getEffectiveProjectStatus(p);
+    return effectiveStatus !== "completed";
+  }), [projects])
+  const completedProjects = useMemo(() => projects.filter((p) => getEffectiveProjectStatus(p) === "completed"), [projects])
+
+  // Calcular estadísticas con detección automática de estado
+  const stats = useMemo(() => ({
+    totalProjects: projects.length,
+    activeProjects: countActiveProjects(projects),
+    prismaCompliantProjects: 0,
+    totalReferences: projects.reduce((acc, p) => acc + (p.references?.total || 0), 0),
+  }), [projects])
+
   // Mostrar loading mientras se verifica autenticación
   if (authLoading || !user) {
     return (
@@ -88,25 +108,6 @@ export default function DashboardPage() {
       </div>
     )
   }
-
-  // Calcular estadísticas con detección automática de estado
-  const stats = {
-    totalProjects: projects.length,
-    activeProjects: countActiveProjects(projects),
-    // PRISMA compliant: por ahora 0, TODO: agregar endpoint para obtener este dato
-    prismaCompliantProjects: 0,
-    totalReferences: projects.reduce((acc, p) => acc + (p.references?.total || 0), 0),
-  }
-
-  // Proyectos en screening: solo los que están en fase de cribado
-  const screeningProjects = getScreeningProjects(projects)
-  
-  // Proyectos activos: cualquiera que no esté completado (incluye drafts con contenido)
-  const activeProjects = projects.filter((p) => {
-    const effectiveStatus = getEffectiveProjectStatus(p);
-    return effectiveStatus !== "completed";
-  })
-  const completedProjects = projects.filter((p) => getEffectiveProjectStatus(p) === "completed")
 
   return (
     <div className="min-h-screen bg-background">
@@ -199,7 +200,7 @@ export default function DashboardPage() {
               <TabsContent value="all" className="mt-6">
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {projects.map((project) => (
-                    <ProjectCard key={project.id} project={project} />
+                    <ProjectCard key={`all-${project.id}`} project={project} onDelete={handleDeleteProject} />
                   ))}
                 </div>
               </TabsContent>
@@ -212,7 +213,7 @@ export default function DashboardPage() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {screeningProjects.map((project) => (
-                      <ProjectCard key={project.id} project={project} />
+                      <ProjectCard key={`screening-${project.id}`} project={project} onDelete={handleDeleteProject} />
                     ))}
                   </div>
                 )}
@@ -226,7 +227,7 @@ export default function DashboardPage() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {completedProjects.map((project) => (
-                      <ProjectCard key={project.id} project={project} />
+                      <ProjectCard key={`completed-${project.id}`} project={project} onDelete={handleDeleteProject} />
                     ))}
                   </div>
                 )}

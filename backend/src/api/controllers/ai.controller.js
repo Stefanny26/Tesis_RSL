@@ -12,10 +12,12 @@ const AnalyzeScreeningResultsUseCase = require('../../domain/use-cases/analyze-s
 const ScopusSearchUseCase = require('../../domain/use-cases/scopus-search.use-case');
 const GoogleScholarSearch = require('../../domain/use-cases/google-scholar-search.use-case');
 const ReferenceRepository = require('../../infrastructure/repositories/reference.repository');
+const ProtocolRepository = require('../../infrastructure/repositories/protocol.repository');
 const ApiUsageRepository = require('../../infrastructure/repositories/api-usage.repository');
 const { detectResearchArea, getDatabasesByArea } = require('../../config/academic-databases');
 
 const referenceRepository = new ReferenceRepository();
+const protocolRepository = new ProtocolRepository();
 const apiUsageRepository = new ApiUsageRepository();
 const generateProtocolAnalysisUseCase = new GenerateProtocolAnalysisUseCase();
 const generateTitleUseCase = new GenerateTitleFromQuestionUseCase();
@@ -398,7 +400,7 @@ const generateTitles = async (req, res) => {
  */
 const generateSearchStrategies = async (req, res) => {
   try {
-    const { matrixData, picoData, databases, researchArea, protocolTerms } = req.body;
+    const { matrixData, picoData, databases, researchArea, protocolTerms, yearStart, yearEnd } = req.body;
 
     // Validaciones
     if (!picoData && !matrixData) {
@@ -425,7 +427,9 @@ const generateSearchStrategies = async (req, res) => {
       picoData: picoData || {},
       protocolTerms: protocolTerms || {},
       researchArea: researchArea || '',
-      matrixData: matrixData || {}
+      matrixData: matrixData || {},
+      yearStart,
+      yearEnd
     });
 
     // Registrar uso de API (una llamada por cada base de datos)
@@ -685,11 +689,12 @@ const generateProtocolTerms = async (req, res) => {
 
 /**
  * POST /api/ai/run-project-screening-embeddings
- * Ejecuta cribado completo del proyecto con embeddings
+ * Ejecuta cribado HÍBRIDO: Embeddings + ChatGPT para zona gris
+ * MÉTODO RECOMENDADO (Opción 3)
  */
 const runProjectScreeningEmbeddings = async (req, res) => {
   try {
-    const { projectId, threshold } = req.body;
+    const { projectId, threshold, aiProvider } = req.body;
 
     if (!projectId) {
       return res.status(400).json({
@@ -698,21 +703,34 @@ const runProjectScreeningEmbeddings = async (req, res) => {
       });
     }
 
-    console.log('🔬 Ejecutando cribado con embeddings...');
-    console.log('   Proyecto:', projectId);
-    console.log('   Umbral:', threshold || 0.7);
+    // Obtener protocolo del proyecto
+    const protocol = await protocolRepository.findByProjectId(projectId);
+    
+    if (!protocol) {
+      return res.status(404).json({
+        success: false,
+        message: 'Protocolo no encontrado. Crea un protocolo antes de ejecutar el cribado.'
+      });
+    }
 
-    const result = await runProjectScreeningUseCase.executeEmbeddings({
+    console.log('🔬 Ejecutando cribado HÍBRIDO...');
+    console.log('   Proyecto:', projectId);
+    console.log('   Umbral embeddings:', threshold || 0.15);
+    console.log('   Proveedor IA:', aiProvider || 'chatgpt');
+
+    const result = await runProjectScreeningUseCase.executeHybrid({
       projectId,
-      threshold: threshold || 0.7
+      protocol,
+      embeddingThreshold: threshold || 0.15, // Umbral más bajo para español/inglés
+      aiProvider: aiProvider || 'chatgpt'
     });
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('❌ Error en cribado con embeddings:', error);
+    console.error('❌ Error en cribado híbrido:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Error al ejecutar cribado con embeddings'
+      message: error.message || 'Error al ejecutar cribado híbrido'
     });
   }
 };
@@ -793,7 +811,7 @@ const analyzeScreeningResults = async (req, res) => {
  */
 const generateInclusionExclusionCriteria = async (req, res) => {
   try {
-    const { protocolTerms, picoData, aiProvider, specificType, customFocus } = req.body;
+    const { protocolTerms, picoData, aiProvider, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd } = req.body;
 
     // Validaciones
     if (!protocolTerms) {
@@ -810,6 +828,7 @@ const generateInclusionExclusionCriteria = async (req, res) => {
     
     if (specificType) {
       console.log('   Tipo específico:', specificType);
+      console.log('   Categoría específica:', categoryName || categoryIndex);
       console.log('   Enfoque personalizado:', customFocus || 'predeterminado');
     }
 
@@ -819,7 +838,11 @@ const generateInclusionExclusionCriteria = async (req, res) => {
       projectTitle: req.body.projectTitle || 'Proyecto',
       aiProvider: aiProvider || 'chatgpt',
       specificType,
-      customFocus
+      customFocus,
+      categoryIndex,
+      categoryName,
+      yearStart,
+      yearEnd
     });
 
     // Registrar uso de API
@@ -865,7 +888,7 @@ const generateInclusionExclusionCriteria = async (req, res) => {
  */
 const generateSearchQueries = async (req, res) => {
   try {
-    const { protocolTerms, picoData, selectedDatabases, researchArea, matrixData } = req.body;
+    const { protocolTerms, picoData, selectedDatabases, researchArea, matrixData, yearStart, yearEnd } = req.body;
 
     console.log('⚠️  Endpoint deprecado: /generate-search-queries - Usando nuevo sistema');
 
@@ -875,7 +898,9 @@ const generateSearchQueries = async (req, res) => {
       picoData,
       matrixData,
       researchArea,
-      protocolTerms
+      protocolTerms,
+      yearStart,
+      yearEnd
     });
 
     res.json(result);
@@ -1224,6 +1249,69 @@ const googleScholarCount = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/ai/analyze-similarity-distribution
+ * Analiza la distribución de similitudes y recomienda punto de corte
+ */
+const analyzeSimilarityDistribution = async (req, res) => {
+  try {
+    const { projectId } = req.body;
+
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID del proyecto es requerido'
+      });
+    }
+
+    console.log('📊 Analizando distribución de similitudes...');
+    console.log('   Proyecto:', projectId);
+
+    // Obtener referencias del proyecto
+    const references = await referenceRepository.findByProject(projectId);
+
+    if (!references || references.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontraron referencias para analizar'
+      });
+    }
+
+    // Obtener protocolo del proyecto
+    const protocol = await protocolRepository.findByProjectId(projectId);
+
+    if (!protocol) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontró el protocolo del proyecto'
+      });
+    }
+
+    // Analizar distribución con embeddings
+    const analysis = await screenEmbeddingsUseCase.analyzeDistribution({
+      references,
+      protocol
+    });
+
+    console.log('✅ Análisis de distribución completado');
+    console.log('   Referencias analizadas:', analysis.totalReferences);
+    console.log('   Punto de corte recomendado:', analysis.recommendedCutoff?.threshold);
+    console.log('   Artículos a revisar:', analysis.recommendedCutoff?.articlesToReview);
+
+    res.status(200).json({
+      success: true,
+      data: analysis
+    });
+
+  } catch (error) {
+    console.error('❌ Error analizando distribución:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al analizar distribución de similitudes'
+    });
+  }
+};
+
 module.exports = {
   generateProtocolAnalysis,
   generateTitle,
@@ -1235,6 +1323,7 @@ module.exports = {
   screenReferenceEmbeddings,
   screenReferencesBatchEmbeddings,
   generateRankingEmbeddings,
+  analyzeSimilarityDistribution,
   generateProtocolTerms,
   generateInclusionExclusionCriteria,
   runProjectScreeningEmbeddings,

@@ -104,6 +104,47 @@ export function ProposalStep() {
               Esto ayuda al sistema a generar análisis y recomendaciones más precisas para tu campo de estudio
             </p>
           </div>
+
+          <div className="space-y-2">
+            <Label className="text-base">
+              Rango Temporal de Publicaciones <span className="text-destructive">*</span>
+            </Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="yearStart" className="text-sm text-muted-foreground">
+                  Año inicial
+                </Label>
+                <Input
+                  id="yearStart"
+                  type="number"
+                  min="1990"
+                  max={new Date().getFullYear()}
+                  placeholder="Ej: 2019"
+                  value={data.yearStart || ''}
+                  onChange={(e) => updateData({ yearStart: parseInt(e.target.value) || undefined })}
+                  className="text-base h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="yearEnd" className="text-sm text-muted-foreground">
+                  Año final
+                </Label>
+                <Input
+                  id="yearEnd"
+                  type="number"
+                  min="1990"
+                  max={new Date().getFullYear()}
+                  placeholder="Ej: 2025"
+                  value={data.yearEnd || ''}
+                  onChange={(e) => updateData({ yearEnd: parseInt(e.target.value) || undefined })}
+                  className="text-base h-12"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Rango de años para filtrar publicaciones. Esto se usará en los criterios de inclusión/exclusión y en las cadenas de búsqueda
+            </p>
+          </div>
         </CardContent>
       </Card>
 

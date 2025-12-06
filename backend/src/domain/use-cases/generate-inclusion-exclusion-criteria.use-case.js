@@ -25,16 +25,17 @@ class GenerateInclusionExclusionCriteriaUseCase {
   /**
    * Genera criterios de inclusión y exclusión
    */
-  async execute({ protocolTerms, picoData, projectTitle, aiProvider = 'chatgpt', specificType, customFocus }) {
+  async execute({ protocolTerms, picoData, projectTitle, aiProvider = 'chatgpt', specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd }) {
     try {
       console.log('🔍 Generando criterios de inclusión/exclusión...');
       
       if (specificType) {
         console.log('🎯 Regenerando tipo específico:', specificType);
+        console.log('📂 Categoría específica:', categoryName || categoryIndex);
         console.log('💡 Enfoque personalizado:', customFocus || 'predeterminado');
       }
 
-      const prompt = this.buildPrompt({ protocolTerms, picoData, projectTitle, specificType, customFocus });
+      const prompt = this.buildPrompt({ protocolTerms, picoData, projectTitle, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd });
       
       let text;
       if (aiProvider === 'chatgpt' && this.openai) {
@@ -58,13 +59,15 @@ class GenerateInclusionExclusionCriteriaUseCase {
       console.log('─────────────────────────────────────');
 
       // Parsear la respuesta
-      const criteria = this.parseResponse(text);
+      const isSingleCriterion = categoryIndex !== undefined && categoryName;
+      const criteria = this.parseResponse(text, isSingleCriterion);
 
       console.log('✅ Criterios generados exitosamente');
 
       return {
         success: true,
-        data: criteria
+        data: criteria,
+        isSingleCriterion
       };
 
     } catch (error) {
@@ -76,12 +79,30 @@ class GenerateInclusionExclusionCriteriaUseCase {
   /**
    * Construye el prompt para la IA
    */
-  buildPrompt({ protocolTerms, picoData, projectTitle, specificType, customFocus }) {
+  buildPrompt({ protocolTerms, picoData, projectTitle, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd }) {
     // Extraer términos del protocolo
     const technologies = protocolTerms?.tecnologia || protocolTerms?.technologies || [];
     const domains = protocolTerms?.dominio || protocolTerms?.applicationDomain || [];
     const studyTypes = protocolTerms?.tipoEstudio || protocolTerms?.studyType || [];
     const themes = protocolTerms?.focosTematicos || protocolTerms?.thematicFocus || [];
+
+    // Si hay categoría específica, generar solo ese criterio
+    if (categoryIndex !== undefined && categoryName && specificType) {
+      return this.buildSingleCriterionPrompt({
+        technologies,
+        domains,
+        studyTypes,
+        themes,
+        picoData,
+        projectTitle,
+        specificType,
+        customFocus,
+        categoryIndex,
+        categoryName,
+        yearStart,
+        yearEnd
+      });
+    }
 
     // Si hay tipo específico y enfoque personalizado, generar prompt especializado
     if (specificType && customFocus) {
@@ -93,7 +114,9 @@ class GenerateInclusionExclusionCriteriaUseCase {
         picoData,
         projectTitle,
         specificType,
-        customFocus
+        customFocus,
+        yearStart,
+        yearEnd
       });
     }
 
@@ -129,7 +152,7 @@ Cobertura temática | Estudios que mencionen explícitamente [mencionar tecnolog
 Tecnologías abordadas | Uso de [mencionar tecnologías específicas] dentro de [mencionar dominios] | Investigaciones centradas en otras tecnologías fuera del stack definido
 Tipo de estudio | Estudios relevantes para [mencionar tipos de estudio del protocolo] | Artículos puramente descriptivos o tutoriales sin aporte técnico profundo
 Tipo de documento | Artículos publicados en journals revisados por pares | Trabajos fuera del ámbito académico como blogs, tutoriales o literatura gris
-Rango temporal | Publicaciones entre [especificar rango, ej: 2019 y 2025] | Estudios anteriores al rango que no aportan evidencia contemporánea
+Rango temporal | Publicaciones entre ${yearStart && yearEnd ? `${yearStart} y ${yearEnd}` : '[especificar rango, ej: 2019 y 2025]'} | Estudios anteriores al rango que no aportan evidencia contemporánea
 Idioma | Publicaciones en inglés y español | Artículos en otros idiomas que no aporten al cuerpo de evidencia analizable
 
 IMPORTANTE:
@@ -145,7 +168,7 @@ IMPORTANTE:
   /**
    * Construye un prompt específico para regenerar solo criterios de inclusión o exclusión
    */
-  buildSpecificTypePrompt({ technologies, domains, studyTypes, themes, picoData, projectTitle, specificType, customFocus }) {
+  buildSpecificTypePrompt({ technologies, domains, studyTypes, themes, picoData, projectTitle, specificType, customFocus, yearStart, yearEnd }) {
     const typeLabel = specificType === 'inclusion' ? 'INCLUSIÓN' : 'EXCLUSIÓN';
     const oppositeLabel = specificType === 'inclusion' ? 'exclusión' : 'inclusión';
 
@@ -187,7 +210,7 @@ Cobertura temática | ${specificType === 'inclusion' ? 'Estudios que mencionen e
 Tecnologías abordadas | ${specificType === 'inclusion' ? 'Uso de [tecnologías específicas]' : 'Investigaciones centradas en otras tecnologías'} | [Criterio de ${oppositeLabel} genérico]
 Tipo de estudio | ${specificType === 'inclusion' ? 'Estudios relevantes para [tipos específicos]' : 'Artículos puramente descriptivos'} | [Criterio de ${oppositeLabel} genérico]
 Tipo de documento | ${specificType === 'inclusion' ? 'Artículos en journals revisados' : 'Trabajos fuera del ámbito académico'} | [Criterio de ${oppositeLabel} genérico]
-Rango temporal | ${specificType === 'inclusion' ? 'Publicaciones entre [rango]' : 'Estudios anteriores al rango'} | [Criterio de ${oppositeLabel} genérico]
+Rango temporal | ${specificType === 'inclusion' ? `Publicaciones entre ${yearStart && yearEnd ? `${yearStart} y ${yearEnd}` : '[rango]'}` : `Estudios anteriores ${yearStart ? `a ${yearStart}` : 'al rango'}`} | [Criterio de ${oppositeLabel} genérico]
 Idioma | ${specificType === 'inclusion' ? 'Publicaciones en inglés y español' : 'Artículos en otros idiomas'} | [Criterio de ${oppositeLabel} genérico]
 
 IMPORTANTE:
@@ -200,13 +223,103 @@ IMPORTANTE:
   }
 
   /**
-   * Parsea la respuesta de la IA en formato tabla
+   * Construye un prompt para regenerar ÚNICAMENTE un criterio específico
    */
-  parseResponse(text) {
-    const criteria = [];
+  buildSingleCriterionPrompt({ technologies, domains, studyTypes, themes, picoData, projectTitle, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd }) {
+    const typeLabel = specificType === 'inclusion' ? 'INCLUSIÓN' : 'EXCLUSIÓN';
 
+    return `
+Eres un experto en metodología de revisiones sistemáticas. Genera ÚNICAMENTE un criterio de ${typeLabel} para la categoría "${categoryName}" del proyecto "${projectTitle}".
+
+TÉRMINOS DEL PROTOCOLO DEFINIDOS:
+🧩 Tecnología/Herramientas:
+${technologies.map(t => `• ${t}`).join('\n')}
+
+🧪 Dominio de aplicación:
+${domains.map(d => `• ${d}`).join('\n')}
+
+📚 Tipo de estudio:
+${studyTypes.map(s => `• ${s}`).join('\n')}
+
+🔍 Focos temáticos:
+${themes.map(t => `• ${t}`).join('\n')}
+
+COMPONENTES PICO:
+- Población: ${picoData?.population || 'No especificado'}
+- Intervención: ${picoData?.intervention || 'No especificado'}
+- Comparación: ${picoData?.comparison || 'N/A'}
+- Resultado: ${picoData?.outcome || 'No especificado'}
+
+CATEGORÍA A GENERAR: "${categoryName}"
+TIPO: ${typeLabel}
+${customFocus ? `ENFOQUE PERSONALIZADO: "${customFocus}"` : ''}
+
+TAREA:
+Genera ÚNICAMENTE el criterio de ${typeLabel} para la categoría "${categoryName}".
+
+INSTRUCCIONES ESPECÍFICAS SEGÚN LA CATEGORÍA:
+
+${categoryName === 'Cobertura Temática' ? `
+- El criterio debe mencionar EXPLÍCITAMENTE las tecnologías del protocolo: ${technologies.join(', ')}
+- Debe indicar en qué contextos o dominios: ${domains.join(', ')}
+- ${specificType === 'inclusion' ? 'Ejemplo: "Estudios que mencionen explícitamente [tecnologías] en el contexto de [dominios]"' : 'Ejemplo: "Publicaciones donde estos términos no aparecen o no están conectados con [dominios]"'}
+` : ''}
+
+${categoryName === 'Tecnologías Abordadas' ? `
+- Debe especificar las tecnologías CONCRETAS del protocolo: ${technologies.join(', ')}
+- Mencionar los dominios de aplicación: ${domains.join(', ')}
+- ${specificType === 'inclusion' ? 'Ejemplo: "Uso de [tecnologías específicas] dentro de [dominios]"' : 'Ejemplo: "Investigaciones centradas en otras tecnologías fuera del stack definido"'}
+` : ''}
+
+${categoryName === 'Tipo de Estudio' ? `
+- Hacer referencia a los tipos de estudio definidos: ${studyTypes.join(', ')}
+- ${specificType === 'inclusion' ? 'Ejemplo: "Estudios relevantes para [tipos de estudio específicos]"' : 'Ejemplo: "Artículos puramente descriptivos o tutoriales sin aporte técnico"'}
+` : ''}
+
+${categoryName === 'Tipo de Documento' ? `
+- ${specificType === 'inclusion' ? 'Ejemplo: "Artículos publicados en journals revisados por pares que traten sobre [temas del protocolo]"' : 'Ejemplo: "Trabajos fuera del ámbito académico como blogs, tutoriales o literatura gris"'}
+` : ''}
+
+${categoryName === 'Rango Temporal' ? `
+- RANGO DE AÑOS ESPECIFICADO: ${yearStart && yearEnd ? `${yearStart} a ${yearEnd}` : '2019 a 2025'}
+- ${specificType === 'inclusion' ? `Ejemplo: "Publicaciones entre ${yearStart || 2019} y ${yearEnd || 2025} que aborden [temas del protocolo]"` : `Ejemplo: "Estudios anteriores a ${yearStart || 2019} que no reflejen el estado actual"`}
+` : ''}
+
+${categoryName === 'Idioma' ? `
+- ${specificType === 'inclusion' ? 'Ejemplo: "Publicaciones en inglés y español"' : 'Ejemplo: "Artículos en otros idiomas que limiten la accesibilidad"'}
+` : ''}
+
+FORMATO DE RESPUESTA:
+Responde ÚNICAMENTE con el texto del criterio de ${typeLabel}, SIN la categoría, SIN formato de tabla, SOLO el criterio en texto plano.
+
+El criterio debe:
+1. Ser específico y mencionar los términos del protocolo cuando corresponda
+2. Ser conciso (máximo 2-3 líneas)
+3. Estar directamente relacionado con "${categoryName}"
+${customFocus ? `4. Reflejar el enfoque: "${customFocus}"` : ''}
+
+RESPONDE SOLO CON EL CRITERIO, NADA MÁS:
+`;
+  }
+
+  /**
+   * Parsea la respuesta de la IA en formato tabla o criterio único
+   */
+  parseResponse(text, isSingleCriterion = false) {
     console.log('🔍 Parseando respuesta de criterios...');
     console.log('📄 Texto completo:', text.substring(0, 500));
+
+    // Si es un solo criterio, retornarlo directamente
+    if (isSingleCriterion) {
+      const cleanedText = text.trim()
+        .replace(/^["']|["']$/g, '') // Quitar comillas al inicio/final
+        .replace(/^\*\*|\*\*$/g, ''); // Quitar markdown bold
+      
+      console.log('✅ Criterio único parseado:', cleanedText);
+      return { singleCriterion: cleanedText };
+    }
+
+    const criteria = [];
 
     // Método 1: Intentar extraer tabla Markdown completa
     // Primero, limpiar el texto de saltos de línea innecesarios dentro de las celdas

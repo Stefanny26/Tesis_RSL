@@ -50,8 +50,12 @@ class ApiClient {
 
   async request(endpoint: string, options: RequestInit = {}) {
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
       ...options.headers,
+    }
+
+    // Solo agregar Content-Type si no es FormData
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json'
     }
 
     if (this.token) {
@@ -208,7 +212,11 @@ class ApiClient {
     picoData: any,
     aiProvider: 'chatgpt' | 'gemini' = 'gemini',
     specificType?: 'inclusion' | 'exclusion',
-    customFocus?: string
+    customFocus?: string,
+    categoryIndex?: number,
+    categoryName?: string,
+    yearStart?: number,
+    yearEnd?: number
   ) {
     const data = await this.request('/api/ai/generate-inclusion-exclusion-criteria', {
       method: 'POST',
@@ -217,7 +225,11 @@ class ApiClient {
         picoData, 
         aiProvider,
         specificType,
-        customFocus
+        customFocus,
+        categoryIndex,
+        categoryName,
+        yearStart,
+        yearEnd
       }),
     })
     return data.data
@@ -234,7 +246,9 @@ class ApiClient {
     picoData: any,
     selectedDatabases: string[],
     researchArea?: string,
-    matrixData?: any
+    matrixData?: any,
+    yearStart?: number,
+    yearEnd?: number
   ) {
     const data = await this.request('/api/ai/generate-search-strategies', {
       method: 'POST',
@@ -243,7 +257,9 @@ class ApiClient {
         picoData, 
         matrixData,
         researchArea,
-        protocolTerms 
+        protocolTerms,
+        yearStart,
+        yearEnd
       }),
     })
     return data.data
@@ -311,10 +327,16 @@ class ApiClient {
     if (filters.status) params.append('status', filters.status)
     if (filters.year) params.append('year', filters.year)
     if (filters.source) params.append('source', filters.source)
+    if (filters.limit !== undefined) params.append('limit', filters.limit.toString())
     
     const query = params.toString()
     const data = await this.request(`/api/references/${projectId}${query ? '?' + query : ''}`)
     return data.data
+  }
+
+  async getAllReferences(projectId: string) {
+    // Obtener TODAS las referencias sin límite de paginación
+    return this.getReferences(projectId, { limit: 10000 })
   }
 
   async createReference(projectId: string, referenceData: any) {
@@ -380,6 +402,24 @@ class ApiClient {
     })
   }
 
+  async detectDuplicates(projectId: string) {
+    const data = await this.request(`/api/references/${projectId}/detect-duplicates`, {
+      method: 'POST'
+    })
+    return data
+  }
+
+  async resolveDuplicateGroup(projectId: string, groupId: string, keepReferenceId: string) {
+    const data = await this.request(`/api/references/${projectId}/resolve-duplicate`, {
+      method: 'POST',
+      body: JSON.stringify({
+        groupId,
+        keepReferenceId
+      })
+    })
+    return data
+  }
+
   async getYearDistribution(projectId: string) {
     const data = await this.request(`/api/references/${projectId}/year-distribution`)
     return data.data
@@ -425,14 +465,41 @@ class ApiClient {
 
   // IA - Screening automático
   async runScreeningEmbeddings(projectId: string, options: { threshold?: number } = {}) {
-    const data = await this.request('/api/ai/run-project-screening-embeddings', {
-      method: 'POST',
-      body: JSON.stringify({
-        projectId,
-        threshold: options.threshold || 0.7
-      }),
-    })
-    return data
+    // Timeout extendido para procesos largos (10 minutos)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 600000) // 10 minutos
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/api/ai/run-project-screening-embeddings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.token}`,
+        },
+        body: JSON.stringify({
+          projectId,
+          threshold: options.threshold || 0.15,
+          aiProvider: 'chatgpt'
+        }),
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error en el screening')
+      }
+      
+      return data
+    } catch (error: any) {
+      clearTimeout(timeoutId)
+      if (error.name === 'AbortError') {
+        throw new Error('El proceso tardó demasiado tiempo. Intenta con menos referencias.')
+      }
+      throw error
+    }
   }
 
   async runScreeningLLM(projectId: string, options: { llmProvider?: 'gemini' | 'chatgpt' } = {}) {
@@ -454,6 +521,29 @@ class ApiClient {
     const data = await this.request('/api/references/search-academic', {
       method: 'POST',
       body: JSON.stringify(searchData),
+    })
+    return data.data
+  }
+
+  // PDF Upload
+  async uploadPdf(referenceId: string, file: File) {
+    const formData = new FormData()
+    formData.append('pdf', file)
+
+    const data = await this.request(`/api/references/${referenceId}/upload-pdf`, {
+      method: 'POST',
+      body: formData,
+      // No establecer Content-Type, el browser lo hace automáticamente con el boundary correcto
+      headers: {
+        // Remover Content-Type para que FormData funcione correctamente
+      }
+    })
+    return data.data
+  }
+
+  async deletePdf(referenceId: string) {
+    const data = await this.request(`/api/references/${referenceId}/pdf`, {
+      method: 'DELETE',
     })
     return data.data
   }
@@ -480,7 +570,16 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(batchData),
     })
-    return data.data
+    return data
+  }
+
+  // Análisis de distribución de similitudes (Elbow Analysis)
+  async analyzeSimilarityDistribution(projectId: string) {
+    const data = await this.request('/api/ai/analyze-similarity-distribution', {
+      method: 'POST',
+      body: JSON.stringify({ projectId }),
+    })
+    return data // Retornar el objeto completo { success, data }
   }
 
   async generateRankingWithEmbeddings(rankingData: {
@@ -547,4 +646,5 @@ class ApiClient {
   }
 }
 
+export { ApiClient }
 export const apiClient = new ApiClient()

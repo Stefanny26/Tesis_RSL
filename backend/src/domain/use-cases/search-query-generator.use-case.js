@@ -34,11 +34,11 @@ class SearchQueryGenerator {
   /**
    * Genera queries de búsqueda para múltiples bases de datos
    */
-  async generate({ databases = ['scopus', 'ieee'], picoData = {}, protocolTerms = {}, researchArea = '', matrixData = {}, aiProvider = 'chatgpt' }) {
+  async generate({ databases = ['scopus', 'ieee'], picoData = {}, protocolTerms = {}, researchArea = '', matrixData = {}, aiProvider = 'chatgpt', yearStart, yearEnd }) {
     try {
       console.log('🔍 Generando queries de búsqueda...');
 
-      const prompt = this.buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData });
+      const prompt = this.buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData, yearStart, yearEnd });
       
       let text;
       if (aiProvider === 'chatgpt' && this.openai) {
@@ -99,7 +99,7 @@ class SearchQueryGenerator {
   /**
    * Construye el prompt mejorado para la IA
    */
-  buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData }) {
+  buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData, yearStart, yearEnd }) {
     // Extraer términos del protocolo
     const technologies = protocolTerms?.tecnologia || protocolTerms?.technologies || [];
     const domains = protocolTerms?.dominio || protocolTerms?.applicationDomain || [];
@@ -124,20 +124,27 @@ COMPONENTES PICO:
 
 ÁREA: ${researchArea || 'General'}
 
+RANGO TEMPORAL: ${yearStart && yearEnd ? `Publicaciones entre ${yearStart} y ${yearEnd}` : 'No especificado (usar criterio estándar)'}
+
 REGLAS ESTRICTAS POR BASE:
 - IEEE Xplore: UNA SOLA query corta (máx. 3 grupos AND). No usar campos (TI:, AB:, "Document Title"). Cada grupo puede tener hasta 2 OR. No paréntesis anidados.
   Ejemplo: ("Internet of Things" OR IoT) AND ("digital health" OR telehealth) AND (privacy OR security)
+  ${yearStart && yearEnd ? `FILTRO TEMPORAL: La interfaz IEEE usa un filtro separado de año, NO incluyas el año en la query.` : ''}
 
 - Scopus: Use TITLE-ABS-KEY((...)) y agrupe sinónimos. Asegurar paréntesis balanceados.
-  Ejemplo: TITLE-ABS-KEY(("machine learning" OR "deep learning") AND ("healthcare" OR "medical") AND ("diagnosis" OR "prediction"))
+  ${yearStart && yearEnd ? `FILTRO TEMPORAL: Agrega al final: AND PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}` : ''}
+  Ejemplo: TITLE-ABS-KEY(("machine learning" OR "deep learning") AND ("healthcare" OR "medical") AND ("diagnosis" OR "prediction"))${yearStart && yearEnd ? ` AND PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}` : ''}
 
 - PubMed: Use [Title/Abstract] para términos de título/abstract; opcionalmente incluir MeSH entre corchetes [MeSH Terms].
+  ${yearStart && yearEnd ? `FILTRO TEMPORAL: PubMed usa filtros de fecha separados en su interfaz, NO incluyas el año en la query.` : ''}
   Ejemplo: (machine learning[Title/Abstract] OR deep learning[Title/Abstract]) AND (healthcare[Title/Abstract] OR medical[Title/Abstract])
 
 - Web of Science: Use TS=(...) para topic searches.
-  Ejemplo: TS=(("machine learning" OR "deep learning") AND ("healthcare" OR "medical"))
+  ${yearStart && yearEnd ? `FILTRO TEMPORAL: Agrega al final: AND PY=(${yearStart}-${yearEnd})` : ''}
+  Ejemplo: TS=(("machine learning" OR "deep learning") AND ("healthcare" OR "medical"))${yearStart && yearEnd ? ` AND PY=(${yearStart}-${yearEnd})` : ''}
 
 - Google Scholar: query simple sin campos.
+  ${yearStart && yearEnd ? `FILTRO TEMPORAL: Google Scholar usa filtros de fecha en la interfaz, NO incluyas el año en la query.` : ''}
   Ejemplo: ("machine learning" OR "deep learning") AND ("healthcare" OR "medical")
 
 INSTRUCCIONES:

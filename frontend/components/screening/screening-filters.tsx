@@ -10,6 +10,8 @@ interface ScreeningFiltersProps {
   onStatusFilterChange: (value: string) => void
   searchQuery: string
   onSearchQueryChange: (value: string) => void
+  methodFilter?: string
+  onMethodFilterChange?: (value: string) => void
 }
 
 export function ScreeningFilters({
@@ -17,6 +19,8 @@ export function ScreeningFilters({
   onStatusFilterChange,
   searchQuery,
   onSearchQueryChange,
+  methodFilter = 'all',
+  onMethodFilterChange,
 }: ScreeningFiltersProps) {
   return (
     <div className="flex gap-4 items-end">
@@ -49,6 +53,24 @@ export function ScreeningFilters({
           </SelectContent>
         </Select>
       </div>
+
+      {onMethodFilterChange && (
+        <div className="w-48 space-y-2">
+          <Label>Clasificación</Label>
+          <Select value={methodFilter} onValueChange={onMethodFilterChange}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="embeddings">🤖 Solo Embeddings</SelectItem>
+              <SelectItem value="chatgpt">🧠 Solo ChatGPT</SelectItem>
+              <SelectItem value="hybrid">🔀 Híbrido</SelectItem>
+              <SelectItem value="manual">👤 Manual</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   )
 }

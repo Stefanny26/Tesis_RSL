@@ -46,6 +46,9 @@ class Protocol {
     // Cumplimiento PRISMA
     this.prismaCompliance = data.prisma_compliance || data.prismaCompliance || [];
     
+    // Resultados de cribado (embeddings + ChatGPT)
+    this.screeningResults = data.screening_results || data.screeningResults || null;
+    
     // Metadatos
     this.completed = data.completed || false;
     this.createdAt = data.created_at || data.createdAt;

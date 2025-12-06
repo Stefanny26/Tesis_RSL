@@ -12,6 +12,8 @@ export interface WizardData {
   projectName: string
   projectDescription: string
   researchArea: string // Nueva: área/disciplina de investigación
+  yearStart?: number // Año inicial del rango temporal
+  yearEnd?: number // Año final del rango temporal
   
   // Paso 2: PICO + Matriz Es/No Es
   pico: {

@@ -19,6 +19,8 @@ const getProjectReferences = async (req, res) => {
     const { projectId } = req.params;
     const { status, year, source, limit = 100, offset = 0 } = req.query;
 
+    console.log(`📊 GET References - projectId: ${projectId}, limit: ${limit}, offset: ${offset}`);
+
     const filters = {};
     if (status) filters.screeningStatus = status;
     if (year) filters.year = parseInt(year);
@@ -39,7 +41,8 @@ const getProjectReferences = async (req, res) => {
       pending: await referenceRepository.countByProject(projectId, { screeningStatus: 'pending' }),
       included: await referenceRepository.countByProject(projectId, { screeningStatus: 'included' }),
       excluded: await referenceRepository.countByProject(projectId, { screeningStatus: 'excluded' }),
-      maybe: await referenceRepository.countByProject(projectId, { screeningStatus: 'maybe' })
+      maybe: await referenceRepository.countByProject(projectId, { screeningStatus: 'maybe' }),
+      duplicates: await referenceRepository.countByProject(projectId, { isDuplicate: true })
     };
 
     res.status(200).json({
@@ -127,7 +130,7 @@ const createReferencesBatch = async (req, res) => {
 const updateScreeningStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, aiData } = req.body;
+    const { status, aiData, exclusionReason } = req.body;
 
     if (!status) {
       return res.status(400).json({
@@ -145,6 +148,11 @@ const updateScreeningStatus = async (req, res) => {
       if (aiData.classification) updateData.aiClassification = aiData.classification;
       if (aiData.confidence) updateData.aiConfidenceScore = aiData.confidence;
       if (aiData.reasoning) updateData.aiReasoning = aiData.reasoning;
+    }
+
+    // Si se proporciona razón de exclusión, guardarla
+    if (exclusionReason) {
+      updateData.exclusionReason = exclusionReason;
     }
 
     const reference = await referenceRepository.update(id, updateData);
@@ -274,6 +282,58 @@ const detectProjectDuplicates = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Error al detectar duplicados'
+    });
+  }
+};
+
+/**
+ * POST /api/references/:projectId/resolve-duplicate
+ * Resolver un grupo de duplicados manteniendo una referencia
+ */
+const resolveDuplicateGroup = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { groupId, keepReferenceId } = req.body;
+
+    if (!groupId || !keepReferenceId) {
+      return res.status(400).json({
+        success: false,
+        message: 'groupId y keepReferenceId son requeridos'
+      });
+    }
+
+    // Obtener el grupo de duplicados
+    const result = await detectDuplicates.execute(projectId);
+    const group = result.groups.find(g => g.id === groupId);
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: 'Grupo de duplicados no encontrado'
+      });
+    }
+
+    // Eliminar todas las referencias del grupo excepto la que se va a mantener
+    const referencesToDelete = group.references
+      .filter(ref => ref.id !== keepReferenceId)
+      .map(ref => ref.id);
+
+    // Eliminar las referencias duplicadas
+    await Promise.all(referencesToDelete.map(id => referenceRepository.delete(id)));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        kept: keepReferenceId,
+        deleted: referencesToDelete.length,
+        message: `Se mantuvieron 1 referencia y se eliminaron ${referencesToDelete.length} duplicados`
+      }
+    });
+  } catch (error) {
+    console.error('Error resolviendo grupo de duplicados:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al resolver grupo de duplicados'
     });
   }
 };
@@ -492,6 +552,134 @@ const exportReferencesToFile = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/references/:id/upload-pdf
+ * Subir PDF de texto completo
+ */
+const uploadPdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se proporcionó ningún archivo PDF'
+      });
+    }
+
+    console.log(`📄 Subiendo PDF para referencia ${id}...`);
+
+    // Construir URL relativa del archivo
+    const pdfUrl = `/uploads/pdfs/${req.file.filename}`;
+
+    // Actualizar la referencia en la base de datos
+    const updated = await referenceRepository.update(id, {
+      fullTextAvailable: true,
+      fullTextUrl: pdfUrl
+    });
+
+    if (!updated) {
+      // Si falla, eliminar el archivo subido
+      const fs = require('fs');
+      fs.unlinkSync(req.file.path);
+      
+      return res.status(404).json({
+        success: false,
+        message: 'Referencia no encontrada'
+      });
+    }
+
+    console.log(`✅ PDF subido exitosamente: ${pdfUrl}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'PDF subido exitosamente',
+      data: {
+        reference: updated.toJSON(),
+        pdfUrl
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error subiendo PDF:', error);
+    
+    // Eliminar archivo si existe
+    if (req.file && req.file.path) {
+      try {
+        const fs = require('fs');
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.error('Error eliminando archivo:', unlinkError);
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al subir el PDF'
+    });
+  }
+};
+
+/**
+ * DELETE /api/references/:id/pdf
+ * Eliminar PDF de una referencia
+ */
+const deletePdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log(`🗑️  Eliminando PDF de referencia ${id}...`);
+
+    // Obtener la referencia para conseguir la URL del PDF
+    const reference = await referenceRepository.findById(id);
+
+    if (!reference) {
+      return res.status(404).json({
+        success: false,
+        message: 'Referencia no encontrada'
+      });
+    }
+
+    // Eliminar archivo físico si existe
+    if (reference.fullTextUrl) {
+      const path = require('path');
+      const fs = require('fs');
+      const filePath = path.join(__dirname, '../../../', reference.fullTextUrl);
+      
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`✅ Archivo eliminado: ${filePath}`);
+        }
+      } catch (error) {
+        console.error('⚠️  Error eliminando archivo físico:', error);
+        // Continuar aunque falle la eliminación del archivo
+      }
+    }
+
+    // Actualizar la referencia en la base de datos
+    const updated = await referenceRepository.update(id, {
+      fullTextAvailable: false,
+      fullTextUrl: null
+    });
+
+    console.log(`✅ PDF eliminado exitosamente`);
+
+    res.status(200).json({
+      success: true,
+      message: 'PDF eliminado exitosamente',
+      data: {
+        reference: updated.toJSON()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error eliminando PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al eliminar el PDF'
+    });
+  }
+};
+
 module.exports = {
   getProjectReferences,
   createReference,
@@ -501,10 +689,13 @@ module.exports = {
   getScreeningStats,
   findDuplicates,
   detectProjectDuplicates,
+  resolveDuplicateGroup,
   deleteReference,
   getYearDistribution,
   getSourceDistribution,
   searchAcademicReferences,
   importReferencesFromFiles,
-  exportReferencesToFile
+  exportReferencesToFile,
+  uploadPdf,
+  deletePdf
 };

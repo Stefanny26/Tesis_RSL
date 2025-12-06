@@ -11,7 +11,9 @@ const projectRoutes = require('./api/routes/project.routes');
 const protocolRoutes = require('./api/routes/protocol.routes');
 const aiRoutes = require('./api/routes/ai.routes');
 const referenceRoutes = require('./api/routes/reference.routes');
+const screeningRoutes = require('./api/routes/screening.routes');
 const usageRoutes = require('./api/routes/usage.routes');
+const adminRoutes = require('./api/routes/admin.routes');
 
 // Importar middleware BSON
 const { bsonMiddleware } = require('./infrastructure/middlewares/bson.middleware');
@@ -45,6 +47,10 @@ class Server {
     // Body parsers
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+    // Servir archivos estáticos (PDFs)
+    const path = require('path');
+    this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
     // BSON middleware para respuestas grandes
     this.app.use(bsonMiddleware);
@@ -86,7 +92,9 @@ class Server {
     this.app.use('/api/projects', protocolRoutes);
     this.app.use('/api/ai', aiRoutes);
     this.app.use('/api/references', referenceRoutes);
+    this.app.use('/api/screening', screeningRoutes);
     this.app.use('/api/usage', usageRoutes);
+    this.app.use('/api/admin', adminRoutes);
 
     // Ruta 404
     this.app.use('*', (req, res) => {

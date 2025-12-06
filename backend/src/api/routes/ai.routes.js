@@ -11,6 +11,7 @@ const {
   screenReferenceEmbeddings,
   screenReferencesBatchEmbeddings,
   generateRankingEmbeddings,
+  analyzeSimilarityDistribution,
   generateProtocolTerms,
   generateInclusionExclusionCriteria,
   runProjectScreeningEmbeddings,
@@ -136,6 +137,17 @@ router.post(
   '/ranking-embeddings',
   authMiddleware,
   generateRankingEmbeddings
+);
+
+/**
+ * @route   POST /api/ai/analyze-similarity-distribution
+ * @desc    Analizar distribución de similitudes y recomendar punto de corte (Elbow Analysis)
+ * @access  Private (requiere JWT)
+ */
+router.post(
+  '/analyze-similarity-distribution',
+  authMiddleware,
+  analyzeSimilarityDistribution
 );
 
 /**

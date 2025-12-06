@@ -10,16 +10,19 @@ const {
   getScreeningStats,
   findDuplicates,
   detectProjectDuplicates,
+  resolveDuplicateGroup,
   deleteReference,
   getYearDistribution,
   getSourceDistribution,
   searchAcademicReferences,
   importReferencesFromFiles,
-  exportReferencesToFile
+  exportReferencesToFile,
+  uploadPdf,
+  deletePdf
 } = require('../controllers/reference.controller');
 const { authMiddleware } = require('../../infrastructure/middlewares/auth.middleware');
 
-// Configurar multer para subida de archivos
+// Configurar multer para subida de archivos bibliográficos
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -32,6 +35,37 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error(`Formato no soportado: ${ext}. Use BibTeX, RIS o CSV`));
+    }
+  }
+});
+
+// Configurar multer para subida de PDFs
+const path = require('path');
+const fs = require('fs');
+
+const uploadDir = path.join(__dirname, '../../../uploads/pdfs');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const pdfUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, `ref-${req.params.id}-${uniqueSuffix}.pdf`);
+    }
+  }),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max para PDFs
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos PDF'));
     }
   }
 });
@@ -82,6 +116,29 @@ router.post(
 );
 
 /**
+ * @route   POST /api/references/:id/upload-pdf
+ * @desc    Subir PDF de texto completo para una referencia
+ * @access  Private
+ */
+router.post(
+  '/:id/upload-pdf',
+  authMiddleware,
+  pdfUpload.single('pdf'),
+  uploadPdf
+);
+
+/**
+ * @route   DELETE /api/references/:id/pdf
+ * @desc    Eliminar PDF de una referencia
+ * @access  Private
+ */
+router.delete(
+  '/:id/pdf',
+  authMiddleware,
+  deletePdf
+);
+
+/**
  * @route   PUT /api/references/:id/screening
  * @desc    Actualizar estado de screening de una referencia
  * @access  Private
@@ -123,6 +180,17 @@ router.post(
   '/:projectId/detect-duplicates',
   authMiddleware,
   detectProjectDuplicates
+);
+
+/**
+ * @route   POST /api/references/:projectId/resolve-duplicate
+ * @desc    Resolver un grupo de duplicados manteniendo una referencia
+ * @access  Private
+ */
+router.post(
+  '/:projectId/resolve-duplicate',
+  authMiddleware,
+  resolveDuplicateGroup
 );
 
 /**

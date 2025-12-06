@@ -27,7 +27,8 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     pending: 0,
     included: 0,
     excluded: 0,
-    screened: 0
+    screened: 0,
+    duplicates: 0
   })
   const [prismaStats, setPrismaStats] = useState({
     completed: 0,
@@ -67,13 +68,13 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         try {
           const screeningData = await apiClient.getScreeningStats(params.id)
           if (screeningData) {
-            const screened = (screeningData.included || 0) + (screeningData.excluded || 0)
             setScreeningStats({
               total: screeningData.total || 0,
               pending: screeningData.pending || 0,
               included: screeningData.included || 0,
               excluded: screeningData.excluded || 0,
-              screened
+              screened: screeningData.aiReviewed || 0,
+              duplicates: screeningData.duplicates || 0
             })
           }
         } catch (screeningErr) {
@@ -147,10 +148,29 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const prismaItemsCompleted = prismaStats.completed
   const prismaTotalItems = prismaStats.total
   
-  // Calcular progreso de screening
-  const screeningProgress = screeningStats.total > 0
-    ? Math.round((screeningStats.screened / screeningStats.total) * 100)
-    : 0
+  // Calcular progreso de screening acumulativo por fases (5 fases = 20% cada una)
+  // Fase 1: Clasificación automática (20%) - completa cuando todas tienen aiClassification
+  // Fase 2: Revisión manual (20%) - completa cuando todas están classified (included/excluded)
+  // Fase 3: Texto completo (20%) - completa cuando included tienen PDFs cargados
+  // Fase 4: Exclusiones (20%) - completa cuando excluded tienen motivos
+  // Fase 5: PRISMA (20%) - completa cuando diagrama está completo
+  let screeningProgress = 0
+  
+  if (screeningStats.total > 0) {
+    // Fase 1: 20% si todas las referencias tienen clasificación de IA
+    const fase1Progress = (screeningStats.screened / screeningStats.total) * 20
+    screeningProgress += fase1Progress
+    
+    // Fase 2: 20% adicional si todas están clasificadas (included/excluded, no pending)
+    const classifiedCount = screeningStats.included + screeningStats.excluded
+    const fase2Progress = (classifiedCount / screeningStats.total) * 20
+    screeningProgress += fase2Progress
+    
+    // Fase 3, 4, 5: Por ahora no tenemos datos, se pueden agregar después
+    // TODO: Agregar progreso de Fase 3 (texto completo), Fase 4 (exclusiones), Fase 5 (PRISMA)
+  }
+  
+  screeningProgress = Math.min(Math.round(screeningProgress), 100)
 
   return (
     <div className="min-h-screen bg-background">
@@ -307,6 +327,10 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                             <span className="font-semibold text-red-600">{screeningStats.excluded}</span>
                           </div>
                           <div className="flex justify-between">
+                            <span className="text-orange-600">🔁 Duplicados:</span>
+                            <span className="font-semibold text-orange-600">{screeningStats.duplicates}</span>
+                          </div>
+                          <div className="flex justify-between">
                             <span className="text-yellow-600">⏳ Pendientes:</span>
                             <span className="font-semibold text-yellow-600">{screeningStats.pending}</span>
                           </div>
@@ -408,11 +432,11 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                       <div className="text-right">
                         <p className="text-2xl font-bold">
                           {Math.round((
-                            (protocolStats.criteriaCount > 0 ? 100 : 0) + 
-                            screeningProgress + 
-                            prismaCompliance + 
+                            (protocolStats.criteriaCount > 0 ? 25 : 0) + 
+                            (screeningProgress * 0.25) + 
+                            (prismaCompliance * 0.25) + 
                             0
-                          ) / 4)}%
+                          ))}%
                         </p>
                         <p className="text-xs text-muted-foreground">Progreso total</p>
                       </div>

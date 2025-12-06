@@ -103,13 +103,18 @@ class DetectDuplicatesUseCase {
     // 2. Comparar títulos normalizados
     const similarity = this._calculateSimilarity(ref1.title, ref2.title);
     
-    // Si la similitud es muy alta (>= 90%), son duplicados
-    if (similarity >= 90) {
+    // Si la similitud es muy alta (>= 85%), son duplicados
+    if (similarity >= 85) {
       return true;
     }
 
-    // Si la similitud es alta (>= 85%) y los autores coinciden, son duplicados
-    if (similarity >= 85 && this._sameAuthors(ref1.authors, ref2.authors)) {
+    // Si la similitud es alta (>= 75%) y los autores coinciden, son duplicados
+    if (similarity >= 75 && this._sameAuthors(ref1.authors, ref2.authors)) {
+      return true;
+    }
+
+    // Si los títulos son muy similares (>= 80%) y el año coincide
+    if (similarity >= 80 && ref1.year === ref2.year) {
       return true;
     }
 
