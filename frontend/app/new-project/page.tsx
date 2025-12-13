@@ -1,5 +1,5 @@
 "use client"
-
+import { apiClient } from "@/lib/api-client"
 import { WizardProvider, useWizard } from "@/components/project-wizard/wizard-context"
 import { WizardHeader } from "@/components/project-wizard/wizard-header"
 import { WizardNavigation } from "@/components/project-wizard/wizard-navigation"
@@ -18,35 +18,38 @@ function WizardContent() {
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
 
-  const handleSaveDraft = async () => {
-    setIsSaving(true)
-    try {
-      toast({
-        title: "💾 Guardando borrador...",
-        description: "Los datos se están guardando localmente"
-      })
-
-      // Guardar en localStorage como borrador
-      localStorage.setItem('project-wizard-draft', JSON.stringify({
-        data,
-        currentStep,
-        lastSaved: new Date().toISOString()
-      }))
-
-      toast({
-        title: "✅ Borrador guardado",
-        description: "Puedes continuar más tarde desde donde dejaste"
-      })
-    } catch (error) {
-      toast({
-        title: "❌ Error al guardar",
-        description: "No se pudo guardar el borrador",
-        variant: "destructive"
-      })
-    } finally {
-      setIsSaving(false)
+  const handleCreateProject = async () => {
+  setIsSaving(true)
+  try {
+    const payload = {
+      title: data.projectName,
+      description: data.projectDescription || "Proyecto de revisión sistemática",
+      researchArea: data.researchArea,
+      status: "draft"
     }
+
+    const project = await apiClient.createProject(payload)
+
+    toast({
+      title: "✅ Proyecto creado",
+      description: "El proyecto fue creado correctamente"
+    })
+
+    // Redirigir al proyecto
+    window.location.href = `/projects/${project.id}`
+
+  } catch (err) {
+    console.error(err)
+    toast({
+      title: "❌ Error creando proyecto",
+      description: "Revisa los datos ingresados",
+      variant: "destructive"
+    })
+  } finally {
+    setIsSaving(false)
   }
+}
+
 
   const validateStep = () => {
     if (currentStep === 1) {
