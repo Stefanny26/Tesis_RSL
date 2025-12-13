@@ -119,16 +119,22 @@ function WizardContent() {
         </div>
       </main>
 
-      <WizardNavigation 
-        canGoNext={canGoNext}
-        isLastStep={currentStep === 7}
-        onNext={() => {
-          if (validateStep()) {
-            updateData({ currentStep: currentStep + 1 })
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-          }
-        }}
-        onBack={() => {
+      <WizardNavigation
+  canGoNext={canGoNext}
+  isLastStep={currentStep === 7}
+  onNext={() => {
+    if (!validateStep()) return
+
+    if (currentStep === 7) {
+      handleCreateProject()
+    } else {
+      updateData({ currentStep: currentStep + 1 })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }}
+  onBack={...}
+/>
+ {
           if (currentStep > 1) {
             updateData({ currentStep: currentStep - 1 })
             window.scrollTo({ top: 0, behavior: 'smooth' })
