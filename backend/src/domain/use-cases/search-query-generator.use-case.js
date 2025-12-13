@@ -34,11 +34,12 @@ class SearchQueryGenerator {
   /**
    * Genera queries de búsqueda para múltiples bases de datos
    */
-  async generate({ databases = ['scopus', 'ieee'], picoData = {}, protocolTerms = {}, researchArea = '', matrixData = {}, aiProvider = 'chatgpt', yearStart, yearEnd }) {
+  async generate({ databases = ['scopus', 'ieee'], picoData = {}, protocolTerms = {}, researchArea = '', matrixData = {}, aiProvider = 'chatgpt', yearStart, yearEnd, selectedTitle }) {
     try {
       console.log('🔍 Generando queries de búsqueda...');
+      console.log('📌 Título RSL:', selectedTitle || 'No especificado');
 
-      const prompt = this.buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData, yearStart, yearEnd });
+      const prompt = this.buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData, yearStart, yearEnd, selectedTitle });
       
       let text;
       if (aiProvider === 'chatgpt' && this.openai) {
@@ -97,71 +98,159 @@ class SearchQueryGenerator {
   }
 
   /**
-   * Construye el prompt mejorado para la IA
+   * Construye el prompt mejorado para la IA con reglas PRISMA/Cochrane
    */
-  buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData, yearStart, yearEnd }) {
+  buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData, yearStart, yearEnd, selectedTitle }) {
     // Extraer términos del protocolo
     const technologies = protocolTerms?.tecnologia || protocolTerms?.technologies || [];
     const domains = protocolTerms?.dominio || protocolTerms?.applicationDomain || [];
     const studyTypes = protocolTerms?.tipoEstudio || protocolTerms?.studyType || [];
     const themes = protocolTerms?.focosTematicos || protocolTerms?.thematicFocus || [];
 
-    return `Eres un experto en búsquedas bibliográficas académicas y en sintaxis de consultas para bases de datos (Scopus, IEEE Xplore, PubMed, Web of Science, ACM Digital Library, ScienceDirect, SpringerLink y Google Scholar).
+    return `Eres un experto en metodología PRISMA y Cochrane para Revisiones Sistemáticas de Literatura (RSL).
 
-Tu tarea: generar UNA SOLA query válida por base de datos, en INGLÉS, lista para pegar en la interfaz web o en la API de cada proveedor.
+═══════════════════════════════════════════════════════════════
+CONTEXTO METODOLÓGICO (REGLA BASE)
+═══════════════════════════════════════════════════════════════
 
-TÉRMINOS DEL PROTOCOLO:
-Grupo 1 - Tecnología/Herramientas: ${technologies.join(', ') || 'No especificado'}
-Grupo 2 - Dominio de aplicación: ${domains.join(', ') || 'No especificado'}
-Grupo 3 - Tipo de estudio: ${studyTypes.join(', ') || 'No especificado'}
-Grupo 4 - Focos temáticos: ${themes.join(', ') || 'No especificado'}
+La ESTRATEGIA DE BÚSQUEDA operacionaliza la cadena:
+Título RSL → PICO → Definición de Términos → Criterios I/E → CADENAS DE BÚSQUEDA
+
+👉 NO introduces conceptos nuevos.
+👉 Solo traduces lo ya definido en consultas ejecutables.
+👉 Toda búsqueda debe ser REPRODUCIBLE por otro investigador.
+
+═══════════════════════════════════════════════════════════════
+TRAZABILIDAD (DERIVA DE PASOS PREVIOS)
+═══════════════════════════════════════════════════════════════
+
+${selectedTitle ? `TÍTULO RSL: "${selectedTitle}"` : ''}
 
 COMPONENTES PICO:
-- Población: ${picoData?.population || 'No especificado'}
-- Intervención: ${picoData?.intervention || 'No especificado'}
-- Comparación: ${picoData?.comparison || 'N/A'}
-- Resultado: ${picoData?.outcome || 'No especificado'}
+- P (Población): ${picoData?.population || 'No especificado'}
+- I (Intervención): ${picoData?.intervention || 'No especificado'}
+- C (Comparación): ${picoData?.comparison || 'N/A'}
+- O (Resultado): ${picoData?.outcome || 'No especificado'}
 
-ÁREA: ${researchArea || 'General'}
+TÉRMINOS DEFINIDOS EN EL PROTOCOLO:
+🔬 Tecnología (de I): ${technologies.join(', ') || 'No especificado'}
+🏥 Dominio (de P): ${domains.join(', ') || 'No especificado'}
+📚 Tipo estudio: ${studyTypes.join(', ') || 'No especificado'}
+🎯 Focos temáticos (de O): ${themes.join(', ') || 'No especificado'}
 
-RANGO TEMPORAL: ${yearStart && yearEnd ? `Publicaciones entre ${yearStart} y ${yearEnd}` : 'No especificado (usar criterio estándar)'}
+ÁREA DE INVESTIGACIÓN: ${researchArea || 'General'}
+RANGO TEMPORAL: ${yearStart && yearEnd ? `${yearStart}-${yearEnd}` : 'No especificado'}
+IDIOMA: Inglés (dominante en literatura técnica)
 
-REGLAS ESTRICTAS POR BASE:
-- IEEE Xplore: UNA SOLA query corta (máx. 3 grupos AND). No usar campos (TI:, AB:, "Document Title"). Cada grupo puede tener hasta 2 OR. No paréntesis anidados.
-  Ejemplo: ("Internet of Things" OR IoT) AND ("digital health" OR telehealth) AND (privacy OR security)
-  ${yearStart && yearEnd ? `FILTRO TEMPORAL: La interfaz IEEE usa un filtro separado de año, NO incluyas el año en la query.` : ''}
+═══════════════════════════════════════════════════════════════
+REGLAS METODOLÓGICAS (NIVEL EXPERTO)
+═══════════════════════════════════════════════════════════════
 
-- Scopus: Use TITLE-ABS-KEY((...)) y agrupe sinónimos. Asegurar paréntesis balanceados.
-  ${yearStart && yearEnd ? `FILTRO TEMPORAL: Agrega al final: AND PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}` : ''}
-  Ejemplo: TITLE-ABS-KEY(("machine learning" OR "deep learning") AND ("healthcare" OR "medical") AND ("diagnosis" OR "prediction"))${yearStart && yearEnd ? ` AND PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}` : ''}
+Regla 1. DERIVACIÓN SECUENCIAL OBLIGATORIA
+- Cada término de la cadena DEBE provenir de: Título → PICO → Definición de términos
+- ❌ NO se permiten términos "exploratorios" no justificados
 
-- PubMed: Use [Title/Abstract] para términos de título/abstract; opcionalmente incluir MeSH entre corchetes [MeSH Terms].
-  ${yearStart && yearEnd ? `FILTRO TEMPORAL: PubMed usa filtros de fecha separados en su interfaz, NO incluyas el año en la query.` : ''}
-  Ejemplo: (machine learning[Title/Abstract] OR deep learning[Title/Abstract]) AND (healthcare[Title/Abstract] OR medical[Title/Abstract])
+Regla 2. DESCOMPOSICIÓN POR BLOQUES CONCEPTUALES
+Construye la cadena por bloques semánticos:
 
-- Web of Science: Use TS=(...) para topic searches.
-  ${yearStart && yearEnd ? `FILTRO TEMPORAL: Agrega al final: AND PY=(${yearStart}-${yearEnd})` : ''}
-  Ejemplo: TS=(("machine learning" OR "deep learning") AND ("healthcare" OR "medical"))${yearStart && yearEnd ? ` AND PY=(${yearStart}-${yearEnd})` : ''}
+┌─────────────────┬──────────────────────┐
+│ BLOQUE          │ ORIGEN               │
+├─────────────────┼──────────────────────┤
+│ Tecnología      │ I del PICO           │
+│ Dominio/contexto│ P del PICO           │
+│ Enfoque/resultado│ O del PICO (si aplica)│
+└─────────────────┴──────────────────────┘
 
-- Google Scholar: query simple sin campos.
-  ${yearStart && yearEnd ? `FILTRO TEMPORAL: Google Scholar usa filtros de fecha en la interfaz, NO incluyas el año en la query.` : ''}
-  Ejemplo: ("machine learning" OR "deep learning") AND ("healthcare" OR "medical")
+Cada bloque usa OR interno y se conectan con AND.
 
-INSTRUCCIONES:
-1. Agrupa sinónimos dentro de paréntesis con OR
-2. Combina conceptos distintos con AND
-3. Usa comillas en frases de varias palabras
-4. Evita comodines (*) y caracteres especiales ({ } [ ] ^ ~ ?)
-5. Genera queries en INGLÉS únicamente
+Regla 3. USO CORRECTO DE OPERADORES
+- AND → intersección conceptual (entre bloques)
+- OR → sinónimos/variantes (dentro de bloques)
+- " " → frases exactas (multi-palabra)
+- Truncadores solo si es técnicamente relevante
 
-FORMATO DE RESPUESTA (solo texto plano, sin markdown):
+Ejemplo correcto de estructura:
+(Bloque Tecnología) AND (Bloque Dominio) AND (Bloque Resultado)
+
+Regla 4. INCLUIR TODOS LOS SINÓNIMOS TÉCNICOS REALES
+Cada bloque debe incluir:
+- Nombres completos y acrónimos
+- Variantes ortográficas
+- Términos equivalentes del dominio
+
+Ejemplo: "Object Document Mapping" OR ODM OR Mongoose
+
+Regla 5. CONSISTENCIA INTER-BASE
+La LÓGICA CONCEPTUAL debe ser idéntica en todas las bases.
+Solo cambia la SINTAXIS, no los conceptos.
+
+═══════════════════════════════════════════════════════════════
+SINTAXIS POR BASE DE DATOS (NIVEL IMPLEMENTACIÓN)
+═══════════════════════════════════════════════════════════════
+
+IEEE Xplore:
+- Query corta (máx. 3 grupos AND)
+- NO usar campos (TI:, AB:, "Document Title")
+- Cada grupo puede tener hasta 2 OR
+- NO paréntesis anidados
+- Ejemplo: ("Internet of Things" OR IoT) AND ("digital health" OR telehealth) AND (privacy OR security)
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: La interfaz IEEE usa filtro separado de año, NO incluyas año en query` : ''}
+
+Scopus:
+- Formato: TITLE-ABS-KEY((...))
+- Agrupa sinónimos con OR dentro de paréntesis
+- Conecta bloques conceptuales con AND
+- Asegurar paréntesis balanceados
+- Ejemplo: TITLE-ABS-KEY(("machine learning" OR "deep learning") AND ("healthcare" OR "medical") AND ("diagnosis" OR "prediction"))
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: Agrega al final: AND PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}` : ''}
+
+PubMed:
+- Use [Title/Abstract] para términos principales
+- Opcionalmente incluir MeSH entre corchetes [MeSH Terms]
+- Ejemplo: (machine learning[Title/Abstract] OR deep learning[Title/Abstract]) AND (healthcare[Title/Abstract] OR medical[Title/Abstract])
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: PubMed usa filtros de fecha separados, NO incluyas año en query` : ''}
+
+Web of Science:
+- Formato: TS=((bloque1) AND (bloque2) AND (bloque3))
+- Ejemplo: TS=(("machine learning" OR "deep learning") AND ("healthcare" OR "medical"))
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: Agrega al final: AND PY=(${yearStart}-${yearEnd})` : ''}
+
+Google Scholar:
+- Query simple sin campos
+- Ejemplo: ("machine learning" OR "deep learning") AND ("healthcare" OR "medical")
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: Google Scholar usa filtros de fecha en interfaz, NO incluyas año` : ''}
+
+ACM Digital Library:
+- Similar a Scopus pero sin wrapper TITLE-ABS-KEY
+- Ejemplo: ("machine learning" OR "deep learning") AND ("healthcare" OR "medical")
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: ACM usa filtros de fecha separados, NO incluyas año en query` : ''}
+
+ScienceDirect / SpringerLink / Wiley:
+- Query simple con paréntesis para agrupar
+- Ejemplo: ("machine learning" OR "deep learning") AND ("healthcare" OR "medical")
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: Usan filtros de fecha en interfaz, NO incluyas año` : ''}
+
+═══════════════════════════════════════════════════════════════
+CHECKLIST DE CALIDAD (AUTOEVALÚA ANTES DE RESPONDER)
+═══════════════════════════════════════════════════════════════
+
+✓ ¿La búsqueda puede replicarse exactamente?
+✓ ¿Todos los términos provienen del título/PICO/términos definidos?
+✓ ¿Incluye sinónimos técnicos reales?
+✓ ¿Usa correctamente AND / OR / " "?
+✓ ¿Mantiene consistencia conceptual entre bases?
+✓ ¿Respeta la sintaxis específica de cada base?
+
+═══════════════════════════════════════════════════════════════
+FORMATO DE RESPUESTA (TEXTO PLANO, SIN MARKDOWN)
+═══════════════════════════════════════════════════════════════
+
 DATABASE: nombre_base_datos
 QUERY: tu query completa aqui en una sola linea
-EXPLANATION: breve explicacion en espanol
+EXPLANATION: Derivación: [mencionar qué términos vienen de P/I/C/O del PICO]
 
 ---
 
----
 CRÍTICO - DEBES GENERAR EXACTAMENTE ${databases.length} QUERIES:
 ${databases.map((db, i) => `${i + 1}. ${db}`).join('\n')}
 
@@ -171,7 +260,10 @@ IMPORTANTE:
 - NO generes queries para otras bases de datos no listadas
 - NO uses backticks, NO uses markdown, solo texto plano con el formato indicado
 - Cada query debe estar en una sola línea continua
----`;
+- La EXPLANATION debe justificar la trazabilidad desde PICO
+
+GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA AHORA:
+`;
   }
 
   /**

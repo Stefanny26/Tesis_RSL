@@ -107,11 +107,23 @@ export function SearchPlanStep() {
         description: "Analizando tu marco PICO para crear criterios estructurados..."
       })
 
+      // Mapear área a texto legible
+      const areaMap: Record<string, string> = {
+        'ingenieria-tecnologia': 'Ingeniería y Tecnología',
+        'medicina-salud': 'Medicina y Ciencias de la Salud',
+        'ciencias-sociales': 'Ciencias Sociales y Humanidades',
+        'arquitectura-diseño': 'Arquitectura, Diseño y Urbanismo'
+      }
+      const areaTexto = data.researchArea ? areaMap[data.researchArea] : undefined
+
       // Generar criterios usando la misma API de protocolos
       const result = await apiClient.generateProtocolAnalysis(
         data.projectName,
         data.projectDescription,
-        data.aiProvider
+        data.aiProvider,
+        areaTexto,
+        data.yearStart,
+        data.yearEnd
       )
 
       // Extraer criterios de inclusión y exclusión

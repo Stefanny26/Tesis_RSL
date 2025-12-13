@@ -133,7 +133,7 @@ export function ProtocolDefinitionStep() {
 
       // Llamar al nuevo endpoint específico para términos del protocolo
       const result = await apiClient.generateProtocolTerms(
-        data.projectName,
+        data.selectedTitle || data.projectName, // ← REGLA: Priorizar título RSL seleccionado
         data.projectDescription,
         data.pico,
         data.matrixIsNot,
@@ -243,7 +243,7 @@ export function ProtocolDefinitionStep() {
 
       // Llamar al endpoint con contexto adicional
       const result = await apiClient.generateProtocolTerms(
-        data.projectName,
+        data.selectedTitle || data.projectName, // ← REGLA: Priorizar título RSL seleccionado
         data.projectDescription,
         data.pico,
         data.matrixIsNot,

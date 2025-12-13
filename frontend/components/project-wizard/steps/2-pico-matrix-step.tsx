@@ -52,10 +52,28 @@ export function PicoMatrixStep() {
         description: `Usando ${getProviderName(selectedAI)}. Esto puede tomar 20-30 segundos...`
       })
 
+      // Obtener área legible desde el valor del select
+      const areaMap: Record<string, string> = {
+        'ingenieria-tecnologia': 'Ingeniería y Tecnología',
+        'medicina-salud': 'Medicina y Ciencias de la Salud',
+        'ciencias-sociales': 'Ciencias Sociales y Humanidades',
+        'arquitectura-diseño': 'Arquitectura, Diseño y Urbanismo'
+      }
+      const areaTexto = data.researchArea ? areaMap[data.researchArea] : undefined
+
+      console.log('📤 DEBUG - Enviando al backend:')
+      console.log('   - Nombre:', data.projectName)
+      console.log('   - Área:', areaTexto, '(valor original:', data.researchArea, ')')
+      console.log('   - Año inicio:', data.yearStart, '(tipo:', typeof data.yearStart, ')')
+      console.log('   - Año fin:', data.yearEnd, '(tipo:', typeof data.yearEnd, ')')
+
       const result = await apiClient.generateProtocolAnalysis(
         data.projectName,
         data.projectDescription,
-        selectedAI
+        selectedAI,
+        areaTexto,
+        data.yearStart,
+        data.yearEnd
       )
 
       // Extraer PICO

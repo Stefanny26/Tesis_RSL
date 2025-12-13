@@ -40,6 +40,8 @@ export interface WizardData {
     cochraneCompliance: string
   }>
   selectedTitle: string
+  protocolJustification?: string  // Justificación completa del protocolo (4 párrafos integrados)
+  
   // Paso 4: Términos del Protocolo (ANTES de criterios)
   protocolTerms?: {
     tecnologia?: string[]
@@ -83,9 +85,12 @@ export interface WizardData {
     }>
     uploadedFiles?: Array<{
       filename: string
-      format: 'csv' | 'ris' | 'bibtex'
+      format: 'csv' | 'ris' | 'bib'
       recordCount: number
       uploadedAt: string
+      databaseId: string
+      databaseName: string
+      data: any[]
     }>
   }
   
@@ -130,6 +135,7 @@ const initialData: WizardData = {
   matrixIsNot: { is: [], isNot: [] },
   generatedTitles: [],
   selectedTitle: "",
+  protocolJustification: "",
   protocolTerms: {
     tecnologia: [],
     dominio: [],

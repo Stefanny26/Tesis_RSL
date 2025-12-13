@@ -31,6 +31,7 @@ export function CriteriaStep() {
   const [regenerateCategory, setRegenerateCategory] = useState<number | null>(null) // Índice de la categoría
   const [regenerateFocus, setRegenerateFocus] = useState('')
 
+  // Nombres de las categorías (nivel protocolo PRISMA)
   // Nombres de las categorías
   const categoryNames = [
     'Cobertura Temática',
@@ -68,7 +69,8 @@ export function CriteriaStep() {
         undefined, // categoryIndex
         undefined, // categoryName
         data.yearStart,
-        data.yearEnd
+        data.yearEnd,
+        data.selectedTitle // ← REGLA: Usar título RSL seleccionado para derivar criterios
       )
 
       // Backend returns structured criteria with categories
@@ -142,7 +144,8 @@ export function CriteriaStep() {
         regenerateCategory,
         categoryName,
         data.yearStart,
-        data.yearEnd
+        data.yearEnd,
+        data.selectedTitle // ← REGLA: Usar título RSL seleccionado
       )
 
       // Si el backend retorna un solo criterio (isSingleCriterion = true)
@@ -264,7 +267,7 @@ export function CriteriaStep() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openRegenerateDialog('inclusion', 0)}
+                        onClick={() => openRegenerateDialog('inclusion', 2)}
                         disabled={isRegenerating}
                         className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
                       >

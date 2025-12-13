@@ -76,6 +76,9 @@ class ProtocolRepository {
       // Título propuesto por IA
       proposedTitle: 'proposed_title',
       
+      // Área de conocimiento
+      area: 'area',
+      
       // Evaluación inicial
       evaluationInitial: 'evaluation_initial',
       

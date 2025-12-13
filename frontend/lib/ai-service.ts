@@ -23,7 +23,10 @@ export const aiService = {
   async generateProtocolAnalysis(
     title: string,
     description: string,
-    aiProvider: AIProvider = 'deepseek'
+    aiProvider: AIProvider = 'deepseek',
+    area?: string,
+    yearStart?: number,
+    yearEnd?: number
   ) {
     const response = await fetch(`${API_URL}/api/ai/protocol-analysis`, {
       method: 'POST',
@@ -31,7 +34,7 @@ export const aiService = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${getToken()}`
       },
-      body: JSON.stringify({ title, description, aiProvider })
+      body: JSON.stringify({ title, description, area, yearStart, yearEnd, aiProvider })
     })
 
     if (!response.ok) {

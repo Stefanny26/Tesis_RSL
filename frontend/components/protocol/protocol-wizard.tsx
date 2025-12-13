@@ -27,6 +27,11 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   
+  // Captura de área y rango temporal del usuario
+  const [projectArea, setProjectArea] = useState<string>("")
+  const [yearStart, setYearStart] = useState<number>(2020) // Últimos 5 años por defecto
+  const [yearEnd, setYearEnd] = useState<number>(new Date().getFullYear()) // Año actual
+  
   const [protocolData, setProtocolData] = useState({
     proposedTitle: "",
     evaluationInitial: { themeClear: "", delimitation: "", viability: "", comment: "" },
@@ -159,7 +164,14 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
     setLoading(true)
     try {
       toast({ title: "Generando protocolo completo...", description: `Usando ${selectedProvider === 'chatgpt' ? 'ChatGPT' : 'Gemini'}. Esto puede tomar 30-60 segundos...` })
-      const result = await aiService.generateProtocolAnalysis(projectTitle, projectDescription, selectedProvider)
+      const result = await aiService.generateProtocolAnalysis(
+        projectTitle, 
+        projectDescription, 
+        selectedProvider,
+        projectArea || undefined,
+        yearStart,
+        yearEnd
+      )
       
       const newData = { ...protocolData }
       
@@ -253,7 +265,14 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
     setLoading(true)
     try {
       toast({ title: "Generando Matriz Es/No Es...", description: `Usando ${selectedProvider === 'chatgpt' ? 'ChatGPT' : 'Gemini'}` })
-      const result = await aiService.generateProtocolAnalysis(projectTitle, projectDescription, selectedProvider)
+      const result = await aiService.generateProtocolAnalysis(
+        projectTitle, 
+        projectDescription, 
+        selectedProvider,
+        projectArea || undefined,
+        yearStart,
+        yearEnd
+      )
       
       const newData = { ...protocolData }
       if (result.data.fase2_matriz_es_no_es) {
@@ -356,6 +375,54 @@ export function ProtocolWizard({ projectId, projectTitle, projectDescription }: 
                 <span className="text-sm font-medium">Descripción / Contexto:</span>
                 <p className="text-sm text-muted-foreground mt-1">{projectDescription}</p>
               </div>
+            </div>
+            
+            {/* Campos adicionales para mejorar la calidad metodológica */}
+            <div className="space-y-3 bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <p className="text-xs text-purple-900 font-semibold uppercase">⚙️ Configuración metodológica</p>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Área de conocimiento (opcional)</label>
+                <Input 
+                  placeholder="Ej: Informática, Medicina, Ingeniería..."
+                  value={projectArea}
+                  onChange={(e) => setProjectArea(e.target.value)}
+                  disabled={loading}
+                  className="bg-white"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Ayuda a contextualizar el protocolo según estándares del área</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Año inicio</label>
+                  <Input 
+                    type="number"
+                    min="1990"
+                    max={new Date().getFullYear()}
+                    placeholder="2020"
+                    value={yearStart}
+                    onChange={(e) => setYearStart(parseInt(e.target.value) || 2020)}
+                    disabled={loading}
+                    className="bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Año fin</label>
+                  <Input 
+                    type="number"
+                    min="1990"
+                    max={new Date().getFullYear()}
+                    placeholder={new Date().getFullYear().toString()}
+                    value={yearEnd}
+                    onChange={(e) => setYearEnd(parseInt(e.target.value) || new Date().getFullYear())}
+                    disabled={loading}
+                    className="bg-white"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Rango temporal: {yearStart} - {yearEnd} ({yearEnd - yearStart} años). 
+                Recomendado: últimos 5-10 años para áreas tecnológicas.
+              </p>
             </div>
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
               <p className="text-xs text-blue-900 font-medium">💡 ¿Qué hará el sistema?</p>

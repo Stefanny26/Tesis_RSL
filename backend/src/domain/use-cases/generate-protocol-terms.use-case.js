@@ -15,11 +15,16 @@ class GenerateProtocolTermsUseCase {
 
   /**
    * Genera términos y sinónimos para el protocolo
+   * @param {string} selectedTitle - Título de la RSL seleccionado en el paso 3
+   * @param {string} projectTitle - Título del proyecto (legacy, se usa selectedTitle si está disponible)
    */
-  async execute({ projectTitle, projectDescription, picoData, matrixData, aiProvider, specificSection, customFocus }) {
+  async execute({ selectedTitle, projectTitle, projectDescription, picoData, matrixData, aiProvider, specificSection, customFocus }) {
     try {
+      // REGLA METODOLÓGICA: Los términos DEBEN basarse en el título de la RSL seleccionado
+      const rslTitle = selectedTitle || projectTitle;
+      
       console.log('🔍 Generando términos del protocolo...');
-      console.log('📋 Proyecto:', projectTitle);
+      console.log('📋 Título RSL:', rslTitle);
       
       if (specificSection) {
         console.log('🎯 Regenerando sección específica:', specificSection);
@@ -27,6 +32,7 @@ class GenerateProtocolTermsUseCase {
       }
 
       const prompt = this.buildPrompt({
+        rslTitle,
         projectTitle,
         projectDescription,
         picoData,
@@ -96,9 +102,9 @@ class GenerateProtocolTermsUseCase {
   /**
    * Construye el prompt para la IA (mejorado para forzar JSON)
    */
-  buildPrompt({ projectTitle, projectDescription, picoData, matrixData, specificSection, customFocus }) {
-    // Limpiar y extraer información del proyecto
-    const topic = (projectTitle || 'Tema no especificado').replace(/\n/g, ' ').trim();
+  buildPrompt({ rslTitle, projectTitle, projectDescription, picoData, matrixData, specificSection, customFocus }) {
+    // Usar título de la RSL seleccionado como fuente principal
+    const title = (rslTitle || projectTitle || 'Tema no especificado').replace(/\n/g, ' ').trim();
     const description = (projectDescription || 'Sin descripción').replace(/\n/g, ' ').trim();
     
     // Extraer datos PICO
@@ -107,14 +113,14 @@ class GenerateProtocolTermsUseCase {
     const C = picoData?.comparison || null;
     const O = picoData?.outcome || 'unspecified';
     
-    // Extraer matriz Es/No Es (limitar a 10 items cada una para no saturar)
+    // Extraer matriz Es/No Es
     const isIncluded = (matrixData?.is || []).slice(0, 10);
     const isNotIncluded = (matrixData?.isNot || []).slice(0, 10);
 
     // Si hay sección específica y enfoque personalizado, generar prompt especializado
     if (specificSection && customFocus) {
       return this.buildSpecificSectionPrompt({
-        topic,
+        title,
         description,
         P, I, C, O,
         isIncluded,
@@ -125,51 +131,170 @@ class GenerateProtocolTermsUseCase {
     }
 
     return `
-Eres un experto en revisiones sistemáticas y en generación de protocolos académicos. Tu tarea: generar TÉRMINOS clave en ESPAÑOL para el protocolo del proyecto indicado. 
+Eres un experto en metodología PRISMA/Cochrane para revisiones sistemáticas de literatura. Tu tarea: generar términos clave para el protocolo DERIVADOS DIRECTAMENTE del TÍTULO de la RSL.
 
 RESPONDE ÚNICAMENTE con JSON válido (sin texto adicional, sin markdown, sin comentarios).
 
-CONTEXTO DEL PROYECTO:
-- Título seleccionado: ${topic}
-- Descripción: ${description}
-- PICO:
-  • Población (P): ${P}
-  • Intervención (I): ${I}
-  • Comparación (C): ${C || 'ninguna'}
-  • Outcome (O): ${O}
-- Matriz ES (incluir en búsqueda): ${isIncluded.length ? isIncluded.join(' | ') : 'ninguno especificado'}
-- Matriz NO ES (excluir de búsqueda): ${isNotIncluded.length ? isNotIncluded.join(' | ') : 'ninguno especificado'}
+═══════════════════════════════════════════════════════════════
+PRINCIPIO METODOLÓGICO FUNDAMENTAL
+═══════════════════════════════════════════════════════════════
 
-INSTRUCCIONES CRÍTICAS:
-1. Genera 4–6 términos por cada categoría: "technologies", "applicationDomain", "thematicFocus"
-2. Todos los términos en ESPAÑOL. Si es muy técnico, agrega traducción inglés entre paréntesis: "Mongoose (Mongoose)"
-3. Cada término debe ser CORTO (máximo 5 palabras)
-4. NO incluyas explicaciones ni descripciones largas
-5. Si algún elemento PICO es 'unspecified', infiere términos relevantes desde el TÍTULO y descripción
-6. Prioriza términos útiles para construir cadenas de búsqueda académicas (keywords, sinónimos)
-7. Los términos deben estar DIRECTAMENTE relacionados con "${topic}"
-8. Asegúrate que ningún array esté vacío (mínimo 4 términos por categoría)
+⚠️ REGLA CRÍTICA: Todos los términos DEBEN derivar del TÍTULO seleccionado.
+⚠️ NO introducir conceptos nuevos que no estén en el título.
+⚠️ La sección "Definición de Términos" descompone técnicamente el título, no inventa conceptos.
 
-CATEGORÍAS:
-- technologies: Tecnologías, herramientas, frameworks, lenguajes de programación, métodos técnicos
-- applicationDomain: Áreas de aplicación, contextos, dominios (educación, salud, industria, etc.)
-- thematicFocus: Aspectos/focos a investigar (rendimiento, seguridad, usabilidad, escalabilidad, metodologías, etc.)
+═══════════════════════════════════════════════════════════════
+TÍTULO DE LA REVISIÓN SISTEMÁTICA (FUENTE ÚNICA)
+═══════════════════════════════════════════════════════════════
 
-FORMATO OBLIGATORIO (salida EXACTA en JSON):
+"${title}"
+
+═══════════════════════════════════════════════════════════════
+CONTEXTO PICO (para validación de coherencia)
+═══════════════════════════════════════════════════════════════
+
+- P (Población): ${P}
+- I (Intervención): ${I}
+- C (Comparación): ${C || 'ninguna'}
+- O (Resultados): ${O}
+
+Matriz ES: ${isIncluded.length ? isIncluded.join(' | ') : 'ninguno'}
+Matriz NO ES: ${isNotIncluded.length ? isNotIncluded.join(' | ') : 'ninguno'}
+
+═══════════════════════════════════════════════════════════════
+REGLAS METODOLÓGICAS OBLIGATORIAS
+═══════════════════════════════════════════════════════════════
+
+🔬 TECNOLOGÍA / HERRAMIENTAS:
+
+Regla T1: La tecnología debe ser el constructo tecnológico central DEL TÍTULO
+Regla T2: Solo incluir subtipos/variantes que sean extensiones directas del término del título
+Regla T3: NO incluir tecnologías periféricas que no aparecen en el título
+Regla T4: Debe alinearse con "I" (Intervención) del PICO
+
+Ejemplo correcto:
+Título: "Aplicaciones del aprendizaje automático..."
+✅ Tecnologías: ["Machine Learning", "Supervised Learning", "Deep Learning", "Predictive Models"]
+
+Ejemplo INCORRECTO:
+Título: "Aplicaciones del aprendizaje automático..."
+❌ Tecnologías: ["Big Data", "Cloud Computing"] ← NO están en el título
+
+🏥 DOMINIO DE APLICACIÓN:
+
+Regla D1: El dominio debe corresponder EXACTAMENTE al contexto indicado en el título
+Regla D2: NO ampliar dominios más allá del título
+Regla D3: La población del título debe reflejarse explícitamente en el dominio
+Regla D4: Debe alinearse con "P" (Población) del PICO
+
+Ejemplo correcto:
+Título: "...enfermedades cardiovasculares en adultos"
+✅ Dominio: ["Healthcare", "Clinical Cardiology", "Cardiovascular Disease Detection", "Adult Population"]
+
+Ejemplo INCORRECTO:
+Título: "...enfermedades cardiovasculares..."
+❌ Dominio: ["Chronic Diseases", "Public Health"] ← Demasiado amplio
+
+🎯 FOCOS TEMÁTICOS:
+
+Regla F1: Los focos NO introducen nuevos objetivos, descomponen analíticamente el fenómeno del título
+Regla F2: Cada foco responde a una pregunta implícita del título
+Regla F3: Deben anticipar los resultados esperados (O del PICO)
+Regla F4: Entre 3-5 focos (ideal: 4)
+
+Ejemplo correcto:
+Título: "...detección temprana de enfermedades cardiovasculares..."
+✅ Focos: ["Diagnostic Accuracy", "Model Performance", "Implementation Challenges", "Clinical Decision Support"]
+← Todos derivan de "detección temprana"
+
+Ejemplo INCORRECTO:
+Título: "...detección temprana..."
+❌ Focos: ["Cost Analysis", "Policy Impact"] ← NO están en el alcance del título
+
+═══════════════════════════════════════════════════════════════
+VALIDACIÓN DE COHERENCIA CRUZADA (AUTOMÁTICA)
+═══════════════════════════════════════════════════════════════
+
+Antes de generar, verifica:
+✓ ¿Cada término de "technologies" está en el TÍTULO o es subtipo directo?
+✓ ¿El "applicationDomain" refleja el contexto poblacional DEL TÍTULO?
+✓ ¿Los "thematicFocus" responden a preguntas implícitas DEL TÍTULO?
+✓ ¿Hay coherencia: technologies ↔ I(PICO), applicationDomain ↔ P(PICO), thematicFocus ↔ O(PICO)?
+
+═══════════════════════════════════════════════════════════════
+FORMATO DE SALIDA (JSON ESTRICTO)
+═══════════════════════════════════════════════════════════════
+
 {
-  "technologies": ["término 1", "término 2", "término 3", "término 4"],
-  "applicationDomain": ["término 1", "término 2", "término 3", "término 4"],
-  "thematicFocus": ["término 1", "término 2", "término 3", "término 4"]
+  "technologies": [
+    "Término 1",
+    "Término 2",
+    "Término 3",
+    "Término 4"
+  ],
+  "applicationDomain": [
+    "Término 1",
+    "Término 2",
+    "Término 3",
+    "Término 4"
+  ],
+  "thematicFocus": [
+    "Término 1",
+    "Término 2",
+    "Término 3",
+    "Término 4"
+  ]
 }
 
-EJEMPLO para un proyecto sobre "Mongoose ODM en Node.js":
+CARACTERÍSTICAS DE LOS TÉRMINOS:
+- En ESPAÑOL (agregar inglés entre paréntesis si es técnico)
+- Máximo 5 palabras por término
+- Mínimo 4 términos por categoría
+- Sin explicaciones adicionales
+- Útiles para búsqueda académica (keywords)
+
+═══════════════════════════════════════════════════════════════
+EJEMPLO COMPLETO (METODOLÓGICAMENTE CORRECTO)
+═══════════════════════════════════════════════════════════════
+
+Título: "Aplicaciones del aprendizaje automático en la detección temprana de enfermedades cardiovasculares en adultos"
+
 {
-  "technologies": ["Mongoose (Mongoose)", "MongoDB", "Node.js", "ODM (Object Document Mapping)"],
-  "applicationDomain": ["Desarrollo backend", "Aplicaciones web", "Microservicios", "APIs RESTful"],
-  "thematicFocus": ["Rendimiento", "Escalabilidad", "Buenas prácticas", "Modelado de datos"]
+  "technologies": [
+    "Machine Learning",
+    "Supervised Learning",
+    "Deep Learning",
+    "Predictive Models"
+  ],
+  "applicationDomain": [
+    "Healthcare",
+    "Clinical Cardiology",
+    "Cardiovascular Disease Detection",
+    "Adult Population"
+  ],
+  "thematicFocus": [
+    "Diagnostic Accuracy",
+    "Model Performance",
+    "Implementation Challenges",
+    "Clinical Decision Support"
+  ]
 }
 
-AHORA GENERA PARA: "${topic}"
+Análisis de coherencia:
+✓ technologies → "aprendizaje automático" del título
+✓ applicationDomain → "enfermedades cardiovasculares en adultos" del título
+✓ thematicFocus → "detección temprana" del título
+
+═══════════════════════════════════════════════════════════════
+AHORA GENERA PARA EL TÍTULO:
+═══════════════════════════════════════════════════════════════
+
+"${title}"
+
+INSTRUCCIÓN FINAL: Analiza el título palabra por palabra. Identifica:
+1. ¿Qué tecnología/método central menciona? → technologies
+2. ¿Qué población/contexto/dominio menciona? → applicationDomain
+3. ¿Qué aspecto/resultado/enfoque busca? → thematicFocus
 
 RESPONDE SOLO CON EL JSON. NADA MÁS.
 `.trim();
@@ -178,7 +303,7 @@ RESPONDE SOLO CON EL JSON. NADA MÁS.
   /**
    * Construye un prompt específico para regenerar una sección con enfoque personalizado
    */
-  buildSpecificSectionPrompt({ topic, description, P, I, C, O, isIncluded, isNotIncluded, specificSection, customFocus }) {
+  buildSpecificSectionPrompt({ title, description, P, I, C, O, isIncluded, isNotIncluded, specificSection, customFocus }) {
     // Mapeo de secciones a nombres legibles
     const sectionNames = {
       tecnologia: 'technologies',
@@ -186,55 +311,82 @@ RESPONDE SOLO CON EL JSON. NADA MÁS.
       focosTematicos: 'thematicFocus'
     };
 
-    const sectionDescriptions = {
-      tecnologia: 'Tecnologías, herramientas, frameworks, lenguajes de programación, métodos técnicos',
-      dominio: 'Áreas de aplicación, contextos, dominios (educación, salud, industria, etc.)',
-      focosTematicos: 'Aspectos/focos a investigar (rendimiento, seguridad, usabilidad, escalabilidad, metodologías, etc.)'
-    };
-
-    const jsonKey = sectionNames[specificSection];
-    const sectionDesc = sectionDescriptions[specificSection];
+    const jsonKey = sectionNames[specificSection] || specificSection;
 
     return `
-Eres un experto en revisiones sistemáticas y en generación de protocolos académicos. Tu tarea: generar TÉRMINOS clave en ESPAÑOL para UNA SECCIÓN ESPECÍFICA del protocolo.
+Eres un experto en metodología PRISMA para revisiones sistemáticas. Tu tarea: regenerar ÚNICAMENTE la sección "${jsonKey}" con enfoque personalizado.
 
 RESPONDE ÚNICAMENTE con JSON válido (sin texto adicional, sin markdown, sin comentarios).
 
-CONTEXTO DEL PROYECTO:
-- Título: ${topic}
-- Descripción: ${description}
-- PICO:
-  • Población (P): ${P}
-  • Intervención (I): ${I}
-  • Comparación (C): ${C || 'ninguna'}
-  • Outcome (O): ${O}
-- Matriz ES: ${isIncluded.length ? isIncluded.join(' | ') : 'ninguno'}
-- Matriz NO ES: ${isNotIncluded.length ? isNotIncluded.join(' | ') : 'ninguno'}
+═══════════════════════════════════════════════════════════════
+TÍTULO DE LA RSL (FUENTE ÚNICA)
+═══════════════════════════════════════════════════════════════
 
-SECCIÓN A REGENERAR: ${specificSection}
-DESCRIPCIÓN: ${sectionDesc}
+"${title}"
 
-ENFOQUE PERSONALIZADO DEL USUARIO:
-"${customFocus}"
+CONTEXTO PICO:
+- P (Población): ${P}
+- I (Intervención): ${I}  
+- C (Comparación): ${C || 'ninguna'}
+- O (Resultados): ${O}
 
-INSTRUCCIONES CRÍTICAS:
-1. Genera 4–6 términos ÚNICAMENTE para la categoría "${jsonKey}"
-2. CENTRA los términos en el enfoque personalizado que el usuario indicó arriba
-3. Todos los términos en ESPAÑOL. Si es técnico, agrega traducción inglés: "término (English Term)"
-4. Cada término debe ser CORTO (máximo 5 palabras)
-5. NO incluyas explicaciones ni descripciones
-6. Los términos deben ser útiles para búsquedas académicas
-7. Asegúrate que el array NO esté vacío (mínimo 4 términos)
-8. Prioriza aspectos relacionados con: "${customFocus}"
+Matriz ES: ${isIncluded.join(' | ')}
+Matriz NO ES: ${isNotIncluded.join(' | ')}
 
-FORMATO OBLIGATORIO (salida EXACTA en JSON):
+═══════════════════════════════════════════════════════════════
+ENFOQUE PERSONALIZADO DEL USUARIO
+═══════════════════════════════════════════════════════════════
+
+${customFocus}
+
+═══════════════════════════════════════════════════════════════
+REGLAS PARA LA SECCIÓN "${jsonKey}"
+═══════════════════════════════════════════════════════════════
+
+${jsonKey === 'technologies' ? `
+🔬 TECNOLOGÍA:
+- DEBE derivar del concepto técnico central DEL TÍTULO
+- Solo incluir variantes/subtipos que sean extensiones directas
+- NO introducir tecnologías no mencionadas en el título
+- Debe alinear con "I" (Intervención) del PICO
+- 4-6 términos técnicos útiles para búsqueda académica
+` : ''}
+
+${jsonKey === 'applicationDomain' ? `
+🏥 DOMINIO:
+- DEBE corresponder al contexto/población del TÍTULO
+- NO ampliar más allá del alcance del título
+- Reflejar población explícita del título
+- Debe alinear con "P" (Población) del PICO
+- 4-6 términos de dominio/contexto
+` : ''}
+
+${jsonKey === 'thematicFocus' ? `
+🎯 FOCOS TEMÁTICOS:
+- DEBEN descomponer analíticamente el fenómeno del TÍTULO
+- Cada foco responde a pregunta implícita del título
+- NO introducir objetivos nuevos no presentes en título
+- Debe alinear con "O" (Resultados) del PICO
+- 3-5 focos analíticos distinguibles
+` : ''}
+
+FORMATO DE SALIDA (JSON ESTRICTO):
 {
   "technologies": ["término 1", "término 2", "término 3", "término 4"],
   "applicationDomain": ["término 1", "término 2", "término 3", "término 4"],
   "thematicFocus": ["término 1", "término 2", "término 3", "término 4"]
 }
 
-IMPORTANTE: Aunque solo estás regenerando "${jsonKey}", debes devolver las 3 categorías en el JSON. Las que NO son "${jsonKey}" puedes llenarlas con términos genéricos basados en el proyecto (se descartarán en el frontend, pero son necesarias para formato válido).
+IMPORTANTE: Aunque solo estás regenerando "${jsonKey}", debes devolver las 3 categorías. Las otras 2 categorías puedes llenarlas con términos genéricos (se descartarán en frontend).
+
+CARACTERÍSTICAS:
+- En ESPAÑOL (inglés entre paréntesis si es muy técnico)
+- Máximo 5 palabras por término
+- Mínimo 4 términos
+- Sin explicaciones adicionales
+- Aplicar enfoque personalizado: ${customFocus}
+
+AHORA GENERA "${jsonKey}" PARA: "${title}"
 
 RESPONDE SOLO CON EL JSON. NADA MÁS.
 `.trim();

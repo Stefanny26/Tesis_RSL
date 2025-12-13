@@ -79,6 +79,9 @@ class GenerateTitlesUseCase {
         }
       }
       
+      // Log de respuesta cruda para debugging
+      console.log('📦 Respuesta cruda de la IA:', JSON.stringify(response).substring(0, 500));
+      
       // Parsear respuesta
       const titles = this._parseResponse(response);
       
@@ -110,15 +113,15 @@ class GenerateTitlesUseCase {
       messages: [
         {
           role: "system",
-          content: "Eres un experto en revisiones sistemáticas de literatura y metodología Cochrane/PRISMA. Generas títulos académicos de alta calidad. Respondes ÚNICAMENTE en formato JSON válido."
+          content: "Eres un experto en metodología PRISMA/Cochrane con especialización en redacción de títulos académicos para revisiones sistemáticas. Generas títulos rigurosos, específicos y directamente usables. Respondes ÚNICAMENTE en formato JSON válido."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      temperature: 0.35,
-      max_tokens: 2000,
+      temperature: 0.5, // Aumentado de 0.35 a 0.5 para mayor variedad
+      max_tokens: 3000, // Aumentado de 2000 a 3000 para respuestas más completas
       response_format: { type: "json_object" }
     });
 
@@ -135,7 +138,8 @@ class GenerateTitlesUseCase {
     }
 
     const model = this.gemini.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp"
+      model: "gemini-2.0-flash-exp",
+      systemInstruction: "Eres un experto en metodología PRISMA/Cochrane con especialización en redacción de títulos académicos para revisiones sistemáticas. Generas títulos rigurosos, específicos y directamente usables."
     });
 
     const fullPrompt = `${prompt}
@@ -148,8 +152,8 @@ CRÍTICO:
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
       generationConfig: {
-        temperature: 0.35,
-        maxOutputTokens: 8192,
+        temperature: 0.5, // Aumentado de 0.35 a 0.5
+        maxOutputTokens: 10000, // Aumentado para respuestas más completas
         responseMimeType: "application/json"
       }
     });
@@ -197,56 +201,220 @@ CRÍTICO:
   }
 
   /**
-   * Construye el prompt para generar títulos
+   * Construye el prompt para generar títulos con reglas metodológicas rigurosas
    */
   _buildPrompt(context) {
-    return `Eres un experto en revisiones sistemáticas (Cochrane/PRISMA) y redacción académica de títulos. Tu tarea: generar EXACTAMENTE 5 títulos académicos en INGLÉS para una revisión sistemática, alineados con Cochrane/PRISMA.
+    return `Eres un experto en metodología PRISMA/Cochrane especializado en redacción de títulos académicos para protocolos de Revisión Sistemática de Literatura (RSL).
 
-**CONTEXTO DEL PROYECTO:**
+═══════════════════════════════════════════════════════════════
+CONTEXTO DEL PROTOCOLO (YA DEFINIDO EN FASES ANTERIORES)
+═══════════════════════════════════════════════════════════════
 ${context}
 
-**REGLAS OBLIGATORIAS:**
-1. Cada título debe identificar el tipo de revisión: incluye "Systematic Review", "Scoping Review" o "Systematic Literature Review".
-2. Cada título debe contener al menos: a) población/contexto, b) intervención/exposición, c) principal outcome/objetivo. Si hay comparador, inclúyelo explícitamente.
-3. Longitud recomendada: 8-18 palabras. Evita títulos extremadamente largos (>22 palabras) o muy cortos (<8).
-4. Usa lenguaje académico y preciso. NO uses placeholders genéricos como [Topic] o [Population].
-5. Si algún elemento PICO falta en el contexto, marca el componente como "unspecified" pero mantén el título lo más específico posible.
+═══════════════════════════════════════════════════════════════
+TAREA: GENERAR 5 TÍTULOS ACADÉMICOS PARA RSL
+═══════════════════════════════════════════════════════════════
 
-**FORMATO DE RESPUESTA (JSON EXACTO):**
+**REGLAS METODOLÓGICAS OBLIGATORIAS:**
+
+1️⃣ **NATURALEZA DEL ESTUDIO** (IMPORTANTE):
+   - ❌ NO incluir frases como "una revisión sistemática", "systematic review", "RSL"
+   - ✅ Razón: El sistema YA ES para revisiones sistemáticas, es redundante mencionarlo en el título
+   - ✅ El título debe ser DIRECTO al fenómeno, población y enfoque
+   - Ejemplo: "Técnicas de aprendizaje automático en detección de fraudes financieros" (NO agregar "...una revisión sistemática")
+
+2️⃣ **COMPONENTES OBLIGATORIOS** (responder estas 4 preguntas):
+   a) ¿Qué tema/fenómeno? → Variable/constructo/tecnología central
+   b) ¿Qué población? → Contexto/dominio de aplicación específico
+   c) ¿Qué enfoque o variable? → Aspecto metodológico o resultado de interés
+   d) ¿Cuál es la naturaleza? → Tipo de revisión (sistemática, scoping, etc.)
+
+3️⃣ **ESPECIFICIDAD TÉCNICA**:
+   - Si el dominio es técnico/tecnológico: incluir el campo (ej: "machine learning", "cybersecurity", "cloud computing")
+   - Si es clínico/médico: incluir patología/condición (ej: "diabetes tipo 2", "enfermedades cardiovasculares")
+   - Si es social: incluir población específica (ej: "adolescentes", "docentes universitarios")
+
+4️⃣ **PROHIBICIONES** (evitar ambigüedad):
+   - ❌ Palabras vacías SIN CONTEXTO: "impacto", "avance", "desarrollo", "análisis"
+   - ❌ Frases genéricas: "una revisión", "estudio exploratorio", "investigación sobre"
+   - ❌ Términos vagos: "reciente", "moderno", "avanzado", "efectivo" (sin cuantificar)
+   - ✅ USO CORRECTO: "impacto EN la tasa de error" (especificado), "avances EN técnicas de encriptación 2020-2025" (contextualizado)
+
+5️⃣ **LONGITUD ÓPTIMA**:
+   - Mínimo recomendable: 12 palabras
+   - Máximo recomendable: 22 palabras
+   - Ideal: 15-18 palabras
+   - **PENALIZACIÓN**: Títulos <10 palabras o >25 palabras deben justificarse
+
+6️⃣ **ESTRUCTURA RECOMENDADA** (3 patrones principales):
+
+   **Patrón A** (más usado):
+   [Variable/constructo] + en + [población/contexto] + mediante + [abordaje/metodología]
+   
+   Ejemplo: "Modelos predictivos aplicados a enfermedades cardiovasculares en adultos mediante aprendizaje automático"
+
+   **Patrón B** (para comparaciones):
+   [Intervención A] vs [Intervención B] + en + [población] + : impacto en + [outcome]
+   
+   Ejemplo: "Terapias cognitivo-conductuales vs farmacoterapia en depresión mayor: impacto en remisión de síntomas"
+
+   **Patrón C** (para síntesis temática):
+   [Práctica/fenómeno] + en + [dominio/sector] + : síntesis de evidencia
+   
+   Ejemplo: "Prácticas de ciberseguridad en infraestructuras críticas: síntesis de evidencia"
+
+7️⃣ **VALIDACIÓN DE CALIDAD** (autoevaluación obligatoria):
+   
+   ✅ **TÍTULO VÁLIDO si cumple TODO esto:**
+   - ❌ NO menciona "revisión sistemática" (redundante en este sistema)
+   - ✅ Identifica fenómeno central SIN ambigüedad
+   - ✅ Refleja alcance metodológico
+   - ✅ Incluye población/contexto cuando corresponde
+   - ✅ Suficientemente específico (no confundible con otro estudio)
+   - ✅ Longitud entre 12-22 palabras
+
+═══════════════════════════════════════════════════════════════
+FORMATO DE RESPUESTA (JSON ESTRICTO)
+═══════════════════════════════════════════════════════════════
+
+IMPORTANTE: Cada título DEBE incluir una justificación de 30-50 palabras que explique:
+1. Por qué la combinación de elementos del título es relevante científicamente
+2. Qué necesidad de investigación justifica ese enfoque específico
+3. Por qué esa delimitación particular (población + intervención) es importante
+
+**FORMATO DE JUSTIFICACIÓN**: Debe hablar del CONTENIDO y RELEVANCIA del estudio, NO del título como objeto.
+
+❌ PROHIBIDO usar frases como:
+- "Se utiliza el Patrón A/B/C..."
+- "El título refleja..."
+- "Este título articula..."
+- "El título integra..."
+
+✅ CORRECTO - Hablar del contenido:
+Ejemplo 1: "El aprendizaje automático en contextos cardiovasculares requiere análisis de grandes volúmenes de datos clínicos que superan los enfoques estadísticos tradicionales, permitiendo identificar patrones complejos en poblaciones adultas con factores de riesgo específicos."
+
+Ejemplo 2: "La simulación de redes de comunicación en entornos profesionales de ingeniería demanda metodologías específicas que permitan evaluar el rendimiento en escenarios controlados, considerando las particularidades técnicas del dominio de aplicación."
+
 {
   "titles": [
     {
-      "title": "Exact title in English",
-      "cochraneCompliance": "full|partial|none",
-      "reasoning": "One-line justification in English (max 30 words)",
+      "title": "[Título en ESPAÑOL, siguiendo patrones A, B o C]",
+      "spanishTitle": "[Mismo título en español - puede ser igual si ya está en español]",
+      "justification": "[OBLIGATORIO: 30-50 palabras hablando del CONTENIDO. Explica por qué esa combinación específica de población + intervención + contexto es relevante científicamente, qué necesidad justifica ese enfoque, sin mencionar el patrón ni referirse al título como objeto.]",
+      "cochraneCompliance": "full|partial|low",
+      "wordCount": [número de palabras del título],
+      "pattern": "A|B|C",
       "components": {
-        "population": "specific population or context",
-        "intervention": "intervention/exposure being studied",
-        "comparator": "comparison group or null if none",
-        "outcome": "primary outcomes or objectives"
+        "fenomeno": "[tecnología/variable/constructo central]",
+        "poblacion": "[contexto/dominio específico]",
+        "enfoque": "[aspecto metodológico o variable de interés]",
+        "naturaleza": "Síntesis de evidencia" // No mencionar "Revisión Sistemática" (redundante)
+      },
+      "validation": {
+        "explicitReview": true|false, // ¿Es claro que es un estudio de síntesis? (NO debe mencionar "revisión sistemática")
+        "clearPhenomenon": true|false,
+        "hasPopulation": true|false,
+        "isSpecific": true|false,
+        "lengthOK": true|false
       }
     }
+    // ... 5 títulos total
   ]
 }
 
-**VALIDACIÓN INTERNA:**
-- Al menos 3 títulos deben tener "cochraneCompliance": "full".
-- Si algún título es "partial" o "none", explica brevemente por qué en reasoning.
-- NO uses comillas simples; usa SOLO comillas dobles (") en el JSON.
-- NO incluyas texto fuera del JSON.
-- Componentes requeridos: population, intervention, outcome (comparator puede ser null).
+═══════════════════════════════════════════════════════════════
+CRITERIOS DE COMPLIANCE
+═══════════════════════════════════════════════════════════════
 
-**EJEMPLOS DE ESTRUCTURA:**
-- "[Intervention] for [Population]: A Systematic Review of [Outcome]"
-- "[Intervention] vs [Comparator] in [Population]: Impact on [Outcome] - A Systematic Review"
-- "Patterns and Effects of [Intervention] on [Outcome]: A Systematic Literature Review"
+**"cochraneCompliance": "full"** (meta: 4-5 títulos):
+- Cumple las 7 reglas metodológicas
+- Todos los campos de validation son true
+- Longitud 12-22 palabras
+- Patrón A, B o C correctamente aplicado
+- Especificidad técnica presente
 
-**CRITERIOS COCHRANE/PRISMA:**
-- **full**: Incluye población, intervención Y resultados claramente. Tipo de revisión explícito. Título claro y académico.
-- **partial**: Falta algún elemento PICO o no está suficientemente claro. Estructura académica presente.
-- **none**: Título vago, confuso, sin estructura PICO identificable.
+**"cochraneCompliance": "partial"** (máximo 1 título):
+- Falta UN elemento de validation
+- O longitud ligeramente fuera de rango (10-12 o 22-24 palabras)
+- Estructura académica presente pero mejorable
 
-Genera 5 títulos DISTINTOS y NO REDUNDANTES que un investigador pueda usar inmediatamente como título oficial de protocolo. Responde SOLO con el JSON.`;
+**"cochraneCompliance": "low"** (máximo 0 títulos):
+- Falta 2+ elementos de validation
+- Título vago, genérico o confuso
+- Sin estructura PICO identificable
+
+═══════════════════════════════════════════════════════════════
+EJEMPLOS REFERENCIALES DE TÍTULOS VÁLIDOS
+═══════════════════════════════════════════════════════════════
+
+✅ CORRECTO (Patrón A, full compliance):
+"Técnicas de aprendizaje automático aplicadas a detección de fraudes financieros en transacciones digitales"
+- Fenómeno: aprendizaje automático
+- Población: transacciones digitales / fraudes financieros
+- Enfoque: detección
+- Naturaleza: síntesis de evidencia (implícito)
+- Palabras: 14 ✅
+
+✅ CORRECTO (Patrón B, full compliance):
+"Blockchain vs bases de datos centralizadas en registros médicos electrónicos: impacto en seguridad y privacidad"
+- Comparación explícita
+- Población: registros médicos electrónicos
+- Outcome: seguridad y privacidad
+- Palabras: 15 ✅
+
+❌ INCORRECTO (ambiguo, low compliance):
+"Inteligencia Artificial en la actualidad: una revisión"
+- Fenómeno: demasiado amplio ("IA")
+- Sin población específica
+- Sin enfoque metodológico
+- "en la actualidad" es vago
+- Palabras: 8 (muy corto)
+
+❌ INCORRECTO (sin naturaleza explícita):
+"Análisis del impacto de IoT en ciudades inteligentes"
+- No dice "revisión sistemática"
+- "impacto" sin especificar EN QUÉ
+- "análisis" es genérico
+
+═══════════════════════════════════════════════════════════════
+EJEMPLO COMPLETO DE TÍTULO CON JUSTIFICACIÓN
+═══════════════════════════════════════════════════════════════
+
+{
+  "title": "Técnicas de aprendizaje automático aplicadas a detección de fraudes financieros en transacciones digitales",
+  "spanishTitle": "Técnicas de aprendizaje automático aplicadas a detección de fraudes financieros en transacciones digitales",
+  "justification": "El aprendizaje automático en contextos financieros digitales permite analizar grandes volúmenes de transacciones e identificar patrones anómalos que superan los enfoques tradicionales de detección. La combinación de técnicas avanzadas con el dominio específico de fraudes financieros responde a la creciente complejidad de los ataques en entornos digitales.",
+  "cochraneCompliance": "full",
+  "wordCount": 14,
+  "pattern": "A",
+  "components": {
+    "fenomeno": "aprendizaje automático",
+    "poblacion": "transacciones digitales en contexto financiero",
+    "enfoque": "detección de fraudes",
+    "naturaleza": "Síntesis de evidencia"
+  },
+  "validation": {
+    "explicitReview": true,
+    "clearPhenomenon": true,
+    "hasPopulation": true,
+    "isSpecific": true,
+    "lengthOK": true
+  }
+}
+
+═══════════════════════════════════════════════════════════════
+INSTRUCCIONES FINALES
+═══════════════════════════════════════════════════════════════
+
+1. Genera EXACTAMENTE 5 títulos DISTINTOS y NO REDUNDANTES
+2. PRIORIZA full compliance (mínimo 4 de 5 deben ser "full")
+3. Usa información del CONTEXTO DEL PROTOCOLO para derivar componentes
+4. Si falta información en el contexto, infiere de manera razonable pero NUNCA uses placeholders genéricos
+5. Cada título debe ser DIRECTAMENTE USABLE como título oficial del protocolo
+6. **CRÍTICO**: Cada título DEBE tener una justificación de 30-50 palabras (campo "justification" OBLIGATORIO)
+7. Responde ÚNICAMENTE con JSON válido, sin texto adicional
+
+GENERA LOS 5 TÍTULOS AHORA:`;
   }
 
   /**
@@ -296,10 +464,19 @@ Genera 5 títulos DISTINTOS y NO REDUNDANTES que un investigador pueda usar inme
           console.warn(`⚠️ Título ${index + 1} falta components PICO requeridos`);
         }
         
+        // Validar justification (OBLIGATORIO)
+        const justification = item.justification || item.reasoning || '';
+        if (!justification || justification.length < 20) {
+          console.warn(`⚠️ Título ${index + 1} tiene justificación faltante o muy corta (${justification.length} caracteres)`);
+        } else {
+          console.log(`✅ Título ${index + 1} tiene justificación (${justification.length} caracteres)`);
+        }
+        
         return {
           title: title,
           cochraneCompliance: ['full', 'partial', 'none'].includes(compliance) ? compliance : 'partial',
-          reasoning: item.reasoning || 'Sin razonamiento proporcionado',
+          justification: justification || 'Sin justificación proporcionada',
+          reasoning: justification || 'Sin justificación proporcionada', // Mantener por compatibilidad
           components: {
             population: components.population || 'unspecified',
             intervention: components.intervention || 'unspecified',
@@ -338,6 +515,7 @@ Genera 5 títulos DISTINTOS y NO REDUNDANTES que un investigador pueda usar inme
       {
         title: 'A Systematic Literature Review: Research Topic in Study Context',
         cochraneCompliance: 'partial',
+        justification: 'Título genérico de respaldo - requiere personalización con datos PICO',
         reasoning: 'Título genérico de respaldo - requiere personalización con datos PICO',
         components: {
           population: 'unspecified population',
@@ -350,6 +528,7 @@ Genera 5 títulos DISTINTOS y NO REDUNDANTES que un investigador pueda usar inme
       {
         title: 'Exploring Intervention Strategies for Target Outcomes: A Systematic Review',
         cochraneCompliance: 'partial',
+        justification: 'Título de respaldo - estructura básica correcta pero necesita especificación',
         reasoning: 'Título de respaldo - estructura básica correcta pero necesita especificación',
         components: {
           population: 'target population',
@@ -362,6 +541,7 @@ Genera 5 títulos DISTINTOS y NO REDUNDANTES que un investigador pueda usar inme
       {
         title: 'Study Intervention and Its Impact on Primary Outcomes: A Literature Review',
         cochraneCompliance: 'partial',
+        justification: 'Título de respaldo - faltan detalles específicos de población y contexto',
         reasoning: 'Título de respaldo - faltan detalles específicos de población y contexto',
         components: {
           population: 'study participants',
@@ -374,6 +554,7 @@ Genera 5 títulos DISTINTOS y NO REDUNDANTES que un investigador pueda usar inme
       {
         title: 'A Scoping Review of Research Topic in Target Population',
         cochraneCompliance: 'partial',
+        justification: 'Título de respaldo - requiere información específica de PICO',
         reasoning: 'Título de respaldo - requiere información específica de PICO',
         components: {
           population: 'target population',
@@ -386,6 +567,7 @@ Genera 5 títulos DISTINTOS y NO REDUNDANTES que un investigador pueda usar inme
       {
         title: 'Systematic Review: Implementation Strategies for Study Context and Expected Results',
         cochraneCompliance: 'partial',
+        justification: 'Título de respaldo - estructura adecuada pero requiere datos específicos',
         reasoning: 'Título de respaldo - estructura adecuada pero requiere datos específicos',
         components: {
           population: 'study context',

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { 
   generateProtocolAnalysis,
+  generateProtocolJustification,
   generateTitle,
   screenReference,
   screenReferencesBatch,
@@ -38,6 +39,17 @@ router.post(
   '/protocol-analysis',
   authMiddleware,
   generateProtocolAnalysis
+);
+
+/**
+ * @route   POST /api/ai/protocol-justification
+ * @desc    Generar justificación del protocolo siguiendo metodología PRISMA/Cochrane (4 párrafos)
+ * @access  Private (requiere JWT)
+ */
+router.post(
+  '/protocol-justification',
+  authMiddleware,
+  generateProtocolJustification
 );
 
 /**

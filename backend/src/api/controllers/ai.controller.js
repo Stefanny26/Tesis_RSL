@@ -1,4 +1,5 @@
 const GenerateProtocolAnalysisUseCase = require('../../domain/use-cases/generate-protocol-analysis.use-case');
+const GenerateProtocolJustificationUseCase = require('../../domain/use-cases/generate-protocol-justification.use-case');
 const GenerateTitleFromQuestionUseCase = require('../../domain/use-cases/generate-title-from-question.use-case');
 const ScreenReferencesWithAIUseCase = require('../../domain/use-cases/screen-references-with-ai.use-case');
 const ScreenReferencesWithEmbeddingsUseCase = require('../../domain/use-cases/screen-references-embeddings.use-case');
@@ -20,6 +21,7 @@ const referenceRepository = new ReferenceRepository();
 const protocolRepository = new ProtocolRepository();
 const apiUsageRepository = new ApiUsageRepository();
 const generateProtocolAnalysisUseCase = new GenerateProtocolAnalysisUseCase();
+const generateProtocolJustificationUseCase = new GenerateProtocolJustificationUseCase();
 const generateTitleUseCase = new GenerateTitleFromQuestionUseCase();
 const screenReferencesUseCase = new ScreenReferencesWithAIUseCase();
 const screenEmbeddingsUseCase = new ScreenReferencesWithEmbeddingsUseCase();
@@ -70,7 +72,9 @@ async function trackApiUsage({ userId, provider, endpoint, model, tokensPrompt =
  */
 const generateProtocolAnalysis = async (req, res) => {
   try {
-    const { title, description, aiProvider } = req.body;
+    const { title, description, area, yearStart, yearEnd, aiProvider } = req.body;
+
+    console.log('📥 DEBUG - req.body completo:', JSON.stringify(req.body, null, 2));
 
     // Validaciones
     if (!title || !description) {
@@ -83,10 +87,15 @@ const generateProtocolAnalysis = async (req, res) => {
     console.log('🤖 Generando análisis de protocolo con IA...');
     console.log('   Proveedor:', aiProvider || 'chatgpt');
     console.log('   Título:', title.substring(0, 50) + '...');
+    console.log('   Área:', area || 'No especificada');
+    console.log('   Rango temporal:', yearStart || 2019, '-', yearEnd || 2025);
 
     const result = await generateProtocolAnalysisUseCase.execute({
       title,
       description,
+      area,
+      yearStart,
+      yearEnd,
       aiProvider: aiProvider || 'chatgpt' // ChatGPT por defecto
     });
 
@@ -400,7 +409,7 @@ const generateTitles = async (req, res) => {
  */
 const generateSearchStrategies = async (req, res) => {
   try {
-    const { matrixData, picoData, databases, researchArea, protocolTerms, yearStart, yearEnd } = req.body;
+    const { matrixData, picoData, databases, researchArea, protocolTerms, yearStart, yearEnd, selectedTitle } = req.body;
 
     // Validaciones
     if (!picoData && !matrixData) {
@@ -421,6 +430,7 @@ const generateSearchStrategies = async (req, res) => {
     console.log('   Bases de datos:', databases.join(', '));
     console.log('   Área de investigación:', researchArea || 'No especificada');
     console.log('   Términos del protocolo:', Object.keys(protocolTerms || {}).join(', '));
+    console.log('   Título RSL:', selectedTitle || 'No especificado');
     
     const result = await searchQueryGenerator.generate({
       databases,
@@ -429,7 +439,8 @@ const generateSearchStrategies = async (req, res) => {
       researchArea: researchArea || '',
       matrixData: matrixData || {},
       yearStart,
-      yearEnd
+      yearEnd,
+      selectedTitle
     });
 
     // Registrar uso de API (una llamada por cada base de datos)
@@ -623,25 +634,33 @@ const generateRankingEmbeddings = async (req, res) => {
  */
 const generateProtocolTerms = async (req, res) => {
   try {
-    const { projectTitle, projectDescription, picoData, matrixData, aiProvider, specificSection, customFocus } = req.body;
+    const { selectedTitle, projectTitle, projectDescription, picoData, matrixData, aiProvider, specificSection, customFocus } = req.body;
 
     // Validaciones
-    if (!projectTitle || !projectDescription) {
+    if (!projectTitle && !selectedTitle) {
       return res.status(400).json({
         success: false,
-        message: 'Título y descripción del proyecto son requeridos'
+        message: 'Se requiere al menos un título (RSL o proyecto)'
+      });
+    }
+
+    if (!projectDescription) {
+      return res.status(400).json({
+        success: false,
+        message: 'La descripción del proyecto es requerida'
       });
     }
 
     console.log('🔍 Generando términos del protocolo con IA...');
     console.log('   Proveedor:', aiProvider || 'chatgpt');
-    console.log('   Proyecto:', projectTitle.substring(0, 50) + '...');
+    console.log('   Título RSL:', (selectedTitle || projectTitle).substring(0, 50) + '...');
     if (specificSection) {
       console.log('   Sección específica:', specificSection);
       console.log('   Enfoque personalizado:', customFocus || 'predeterminado');
     }
 
     const result = await generateProtocolTermsUseCase.execute({
+      selectedTitle,  // ← Nuevo: Título de la RSL seleccionado
       projectTitle,
       projectDescription,
       picoData: picoData || {},
@@ -811,7 +830,7 @@ const analyzeScreeningResults = async (req, res) => {
  */
 const generateInclusionExclusionCriteria = async (req, res) => {
   try {
-    const { protocolTerms, picoData, aiProvider, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd } = req.body;
+    const { selectedTitle, protocolTerms, picoData, aiProvider, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd } = req.body;
 
     // Validaciones
     if (!protocolTerms) {
@@ -823,6 +842,7 @@ const generateInclusionExclusionCriteria = async (req, res) => {
 
     console.log('🤖 Generando criterios de inclusión/exclusión...');
     console.log('   Proveedor:', aiProvider || 'chatgpt');
+    console.log('   Título RSL:', (selectedTitle || req.body.projectTitle || 'Proyecto').substring(0, 50) + '...');
     console.log('   Términos tecnología:', protocolTerms.tecnologia?.length || 0);
     console.log('   Términos dominio:', protocolTerms.dominio?.length || 0);
     
@@ -833,6 +853,7 @@ const generateInclusionExclusionCriteria = async (req, res) => {
     }
 
     const result = await generateInclusionExclusionCriteriaUseCase.execute({
+      selectedTitle,  // ← REGLA: Priorizar título RSL seleccionado
       protocolTerms,
       picoData: picoData || {},
       projectTitle: req.body.projectTitle || 'Proyecto',
@@ -888,7 +909,7 @@ const generateInclusionExclusionCriteria = async (req, res) => {
  */
 const generateSearchQueries = async (req, res) => {
   try {
-    const { protocolTerms, picoData, selectedDatabases, researchArea, matrixData, yearStart, yearEnd } = req.body;
+    const { protocolTerms, picoData, selectedDatabases, researchArea, matrixData, yearStart, yearEnd, selectedTitle } = req.body;
 
     console.log('⚠️  Endpoint deprecado: /generate-search-queries - Usando nuevo sistema');
 
@@ -900,7 +921,8 @@ const generateSearchQueries = async (req, res) => {
       researchArea,
       protocolTerms,
       yearStart,
-      yearEnd
+      yearEnd,
+      selectedTitle
     });
 
     res.json(result);
@@ -1312,8 +1334,94 @@ const analyzeSimilarityDistribution = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/ai/protocol-justification
+ * Genera la justificación del protocolo siguiendo metodología PRISMA/Cochrane
+ */
+const generateProtocolJustification = async (req, res) => {
+  try {
+    const { title, description, area, yearStart, yearEnd, pico, matrixData, aiProvider } = req.body;
+
+    console.log('📥 DEBUG - Generando justificación del protocolo');
+    console.log('   Título:', title);
+    console.log('   Área:', area);
+    console.log('   Rango temporal:', yearStart, '-', yearEnd);
+
+    // Validaciones
+    if (!title || !description) {
+      return res.status(400).json({
+        success: false,
+        message: 'Título y descripción son requeridos'
+      });
+    }
+
+    if (!pico || !pico.population) {
+      return res.status(400).json({
+        success: false,
+        message: 'Datos PICO son requeridos. Completa el paso anterior primero.'
+      });
+    }
+
+    console.log('🤖 Generando justificación con IA...');
+    console.log('   Proveedor:', aiProvider || 'chatgpt');
+
+    const result = await generateProtocolJustificationUseCase.execute({
+      title,
+      description,
+      area,
+      yearStart,
+      yearEnd,
+      pico,
+      matrixData,
+      aiProvider: aiProvider || 'chatgpt'
+    });
+
+    // Registrar uso de API
+    const usedProvider = aiProvider || 'chatgpt';
+    await trackApiUsage({
+      userId: req.user?.id,
+      provider: usedProvider,
+      endpoint: '/api/ai/protocol-justification',
+      model: getModelByProvider(usedProvider),
+      tokensPrompt: 1000,
+      tokensCompletion: 1500,
+      success: true
+    });
+
+    console.log('✅ Justificación generada exitosamente');
+    console.log('   Párrafos:', result.justificacion ? '4 párrafos' : 'estructura inesperada');
+    console.log('   Palabras:', result.justificacion?.wordCount || 'N/A');
+    console.log('   Compliance:', result.justificacion?.prismaCompliance || 'N/A');
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('❌ Error generando justificación:', error);
+    
+    // Registrar error de API
+    const errorProvider = req.body.aiProvider || 'chatgpt';
+    await trackApiUsage({
+      userId: req.user?.id,
+      provider: errorProvider,
+      endpoint: '/api/ai/protocol-justification',
+      model: getModelByProvider(errorProvider),
+      success: false,
+      errorMessage: error.message
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al generar justificación con IA'
+    });
+  }
+};
+
 module.exports = {
   generateProtocolAnalysis,
+  generateProtocolJustification,
   generateTitle,
   screenReference,
   screenReferencesBatch,

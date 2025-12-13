@@ -17,7 +17,9 @@ import {
   Copy, 
   AlertCircle,
   CheckCircle2,
-  Database
+  Database,
+  Upload,
+  Save
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
@@ -189,8 +191,79 @@ export function SearchPlanStep() {
     }))
   }
 
-  // ELIMINADO: Ya no creamos proyecto temporal en este paso
-  // El proyecto se crea solo una vez en el paso final (Paso 7)
+  // Crear proyecto al llegar al paso 6 si aún no existe (para poder importar referencias)
+  // Este proyecto se actualizará con información completa en el paso 7
+  useEffect(() => {
+    const createProjectForReferences = async () => {
+      // Solo crear si:
+      // 1. No existe projectId todavía
+      // 2. Tenemos datos mínimos necesarios
+      // 3. Tenemos queries generadas (usuario está listo para importar)
+      
+      console.log('🔍 Verificando condiciones para crear proyecto:', {
+        hasProjectId: !!data.projectId,
+        hasProjectName: !!data.projectName,
+        hasSelectedTitle: !!data.selectedTitle,
+        queriesCount: queries.length
+      })
+
+      if (data.projectId) {
+        console.log('⏭️ Proyecto ya existe:', data.projectId)
+        return
+      }
+
+      if (!data.projectName || !data.selectedTitle) {
+        console.log('⏭️ Faltan datos del proyecto (nombre o título)')
+        return
+      }
+
+      if (queries.length === 0) {
+        console.log('⏭️ No hay queries generadas todavía')
+        return
+      }
+
+      try {
+        console.log('📝 Creando proyecto para importación de referencias...')
+        
+        const projectData = {
+          name: data.projectName,
+          description: data.projectDescription || `RSL: ${data.selectedTitle}`,
+          researchArea: data.researchArea,
+          yearStart: data.yearStart,
+          yearEnd: data.yearEnd,
+          status: 'draft' // Marcarlo como borrador
+        }
+
+        const result = await apiClient.createProject(projectData)
+        
+        if (result && result.data?.project?.id) {
+          console.log('✅ Proyecto borrador creado:', result.data.project.id)
+          updateData({ projectId: result.data.project.id })
+          
+          toast({
+            title: "✅ Proyecto creado",
+            description: "Ahora puedes importar referencias de las bases de datos"
+          })
+        } else {
+          console.error('❌ No se recibió ID del proyecto:', result)
+          toast({
+            title: "⚠️ Error al crear proyecto",
+            description: "No se pudo habilitar la importación de referencias",
+            variant: "destructive"
+          })
+        }
+      } catch (error: any) {
+        console.error('❌ Error creando proyecto:', error)
+        toast({
+          title: "❌ Error al crear proyecto",
+          description: error.message || "No se pudo crear el proyecto para importar referencias",
+          variant: "destructive"
+        })
+      }
+    }
+
+    createProjectForReferences()
+  }, [queries.length, data.projectId, data.projectName, data.selectedTitle, queries])
 
   // Sincronizar con context
   useEffect(() => {
@@ -244,6 +317,7 @@ export function SearchPlanStep() {
       console.log('   - PICO:', data.pico)
       console.log('   - Área de investigación:', data.researchArea)
       console.log('   - Matriz Is/Not:', data.matrixIsNot)
+      console.log('   - Título RSL seleccionado:', data.selectedTitle)
       
       const result = await apiClient.generateSearchQueries(
         data.protocolTerms,
@@ -252,7 +326,8 @@ export function SearchPlanStep() {
         data.researchArea,
         data.matrixIsNot,
         data.yearStart,
-        data.yearEnd
+        data.yearEnd,
+        data.selectedTitle
       )
 
       console.log('📥 Respuesta de generateSearchQueries:', result)
@@ -526,6 +601,11 @@ export function SearchPlanStep() {
                   📊 Área: {ACADEMIC_DATABASES[detectedArea]?.name || detectedArea}
                 </Badge>
               )}
+              {data.searchPlan?.uploadedFiles && data.searchPlan.uploadedFiles.length > 0 && (
+                <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+                  ✓ {data.searchPlan.uploadedFiles.reduce((sum, f) => sum + f.recordCount, 0)} referencias cargadas
+                </Badge>
+              )}
               <span className="text-sm">Queries optimizadas para cada base de datos académica</span>
             </CardDescription>
           </CardHeader>
@@ -626,19 +706,64 @@ export function SearchPlanStep() {
                           onImportSuccess={() => {
                             toast({
                               title: "✅ Referencias importadas",
-                              description: `Referencias de ${query.databaseName} agregadas exitosamente`
+                              description: `Referencias de ${query.databaseName} cargadas en el proyecto`
                             })
                           }}
                         />
+                      ) : queries.length > 0 ? (
+                        <div className="text-center space-y-2">
+                          <div className="text-xs text-muted-foreground italic mb-1">
+                            Proyecto no creado
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                const projectData = {
+                                  name: data.projectName,
+                                  description: data.projectDescription || `RSL: ${data.selectedTitle}`,
+                                  researchArea: data.researchArea,
+                                  yearStart: data.yearStart,
+                                  yearEnd: data.yearEnd,
+                                  status: 'draft'
+                                }
+                                const result = await apiClient.createProject(projectData)
+                                if (result?.data?.project?.id) {
+                                  updateData({ projectId: result.data.project.id })
+                                  toast({
+                                    title: "✅ Proyecto creado",
+                                    description: "Ahora puedes importar referencias"
+                                  })
+                                }
+                              } catch (error: any) {
+                                toast({
+                                  title: "❌ Error",
+                                  description: error.message,
+                                  variant: "destructive"
+                                })
+                              }
+                            }}
+                          >
+                            <Save className="h-3 w-3 mr-1" />
+                            Crear Proyecto
+                          </Button>
+                        </div>
                       ) : (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          disabled
-                        >
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Cargar
-                        </Button>
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground italic mb-1">
+                            Genera queries primero
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            disabled
+                            className="text-xs"
+                          >
+                            <Upload className="h-3 w-3 mr-1" />
+                            Cargar
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>

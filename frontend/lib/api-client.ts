@@ -148,10 +148,17 @@ class ApiClient {
   }
 
   // AI Methods
-  async generateProtocolAnalysis(title: string, description: string, aiProvider: 'chatgpt' | 'gemini' = 'chatgpt') {
+  async generateProtocolAnalysis(
+    title: string, 
+    description: string, 
+    aiProvider: 'chatgpt' | 'gemini' = 'chatgpt',
+    area?: string,
+    yearStart?: number,
+    yearEnd?: number
+  ) {
     const data = await this.request('/api/ai/protocol-analysis', {
       method: 'POST',
-      body: JSON.stringify({ title, description, aiProvider }),
+      body: JSON.stringify({ title, description, area, yearStart, yearEnd, aiProvider }),
     })
     return data.data
   }
@@ -160,6 +167,23 @@ class ApiClient {
     const data = await this.request('/api/ai/generate-titles', {
       method: 'POST',
       body: JSON.stringify({ matrixData, picoData, aiProvider }),
+    })
+    return data.data
+  }
+
+  async generateProtocolJustification(
+    title: string,
+    description: string,
+    area: string,
+    yearStart: number,
+    yearEnd: number,
+    pico: any,
+    matrixData: any,
+    aiProvider: 'chatgpt' | 'gemini' = 'chatgpt'
+  ) {
+    const data = await this.request('/api/ai/protocol-justification', {
+      method: 'POST',
+      body: JSON.stringify({ title, description, area, yearStart, yearEnd, pico, matrixData, aiProvider }),
     })
     return data.data
   }
@@ -179,7 +203,7 @@ class ApiClient {
   }
 
   async generateProtocolTerms(
-    projectTitle: string,
+    projectTitle: string,  // Puede ser selectedTitle o projectName (frontend decide)
     projectDescription: string,
     picoData: any,
     matrixData: any,
@@ -190,7 +214,8 @@ class ApiClient {
     const data = await this.request('/api/ai/generate-protocol-terms', {
       method: 'POST',
       body: JSON.stringify({ 
-        projectTitle, 
+        selectedTitle: projectTitle,  // ← REGLA: Frontend envía título seleccionado en este parámetro
+        projectTitle,  // Mantener compatibilidad con código existente
         projectDescription, 
         picoData, 
         matrixData, 
@@ -216,7 +241,8 @@ class ApiClient {
     categoryIndex?: number,
     categoryName?: string,
     yearStart?: number,
-    yearEnd?: number
+    yearEnd?: number,
+    selectedTitle?: string
   ) {
     const data = await this.request('/api/ai/generate-inclusion-exclusion-criteria', {
       method: 'POST',
@@ -229,7 +255,8 @@ class ApiClient {
         categoryIndex,
         categoryName,
         yearStart,
-        yearEnd
+        yearEnd,
+        selectedTitle  // ← REGLA: Título RSL seleccionado para derivar criterios
       }),
     })
     return data.data
@@ -248,7 +275,8 @@ class ApiClient {
     researchArea?: string,
     matrixData?: any,
     yearStart?: number,
-    yearEnd?: number
+    yearEnd?: number,
+    selectedTitle?: string
   ) {
     const data = await this.request('/api/ai/generate-search-strategies', {
       method: 'POST',
@@ -259,7 +287,8 @@ class ApiClient {
         researchArea,
         protocolTerms,
         yearStart,
-        yearEnd
+        yearEnd,
+        selectedTitle
       }),
     })
     return data.data

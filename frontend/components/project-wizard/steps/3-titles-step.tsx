@@ -28,23 +28,6 @@ export function TitlesStep() {
   const [selectedIndex, setSelectedIndex] = useState<number>(-1)
   const [editingIndex, setEditingIndex] = useState<number>(-1)
 
-  // Función para traducir un texto usando MyMemory API
-  const translateText = async (text: string): Promise<string> => {
-    try {
-      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|es`
-      const res = await fetch(url)
-      const data = await res.json()
-      
-      if (data.responseData && data.responseData.translatedText) {
-        return data.responseData.translatedText
-      }
-      return text // Si falla, retorna el original
-    } catch (error) {
-      console.error('Error traduciendo:', error)
-      return text
-    }
-  }
-
   const handleGenerateTitles = async () => {
     if (!data.pico.population || !data.pico.intervention) {
       toast({
@@ -72,40 +55,33 @@ export function TitlesStep() {
       console.log('📝 Títulos recibidos:', result?.titles)
 
       if (result && result.titles) {
-        // Traducir todos los títulos automáticamente
-        toast({
-          title: "Traduciendo títulos...",
-          description: "Generando versiones en español..."
+        // Procesar títulos sin traducción automática
+        const processedTitles = result.titles.map((t: any) => {
+          const justificationText = t.reasoning || t.justification || ""
+          
+          return {
+            title: t.title,
+            spanishTitle: "", // Usuario lo llenará manualmente
+            justification: justificationText,
+            spanishJustification: "", // Usuario lo llenará manualmente
+            cochraneCompliance: t.cochraneCompliance || "partial",
+            components: t.components || {
+              population: "unspecified",
+              intervention: "unspecified",
+              comparator: null,
+              outcome: "unspecified"
+            },
+            wordCount: t.wordCount || 0
+          }
         })
 
-        const titlesWithTranslations = await Promise.all(
-          result.titles.map(async (t: any) => {
-            const spanishTitle = await translateText(t.title)
-            const spanishJustification = await translateText(t.reasoning || t.justification || "")
-            return {
-              title: t.title,
-              spanishTitle: spanishTitle,
-              justification: t.reasoning || t.justification || "",
-              spanishJustification: spanishJustification,
-              cochraneCompliance: t.cochraneCompliance || "partial",
-              components: t.components || {
-                population: "unspecified",
-                intervention: "unspecified",
-                comparator: null,
-                outcome: "unspecified"
-              },
-              wordCount: t.wordCount || 0
-            }
-          })
-        )
+        console.log('✅ Títulos procesados:', processedTitles)
 
-        console.log('✅ Títulos procesados con traducciones:', titlesWithTranslations)
-
-        updateData({ generatedTitles: titlesWithTranslations })
+        updateData({ generatedTitles: processedTitles })
 
         toast({
-          title: "✅ Títulos generados y traducidos",
-          description: `${titlesWithTranslations.length} opciones creadas con traducciones al español.`
+          title: "✅ Títulos generados",
+          description: `${processedTitles.length} opciones creadas. Ingresa las versiones en español manualmente.`
         })
       }
     } catch (error: any) {
@@ -287,19 +263,23 @@ export function TitlesStep() {
                           )}
                         </div>
 
-                        {/* Justificación */}
-                        {titleData.justification && (
-                          <div className="pt-3 border-t border-border">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="outline" className="text-xs">
-                                💡 Justificación
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                              {titleData.justification}
-                            </p>
+                        {/* Justificación - Siempre visible */}
+                        <div className="pt-3 border-t border-border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs font-semibold">
+                              💡 Justificación
+                            </Badge>
                           </div>
-                        )}
+                          {titleData.justification ? (
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {titleData.spanishJustification || titleData.justification}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground/60 italic">
+                              Generando justificación...
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       {/* Botón de editar/guardar */}
