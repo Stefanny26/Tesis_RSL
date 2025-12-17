@@ -6,7 +6,7 @@ class User {
   constructor(data) {
     this.id = data.id;
     this.email = data.email;
-    this.fullName = data.full_name || data.fullName;
+    this.fullName = data.name || data.fullName;
     this.avatarUrl = data.avatar_url || data.avatarUrl;
     this.googleId = data.google_id || data.googleId;
     this.passwordHash = data.password_hash || data.passwordHash;
@@ -42,7 +42,7 @@ class User {
     return {
       id: this.id,
       email: this.email,
-      full_name: this.fullName,
+      name: this.fullName,
       avatar_url: this.avatarUrl,
       google_id: this.googleId,
       password_hash: this.passwordHash,
