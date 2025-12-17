@@ -10,7 +10,6 @@ ALTER TABLE "references"
 ADD COLUMN IF NOT EXISTS journal VARCHAR(500);
 
 -- 2. TABLA REFERENCES - Renombrar status a screening_status (si es necesario)
--- Primero verificar si existe screening_status, si no, renombrar status
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
@@ -31,6 +30,12 @@ ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 -- Si imported_at tiene datos y created_at no, copiar
 UPDATE "references" SET created_at = imported_at WHERE created_at IS NULL AND imported_at IS NOT NULL;
 
+-- 3.1 TABLA REFERENCES - Agregar columnas de AI faltantes
+ALTER TABLE "references"
+ADD COLUMN IF NOT EXISTS ai_classification VARCHAR(50),
+ADD COLUMN IF NOT EXISTS ai_confidence_score DECIMAL(5,4),
+ADD COLUMN IF NOT EXISTS screening_score DECIMAL(5,4);
+
 -- 4. TABLA PROTOCOLS - Agregar screening_results
 ALTER TABLE protocols 
 ADD COLUMN IF NOT EXISTS screening_results JSONB DEFAULT '{}'::jsonb;
@@ -43,20 +48,26 @@ ADD COLUMN IF NOT EXISTS fase2_unlocked BOOLEAN DEFAULT FALSE;
 CREATE INDEX IF NOT EXISTS idx_references_journal ON "references"(journal);
 CREATE INDEX IF NOT EXISTS idx_references_screening_status ON "references"(screening_status);
 CREATE INDEX IF NOT EXISTS idx_references_created_at ON "references"(created_at);
+CREATE INDEX IF NOT EXISTS idx_references_ai_classification ON "references"(ai_classification);
+CREATE INDEX IF NOT EXISTS idx_references_screening_score ON "references"(screening_score);
 
 -- 6. Comentarios
 COMMENT ON COLUMN "references".journal IS 'Nombre de la revista, conferencia o medio de publicación';
 COMMENT ON COLUMN "references".screening_status IS 'Estado del cribado: pending, included, excluded, duplicate, maybe';
 COMMENT ON COLUMN "references".created_at IS 'Fecha de creación (alias de imported_at para compatibilidad)';
+COMMENT ON COLUMN "references".ai_classification IS 'Clasificación de la IA: include, exclude, maybe';
+COMMENT ON COLUMN "references".ai_confidence_score IS 'Nivel de confianza de la IA (0.0 - 1.0)';
+COMMENT ON COLUMN "references".screening_score IS 'Puntuación de cribado (0.0 - 1.0)';
 COMMENT ON COLUMN protocols.screening_results IS 'Resultados del cribado híbrido (embeddings + LLM)';
+COMMENT ON COLUMN protocols.fase2_unlocked IS 'Indica si la Fase 2 (Revisión Manual) está desbloqueada';
 
--- Verificar cambios
+-- 7. Verificar cambios
 SELECT 'references' as tabla, column_name, data_type 
 FROM information_schema.columns 
 WHERE table_name = 'references' 
-AND column_name IN ('journal', 'screening_status', 'created_at', 'status')
+AND column_name IN ('journal', 'screening_status', 'created_at', 'ai_classification', 'ai_confidence_score', 'screening_score')
 UNION ALL
 SELECT 'protocols' as tabla, column_name, data_type 
 FROM information_schema.columns 
 WHERE table_name = 'protocols' 
-AND column_name = 'screening_results';
+AND column_name IN ('screening_results', 'fase2_unlocked');
