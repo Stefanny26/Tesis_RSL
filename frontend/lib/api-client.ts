@@ -350,6 +350,52 @@ class ApiClient {
     return data.data.protocol
   }
 
+  // PRISMA Items
+  async getPrismaItems(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/prisma`)
+    return data.data
+  }
+
+  async getPrismaItem(projectId: string, itemNumber: number) {
+    const data = await this.request(`/api/projects/${projectId}/prisma/${itemNumber}`)
+    return data.data.item
+  }
+
+  async generatePrismaContent(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/prisma/generate`, {
+      method: 'POST',
+    })
+    return data.data
+  }
+
+  async updatePrismaItem(projectId: string, itemNumber: number, updates: { content?: string; completed?: boolean }) {
+    const data = await this.request(`/api/projects/${projectId}/prisma/${itemNumber}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    })
+    return data.data.item
+  }
+
+  async updatePrismaItemContent(projectId: string, itemNumber: number, content: string) {
+    const data = await this.request(`/api/projects/${projectId}/prisma/${itemNumber}/content`, {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    })
+    return data.data.item
+  }
+
+  async validatePrismaItemWithAI(projectId: string, itemNumber: number) {
+    const data = await this.request(`/api/projects/${projectId}/prisma/${itemNumber}/validate`, {
+      method: 'POST',
+    })
+    return data.data
+  }
+
+  async getPrismaStats(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/prisma/stats`)
+    return data.data
+  }
+
   // Referencias
   async getReferences(projectId: string, filters: any = {}) {
     const params = new URLSearchParams()

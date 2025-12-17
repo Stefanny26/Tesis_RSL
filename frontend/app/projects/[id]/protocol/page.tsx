@@ -2,12 +2,56 @@
 
 import { useEffect, useState } from "react"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
-import { ProtocolWizard } from "@/components/protocol/protocol-wizard"
 import { apiClient } from "@/lib/api-client"
 import { Loader2 } from "lucide-react"
 import type { Project } from "@/lib/types"
+import { WizardProvider, useWizard } from "@/components/project-wizard/wizard-context"
+import { WizardHeader } from "@/components/project-wizard/wizard-header"
+import { WizardNavigation } from "@/components/project-wizard/wizard-navigation"
+import { ProposalStep } from "@/components/project-wizard/steps/1-proposal-step"
+import { PicoMatrixStep } from "@/components/project-wizard/steps/2-pico-matrix-step"
+import { TitlesStep } from "@/components/project-wizard/steps/3-titles-step"
+import { ProtocolDefinitionStep } from "@/components/project-wizard/steps/5-protocol-definition-step"
+import { CriteriaStep } from "@/components/project-wizard/steps/4-criteria-step"
+import { SearchPlanStep } from "@/components/project-wizard/steps/6-search-plan-step"
+import { PrismaCheckStep } from "@/components/project-wizard/steps/7-prisma-check-step"
 
-export default function ProtocolPage({ params }: { params: { id: string } }) {
+function ProtocolWizardContent() {
+  const { currentStep } = useWizard()
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return <ProposalStep />
+      case 2:
+        return <PicoMatrixStep />
+      case 3:
+        return <TitlesStep />
+      case 4:
+        return <ProtocolDefinitionStep />
+      case 5:
+        return <CriteriaStep />
+      case 6:
+        return <SearchPlanStep />
+      case 7:
+        return <PrismaCheckStep />
+      default:
+        return <ProposalStep />
+    }
+  }
+
+  return (
+    <>
+      <WizardHeader />
+      <div className="max-w-6xl mx-auto">
+        {renderStep()}
+      </div>
+      <WizardNavigation />
+    </>
+  )
+}
+
+export default function ProtocolPage({ params }: { readonly params: { id: string } }) {
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -52,11 +96,16 @@ export default function ProtocolPage({ params }: { params: { id: string } }) {
     <div className="min-h-screen bg-background">
       <DashboardNav />
       <main className="container mx-auto px-4 py-8">
-        <ProtocolWizard
+        <WizardProvider
           projectId={params.id}
-          projectTitle={project.title}
-          projectDescription={project.description || ""}
-        />
+          projectData={{
+            title: project.title,
+            description: project.description || "",
+            researchArea: project.researchArea
+          }}
+        >
+          <ProtocolWizardContent />
+        </WizardProvider>
       </main>
     </div>
   )

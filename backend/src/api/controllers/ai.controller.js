@@ -431,6 +431,7 @@ const generateSearchStrategies = async (req, res) => {
     console.log('   Área de investigación:', researchArea || 'No especificada');
     console.log('   Términos del protocolo:', Object.keys(protocolTerms || {}).join(', '));
     console.log('   Título RSL:', selectedTitle || 'No especificado');
+    console.log('   📅 Rango temporal: yearStart =', yearStart, ', yearEnd =', yearEnd);
     
     const result = await searchQueryGenerator.generate({
       databases,
@@ -845,6 +846,7 @@ const generateInclusionExclusionCriteria = async (req, res) => {
     console.log('   Título RSL:', (selectedTitle || req.body.projectTitle || 'Proyecto').substring(0, 50) + '...');
     console.log('   Términos tecnología:', protocolTerms.tecnologia?.length || 0);
     console.log('   Términos dominio:', protocolTerms.dominio?.length || 0);
+    console.log('   ⏰ Rango temporal recibido: yearStart =', yearStart, ', yearEnd =', yearEnd);
     
     if (specificType) {
       console.log('   Tipo específico:', specificType);

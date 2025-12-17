@@ -1,7 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
+import { ProjectHeader } from "@/components/project-header"
+import { apiClient } from "@/lib/api-client"
+import type { Project } from "@/lib/types"
 import { ArticleEditor } from "@/components/article/article-editor"
 import { VersionHistory } from "@/components/article/version-history"
 import { AIGeneratorPanel } from "@/components/article/ai-generator-panel"
@@ -14,9 +17,22 @@ import { Save, FileDown, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ArticlePage({ params }: { params: { id: string } }) {
+  const [project, setProject] = useState<Project | null>(null)
   const [versions, setVersions] = useState<ArticleVersion[]>(mockVersions)
   const [currentVersionId, setCurrentVersionId] = useState(mockVersions[0].id)
   const { toast } = useToast()
+
+  useEffect(() => {
+    async function loadProject() {
+      try {
+        const projectData = await apiClient.getProject(params.id)
+        setProject(projectData)
+      } catch (error) {
+        console.error('Error loading project:', error)
+      }
+    }
+    loadProject()
+  }, [params.id])
 
   const currentVersion = versions.find((v) => v.id === currentVersionId) || versions[0]
 
@@ -102,26 +118,23 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Editor de Artículo</h1>
-              <p className="text-muted-foreground">Escribe y gestiona versiones de tu artículo científico</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline">
-                <Eye className="mr-2 h-4 w-4" />
-                Vista Previa
-              </Button>
-              <Button variant="outline">
-                <FileDown className="mr-2 h-4 w-4" />
-                Exportar
-              </Button>
-              <Button onClick={handleSaveVersion}>
-                <Save className="mr-2 h-4 w-4" />
-                Guardar Versión
-              </Button>
-            </div>
+          {/* Project Header */}
+          {project && <ProjectHeader project={project} />}
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline">
+              <Eye className="mr-2 h-4 w-4" />
+              Vista Previa
+            </Button>
+            <Button variant="outline">
+              <FileDown className="mr-2 h-4 w-4" />
+              Exportar
+            </Button>
+            <Button onClick={handleSaveVersion}>
+              <Save className="mr-2 h-4 w-4" />
+              Guardar Versión
+            </Button>
           </div>
 
           {/* Title */}

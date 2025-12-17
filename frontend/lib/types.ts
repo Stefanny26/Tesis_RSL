@@ -10,6 +10,7 @@ export interface Project {
   ownerId: string
   ownerName: string
   collaborators: string[]
+  researchArea?: string // Área de investigación del proyecto
   protocol?: {
     researchQuestions: string[]
     picoFramework?: {
@@ -49,9 +50,14 @@ export interface Reference {
   notes?: string
   fullTextAvailable?: boolean
   fullTextUrl?: string
+  fullTextPath?: string
   aiClassification?: string
   aiReasoning?: string
   aiConfidenceScore?: number
+  confidenceThreshold?: number
+  matchedCriteria?: string[]
+  screeningMethod?: string
+  screeningModel?: string
   screeningStatus?: string // 'pending', 'phase1_included', 'phase1_excluded', 'phase2_included', 'phase2_excluded', 'fulltext_included', 'fulltext_excluded'
   exclusionReason?: string
 }

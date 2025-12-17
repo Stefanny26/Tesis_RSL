@@ -1,3 +1,16 @@
+/**
+ * @deprecated Este componente será reemplazado por priority-distribution-analysis.tsx
+ * 
+ * TODO: Migrar todos los usos a priority-distribution-analysis.tsx y eliminar este archivo
+ * El nuevo componente ofrece:
+ * - Análisis de percentiles más preciso (Top 10%, Top 25%, Mediana)
+ * - Detección automática del "codo" (elbow point) con segunda derivada
+ * - Gráfico visual de distribución mejorado
+ * - Recomendaciones de criterio de corte más detalladas
+ * 
+ * Mantener hasta que se complete la migración (estimado: versión 2.1.0)
+ */
+
 "use client"
 
 import { useState } from "react"

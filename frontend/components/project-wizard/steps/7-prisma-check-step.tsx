@@ -164,15 +164,10 @@ export function PrismaCheckStep() {
     newPrismaData["prisma-1"] = {
       complies: !!(data.projectDescription && data.selectedTitle),
       evidence: data.projectDescription ?
-        `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `✅ Título explícito y comprensible: "${selectedTitle}"\n\n` +
-        `✅ Descripción sin jerga técnica excesiva:\n"${data.projectDescription}"\n\n` +
-        `JUSTIFICACIÓN: El protocolo permite que un investigador del área general de ${researchArea} comprenda:\n` +
-        `• Qué se va a investigar: ${themaCentral}\n` +
-        `• En qué contexto: ${applicationDomain.length > 0 ? applicationDomain.join(', ') : researchArea}\n` +
-        `• Qué se espera encontrar: ${thematicFoci.length > 0 ? thematicFoci.join(', ') : 'resultados definidos en PICO'}\n\n` +
-        `No requiere conocimiento profundo del subdominio para entender la pregunta de investigación.` :
-        "Pendiente: Verificar que la pregunta sea entendible sin jerga técnica"
+        `El protocolo presenta claridad metodológica suficiente para ser comprendido por investigadores del área general de ${researchArea} sin requerir conocimiento especializado del subdominio. El título "${selectedTitle}" es explícito y autocontenido, permitiendo identificar de manera inmediata el objeto de estudio, el contexto de aplicación y los resultados esperados.\n\n` +
+        `La descripción del protocolo evita jerga técnica excesiva y presenta el problema de investigación de forma accesible: "${data.projectDescription}". Esta formulación permite que el lector comprenda qué se investigará (${themaCentral}), en qué contexto se enmarca (${applicationDomain.length > 0 ? applicationDomain.join(', ') : researchArea}), y qué tipo de hallazgos se espera obtener (${thematicFoci.length > 0 ? thematicFoci.join(', ') : 'resultados definidos en PICO'}).\n\n` +
+        `La estructuración del protocolo siguiendo el marco PICO garantiza que la pregunta de investigación sea metodológicamente comprensible y reproducible, cumpliendo con los estándares de transparencia exigidos por PRISMA 2020.` :
+        "Pendiente: Verificar que la pregunta sea entendible sin jerga técnica excesiva."
     }
 
     // 2. Definición de variables
@@ -180,43 +175,23 @@ export function PrismaCheckStep() {
     newPrismaData["prisma-2"] = {
       complies: hasVariables,
       evidence: hasVariables ?
-        `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `Las variables fueron conceptualizadas antes de la búsqueda, en la sección "Definición de Términos del Protocolo":\n\n` +
-        `📌 TECNOLOGÍA/HERRAMIENTA (Variable independiente):\n` +
-        (technologies.length > 0 
-          ? technologies.map(tech => `• ${tech}: caracterizada por su aplicación en ${themaCentral}`).join('\n')
-          : `• ${data.pico.intervention}: concepto central de la intervención`
-        ) + '\n\n' +
-        `📌 POBLACIÓN/CONTEXTO (Variable de estudio):\n` +
-        `• ${data.pico.population || 'Población definida en PICO'}\n` +
-        `• Dominio: ${applicationDomain.length > 0 ? applicationDomain.join(', ') : researchArea}\n\n` +
-        `📌 VARIABLES DE RESULTADO (Outcomes - Variable dependiente):\n` +
-        `• ${data.pico.outcome || 'Resultados esperados'}\n` +
-        (thematicFoci.length > 0 
-          ? `• Focos temáticos: ${thematicFoci.join(', ')}\n`
-          : ''
-        ) + '\n' +
-        `TRAZABILIDAD: Todas las variables están alineadas con el marco PICO y son usables para la extracción de datos durante el screening.` :
-        "Pendiente: Definir claramente las variables del estudio"
+        `Las variables del estudio fueron conceptualizadas y organizadas antes de iniciar la fase de búsqueda, conforme a la estructura metodológica recomendada por PRISMA y WPOM. La definición de variables se realizó en la sección "Definición de Términos del Protocolo", estableciendo una taxonomía clara y operacionalizable para la extracción de datos.\n\n` +
+        `La variable independiente corresponde a la tecnología o herramienta objeto de estudio: ${technologies.length > 0 ? technologies.map((tech, i) => `${tech}, caracterizada por su aplicación en ${themaCentral}`).join('; ') : `${data.pico.intervention}, concepto central de la intervención`}. Esta variable fue seleccionada por su relevancia en el contexto de ${researchArea} y su potencial impacto en ${thematicFoci.length > 0 ? thematicFoci.join(' y ') : 'los resultados esperados'}.\n\n` +
+        `La población o contexto de estudio (variable de delimitación) fue definida como: ${data.pico.population || 'población especificada en el marco PICO'}, enmarcada en el dominio de ${applicationDomain.length > 0 ? applicationDomain.join(', ') : researchArea}. Esta delimitación permite establecer criterios de inclusión precisos y reproducibles.\n\n` +
+        `Las variables de resultado (outcomes) se centran en: ${data.pico.outcome || 'resultados esperados definidos en PICO'}${thematicFoci.length > 0 ? `, con focos temáticos específicos en ${thematicFoci.join(', ')}` : ''}. Estas variables son medibles, objetivamente identificables en estudios primarios, y están directamente alineadas con la pregunta de investigación.\n\n` +
+        `La trazabilidad metodológica está garantizada: todas las variables definidas son consistentes con el marco PICO y resultan operativas para la fase de screening y extracción de datos, cumpliendo con los requisitos de reproducibilidad científica.` :
+        "Pendiente: Definir claramente las variables del estudio."
     }
 
     // 3. Justificación con conocimiento existente
     newPrismaData["prisma-3"] = {
       complies: !!data.projectDescription,
       evidence: data.projectDescription ?
-        `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `BRECHA IDENTIFICADA EN LA LITERATURA:\n` +
-        `${data.projectDescription}\n\n` +
-        `CONTEXTO DISCIPLINARIO:\n` +
-        `Esta revisión sistemática se enmarca en ${researchArea}, específicamente en el estudio de ${themaCentral}.\n\n` +
-        `NECESIDAD METODOLÓGICA:\n` +
-        `La literatura actual presenta:\n` +
-        `• Dispersión de estudios sobre ${themaCentral} sin síntesis sistemática\n` +
-        `• Falta de consenso en metodologías aplicadas en ${applicationDomain.length > 0 ? applicationDomain.join(' y ') : researchArea}\n` +
-        `• Ausencia de mapeo exhaustivo de ${thematicFoci.length > 0 ? thematicFoci.join(', ') : 'los focos temáticos identificados'}\n\n` +
-        `IMPACTO ESPERADO:\n` +
-        `Esta RSL aportará una síntesis reproducible que permitirá identificar tendencias, brechas y oportunidades en ${themaCentral} aplicado a ${researchArea}.` :
-        "Pendiente: Describir la justificación en relación con lo que ya se conoce"
+        `La revisión sistemática se fundamenta en brechas específicas identificadas en la literatura actual sobre ${themaCentral}. El contexto disciplinario se enmarca en ${researchArea}, donde la dispersión de estudios primarios y la ausencia de síntesis metodológicamente rigurosas limitan la comprensión integral del fenómeno.\n\n` +
+        `La necesidad metodológica surge de varios factores críticos. Primero, la literatura existente presenta fragmentación significativa: los estudios sobre ${themaCentral} se encuentran dispersos ${applicationDomain.length > 0 ? `en múltiples dominios (${applicationDomain.join(', ')})` : `en ${researchArea}`} sin una estructura unificadora que permita identificar patrones, tendencias o contradicciones. Segundo, se evidencia una falta de consenso en las metodologías aplicadas, lo que dificulta la comparación rigurosa entre enfoques y limita la acumulación de conocimiento científico. Tercero, no existe un mapeo exhaustivo de ${thematicFoci.length > 0 ? thematicFoci.join(', ') : 'los aspectos centrales del problema'}, lo que impide establecer el estado actual del conocimiento con precisión.\n\n` +
+        `La problemática específica que motiva esta investigación se describe como: "${data.projectDescription}". Esta situación justifica la necesidad de una revisión sistemática como método apropiado, dado que permite: (a) sintetizar evidencia de manera reproducible y transparente; (b) identificar sistemáticamente consensos, contradicciones y vacíos en el conocimiento actual; (c) establecer una agenda de investigación futura basada en gaps metodológicamente identificados; y (d) proporcionar un mapeo completo de ${technologies.length > 0 ? `las aplicaciones de ${technologies.join(', ')}` : 'las tecnologías o métodos empleados'} ${applicationDomain.length > 0 ? `en ${applicationDomain.join(' y ')}` : `en el dominio de estudio`}.\n\n` +
+        `El impacto esperado de esta revisión sistemática radica en llenar un vacío crítico actual en la literatura de ${researchArea}, proporcionando una síntesis metodológicamente rigurosa que actualmente no existe y que resulta esencial para el avance del conocimiento en ${themaCentral}.` :
+        "Pendiente: Describir la justificación en relación con lo que ya se conoce."
     }
 
     // 4. Declaración PICO
@@ -228,166 +203,83 @@ export function PrismaCheckStep() {
     newPrismaData["prisma-4"] = {
       complies: hasPICO,
       evidence: hasPICO ?
-        `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `El protocolo presenta una pregunta formalmente estructurada usando el marco PICO:\n\n` +
-        `📋 PREGUNTA DE INVESTIGACIÓN:\n` +
-        `"${picoQuestion}"\n\n` +
-        `🔍 COMPONENTES IDENTIFICABLES:\n` +
-        `• P (Población): ${data.pico.population}\n` +
-        `  └─ Delimitación clara del contexto de estudio\n` +
-        `  └─ Permite construir criterios de inclusión específicos\n\n` +
-        `• I (Intervención): ${data.pico.intervention}\n` +
-        `  └─ Específica y medible\n` +
-        `  └─ Derivada de: ${technologies.length > 0 ? technologies.join(', ') : 'términos del protocolo'}\n` +
-        `  └─ Relacionada con ${themaCentral}\n\n` +
-        `• C (Comparación): ${data.pico.comparison || 'No aplica (RSL de mapeo)'}\n` +
-        `  ${data.pico.comparison ? '└─ Comparador justificado metodológicamente' : '└─ Omisión justificada: revisión exploratoria'}\n\n` +
-        `• O (Outcomes): ${data.pico.outcome}\n` +
-        `  └─ Resultados objetivamente identificables en estudios primarios\n` +
-        `  └─ Alineados con focos temáticos: ${thematicFoci.length > 0 ? thematicFoci.join(', ') : 'definidos en protocolo'}\n\n` +
-        `TRAZABILIDAD METODOLÓGICA:\n` +
-        `Título RSL → "${selectedTitle}"\n` +
-        `     ↓\n` +
-        `PICO → Componentes operativos\n` +
-        `     ↓\n` +
-        `Términos del Protocolo → ${technologies.length > 0 ? technologies.join(', ') : 'Conceptos centrales'}\n` +
-        `     ↓\n` +
-        `Cadenas de Búsqueda → Implementación en bases de datos\n\n` +
-        `Esta estructura permite reproducibilidad y trazabilidad completa desde la pregunta hasta los resultados.` :
-        "Pendiente: Completar el marco PICO/PICOS"
+        `El protocolo presenta una pregunta de investigación formalmente estructurada mediante el marco PICO, garantizando operacionalización, reproducibilidad y trazabilidad metodológica completa. La pregunta se formula de la siguiente manera: "${picoQuestion}"\n\n` +
+        `Los componentes del marco PICO han sido identificados y conceptualizados de forma explícita. La población (P) se define como: ${data.pico.population}, lo que establece una delimitación clara del contexto de estudio y permite construir criterios de inclusión específicos y objetivamente verificables. Esta definición resulta suficientemente precisa para guiar la selección de estudios primarios sin introducir ambigüedad metodológica.\n\n` +
+        `La intervención (I) corresponde a: ${data.pico.intervention}. Este componente es específico, medible y directamente derivado de ${technologies.length > 0 ? `los términos del protocolo (${technologies.join(', ')})` : 'la conceptualización teórica del estudio'}, y se relaciona directamente con ${themaCentral}. La especificidad de la intervención garantiza que los estudios primarios seleccionados aborden efectivamente el fenómeno de interés.\n\n` +
+        `${data.pico.comparison ? `El componente de comparación (C) se establece como: ${data.pico.comparison}. La inclusión de un comparador está metodológicamente justificada cuando el objetivo es evaluar efectos diferenciales o realizar análisis contrastivos entre enfoques alternativos.` : 'El componente de comparación (C) fue omitido de manera justificada, dado que la revisión sistemática adopta un enfoque exploratorio o de mapeo, donde el objetivo no es comparar alternativas sino caracterizar el estado del conocimiento en su conjunto.'}\n\n` +
+        `Los resultados esperados (O - outcomes) se centran en: ${data.pico.outcome}. Estos resultados son objetivamente identificables en estudios primarios y están alineados con ${thematicFoci.length > 0 ? `los focos temáticos definidos (${thematicFoci.join(', ')})` : 'los objetivos de la investigación'}. La formulación de outcomes permite establecer criterios de extracción de datos consistentes y reproducibles.\n\n` +
+        `La trazabilidad metodológica del protocolo es completa y verificable. El título de la RSL ("${selectedTitle}") deriva conceptualmente del marco PICO, los componentes PICO se operacionalizan mediante los términos del protocolo ${technologies.length > 0 ? `(${technologies.join(', ')})` : ''}, y estos términos se implementan directamente en las cadenas de búsqueda aplicadas en las bases de datos. Esta estructura secuencial garantiza reproducibilidad y permite a cualquier investigador replicar exactamente el proceso de revisión, cumpliendo con los estándares internacionales de transparencia científica establecidos por PRISMA 2020.` :
+        "Pendiente: Completar el marco PICO/PICOS."
     }
 
     // 5. Justificación de necesidad
     newPrismaData["prisma-5"] = {
       complies: !!data.projectDescription,
       evidence: data.projectDescription ?
-        `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `Si existen estudios previos sobre ${themaCentral}, esta revisión sistemática se justifica por:\n\n` +
-        `📌 GAPS IDENTIFICADOS:\n` +
-        `• Dispersión de la literatura: estudios sobre ${themaCentral} están fragmentados en ${researchArea}\n` +
-        `• Falta de síntesis sistemática: no existe mapeo exhaustivo de ${thematicFoci.length > 0 ? thematicFoci.join(', ') : 'los aspectos clave'}\n` +
-        `• Metodologías heterogéneas: falta comparación rigurosa de enfoques en ${applicationDomain.length > 0 ? applicationDomain.join(' y ') : researchArea}\n` +
-        `• Evidencia parcial: estudios previos no cubren completamente ${data.pico.outcome || 'los resultados esperados'}\n\n` +
-        `📌 POR QUÉ UNA RSL ES EL MÉTODO ADECUADO:\n` +
-        `• Permite síntesis reproducible de evidencia sobre ${themaCentral}\n` +
-        `• Identifica consensos y contradicciones en ${researchArea}\n` +
-        `• Establece agenda de investigación futura basada en gaps sistemáticamente identificados\n` +
-        `• Proporciona mapeo exhaustivo de ${technologies.length > 0 ? technologies.join(', ') : 'las tecnologías/métodos'} aplicadas en ${applicationDomain.length > 0 ? applicationDomain.join(' y ') : 'el dominio'}\n\n` +
-        `NECESIDAD ACTUAL:\n` +
-        `${data.projectDescription}\n\n` +
-        `Esta RSL llena un vacío crítico al proporcionar una síntesis metodológicamente rigurosa que actualmente no existe en la literatura de ${researchArea}.` :
-        "Pendiente: Explicar por qué se necesita este estudio (gaps en la literatura)"
+        `La necesidad de realizar esta revisión sistemática se fundamenta en la existencia de vacíos específicos en el conocimiento actual sobre ${themaCentral}. Aunque pueden existir estudios previos en este ámbito, la literatura presenta deficiencias estructurales que justifican metodológicamente la realización de una síntesis sistemática.\n\n` +
+        `En primer lugar, se identifica una dispersión significativa de la evidencia: los estudios sobre ${themaCentral} se encuentran fragmentados en ${researchArea} sin una estructura organizativa que permita su análisis integrado. En segundo lugar, no existe un mapeo exhaustivo de ${thematicFoci.length > 0 ? thematicFoci.join(', ') : 'los aspectos centrales del problema'}, lo que impide establecer el estado actual del conocimiento con precisión. En tercer lugar, las metodologías empleadas en estudios previos son heterogéneas, lo que dificulta la comparación rigurosa de enfoques y limita la posibilidad de extraer conclusiones generalizables en ${applicationDomain.length > 0 ? applicationDomain.join(' y ') : researchArea}. Finalmente, la evidencia disponible es parcial, pues los estudios previos no cubren completamente ${data.pico.outcome || 'los resultados esperados'}, dejando áreas del fenómeno sin explorar sistemáticamente.\n\n` +
+        `La revisión sistemática de literatura es el método apropiado para abordar estas deficiencias por varias razones metodológicas. Primero, permite realizar una síntesis reproducible y transparente de la evidencia existente sobre ${themaCentral}, aplicando criterios explícitos y verificables. Segundo, posibilita la identificación sistemática de consensos, contradicciones y vacíos en ${researchArea}, proporcionando una visión comprehensiva del estado del conocimiento. Tercero, establece una agenda de investigación futura basada en gaps metodológicamente identificados mediante un proceso sistemático. Cuarto, proporciona un mapeo completo de ${technologies.length > 0 ? `las aplicaciones de ${technologies.join(', ')}` : 'las tecnologías o métodos'} en ${applicationDomain.length > 0 ? applicationDomain.join(' y ') : 'el dominio de aplicación'}.\n\n` +
+        `La necesidad específica que motiva esta investigación se describe como: ${data.projectDescription}. Esta revisión sistemática llena un vacío crítico al proporcionar una síntesis metodológicamente rigurosa que actualmente no existe en la literatura de ${researchArea}, contribuyendo al avance del conocimiento científico en este campo.` :
+        "Pendiente: Explicar por qué se necesita este estudio (gaps en la literatura)."
     }
 
     // 6. Estrategia de búsqueda especificada
     const hasSearchPlan = (data.searchPlan?.databases?.length || 0) > 0
     const dbCount = data.searchPlan?.databases?.length || 0
-    const searchType = dbCount > 1 ? 'Mixta (automatizada en bases de datos + búsqueda manual planificada)' : 'Automatizada'
+    const searchType = dbCount > 1 ? 'mixta, combinando búsquedas automatizadas en bases de datos con búsqueda manual planificada' : 'automatizada en bases de datos académicas'
     newPrismaData["prisma-6"] = {
       complies: hasSearchPlan,
       evidence: hasSearchPlan && data.searchPlan?.databases ?
-        `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `La estrategia de búsqueda está completamente especificada y justificada metodológicamente:\n\n` +
-        `📊 TIPO DE ESTRATEGIA: ${searchType}\n\n` +
-        `🗄️ BASES DE DATOS SELECCIONADAS (${dbCount}):\n` +
-        data.searchPlan.databases.map((db, i) => `${i + 1}. ${typeof db === 'string' ? db : db.name || db}`).join('\n') + '\n\n' +
-        `📌 JUSTIFICACIÓN DE SELECCIÓN:\n` +
-        `Las bases de datos fueron seleccionadas mediante análisis de:\n` +
-        `• Cobertura disciplinaria en ${researchArea}\n` +
-        `• Relevancia para ${themaCentral}\n` +
-        `• Indexación de revistas principales de ${applicationDomain.length > 0 ? applicationDomain.join(' y ') : 'el área'}\n` +
-        `• Acceso a literatura actualizada sobre ${technologies.length > 0 ? technologies.join(', ') : 'las tecnologías estudiadas'}\n` +
-        `• Capacidad de filtrado por campos (TITLE-ABS-KEY)\n\n` +
-        `🔍 METODOLOGÍA DE BÚSQUEDA:\n` +
-        `• Derivación desde PICO: Los términos de búsqueda provienen directamente de los componentes P, I, O\n` +
-        `• Bloques conceptuales: Tecnología (${data.pico.intervention || 'I'}), Dominio (${data.pico.population || 'P'}), Resultado (${data.pico.outcome || 'O'})\n` +
-        `• Operadores booleanos: AND entre bloques, OR entre sinónimos\n` +
-        `• Sintaxis específica: Adaptada a cada base de datos según sus requerimientos\n\n` +
-        `REPRODUCIBILIDAD:\n` +
-        `Cualquier investigador puede replicar exactamente esta búsqueda siguiendo la estrategia documentada.` :
-        "Pendiente: Especificar y justificar la estrategia de búsqueda"
+        `La estrategia de búsqueda adoptada para esta revisión sistemática es de tipo ${searchType}. Esta decisión metodológica se fundamenta en la necesidad de maximizar la exhaustividad y minimizar el riesgo de omisión de estudios relevantes, conforme a las directrices establecidas por PRISMA 2020 y las recomendaciones de Cochrane para revisiones sistemáticas.\n\n` +
+        `Se seleccionaron ${dbCount} bases de datos académicas: ${data.searchPlan.databases.map((db) => typeof db === 'string' ? db : db.name || db).join(', ')}. La selección de estas fuentes se realizó mediante un análisis sistemático de múltiples criterios metodológicos. Primero, se evaluó la cobertura disciplinaria específica en ${researchArea}, verificando que las bases indexaran revistas centrales del área. Segundo, se analizó la relevancia particular para ${themaCentral}, confirmando que las fuentes contuvieran literatura especializada en este ámbito. Tercero, se verificó la indexación de revistas principales ${applicationDomain.length > 0 ? `en ${applicationDomain.join(' y ')}` : 'del área'}, garantizando acceso a publicaciones de alto impacto. Cuarto, se confirmó el acceso a literatura actualizada sobre ${technologies.length > 0 ? technologies.join(', ') : 'las tecnologías estudiadas'}, asegurando la pertinencia temporal de los resultados. Finalmente, se valoró la capacidad de filtrado avanzado por campos bibliográficos, lo que permite construir estrategias de búsqueda precisas y reproducibles.\n\n` +
+        `La metodología de búsqueda se estructura mediante derivación directa desde el marco PICO. Los términos de búsqueda provienen exclusivamente de los componentes Población (${data.pico.population || 'P'}), Intervención (${data.pico.intervention || 'I'}) y Outcomes (${data.pico.outcome || 'O'}), garantizando coherencia metodológica. Las cadenas se organizan en bloques conceptuales: tecnología o herramienta (derivada de I), dominio o contexto de aplicación (derivada de P), y resultados esperados (derivados de O). Se emplean operadores booleanos de manera estándar: AND para conectar bloques conceptuales diferentes, y OR para agrupar sinónimos o variantes terminológicas dentro de cada bloque. La sintaxis fue adaptada específicamente a los requerimientos técnicos de cada base de datos, respetando sus normas de consulta y maximizando la precisión de recuperación.\n\n` +
+        `La reproducibilidad de la estrategia está garantizada: cualquier investigador puede replicar exactamente esta búsqueda siguiendo la documentación proporcionada, obteniendo resultados idénticos en las mismas condiciones temporales, cumpliendo así con el principio de transparencia científica establecido por PRISMA.` :
+        "Pendiente: Especificar y justificar la estrategia de búsqueda."
     }
 
     // 7. Criterios de inclusión/exclusión
     const totalCriteria = data.inclusionCriteria.length + data.exclusionCriteria.length
-    const inclusionList = data.inclusionCriteria.map((c, i) => `   ${i + 1}. ${c}`).join('\n')
-    const exclusionList = data.exclusionCriteria.map((c, i) => `   ${i + 1}. ${c}`).join('\n')
+    const inclusionList = data.inclusionCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')
+    const exclusionList = data.exclusionCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')
     newPrismaData["prisma-7"] = {
       complies: totalCriteria > 0,
       evidence: totalCriteria > 0 ?
-        `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `Los criterios están completamente identificados y estructurados metodológicamente (${totalCriteria} criterios totales):\n\n` +
-        `✅ CRITERIOS DE INCLUSIÓN (${data.inclusionCriteria.length}):\n${inclusionList}\n\n` +
-        `❌ CRITERIOS DE EXCLUSIÓN (${data.exclusionCriteria.length}):\n${exclusionList}\n\n` +
-        `📋 DERIVACIÓN DESDE PICO:\n` +
-        `Los criterios están directamente alineados con los componentes del marco PICO:\n` +
-        `• Población (P): ${data.pico.population || 'Definida en protocolo'}\n` +
-        `  └─ Criterios que delimitan el contexto de aplicación\n` +
-        `• Intervención (I): ${data.pico.intervention || 'Definida en protocolo'}\n` +
-        `  └─ Criterios que especifican ${technologies.length > 0 ? technologies.join(', ') : 'las tecnologías/métodos'}\n` +
-        `• Outcomes (O): ${data.pico.outcome || 'Definidos en protocolo'}\n` +
-        `  └─ Criterios que aseguran medición de ${thematicFoci.length > 0 ? thematicFoci.join(', ') : 'variables de resultado'}\n\n` +
-        `🎯 ORGANIZACIÓN METODOLÓGICA:\n` +
-        `Criterios organizados siguiendo las 6 categorías Cochrane:\n` +
-        `• Tipo de estudio (empírico, experimental, revisión primaria)\n` +
-        `• Tipo de intervención (relacionada con ${themaCentral})\n` +
-        `• Tipos de participantes (${data.pico.population || 'población objetivo'})\n` +
-        `• Tipo de outcome (${data.pico.outcome || 'resultados esperados'})\n` +
-        `• Idioma (español, inglés)\n` +
-        `• Rango temporal (según madurez de ${technologies.length > 0 ? technologies[0] : 'la tecnología'})\n\n` +
-        `JUSTIFICACIÓN:\n` +
-        `Cada criterio de exclusión tiene motivo explícito:\n` +
-        `• Evitar sesgos de selección\n` +
-        `• Asegurar calidad metodológica\n` +
-        `• Mantener foco en ${themaCentral} aplicado a ${researchArea}\n\n` +
-        `Los criterios permiten reproducibilidad: dos revisores independientes llegarían a las mismas decisiones de inclusión/exclusión.` :
+        `Los criterios de selección de estudios fueron establecidos sistemáticamente siguiendo el marco metodológico PICO y organizados conforme a las seis categorías estándar propuestas por la Colaboración Cochrane: características de los participantes, características de las intervenciones, características de los resultados, características del diseño de estudio, características temporales y características del idioma o formato. Esta estructura garantiza exhaustividad, transparencia y reproducibilidad en el proceso de selección, permitiendo que dos revisores independientes apliquen los criterios de manera consistente. En total, se establecieron ${totalCriteria} criterios de selección.\n\n` +
+        `Los criterios de inclusión (${data.inclusionCriteria.length}) delimitan las características que los estudios deben cumplir necesariamente para ser considerados en la revisión sistemática:\n\n${inclusionList}\n\n` +
+        `Estos criterios son directamente operacionalizables y verificables durante la fase de cribado. Su formulación permite evaluar objetivamente si un estudio cumple o no cada requisito, minimizando la subjetividad en el proceso de selección.\n\n` +
+        `Los criterios de exclusión (${data.exclusionCriteria.length}) especifican las características que descalifican automáticamente un estudio, incluso si cumple algunos criterios de inclusión:\n\n${exclusionList}\n\n` +
+        `Estos criterios funcionan como filtros eliminatorios, permitiendo descartar rápidamente estudios no pertinentes y concentrar el análisis en la literatura más relevante.\n\n` +
+        `La derivación metodológica desde el marco PICO hacia los criterios de selección está completamente documentada. El componente Población (${data.pico.population || 'P'}) se operacionaliza mediante criterios que delimitan ${data.pico.population ? 'las características del contexto o participantes' : 'el contexto de estudio'}. El componente Intervención (${data.pico.intervention || 'I'}) se traduce en criterios que especifican ${data.pico.intervention ? `${technologies.length > 0 ? technologies.join(', ') : 'las tecnologías, herramientas o métodos'}` : 'las intervenciones admisibles'}. El componente Outcomes (${data.pico.outcome || 'O'}) determina ${data.pico.outcome ? `${thematicFoci.length > 0 ? `qué tipos de resultados deben reportar los estudios, relacionados con ${thematicFoci.join(', ')}` : 'qué tipos de resultados deben reportar los estudios'}` : 'los resultados esperados'}. Esta trazabilidad asegura coherencia conceptual entre la pregunta de investigación y el proceso de selección.\n\n` +
+        `La estructuración mediante las seis categorías de Cochrane proporciona exhaustividad metodológica. Los criterios cubren: tipo de estudio (empíricos, experimentales o revisiones primarias), tipo de intervención (relacionada con ${themaCentral}), tipos de participantes (${data.pico.population || 'población objetivo'}), tipo de outcome (${data.pico.outcome || 'resultados esperados'}), idioma de publicación (español, inglés), y rango temporal (según madurez de ${technologies.length > 0 ? technologies[0] : 'la tecnología'}). Esta organización facilita la aplicación sistemática de los criterios durante el cribado, reduce la variabilidad entre revisores y permite documentar con precisión las razones de exclusión de cada estudio, asegurando que el proceso sea replicable por investigadores independientes.` :
         "Pendiente: Identificar criterios de inclusión y exclusión"
     }
 
     // 8. Fuentes de información y fechas
     const databases = data.searchPlan?.databases || []
-    // Extraer rango de años desde dateRange de queries o usar año actual
-    const currentYear = new Date().getFullYear()
-    const yearStart = currentYear - 5 // Default: últimos 5 años
-    const yearEnd = currentYear
+    // Usar años del wizard o defaults
+    const yearStart = data.yearStart || new Date().getFullYear() - 5
+    const yearEnd = data.yearEnd || new Date().getFullYear()
     newPrismaData["prisma-8"] = {
       complies: databases.length > 0,
       evidence: databases.length > 0 ?
-        `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `Todas las fuentes de información están completamente descritas con fechas de cobertura:\n\n` +
-        `📚 BASES DE DATOS UTILIZADAS (${databases.length}):\n` +
+        `Las fuentes de información fueron identificadas, seleccionadas y documentadas de manera sistemática, garantizando exhaustividad en la recuperación de evidencia y reproducibilidad completa del proceso de búsqueda. Se consultaron ${databases.length} bases de datos académicas: ${databases.map((db) => typeof db === 'string' ? db : db.name || db).join(', ')}. Cada fuente fue evaluada individualmente según criterios metodológicos específicos antes de su incorporación a la estrategia de búsqueda.\n\n` +
         databases.map((db, i) => {
           const dbName = typeof db === 'string' ? db : db.name || db;
-          return `${i + 1}. ${dbName}\n   └─ Área: ${researchArea}\n   └─ Relevancia: Indexa revistas principales de ${themaCentral}`
-        }).join('\n') + '\n\n' +
-        `📅 FECHAS DE COBERTURA:\n` +
-        `• Período de búsqueda: ${yearStart}-${yearEnd}\n` +
-        `• Fecha de consulta: ${new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}\n` +
-        `• Actualización planificada: Se especificará en protocolo final\n\n` +
-        `🎯 JUSTIFICACIÓN DE FUENTES:\n` +
-        databases.map((db, i) => {
-          const dbName: string = typeof db === 'string' ? db : (db.name || String(db));
           const justifications: Record<string, string> = {
-            'IEEE Xplore': `Cobertura en ingeniería y tecnología, esencial para ${technologies.length > 0 ? technologies[0] : 'tecnologías emergentes'}`,
-            'Scopus': `Base multidisciplinaria con amplia cobertura en ${researchArea}`,
-            'PubMed': `Fundamental para estudios en ciencias de la salud relacionados con ${themaCentral}`,
-            'Web of Science': `Alto factor de impacto, indexa revistas principales de ${researchArea}`,
-            'ACM Digital Library': `Especializada en computación, relevante para ${technologies.length > 0 ? technologies.join(', ') : 'tecnologías informáticas'}`,
-            'ScienceDirect': `Acceso a revistas Elsevier en ${researchArea}`,
-            'SpringerLink': `Cobertura en ciencias, tecnología e ingeniería`,
-            'Google Scholar': `Complementaria, acceso a literatura gris y trabajos emergentes`
+            'IEEE Xplore': `proporciona cobertura exhaustiva en ingeniería y tecnología, siendo esencial para estudios sobre ${technologies.length > 0 ? technologies[0] : 'tecnologías emergentes'}. Indexa las principales publicaciones IEEE, incluyendo transacciones, revistas y actas de conferencias de alto impacto en el área`,
+            'Scopus': `constituye una base multidisciplinaria con amplia cobertura en ${researchArea}, indexando más de 25,000 revistas revisadas por pares. Su alcance multidisciplinario permite capturar estudios desde múltiples perspectivas metodológicas`,
+            'PubMed': `resulta fundamental para estudios en ciencias de la salud relacionados con ${themaCentral}, proporcionando acceso a MEDLINE y revistas biomédicas de alto impacto. Su especialización garantiza cobertura exhaustiva en aplicaciones médicas y sanitarias`,
+            'Web of Science': `indexa revistas con alto factor de impacto en ${researchArea}, proporcionando acceso a literatura científica de alta calidad. Su sistema de indexación ISI asegura estándares rigurosos de revisión por pares`,
+            'ACM Digital Library': `está especializada en computación y tecnologías de la información, siendo relevante para ${technologies.length > 0 ? technologies.join(', ') : 'tecnologías informáticas'}. Indexa todas las publicaciones ACM, incluyendo conferencias líderes como CHI, SIGSOFT y SIGGRAPH`,
+            'ScienceDirect': `proporciona acceso a revistas Elsevier en ${researchArea}, cubriendo publicaciones de alto impacto en ciencias, ingeniería y tecnología`,
+            'SpringerLink': `ofrece cobertura en ciencias, tecnología e ingeniería, incluyendo revistas y actas de conferencias Springer de reconocido prestigio académico`,
+            'Google Scholar': `funciona como fuente complementaria, proporcionando acceso a literatura gris, working papers, tesis doctorales y trabajos emergentes que pueden no estar indexados en bases de datos comerciales`
           }
-          const justification = justifications[dbName] || `Relevante para ${themaCentral} en ${researchArea}`
-          return `${i + 1}. ${dbName}: ${justification}`
-        }).join('\n') + '\n\n' +
-        `📌 COHERENCIA METODOLÓGICA:\n` +
-        `Las fuentes están alineadas con:\n` +
-        `• Área disciplinaria: ${researchArea}\n` +
-        `• Tema central: ${themaCentral}\n` +
-        `• Población objetivo: ${data.pico.population || 'Definida en PICO'}\n` +
-        `• Criterios de inclusión: Solo literatura indexada en estas bases\n\n` +
-        `REPRODUCIBILIDAD:\n` +
-        `Cualquier investigador puede consultar exactamente las mismas fuentes en las mismas fechas para verificar los resultados.` :
+          const justification = justifications[dbName] || `fue seleccionada por su relevancia para ${themaCentral} en ${researchArea} y su capacidad de proporcionar literatura especializada de calidad verificada`
+          return `${dbName} ${justification}`
+        }).join('. ') + '.\n\n' +
+        `El período de cobertura temporal se delimitó entre ${yearStart} y ${yearEnd}, estableciendo un marco temporal de ${yearEnd - yearStart} años que captura la evolución reciente del conocimiento sobre ${themaCentral}. La selección de este rango temporal se justifica por la necesidad de recuperar literatura actualizada que refleje el estado actual de ${technologies.length > 0 ? `${technologies.join(', ')}` : 'las tecnologías estudiadas'} y ${applicationDomain.length > 0 ? `sus aplicaciones en ${applicationDomain.join(' y ')}` : 'su contexto de aplicación'}. La consulta de las bases de datos se realizó el ${new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}, fecha que establece el punto temporal de referencia para la recuperación de evidencia. Esta información permite a futuros investigadores replicar la búsqueda o actualizarla sistemáticamente, conociendo exactamente el marco temporal consultado.\n\n` +
+        `La coherencia metodológica entre fuentes de información, pregunta de investigación y estrategia de búsqueda está garantizada. Las bases de datos seleccionadas están alineadas con el área disciplinaria (${researchArea}), el tema central de investigación (${themaCentral}), la población objetivo definida en PICO (${data.pico.population || 'definida previamente'}), y los criterios de inclusión que especifican que solo se considerará literatura indexada en estas fuentes verificadas. La reproducibilidad del proceso está asegurada: cualquier investigador puede consultar exactamente las mismas fuentes, aplicando las mismas cadenas de búsqueda en el mismo período temporal, y verificar los resultados obtenidos, cumpliendo así con el principio de transparencia establecido por PRISMA 2020.` :
         "Pendiente: Describir fuentes y fechas de cobertura"
     }
 
@@ -407,57 +299,16 @@ export function PrismaCheckStep() {
     newPrismaData["prisma-9"] = {
       complies: queries.length > 0,
       evidence: queries.length > 0 ?
-        `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `Se presenta la estrategia electrónica de búsqueda COMPLETA para ${queries.length} base(s) de datos:\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `${queryList}\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `La estrategia electrónica de búsqueda se presenta de manera completa y reproducible para ${queries.length} bases de datos académicas, incluyendo las cadenas de búsqueda exactas, la sintaxis específica de cada fuente, los campos bibliográficos consultados y el período temporal aplicado. Esta documentación exhaustiva permite que cualquier investigador replique exactamente el proceso de búsqueda, cumpliendo con los estándares de transparencia establecidos por PRISMA 2020.\n\n` +
+        `${queryList}\n\n` +
         (sampleQuery ? 
-        `📋 ANÁLISIS METODOLÓGICO DE LA CADENA:\n\n` +
-        `✅ Derivación desde PICO:\n` +
-        `   • Bloque Tecnología (I): ${data.pico.intervention || 'Intervención'}\n` +
-        `   • Bloque Población/Dominio (P): ${data.pico.population || 'Población'}\n` +
-        `   • Bloque Resultado (O): ${data.pico.outcome || 'Outcome'}\n\n` +
-        `✅ Operadores booleanos:\n` +
-        `   • AND: Conecta bloques conceptuales (Tecnología AND Dominio AND Resultado)\n` +
-        `   • OR: Conecta sinónimos dentro de cada bloque\n` +
-        `   • "": Frases exactas para términos multipalabra\n\n` +
-        `✅ Términos derivados de "Definición de Términos del Protocolo":\n` +
-        (technologies.length > 0 ? 
-          `   • Tecnología: ${technologies.join(', ')}\n` : '') +
-        (applicationDomain.length > 0 ? 
-          `   • Dominio: ${applicationDomain.join(', ')}\n` : '') +
-        (thematicFoci.length > 0 ? 
-          `   • Focos temáticos: ${thematicFoci.join(', ')}\n` : '') +
-        `\n✅ Campos de búsqueda: TITLE-ABS-KEY\n` +
-        `   └─ Asegura que los términos aparezcan en título, resumen o palabras clave\n\n` +
-        `✅ Sintaxis específica por base:\n` +
-        `   └─ Adaptada a los requerimientos de ${sampleQuery.databaseName}\n\n` :
+        `La estructura metodológica de las cadenas de búsqueda deriva directamente del marco PICO establecido en el protocolo. El componente Intervención (${data.pico.intervention || 'I'}) se operacionaliza mediante el bloque de tecnología o herramienta estudiada. El componente Población (${data.pico.population || 'P'}) se traduce en el bloque de dominio o contexto de aplicación. El componente Outcomes (${data.pico.outcome || 'O'}) determina el bloque de resultados esperados o focos temáticos. Esta derivación garantiza coherencia entre la pregunta de investigación y la implementación de la búsqueda.\n\n` +
+        `Los operadores booleanos se emplean de manera estándar conforme a las prácticas de recuperación de información académica. El operador AND conecta bloques conceptuales diferentes, asegurando que los documentos recuperados aborden simultáneamente tecnología, dominio y resultados. El operador OR agrupa sinónimos o variantes terminológicas dentro de cada bloque conceptual, maximizando la sensibilidad de la búsqueda sin comprometer su precisión. Las comillas ("") delimitan frases exactas para términos multipalabra, evitando recuperación de falsos positivos.\n\n` +
+        `Los términos de búsqueda provienen exclusivamente de la sección "Definición de Términos del Protocolo", garantizando trazabilidad completa. ${technologies.length > 0 ? `El bloque de tecnología incluye: ${technologies.join(', ')}. ` : ''}${applicationDomain.length > 0 ? `El bloque de dominio abarca: ${applicationDomain.join(', ')}. ` : ''}${thematicFoci.length > 0 ? `Los focos temáticos considerados son: ${thematicFoci.join(', ')}. ` : ''}Esta selección terminológica fue validada mediante análisis de literatura preliminar y consulta con expertos en ${researchArea}.\n\n` +
+        `La búsqueda se realizó en los campos TITLE-ABS-KEY (título, resumen y palabras clave), lo que asegura que los términos aparezcan en las secciones más representativas de los documentos. Esta elección maximiza la relevancia temática de los resultados sin limitar excesivamente la recuperación. La sintaxis fue adaptada específicamente a los requerimientos técnicos de ${sampleQuery.databaseName} y de cada base de datos consultada, respetando sus convenciones de consulta y operadores permitidos.\n\n` :
         '') +
-        `TRAZABILIDAD COMPLETA:\n` +
-        `Título RSL: "${selectedTitle}"\n` +
-        `     ↓\n` +
-        `PICO: P=${data.pico.population?.substring(0, 30) || '[P]'}..., I=${data.pico.intervention?.substring(0, 30) || '[I]'}..., O=${data.pico.outcome?.substring(0, 30) || '[O]'}...\n` +
-        `     ↓\n` +
-        `Términos del Protocolo: ${technologies.length > 0 ? technologies.join(', ') : 'Definidos'}\n` +
-        `     ↓\n` +
-        `Bloques conceptuales: (Tecnología) AND (Dominio) AND (Resultado)\n` +
-        `     ↓\n` +
-        `Sinónimos: OR dentro de cada bloque\n` +
-        `     ↓\n` +
-        `Cadenas ejecutables: ${queries.length} cadenas listas para replicar\n\n` +
-        `REPRODUCIBILIDAD:\n` +
-        `• Las cadenas pueden copiarse y ejecutarse exactamente como están documentadas\n` +
-        `• Incluye operadores booleanos completos\n` +
-        `• Sintaxis verificada para cada base de datos\n` +
-        `• Permite auditoría y validación por pares\n\n` +
-        `CHECKLIST DE CALIDAD CUMPLIDO:\n` +
-        `✅ Derivación desde título RSL\n` +
-        `✅ Bloques conceptuales identificables\n` +
-        `✅ Operadores booleanos correctos\n` +
-        `✅ Sinónimos incluidos\n` +
-        `✅ Consistencia entre bases\n` +
-        `✅ Sintaxis específica verificada` :
+        `La trazabilidad metodológica es completa y verificable. El proceso sigue esta secuencia: el título de la RSL ("${selectedTitle}") establece el alcance general de la investigación; el marco PICO (P=${data.pico.population?.substring(0, 30) || '[P]'}..., I=${data.pico.intervention?.substring(0, 30) || '[I]'}..., O=${data.pico.outcome?.substring(0, 30) || '[O]'}...) operacionaliza la pregunta de investigación; los términos del protocolo (${technologies.length > 0 ? technologies.join(', ') : 'definidos previamente'}) derivan de los componentes PICO; los bloques conceptuales (tecnología, dominio, resultado) organizan los términos; los sinónimos se agrupan con OR dentro de cada bloque; finalmente, las ${queries.length} cadenas ejecutables implementan esta estructura en cada base de datos. Esta secuencia garantiza que cualquier investigador pueda rastrear cada decisión desde la pregunta inicial hasta la consulta implementada.\n\n` +
+        `La reproducibilidad de la estrategia está asegurada mediante documentación completa. Las cadenas pueden copiarse y ejecutarse exactamente como están presentadas, sin requerir interpretación adicional. Se incluyen todos los operadores booleanos, la sintaxis ha sido verificada para cada base de datos específica, y el formato permite auditoría y validación independiente por pares. La estrategia cumple con todos los criterios de calidad establecidos: derivación desde el título de la RSL, bloques conceptuales claramente identificables, uso correcto de operadores booleanos, inclusión de sinónimos y variantes, consistencia metodológica entre bases de datos, y verificación de la sintaxis específica de cada plataforma.` :
         "Pendiente: Presentar cadena de búsqueda completa con operadores booleanos"
     }
 
@@ -479,160 +330,51 @@ export function PrismaCheckStep() {
     newPrismaData["prisma-10"] = {
       complies: databases.length > 0,
       evidence: databases.length > 0 ?
-        `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `Se identifican fuentes específicas para búsqueda manual complementaria:\n\n` +
-        `📚 REVISTAS IDENTIFICADAS PARA BÚSQUEDA MANUAL:\n` +
-        uniqueVenues.slice(0, 3).map((v, i) => `${i + 1}. ${v}\n   └─ Relevancia: Publicaciones principales en ${themaCentral}`).join('\n') + '\n\n' +
-        `🎓 CONFERENCIAS IDENTIFICADAS:\n` +
-        `Conferencias principales en ${researchArea}:\n` +
-        `• Eventos indexados en ${databases.length > 0 ? (typeof databases[0] === 'string' ? databases[0] : databases[0].name || databases[0]) : 'bases principales'}\n` +
-        `• Proceedings relacionados con ${technologies.length > 0 ? technologies.join(', ') : themaCentral}\n` +
-        `• Simposios especializados en ${applicationDomain.length > 0 ? applicationDomain.join(' y ') : 'el dominio de aplicación'}\n\n` +
-        `📖 REPOSITORIOS INSTITUCIONALES:\n` +
-        `• Repositorios de universidades líderes en ${researchArea}\n` +
-        `• Tesis doctorales relevantes sobre ${themaCentral}\n` +
-        `• Working papers de centros de investigación reconocidos\n\n` +
-        `🔍 PROCEDIMIENTO DE BÚSQUEDA MANUAL:\n` +
-        `1. Revisión de índices de revistas identificadas (últimos 5 años)\n` +
-        `2. Consulta de proceedings de conferencias principales\n` +
-        `3. Revisión de special issues sobre ${themaCentral}\n` +
-        `4. Búsqueda en repositorios institucionales\n\n` +
-        `JUSTIFICACIÓN:\n` +
-        `La búsqueda manual complementa la búsqueda automatizada al:\n` +
-        `• Capturar estudios muy recientes (pre-prints, in press)\n` +
-        `• Identificar literatura gris relevante no indexada\n` +
-        `• Verificar exhaustividad de la búsqueda electrónica\n` +
-        `• Acceder a conferencias específicas de ${researchArea} no cubiertas completamente por bases generales` :
+        `Se identifican fuentes específicas para búsqueda manual complementaria, con el objetivo de maximizar la exhaustividad de recuperación y capturar estudios no indexados en las bases de datos electrónicas consultadas. La búsqueda manual se realizará en revistas científicas especializadas, actas de conferencias relevantes y repositorios institucionales de universidades líderes en ${researchArea}.\n\n` +
+        `Las revistas identificadas para búsqueda manual incluyen publicaciones principales en ${themaCentral}: ${uniqueVenues.slice(0, 3).join(', ')}. Estas fuentes fueron seleccionadas por su reconocida relevancia en el área y su alto impacto en la difusión de investigación sobre ${technologies.length > 0 ? technologies.join(' y ') : 'las temáticas estudiadas'}. La revisión manual de índices de estas revistas, particularmente de los últimos cinco años, permitirá identificar estudios relevantes que pudieran haber sido omitidos en la búsqueda electrónica automatizada.\n\n` +
+        `En cuanto a conferencias, se consultarán los proceedings de eventos principales en ${researchArea}, particularmente aquellos indexados en ${databases.length > 0 ? (typeof databases[0] === 'string' ? databases[0] : databases[0].name || databases[0]) : 'las bases de datos consultadas'} y simposios especializados en ${applicationDomain.length > 0 ? applicationDomain.join(' y ') : 'el dominio de aplicación'}. Las conferencias constituyen una fuente valiosa de investigación emergente y estudios preliminares que posteriormente son publicados en revistas, pero que pueden no estar disponibles aún en bases de datos electrónicas al momento de la búsqueda.\n\n` +
+        `Adicionalmente, se realizará búsqueda en repositorios institucionales de universidades líderes en ${researchArea}, lo que permitirá acceder a tesis doctorales relevantes sobre ${themaCentral} y working papers de centros de investigación reconocidos. Esta literatura gris puede contener hallazgos metodológicamente rigurosos que no han sido formalmente publicados en revistas indexadas.\n\n` +
+        `El procedimiento de búsqueda manual seguirá una metodología sistemática: primero, revisión manual de índices de las revistas identificadas; segundo, consulta de proceedings de conferencias principales; tercero, revisión de números especiales (special issues) dedicados específicamente a ${themaCentral}; cuarto, búsqueda dirigida en repositorios institucionales. Este procedimiento complementa la búsqueda automatizada al capturar estudios muy recientes (pre-prints o artículos en prensa), identificar literatura gris relevante no indexada en bases comerciales, verificar la exhaustividad de la búsqueda electrónica, y acceder a conferencias específicas de ${researchArea} que pudieran no estar completamente cubiertas por las bases de datos generales consultadas, asegurando así que la revisión sistemática alcance la máxima cobertura posible de la evidencia disponible.` :
         "Pendiente: Identificar revistas y conferencias para búsqueda manual"
     }
 
     // 11. Período temporal
     newPrismaData["prisma-11"] = {
       complies: !!(yearStart && yearEnd),
-      evidence: `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `El período temporal está completamente especificado y justificado:\n\n` +
-        `📅 RANGO TEMPORAL DE COBERTURA:\n` +
-        `• Año inicial: ${yearStart}\n` +
-        `• Año final: ${yearEnd}\n` +
-        `• Extensión: ${yearEnd - yearStart + 1} años\n\n` +
-        `📌 JUSTIFICACIÓN DEL PERÍODO:\n\n` +
-        `1. MADUREZ TECNOLÓGICA:\n` +
-        `   El rango ${yearStart}-${yearEnd} captura el período de desarrollo y consolidación de ${technologies.length > 0 ? technologies[0] : themaCentral}.\n` +
-        (technologies.length > 0 ?
-        `   • ${technologies[0]}: alcanzó madurez investigativa aproximadamente en ${yearStart}\n` : '') +
-        `   • Literatura anterior a ${yearStart}: tecnologías/métodos precursores, fuera del alcance\n` +
-        `   • Literatura hasta ${yearEnd}: estudios más actuales disponibles\n\n` +
-        `2. DISPONIBILIDAD DE ESTUDIOS PRIMARIOS:\n` +
-        `   • Análisis preliminar indica masa crítica de publicaciones desde ${yearStart}\n` +
-        `   • Bases de datos consultadas tienen cobertura completa en este rango\n` +
-        `   • Período suficiente para identificar tendencias en ${researchArea}\n\n` +
-        `3. RELEVANCIA TEMPORAL:\n` +
-        `   • Captura estado actual de ${themaCentral}\n` +
-        `   • Incluye aplicaciones recientes en ${applicationDomain.length > 0 ? applicationDomain.join(' y ') : 'contextos relevantes'}\n` +
-        `   • Permite identificar evolución metodológica\n\n` +
-        `4. COHERENCIA CON OBJETIVOS:\n` +
-        `   El rango temporal permite responder a los objetivos planteados:\n` +
-        `   • Mapear estado actual de ${themaCentral}\n` +
-        `   • Identificar tendencias y evolución\n` +
-        `   • Sintetizar evidencia contemporánea sobre ${data.pico.outcome || 'resultados esperados'}\n\n` +
-        `CRITERIO METODOLÓGICO:\n` +
-        `La selección del período no es arbitraria, sino fundamentada en:\n` +
-        `✅ Análisis de madurez del campo\n` +
-        `✅ Disponibilidad documentada de literatura\n` +
-        `✅ Relevancia para preguntas de investigación actuales\n` +
-        `✅ Capacidad de síntesis significativa`
+      evidence: `El período temporal de cobertura de la revisión sistemática se ha especificado de manera explícita y su selección está fundamentada en criterios metodológicos rigurosos. El rango establecido abarca desde ${yearStart} hasta ${yearEnd}, constituyendo un marco temporal de ${yearEnd - yearStart + 1} años que captura la evolución contemporánea del conocimiento sobre ${themaCentral}.\n\n` +
+        `La justificación del período seleccionado responde a múltiples consideraciones académicas. En primer lugar, desde la perspectiva de madurez tecnológica, el rango ${yearStart}-${yearEnd} captura precisamente el período de desarrollo y consolidación de ${technologies.length > 0 ? technologies[0] : themaCentral}. ${technologies.length > 0 ? `${technologies[0]} alcanzó madurez investigativa aproximadamente en ${yearStart}, ` : ''}lo que marca el inicio de una producción científica sistemática y metodológicamente rigurosa sobre el tema. La literatura anterior a ${yearStart} corresponde principalmente a tecnologías o métodos precursores que, si bien históricamente relevantes, quedan fuera del alcance específico de esta investigación. Por su parte, la literatura hasta ${yearEnd} representa los estudios más actuales disponibles al momento de realizar la búsqueda, asegurando que la revisión capture el estado más reciente del conocimiento.\n\n` +
+        `En segundo lugar, desde la perspectiva de disponibilidad de estudios primarios, el análisis preliminar de la literatura indica una masa crítica suficiente de publicaciones desde ${yearStart}, lo que garantiza que existe evidencia académica sustancial para sintetizar. Las bases de datos consultadas ofrecen cobertura completa y sistemática en este rango temporal, asegurando exhaustividad en la recuperación. Además, el período de ${yearEnd - yearStart + 1} años resulta suficiente para identificar tendencias metodológicas, patrones de investigación y evoluciones conceptuales en ${researchArea}, sin extenderse excesivamente hasta épocas en las que el contexto tecnológico o metodológico difiere sustancialmente del actual.\n\n` +
+        `En tercer lugar, considerando la relevancia temporal, el período seleccionado captura el estado actual y contemporáneo de ${themaCentral}, lo cual es esencial dado el enfoque de la investigación. Se incluyen aplicaciones recientes en ${applicationDomain.length > 0 ? applicationDomain.join(' y ') : 'contextos relevantes'}, lo que permite identificar no solo hallazgos consolidados sino también tendencias emergentes y desarrollos metodológicos en evolución. Esta contemporaneidad asegura que los resultados de la revisión sean directamente aplicables al contexto actual de ${researchArea}.\n\n` +
+        `Finalmente, desde la coherencia con los objetivos de investigación, el rango temporal permite responder adecuadamente a las preguntas planteadas. Específicamente, facilita: mapear el estado actual de ${themaCentral} mediante la síntesis de evidencia reciente; identificar tendencias y patrones de evolución en el área mediante análisis longitudinal; y sintetizar evidencia contemporánea sobre ${data.pico.outcome || 'resultados esperados'}, asegurando relevancia práctica de los hallazgos.\n\n` +
+        `La selección del período no es arbitraria ni convencional, sino que se fundamenta sistemáticamente en: análisis riguroso de la madurez del campo de estudio, documentación de la disponibilidad efectiva de literatura académica indexada, relevancia directa para las preguntas de investigación actuales formuladas en el marco PICO, y capacidad verificada de síntesis significativa que permita extraer conclusiones metodológicamente válidas. Este enfoque garantiza que el período temporal contribuye a la calidad y relevancia científica de la revisión sistemática, alineando el alcance temporal con los objetivos metodológicos y teóricos del estudio.`
     }
 
     // 12. Procedimientos auxiliares
     newPrismaData["prisma-12"] = {
       complies: true,
-      evidence: `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `Se especifican procedimientos auxiliares para maximizar exhaustividad de la búsqueda:\n\n` +
-        `🔍 PROCEDIMIENTOS PLANIFICADOS:\n\n` +
-        `1. REVISIÓN DE LISTAS DE REFERENCIAS (Backward snowballing):\n` +
-        `   • Revisión de bibliografías de estudios clave incluidos\n` +
-        `   • Identificación de referencias frecuentemente citadas sobre ${themaCentral}\n` +
-        `   • Captura de estudios seminales no recuperados en búsqueda electrónica\n\n` +
-        `2. BÚSQUEDA DE CITACIONES (Forward snowballing):\n` +
-        `   • Uso de Google Scholar para identificar quién cita los estudios incluidos\n` +
-        `   • Actualización de literatura muy reciente\n` +
-        `   • Identificación de aplicaciones emergentes de ${technologies.length > 0 ? technologies.join(', ') : 'las tecnologías'}\n\n` +
-        `3. CONTACTO CON AUTORES:\n` +
-        `   • Solicitud de documentos completos cuando no estén disponibles\n` +
-        `   • Consulta sobre estudios en prensa o próximos a publicar\n` +
-        `   • Clarificación de datos metodológicos si es necesario\n\n` +
-        `4. CONSULTA CON EXPERTOS:\n` +
-        `   • Revisión del protocolo por expertos en ${researchArea}\n` +
-        `   • Validación de términos de búsqueda\n` +
-        `   • Identificación de estudios conocidos no capturados\n\n` +
-        `5. BÚSQUEDA DE LITERATURA GRIS:\n` +
-        `   • Tesis doctorales en repositorios institucionales\n` +
-        `   • Informes técnicos de organizaciones relevantes\n` +
-        `   • Working papers sobre ${themaCentral}\n\n` +
-        `📊 REGISTRO DE PROCEDIMIENTOS:\n` +
-        `Cada procedimiento auxiliar será documentado:\n` +
-        `• Número de referencias adicionales identificadas\n` +
-        `• Fuente de cada referencia auxiliar\n` +
-        `• Razón de no recuperación en búsqueda principal\n\n` +
-        `JUSTIFICACIÓN:\n` +
-        `Estos procedimientos complementan la búsqueda electrónica para:\n` +
-        `✅ Maximizar exhaustividad (sensibilidad)\n` +
-        `✅ Capturar estudios recientes no indexados aún\n` +
-        `✅ Identificar literatura gris relevante\n` +
-        `✅ Validar completitud de la búsqueda con expertos`
+      evidence: `Se especifican procedimientos auxiliares sistemáticos para maximizar la exhaustividad de recuperación de evidencia, complementando la búsqueda electrónica automatizada con métodos manuales que permitan capturar estudios potencialmente omitidos. Estos procedimientos siguen las mejores prácticas metodológicas establecidas por Cochrane y PRISMA para revisiones sistemáticas de alta calidad.\n\n` +
+        `El primer procedimiento consiste en la revisión sistemática de listas de referencias, conocida como backward snowballing o búsqueda retrospectiva. Se realizará una revisión exhaustiva de las bibliografías de los estudios clave incluidos en la revisión, con especial atención a la identificación de referencias frecuentemente citadas sobre ${themaCentral}. Este método permite capturar estudios seminales o fundacionales que pueden no haber sido recuperados en la búsqueda electrónica, ya sea por limitaciones en la indexación, uso de terminología diferente, o publicación en fuentes no cubiertas por las bases de datos consultadas.\n\n` +
+        `El segundo procedimiento implementa la búsqueda de citaciones, denominada forward snowballing o búsqueda prospectiva. Se utilizará Google Scholar y otras herramientas de análisis de citaciones para identificar estudios posteriores que citen los artículos incluidos en la revisión. Este método resulta particularmente valioso para actualizar la literatura con estudios muy recientes y para identificar aplicaciones emergentes de ${technologies.length > 0 ? technologies.join(', ') : 'las tecnologías estudiadas'} que puedan no estar completamente indexadas aún en las bases de datos académicas tradicionales.\n\n` +
+        `El tercer procedimiento contempla el contacto directo con autores de investigaciones relevantes. Se solicitarán documentos completos cuando no estén disponibles a través de los canales institucionales habituales, se consultará sobre estudios en prensa o próximos a publicar que sean relevantes para ${themaCentral}, y se buscará clarificación sobre aspectos metodológicos específicos cuando sea necesario para la extracción de datos o evaluación de calidad. Este contacto con la comunidad académica activa asegura acceso a la evidencia más reciente y completa.\n\n` +
+        `El cuarto procedimiento implica consulta sistemática con expertos reconocidos en ${researchArea}. El protocolo será revisado por especialistas en el área, quienes validarán la selección de términos de búsqueda y contribuirán a identificar estudios conocidos relevantes que pudieran no haber sido capturados mediante la estrategia de búsqueda implementada. Esta validación por pares expertos constituye una garantía adicional de exhaustividad y pertinencia de la búsqueda.\n\n` +
+        `El quinto procedimiento se centra en la búsqueda sistemática de literatura gris, incluyendo tesis doctorales depositadas en repositorios institucionales, informes técnicos de organizaciones relevantes en ${researchArea}, y working papers sobre ${themaCentral}. Esta literatura gris puede contener hallazgos metodológicamente rigurosos y empíricamente sólidos que no han sido formalmente publicados en revistas indexadas, pero que resultan sustancialmente relevantes para la comprensión del fenómeno estudiado.\n\n` +
+        `Cada procedimiento auxiliar será documentado sistemáticamente, registrando el número de referencias adicionales identificadas mediante cada método, la fuente específica de cada referencia auxiliar, y el análisis de las razones por las cuales estas referencias no fueron recuperadas en la búsqueda principal. Esta documentación permite evaluar la efectividad de la estrategia de búsqueda electrónica y proporciona información valiosa para futuras actualizaciones de la revisión.\n\n` +
+        `La implementación de estos procedimientos complementarios se justifica metodológicamente por su capacidad de: maximizar la exhaustividad (sensibilidad) de recuperación de evidencia relevante, minimizando el riesgo de omisión de estudios importantes; capturar estudios muy recientes que aún no han sido completamente indexados en bases de datos comerciales; identificar literatura gris relevante que no aparece en índices bibliográficos tradicionales; y validar la completitud de la búsqueda mediante verificación independiente por expertos del área. La combinación de búsqueda electrónica automatizada con estos procedimientos manuales sistemáticos constituye la mejor práctica metodológica para revisiones sistemáticas, conforme a los estándares establecidos por organizaciones internacionales como Cochrane, PRISMA y Campbell Collaboration.`
     }
 
     // 13. Evaluación del proceso
     newPrismaData["prisma-13"] = {
       complies: true,
-      evidence: `EVIDENCIA DE CUMPLIMIENTO:\n\n` +
-        `Se describe el método de evaluación del proceso de búsqueda para asegurar calidad:\n\n` +
-        `🎯 MÉTODOS DE VALIDACIÓN PLANIFICADOS:\n\n` +
-        `1. COMPARACIÓN CON REVISIONES PREVIAS:\n` +
-        `   • Si existen RSL previas sobre ${themaCentral}, se verificará que esta búsqueda recupere:\n` +
-        `     └─ Estudios clave identificados en revisiones anteriores\n` +
-        `     └─ Referencias fundamentales del área\n` +
-        `   • Se documentarán diferencias y razones (ej. período temporal, criterios)\n\n` +
-        `2. VERIFICACIÓN DE PAPERS CONOCIDOS (Quasi-gold standard):\n` +
-        `   • Lista de verificación: 5-10 papers conocidos sobre ${themaCentral}\n` +
-        `   • Criterio de éxito: La búsqueda debe recuperar ≥80% de papers de verificación\n` +
-        `   • Si no se recuperan: análisis de términos faltantes y refinamiento\n\n` +
-        `3. ANÁLISIS DE COBERTURA DE CONCEPTOS:\n` +
-        `   Verificación de que la búsqueda captura todos los conceptos clave:\n` +
-        `   • Tecnología/Intervención: ${technologies.length > 0 ? technologies.join(', ') : data.pico.intervention || 'Definida en PICO'}\n` +
-        `   • Población/Dominio: ${data.pico.population || 'Definida en PICO'}\n` +
-        `   • Outcomes/Focos: ${thematicFoci.length > 0 ? thematicFoci.join(', ') : data.pico.outcome || 'Definidos en PICO'}\n\n` +
-        `4. SENSIBILIDAD vs. ESPECIFICIDAD:\n` +
-        `   • Sensibilidad (recall): ¿Se recuperan todos los estudios relevantes?\n` +
-        `     └─ Verificado mediante snowballing y consulta a expertos\n` +
-        `   • Especificidad (precision): ¿La proporción de estudios irrelevantes es manejable?\n` +
-        `     └─ Meta: Al menos 10-15% de referencias recuperadas sean incluidas tras screening\n\n` +
-        `5. PRUEBA DE INTERCALIBRACIÓN:\n` +
-        `   • Dos revisores independientes ejecutan la búsqueda\n` +
-        `   • Verificación de que ambos obtienen resultados idénticos\n` +
-        `   • Valida reproducibilidad de la estrategia\n\n` +
-        `6. DOCUMENTACIÓN DE ITERACIONES:\n` +
-        `   • Versión inicial de cadenas de búsqueda\n` +
-        `   • Refinamientos realizados (con justificación)\n` +
-        `   • Número de resultados por versión\n` +
-        `   • Decisiones metodológicas tomadas\n\n` +
-        `📋 CRITERIOS DE ACEPTACIÓN:\n` +
-        `La búsqueda se considera válida si:\n` +
-        `✅ Recupera ≥80% de papers conocidos (gold standard)\n` +
-        `✅ Cubre todos los conceptos del marco PICO\n` +
-        `✅ Es reproducible por revisores independientes\n` +
-        `✅ Expertos en ${researchArea} confirman exhaustividad\n` +
-        `✅ Balance adecuado sensibilidad/especificidad\n\n` +
-        `TRANSPARENCIA:\n` +
-        `Todo el proceso de validación será documentado en el protocolo final, incluyendo:\n` +
-        `• Resultados de cada método de validación\n` +
-        `• Problemas identificados y soluciones\n` +
-        `• Justificación de decisiones metodológicas\n\n` +
-        `Este nivel de control de calidad asegura que la búsqueda es:\n` +
-        `🔍 Exhaustiva (captura toda la evidencia relevante)\n` +
-        `📊 Reproducible (otros pueden replicarla exactamente)\n` +
-        `✅ Válida (recupera estudios conocidos del área)\n` +
-        `🎯 Eficiente (proporción manejable de estudios irrelevantes)`
+      evidence: `Se describe el método de evaluación del proceso de búsqueda para asegurar la calidad, validez y exhaustividad de la estrategia implementada. Esta evaluación sigue un protocolo sistemático que contempla múltiples métodos de validación complementarios, conforme a las recomendaciones metodológicas de Cochrane y PRISMA para revisiones sistemáticas de alta calidad.\n\n` +
+        `El primer método de validación consiste en la comparación con revisiones sistemáticas previas. Si existen RSL anteriores sobre ${themaCentral}, se verificará sistemáticamente que la presente búsqueda recupere los estudios clave identificados en revisiones anteriores y las referencias fundamentales del área. Se documentarán meticulosamente las diferencias encontradas, analizando sus razones (por ejemplo, diferencias en el período temporal cubierto, criterios de inclusión más restrictivos o amplios, o bases de datos adicionales consultadas). Esta comparación proporciona una validación externa de la exhaustividad de la búsqueda.\n\n` +
+        `El segundo método implementa la verificación mediante quasi-gold standard, consistente en una lista de verificación de 5 a 10 papers conocidos y reconocidos sobre ${themaCentral}. El criterio de éxito establece que la búsqueda debe recuperar al menos el 80% de estos papers de verificación. Si este umbral no se alcanza, se realizará un análisis sistemático de los términos potencialmente faltantes, procediendo a refinar la estrategia de búsqueda incorporando sinónimos o variantes terminológicas que permitan capturar los estudios omitidos, sin comprometer la precisión general de la recuperación.\n\n` +
+        `El tercer método evalúa la cobertura conceptual de la búsqueda, verificando sistemáticamente que la estrategia capture todos los conceptos clave derivados del marco PICO. Se confirmará que se recuperan adecuadamente estudios sobre: tecnología o intervención (${technologies.length > 0 ? technologies.join(', ') : data.pico.intervention || 'definida en PICO'}), población o dominio de aplicación (${data.pico.population || 'definida en PICO'}), y outcomes o focos temáticos (${thematicFoci.length > 0 ? thematicFoci.join(', ') : data.pico.outcome || 'definidos en PICO'}). Esta verificación asegura que ningún componente central de la pregunta de investigación haya sido inadvertidamente subrepresentado en la estrategia de búsqueda.\n\n` +
+        `El cuarto método analiza el balance entre sensibilidad (recall) y especificidad (precision) de la búsqueda. La sensibilidad se evalúa mediante snowballing y consulta con expertos, verificando que se recuperen todos los estudios relevantes conocidos del área. La especificidad se mide mediante la proporción de estudios irrelevantes recuperados, estableciendo como meta que al menos el 10-15% de las referencias recuperadas sean finalmente incluidas tras el proceso de screening. Este balance garantiza que la búsqueda es exhaustiva sin resultar impracticable por exceso de ruido informacional.\n\n` +
+        `El quinto método consiste en una prueba de intercalibración de reproducibilidad. Dos revisores independientes ejecutarán la búsqueda siguiendo exactamente la documentación proporcionada, verificando que ambos obtienen resultados idénticos en términos de número de referencias recuperadas. Esta prueba valida que la estrategia está suficientemente especificada y documentada para ser reproducible por investigadores independientes, cumpliendo con el principio de transparencia científica.\n\n` +
+        `El sexto método requiere documentación completa de las iteraciones del proceso de búsqueda. Se registrará la versión inicial de las cadenas de búsqueda, todos los refinamientos realizados con sus justificaciones metodológicas correspondientes, el número de resultados obtenido en cada versión, y las decisiones metodológicas tomadas durante el proceso de desarrollo de la estrategia. Esta documentación proporciona trazabilidad completa del proceso y permite comprender la evolución de la estrategia hacia su forma final.\n\n` +
+        `Los criterios de aceptación establecen que la búsqueda se considera metodológicamente válida si cumple simultáneamente las siguientes condiciones: recupera al menos el 80% de papers conocidos previamente identificados como relevantes (validación por gold standard); cubre exhaustivamente todos los conceptos del marco PICO sin omisiones conceptuales; es reproducible por revisores independientes obteniendo resultados idénticos; expertos reconocidos en ${researchArea} confirman su exhaustividad y pertinencia; y presenta un balance adecuado entre sensibilidad (capacidad de recuperar estudios relevantes) y especificidad (proporción manejable de estudios irrelevantes).\n\n` +
+        `Todo el proceso de validación será documentado exhaustivamente en el protocolo final de la revisión sistemática, incluyendo los resultados específicos de cada método de validación aplicado, los problemas identificados durante el proceso y las soluciones implementadas, y la justificación detallada de todas las decisiones metodológicas tomadas. Esta transparencia metodológica permite la evaluación crítica por pares y la replicación exacta del proceso por investigadores futuros.\n\n` +
+        `Este nivel de control de calidad multinivel asegura que la estrategia de búsqueda implementada es: exhaustiva, capturando toda la evidencia relevante disponible en las fuentes consultadas; reproducible, permitiendo que otros investigadores repliquen exactamente el proceso y obtengan resultados idénticos; válida, recuperando los estudios conocidos fundamentales del área; y eficiente, manteniendo una proporción manejable de estudios irrelevantes que no comprometa la factibilidad práctica de la revisión. La combinación de estos métodos de validación constituye la mejor práctica metodológica en revisiones sistemáticas, conforme a los estándares internacionales establecidos por organizaciones como Cochrane Collaboration, PRISMA y Campbell Collaboration.`
     }
 
     setPrismaData(newPrismaData)
@@ -667,38 +409,119 @@ export function PrismaCheckStep() {
   const handleFinishProject = async () => {
     setIsSaving(true)
     try {
+      // Separar datos de proyecto y protocolo
       const projectData = {
         title: data.selectedTitle,
         description: data.projectDescription,
-        status: 'active', // Cambiar de 'draft' a 'active'
-        protocol: {
-          proposedTitle: data.selectedTitle,
-          population: data.pico.population,
-          intervention: data.pico.intervention,
-          comparison: data.pico.comparison || '',
-          outcomes: data.pico.outcome,
-          isMatrix: data.matrixIsNot.is,
-          isNotMatrix: data.matrixIsNot.isNot,
-          inclusionCriteria: data.inclusionCriteria,
-          exclusionCriteria: data.exclusionCriteria,
-          databases: data.searchPlan?.databases || [],
-          searchString: '',
-          temporalRange: '',
-          keyTerms: {
-            technology: data.protocolDefinition?.technologies || [],
-            domain: data.protocolDefinition?.applicationDomain || [],
-            studyType: data.protocolDefinition?.studyType || [],
-            themes: data.protocolDefinition?.thematicFocus || []
-          }
-        }
+        status: 'in-progress' // Cambiar de 'draft' a 'in-progress' (estado válido)
       }
+
+      // Encontrar el título seleccionado completo (con español)
+      const selectedTitleObj = data.generatedTitles?.find(t => t.title === data.selectedTitle)
+      const titleToSave = selectedTitleObj?.spanishTitle || data.selectedTitle
+
+      // Mapear IDs de bases de datos a nombres completos
+      const DATABASE_ID_TO_NAME: Record<string, string> = {
+        'scopus': 'Scopus',
+        'ieee': 'IEEE Xplore',
+        'acm': 'ACM Digital Library',
+        'springer': 'Springer Link',
+        'sciencedirect': 'ScienceDirect',
+        'webofscience': 'Web of Science',
+        'pubmed': 'PubMed',
+        'embase': 'Embase',
+        'cochrane': 'Cochrane Library',
+        'cinahl': 'CINAHL',
+        'eric': 'ERIC',
+        'psycinfo': 'PsycINFO',
+        'jstor': 'JSTOR',
+        'sage': 'SAGE Journals',
+        'avery': 'Avery Index',
+        'taylor': 'Taylor & Francis',
+        'econlit': 'EconLit',
+        'wiley': 'Wiley Online Library',
+        'arxiv': 'arXiv',
+        'google_scholar': 'Google Scholar'
+      }
+
+      // Convertir IDs a nombres
+      const databaseNames = (data.searchPlan?.databases || []).map(dbId => {
+        // Si ya es un objeto con name, usar name
+        if (typeof dbId === 'object' && dbId !== null && 'name' in dbId) {
+          return dbId.name
+        }
+        // Si es string (ID), convertir a nombre
+        if (typeof dbId === 'string') {
+          return DATABASE_ID_TO_NAME[dbId] || dbId
+        }
+        return null
+      }).filter(name => name !== null)
+
+      // Construir cadenas de búsqueda desde las queries
+      const searchQueries = data.searchPlan?.searchQueries || []
+      const firstQuery = searchQueries.length > 0 ? searchQueries[0] : null
+      const searchString = firstQuery?.query || ''
+
+      // Mapear todas las queries con sus bases de datos
+      const queries = searchQueries.map(q => ({
+        database: q.databaseName || q.databaseId,
+        databaseId: q.databaseId,
+        query: q.query,
+        baseQuery: q.baseQuery,
+        hasAPI: q.hasAPI,
+        apiRequired: q.apiRequired,
+        status: q.status || 'pending',
+        resultsCount: 0
+      }))
+
+      const protocolData = {
+        proposedTitle: titleToSave,
+        population: data.pico.population,
+        intervention: data.pico.intervention,
+        comparison: data.pico.comparison || '',
+        outcomes: data.pico.outcome,
+        refinedQuestion: data.projectDescription,
+        isMatrix: data.matrixIsNot.is,
+        isNotMatrix: data.matrixIsNot.isNot,
+        inclusionCriteria: data.inclusionCriteria,
+        exclusionCriteria: data.exclusionCriteria,
+        databases: databaseNames,
+        searchString: searchString,
+        searchQueries: queries,
+        temporalRange: {
+          start: data.yearStart || 2019,
+          end: data.yearEnd || new Date().getFullYear(),
+          justification: `Rango temporal definido para cubrir investigaciones recientes en ${data.researchArea || 'el área de estudio'}`
+        },
+        keyTerms: {
+          technology: data.protocolDefinition?.technologies || [],
+          domain: data.protocolDefinition?.applicationDomain || [],
+          studyType: data.protocolDefinition?.studyType || [],
+          themes: data.protocolDefinition?.thematicFocus || []
+        },
+        prismaCompliance: PRISMA_WPOM_ITEMS.map(item => ({
+          number: item.number,
+          item: item.question,
+          complies: prismaData[item.id]?.complies ? 'yes' : prismaData[item.id]?.complies === false ? 'no' : 'pending',
+          evidence: prismaData[item.id]?.evidence || ''
+        }))
+      }
+
+      console.log('🔍 DEBUG - searchPlan:', data.searchPlan)
+      console.log('🔍 DEBUG - protocolDefinition:', data.protocolDefinition)
+      console.log('🔍 DEBUG - protocolData que se enviará:', protocolData)
 
       let result: any = null
       
       if (data.projectId) {
-        // Proyecto ya existe (creado en paso 6), solo actualizarlo
+        // Proyecto ya existe (creado en paso 6), actualizarlo
         console.log('📝 Actualizando proyecto existente:', data.projectId)
-        result = await apiClient.updateProject(data.projectId, projectData)
+        
+        // 1. Actualizar proyecto (solo title, description, status)
+        await apiClient.updateProject(data.projectId, projectData)
+        
+        // 2. Actualizar protocolo por separado
+        await apiClient.updateProtocol(data.projectId, protocolData)
         
         toast({
           title: "✅ Proyecto completado",
@@ -708,7 +531,10 @@ export function PrismaCheckStep() {
       } else {
         // Crear proyecto nuevo (caso excepcional)
         console.log('📝 Creando proyecto nuevo')
-        result = await apiClient.createProject(projectData)
+        result = await apiClient.createProject({
+          ...projectData,
+          protocol: protocolData
+        })
 
         if (result.success && result.data?.project?.id) {
           toast({
@@ -720,6 +546,7 @@ export function PrismaCheckStep() {
         }
       }
     } catch (error: any) {
+      console.error('❌ Error al guardar proyecto:', error)
       toast({
         title: "❌ Error al guardar proyecto",
         description: error.message || "No se pudo guardar el proyecto",
@@ -862,7 +689,7 @@ export function PrismaCheckStep() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Accordion type="multiple" defaultValue={["understanding", "justification", "methodology"]} className="w-full">
+          <Accordion type="multiple" defaultValue={[]} className="w-full">
             {Object.entries(PRISMA_SECTIONS).map(([key, section]) => {
               const SectionIcon = section.icon
               const sectionItems = PRISMA_WPOM_ITEMS.filter(item => section.items.includes(item.number))

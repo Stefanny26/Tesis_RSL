@@ -15,7 +15,7 @@ class ProtocolRepository {
     const jsonbFields = [
       'is_matrix', 'is_not_matrix', 'research_questions', 'inclusion_criteria',
       'exclusion_criteria', 'databases', 'evaluation_initial', 'matrix_elements',
-      'key_terms', 'temporal_range', 'prisma_compliance'
+      'key_terms', 'search_queries', 'temporal_range', 'prisma_compliance'
     ];
     
     jsonbFields.forEach(field => {
@@ -33,12 +33,13 @@ class ProtocolRepository {
 
     const query = `
       INSERT INTO protocols (
-        project_id, proposed_title, is_matrix, is_not_matrix, population, 
-        intervention, comparison, outcomes, research_questions, inclusion_criteria,
-        exclusion_criteria, databases, search_string, temporal_range,
-        key_terms, prisma_compliance, completed
+        project_id, proposed_title, is_matrix, is_not_matrix, refined_question,
+        population, intervention, comparison, outcomes, 
+        inclusion_criteria, exclusion_criteria, 
+        databases, search_string, search_queries, key_terms, temporal_range,
+        prisma_compliance, completed
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *
     `;
 
@@ -47,18 +48,19 @@ class ProtocolRepository {
       db.project_id, 
       db.proposed_title,
       db.is_matrix, 
-      db.is_not_matrix, 
+      db.is_not_matrix,
+      db.refined_question,
       db.population,
       db.intervention, 
       db.comparison, 
-      db.outcomes, 
-      db.research_questions,
+      db.outcomes,
       db.inclusion_criteria, 
       db.exclusion_criteria, 
       db.databases,
-      db.search_string, 
+      db.search_string,
+      db.search_queries,
+      db.key_terms, 
       db.temporal_range,
-      db.key_terms,
       db.prisma_compliance,
       db.completed
     ];
@@ -76,16 +78,9 @@ class ProtocolRepository {
       // Título propuesto por IA
       proposedTitle: 'proposed_title',
       
-      // Área de conocimiento
-      area: 'area',
-      
-      // Evaluación inicial
-      evaluationInitial: 'evaluation_initial',
-      
       // Matriz Es/No Es
       isMatrix: 'is_matrix',
       isNotMatrix: 'is_not_matrix',
-      matrixElements: 'matrix_elements',
       refinedQuestion: 'refined_question',
       
       // Marco PICO
@@ -94,24 +89,16 @@ class ProtocolRepository {
       comparison: 'comparison',
       outcomes: 'outcomes',
       
-      // Preguntas de investigación
-      researchQuestions: 'research_questions',
-      
       // Criterios
       inclusionCriteria: 'inclusion_criteria',
       exclusionCriteria: 'exclusion_criteria',
       
-      // Términos clave
-      keyTerms: 'key_terms',
-      
       // Estrategia de búsqueda
       databases: 'databases',
+      searchQueries: 'search_queries',
       searchString: 'search_string',
+      keyTerms: 'key_terms',
       temporalRange: 'temporal_range',
-      
-      // Fechas (legacy, se usa temporalRange ahora)
-      dateRangeStart: 'date_range_start',
-      dateRangeEnd: 'date_range_end',
       
       // Cumplimiento PRISMA
       prismaCompliance: 'prisma_compliance',
@@ -120,21 +107,31 @@ class ProtocolRepository {
       completed: 'completed'
     };
 
-    // Lista de campos que deben ser JSON
-    const jsonFields = [
-      'evaluationInitial', 'isMatrix', 'isNotMatrix', 'matrixElements',
-      'researchQuestions', 'inclusionCriteria', 'exclusionCriteria',
-      'databases', 'keyTerms', 'temporalRange', 'prismaCompliance'
-    ];
-
+    // Usar el modelo Protocol para manejar la serialización correctamente
+    const Protocol = require('../../domain/models/protocol.model');
+    
+    // Crear instancia del modelo con los datos recibidos
+    const protocolInstance = new Protocol({
+      ...protocolData,
+      projectId: projectId
+    });
+    
+    // Obtener datos serializados correctamente
+    const dbData = protocolInstance.toDatabase();
+    
+    // Mapear los campos del modelo a la base de datos
     for (const [jsKey, dbKey] of Object.entries(fieldMap)) {
-      if (protocolData[jsKey] !== undefined) {
-        const value = jsonFields.includes(jsKey)
-          ? JSON.stringify(protocolData[jsKey])
-          : protocolData[jsKey];
+      // Convertir camelCase a snake_case para buscar en dbData
+      const snakeKey = dbKey;
+      
+      if (dbData[snakeKey] !== undefined && protocolData[jsKey] !== undefined) {
+        console.log(`   📦 Campo ${jsKey} (${snakeKey}):`, 
+          typeof dbData[snakeKey] === 'string' 
+            ? dbData[snakeKey].substring(0, 100) 
+            : dbData[snakeKey]);
         
         updates.push(`${dbKey} = $${paramCount++}`);
-        values.push(value);
+        values.push(dbData[snakeKey]);
       }
     }
 

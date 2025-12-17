@@ -32,12 +32,15 @@ class GenerateInclusionExclusionCriteriaUseCase {
       
       console.log('🔍 Generando criterios de inclusión/exclusión...');
       console.log('📋 Título RSL:', rslTitle.substring(0, 60) + '...');
+      console.log('⏰ Rango temporal para prompt: yearStart =', yearStart, ', yearEnd =', yearEnd);
       
       if (specificType) {
         console.log('🎯 Regenerando tipo específico:', specificType);
         console.log('📂 Categoría específica:', categoryName || categoryIndex);
         console.log('💡 Enfoque personalizado:', customFocus || 'predeterminado');
       }
+
+      console.log('📝 Construyendo prompt con años:', { yearStart, yearEnd });
 
       const prompt = this.buildPrompt({ 
         rslTitle,
@@ -266,8 +269,10 @@ EJEMPLOS DE CRITERIOS BIEN REDACTADOS:
    ✅ EXCLUSIÓN: "Blogs, white papers, tutoriales, documentación oficial y literatura gris."
 
 5. Rango temporal:
+   ⚠️ **OBLIGATORIO USAR ESTOS AÑOS EXACTOS**:
    ✅ INCLUSIÓN: "Publicaciones entre ${yearStart && yearEnd ? `${yearStart} y ${yearEnd}` : '2019 y 2025'}."
    ✅ EXCLUSIÓN: "Estudios previos a ${yearStart || '2019'} o sin relevancia tecnológica contemporánea."
+   ⚠️ **NO USES OTROS AÑOS DIFERENTES A ${yearStart || '2019'}-${yearEnd || '2025'}**
 
 6. Idioma:
    ✅ INCLUSIÓN: "Publicaciones en inglés." [Justificación implícita: idioma dominante en literatura técnica]
@@ -276,6 +281,10 @@ EJEMPLOS DE CRITERIOS BIEN REDACTADOS:
 ═══════════════════════════════════════════════════════════════
 VALIDACIÓN AUTOMÁTICA (CHECKLIST)
 ═══════════════════════════════════════════════════════════════
+
+⚠️ **VERIFICACIÓN FINAL DE AÑOS**: 
+   Años recibidos: yearStart=${yearStart}, yearEnd=${yearEnd}
+   Texto generado debe usar: ${yearStart || '2019'}-${yearEnd || '2025'}
 
 Antes de generar, verifica:
 ✓ ¿Cada criterio se deriva del PICO o términos del protocolo?

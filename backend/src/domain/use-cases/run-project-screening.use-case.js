@@ -112,18 +112,18 @@ class RunProjectScreeningUseCase {
    */
   async executeHybrid({ projectId, protocol, embeddingThreshold = 0.15, aiProvider = 'chatgpt' }) {
     try {
-      console.log(`🔍 Ejecutando cribado HÍBRIDO para proyecto ${projectId}...`);
-      console.log(`   Fase 1: Embeddings (threshold: ${embeddingThreshold})`);
-      console.log(`   Fase 2: ${aiProvider.toUpperCase()} para zona gris`);
+      console.log(`[HYBRID] Ejecutando cribado HÍBRIDO para proyecto ${projectId}...`);
+      console.log(`[HYBRID] Fase 1: Embeddings (threshold: ${embeddingThreshold})`);
+      console.log(`[HYBRID] Fase 2: ${aiProvider.toUpperCase()} para zona gris`);
 
       // Obtener referencias pendientes
       let references = await this.referenceRepository.getPendingReferences(projectId);
       
       // Si no hay referencias pendientes, re-ejecutar sobre TODAS las referencias (sin límite de paginación)
       if (references.length === 0) {
-        console.log(`🔄 No hay referencias pendientes. Obteniendo TODAS las referencias para re-ejecución...`);
+        console.log(`[HYBRID] No hay referencias pendientes. Obteniendo TODAS las referencias para re-ejecución...`);
         references = await this.referenceRepository.findByProject(projectId);
-        console.log(`📚 Encontradas ${references.length} referencias totales para re-análisis`);
+        console.log(`[HYBRID] Encontradas ${references.length} referencias totales para re-análisis`);
         
         if (references.length === 0) {
           return {
@@ -139,14 +139,14 @@ class RunProjectScreeningUseCase {
           };
         }
       } else {
-        console.log(`📚 Encontradas ${references.length} referencias pendientes`);
+        console.log(`[HYBRID] Encontradas ${references.length} referencias pendientes`);
       }
 
       const startTime = Date.now();
 
       // FASE 1: Embeddings para todas las referencias
-      console.log('\n🤖 FASE 1: Análisis con Embeddings...');
-      console.log(`⏱️  Procesando ${references.length} referencias en batch...`);
+      console.log('\n[PHASE 1] Análisis con Embeddings...');
+      console.log(`[PHASE 1] Procesando ${references.length} referencias en batch...`);
       const embeddingsStartTime = Date.now();
       
       const embeddingsResult = await this.screenEmbeddingsUseCase.executeBatch({
@@ -156,7 +156,7 @@ class RunProjectScreeningUseCase {
       });
       
       const embeddingsDuration = ((Date.now() - embeddingsStartTime) / 1000).toFixed(1);
-      console.log(`✅ Fase embeddings completada en ${embeddingsDuration}s`);
+      console.log(`[PHASE 1] Completada en ${embeddingsDuration}s`);
 
       // Calcular umbrales adaptativos basados en distribución
       const similarities = embeddingsResult.results
@@ -172,10 +172,10 @@ class RunProjectScreeningUseCase {
       const upperThreshold = Math.max(p75, 0.25); // Mínimo 25% para incluir
       const lowerThreshold = Math.min(p25, 0.15); // Máximo 15% para excluir automáticamente
 
-      console.log(`📊 Umbrales adaptativos calculados:`);
-      console.log(`   Alta confianza INCLUIR: >= ${(upperThreshold * 100).toFixed(1)}%`);
-      console.log(`   Alta confianza EXCLUIR: <= ${(lowerThreshold * 100).toFixed(1)}%`);
-      console.log(`   Zona gris: ${(lowerThreshold * 100).toFixed(1)}% - ${(upperThreshold * 100).toFixed(1)}%`);
+      console.log(`[PHASE 1] Umbrales adaptativos calculados:`);
+      console.log(`[PHASE 1]   Alta confianza INCLUIR: >= ${(upperThreshold * 100).toFixed(1)}%`);
+      console.log(`[PHASE 1]   Alta confianza EXCLUIR: <= ${(lowerThreshold * 100).toFixed(1)}%`);
+      console.log(`[PHASE 1]   Zona gris: ${(lowerThreshold * 100).toFixed(1)}% - ${(upperThreshold * 100).toFixed(1)}%`);
 
       // Clasificar por confianza con umbrales adaptativos
       const highConfidenceInclude = [];
@@ -197,13 +197,13 @@ class RunProjectScreeningUseCase {
         }
       }
 
-      console.log(`   ✅ Alta confianza INCLUIR: ${highConfidenceInclude.length}`);
-      console.log(`   ❌ Alta confianza EXCLUIR: ${highConfidenceExclude.length}`);
-      console.log(`   🤔 Zona gris (para ChatGPT): ${greyZone.length}`);
+      console.log(`[PHASE 1]   Alta confianza INCLUIR: ${highConfidenceInclude.length}`);
+      console.log(`[PHASE 1]   Alta confianza EXCLUIR: ${highConfidenceExclude.length}`);
+      console.log(`[PHASE 1]   Zona gris (para ${aiProvider}): ${greyZone.length}`);
 
       // FASE 2: ChatGPT solo para zona gris
-      console.log(`\n🧠 FASE 2: Análisis con ${aiProvider.toUpperCase()} (zona gris)...`);
-      console.log(`⏱️  Iniciando análisis secuencial de ${greyZone.length} referencias...`);
+      console.log(`\n[PHASE 2] Análisis con ${aiProvider.toUpperCase()} (zona gris)...`);
+      console.log(`[PHASE 2] Iniciando análisis secuencial de ${greyZone.length} referencias...`);
       const llmResults = [];
       const llmStartTime = Date.now();
       
@@ -212,7 +212,7 @@ class RunProjectScreeningUseCase {
         const refStartTime = Date.now();
         try {
           const title = item.reference.title.substring(0, 60);
-          console.log(`   [${i + 1}/${greyZone.length}] 🔄 Procesando: ${title}...`);
+          console.log(`[PHASE 2] [${i + 1}/${greyZone.length}] Procesando: ${title}...`);
           
           const llmResult = await this.screenAIUseCase.execute({
             reference: item.reference,
@@ -223,7 +223,7 @@ class RunProjectScreeningUseCase {
           });
 
           const refDuration = ((Date.now() - refStartTime) / 1000).toFixed(1);
-          console.log(`   [${i + 1}/${greyZone.length}] ✅ Completado en ${refDuration}s - Decisión: ${llmResult.data.decision}`);
+          console.log(`[PHASE 2] [${i + 1}/${greyZone.length}] Completado en ${refDuration}s - Decisión: ${llmResult.data.decision}`);
 
           llmResults.push({
             ...item,
@@ -236,7 +236,7 @@ class RunProjectScreeningUseCase {
 
         } catch (error) {
           const refDuration = ((Date.now() - refStartTime) / 1000).toFixed(1);
-          console.error(`   [${i + 1}/${greyZone.length}] ❌ Error después de ${refDuration}s:`, error.message);
+          console.error(`[PHASE 2] [${i + 1}/${greyZone.length}] Error después de ${refDuration}s:`, error.message);
           llmResults.push({
             ...item,
             llmDecision: 'revisar_manual',
@@ -246,84 +246,107 @@ class RunProjectScreeningUseCase {
       }
       
       const llmDuration = ((Date.now() - llmStartTime) / 1000).toFixed(1);
-      console.log(`✅ Fase LLM completada en ${llmDuration}s (${greyZone.length} referencias)`);
-      console.log(`   Promedio: ${(parseFloat(llmDuration) / greyZone.length).toFixed(1)}s por referencia`);
+      console.log(`[PHASE 2] Completada en ${llmDuration}s (${greyZone.length} referencias)`);
+      console.log(`[PHASE 2] Promedio: ${(parseFloat(llmDuration) / greyZone.length).toFixed(1)}s por referencia`);
 
       // FASE 3: Guardar resultados en base de datos
-      console.log('\n💾 FASE 3: Guardando resultados...');
+      console.log('\n[PHASE 3] Guardando resultados...');
       
       let totalIncluded = 0;
       let totalExcluded = 0;
       let totalReviewManual = 0;
 
       // Guardar alta confianza INCLUIR - Auto-aprobadas
+      console.log(`[PHASE 3] Guardando ${highConfidenceInclude.length} referencias de alta confianza INCLUIR...`);
       for (const item of highConfidenceInclude) {
-        await this.referenceRepository.updateScreeningResult({
-          referenceId: item.referenceId,
-          aiRecommendation: 'include',
-          aiReasoning: `Embeddings: Alta similitud (${(item.similarity * 100).toFixed(1)}%). ${item.reasoning}`,
-          aiConfidence: item.confidence,
-          similarityScore: item.similarity,
-          screeningStatus: 'included' // Auto-aprobado por alta confianza
-        });
-        totalIncluded++;
+        try {
+          await this.referenceRepository.updateScreeningResult({
+            referenceId: item.referenceId,
+            aiRecommendation: 'include',
+            aiReasoning: `Embeddings: Alta similitud (${(item.similarity * 100).toFixed(1)}%). ${item.reasoning}`,
+            aiConfidence: item.confidence,
+            similarityScore: item.similarity,
+            screeningStatus: 'included' // Auto-aprobado por alta confianza
+          });
+          totalIncluded++;
+        } catch (error) {
+          console.error(`[PHASE 3] Error guardando referencia ${item.referenceId}:`, error.message);
+        }
       }
+      console.log(`[PHASE 3] Guardadas ${totalIncluded} referencias de alta confianza INCLUIR`);
 
       // Guardar alta confianza EXCLUIR - Auto-aprobadas
+      console.log(`[PHASE 3] Guardando ${highConfidenceExclude.length} referencias de alta confianza EXCLUIR...`);
       for (const item of highConfidenceExclude) {
-        await this.referenceRepository.updateScreeningResult({
-          referenceId: item.referenceId,
-          aiRecommendation: 'exclude',
-          aiReasoning: `Embeddings: Baja similitud (${(item.similarity * 100).toFixed(1)}%). ${item.reasoning}`,
-          aiConfidence: item.confidence,
-          similarityScore: item.similarity,
-          screeningStatus: 'excluded' // Auto-aprobado por alta confianza
-        });
-        totalExcluded++;
+        try {
+          await this.referenceRepository.updateScreeningResult({
+            referenceId: item.referenceId,
+            aiRecommendation: 'exclude',
+            aiReasoning: `Embeddings: Baja similitud (${(item.similarity * 100).toFixed(1)}%). ${item.reasoning}`,
+            aiConfidence: item.confidence,
+            similarityScore: item.similarity,
+            screeningStatus: 'excluded' // Auto-aprobado por alta confianza
+          });
+          totalExcluded++;
+        } catch (error) {
+          console.error(`[PHASE 3] Error guardando referencia ${item.referenceId}:`, error.message);
+        }
       }
+      console.log(`[PHASE 3] Guardadas ${totalExcluded} referencias de alta confianza EXCLUIR`);
 
       // Guardar resultados de zona gris con LLM - Auto-aprobados
-      for (const item of llmResults) {
-        let recommendation = 'review';
-        let status = 'pending'; // Por defecto pending para revisión manual
-        
-        if (item.llmDecision === 'incluida') {
-          recommendation = 'include';
-          status = 'included'; // Auto-aprobar inclusiones de ChatGPT
-          totalIncluded++;
-        } else if (item.llmDecision === 'excluida') {
-          recommendation = 'exclude';
-          status = 'excluded'; // Auto-aprobar exclusiones de ChatGPT
-          totalExcluded++;
-        } else {
-          totalReviewManual++;
+      console.log(`[PHASE 3] Guardando ${llmResults.length} referencias de zona gris con LLM...`);
+      for (let i = 0; i < llmResults.length; i++) {
+        const item = llmResults[i];
+        try {
+          let recommendation = 'review';
+          let status = 'pending'; // Por defecto pending para revisión manual
+          
+          if (item.llmDecision === 'incluida') {
+            recommendation = 'include';
+            status = 'included'; // Auto-aprobar inclusiones de ChatGPT
+            totalIncluded++;
+          } else if (item.llmDecision === 'excluida') {
+            recommendation = 'exclude';
+            status = 'excluded'; // Auto-aprobar exclusiones de ChatGPT
+            totalExcluded++;
+          } else {
+            totalReviewManual++;
+          }
+
+          const combinedReasoning = `
+Embeddings (${(item.similarity * 100).toFixed(1)}%): ${item.reasoning}
+
+${aiProvider.toUpperCase()} (${((item.llmConfidence || 0) * 100).toFixed(0)}% confianza): ${item.llmReasoning || 'Sin análisis'}
+${item.llmCriteriosCumplidos ? `\nCumple: ${item.llmCriteriosCumplidos.join(', ')}` : ''}
+${item.llmCriteriosNoCumplidos ? `\nNo cumple: ${item.llmCriteriosNoCumplidos.join(', ')}` : ''}
+          `.trim();
+
+          await this.referenceRepository.updateScreeningResult({
+            referenceId: item.referenceId,
+            aiRecommendation: recommendation,
+            aiReasoning: combinedReasoning,
+            aiConfidence: item.llmConfidence || item.confidence,
+            similarityScore: item.similarity,
+            screeningStatus: status // Auto-aprobar o dejar pending
+          });
+          
+          if ((i + 1) % 10 === 0 || i === llmResults.length - 1) {
+            console.log(`[PHASE 3] Progreso: ${i + 1}/${llmResults.length} referencias guardadas...`);
+          }
+        } catch (error) {
+          console.error(`[PHASE 3] Error guardando referencia ${item.referenceId}:`, error.message);
         }
-
-        const combinedReasoning = `
-🤖 Embeddings (${(item.similarity * 100).toFixed(1)}%): ${item.reasoning}
-
-🧠 ${aiProvider.toUpperCase()} (${((item.llmConfidence || 0) * 100).toFixed(0)}% confianza): ${item.llmReasoning || 'Sin análisis'}
-${item.llmCriteriosCumplidos ? `\n✅ Cumple: ${item.llmCriteriosCumplidos.join(', ')}` : ''}
-${item.llmCriteriosNoCumplidos ? `\n❌ No cumple: ${item.llmCriteriosNoCumplidos.join(', ')}` : ''}
-        `.trim();
-
-        await this.referenceRepository.updateScreeningResult({
-          referenceId: item.referenceId,
-          aiRecommendation: recommendation,
-          aiReasoning: combinedReasoning,
-          aiConfidence: item.llmConfidence || item.confidence,
-          similarityScore: item.similarity,
-          screeningStatus: status // Auto-aprobar o dejar pending
-        });
       }
+      console.log(`[PHASE 3] Guardado completado. Total incluidas: ${totalIncluded}, excluidas: ${totalExcluded}, manual: ${totalReviewManual}`);
 
       const duration = Date.now() - startTime;
 
-      console.log(`\n✅ CRIBADO HÍBRIDO COMPLETADO en ${(duration / 1000).toFixed(1)}s`);
-      console.log(`   📊 Total procesadas: ${references.length}`);
-      console.log(`   ✅ Recomendadas INCLUIR: ${totalIncluded}`);
-      console.log(`   ❌ Recomendadas EXCLUIR: ${totalExcluded}`);
-      console.log(`   🤔 Requieren revisión manual: ${totalReviewManual}`);
+      console.log(`\n[HYBRID] CRIBADO HÍBRIDO COMPLETADO en ${(duration / 1000).toFixed(1)}s`);
+      console.log(`[HYBRID] Total procesadas: ${references.length}`);
+      console.log(`[HYBRID] Recomendadas INCLUIR: ${totalIncluded}`);
+      console.log(`[HYBRID] Recomendadas EXCLUIR: ${totalExcluded}`);
+      console.log(`[HYBRID] Requieren revisión manual: ${totalReviewManual}`);
 
       return {
         success: true,
@@ -353,7 +376,7 @@ ${item.llmCriteriosNoCumplidos ? `\n❌ No cumple: ${item.llmCriteriosNoCumplido
       };
 
     } catch (error) {
-      console.error('❌ Error ejecutando cribado híbrido:', error);
+      console.error('[HYBRID] Error ejecutando cribado híbrido:', error);
       throw error;
     }
   }

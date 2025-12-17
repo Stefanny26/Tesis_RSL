@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react"
+import { apiClient } from "@/lib/api-client"
 
 export type AIProvider = 'chatgpt' | 'gemini'
 
@@ -165,10 +166,115 @@ const initialData: WizardData = {
   currentStep: 1
 }
 
-export function WizardProvider({ children }: { children: ReactNode }) {
+interface WizardProviderProps {
+  readonly children: ReactNode
+  readonly projectId?: string // Si se pasa, carga el protocolo existente
+  readonly projectData?: { title: string; description: string; researchArea?: string } // Datos básicos del proyecto
+}
+
+export function WizardProvider({ children, projectId, projectData }: WizardProviderProps) {
   const [data, setData] = useState<WizardData>(initialData)
   const [currentStep, setCurrentStep] = useState(1)
+  const [isLoading, setIsLoading] = useState(!!projectId)
   const totalSteps = 7
+
+  // Cargar protocolo existente si se pasa projectId
+  useEffect(() => {
+    async function loadExistingProtocol() {
+      if (!projectId) return
+      
+      try {
+        console.log('🔍 Cargando protocolo existente para proyecto:', projectId)
+        const protocol = await apiClient.getProtocol(projectId)
+        console.log('📋 Protocolo recibido:', protocol)
+        
+        if (protocol) {
+          // Mapear datos del protocolo al formato del wizard
+          const loadedData: Partial<WizardData> = {
+            projectId: projectId,
+            projectName: projectData?.title || "",
+            projectDescription: protocol.refinedQuestion || projectData?.description || "",
+            researchArea: projectData?.researchArea || "",
+            
+            // PICO
+            pico: {
+              population: protocol.population || "",
+              intervention: protocol.intervention || "",
+              comparison: protocol.comparison || "",
+              outcome: protocol.outcomes || ""
+            },
+            
+            // Matriz Es/No Es
+            matrixIsNot: {
+              is: protocol.isMatrix || [],
+              isNot: protocol.isNotMatrix || []
+            },
+            
+            // Título seleccionado
+            selectedTitle: protocol.proposedTitle || projectData?.title || "",
+            
+            // Términos del protocolo
+            protocolDefinition: protocol.keyTerms || {
+              technologies: [],
+              applicationDomain: [],
+              studyType: [],
+              thematicFocus: []
+            },
+            
+            // Criterios
+            inclusionCriteria: protocol.inclusionCriteria || [],
+            exclusionCriteria: protocol.exclusionCriteria || [],
+            
+            // Plan de búsqueda
+            searchPlan: {
+              databases: (protocol.searchQueries || []).map((q: any) => ({
+                name: q.databaseName || q.database || "",
+                searchString: q.query || "",
+                dateRange: `${protocol.temporalRange?.start || 2019}-${protocol.temporalRange?.end || new Date().getFullYear()}`,
+                resultCount: q.resultsCount || null,
+                status: q.status || 'pending',
+                hasAPI: q.hasAPI || false,
+                connectionStatus: q.apiRequired ? 'requires_key' : 'available'
+              })),
+              temporalRange: {
+                start: protocol.temporalRange?.start || 2019,
+                end: protocol.temporalRange?.end || new Date().getFullYear()
+              },
+              searchQueries: protocol.searchQueries || []
+            },
+            
+            // Rango temporal
+            yearStart: protocol.temporalRange?.start || 2019,
+            yearEnd: protocol.temporalRange?.end || new Date().getFullYear(),
+            
+            // PRISMA
+            prismaItems: (protocol.prismaCompliance || []).map((item: any) => {
+              let complies: boolean | null = null
+              if (item.complies === 'yes') complies = true
+              else if (item.complies === 'no') complies = false
+              
+              return {
+                number: item.number,
+                item: item.item,
+                complies,
+                evidence: item.evidence || "",
+                stage: "review"
+              }
+            })
+          }
+          
+          setData(prev => ({ ...prev, ...loadedData }))
+          console.log('✅ Protocolo cargado en wizard')
+        }
+      } catch (error) {
+        console.error("❌ Error cargando protocolo:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadExistingProtocol()
+  }, [projectId, projectData])
 
   const updateData = (updates: Partial<WizardData>) => {
     setData(prev => ({ ...prev, ...updates }))
@@ -179,18 +285,24 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     setCurrentStep(1)
   }
 
+  const contextValue = useMemo(() => ({
+    data,
+    updateData,
+    resetData,
+    currentStep,
+    setCurrentStep,
+    totalSteps
+  }), [data, currentStep])
+
   return (
-    <WizardContext.Provider
-      value={{
-        data,
-        updateData,
-        resetData,
-        currentStep,
-        setCurrentStep,
-        totalSteps
-      }}
-    >
-      {children}
+    <WizardContext.Provider value={contextValue}>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">Cargando protocolo...</div>
+        </div>
+      ) : (
+        children
+      )}
     </WizardContext.Provider>
   )
 }

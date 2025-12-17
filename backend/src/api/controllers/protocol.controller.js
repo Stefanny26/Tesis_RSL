@@ -62,7 +62,26 @@ class ProtocolController {
         });
       }
 
-      const protocol = await this.protocolRepository.update(projectId, req.body);
+      // Verificar si el protocolo existe, si no, crearlo primero
+      let protocol = await this.protocolRepository.findByProjectId(projectId);
+      if (!protocol) {
+        console.log('⚠️ Protocolo no existe, creándolo para proyecto:', projectId);
+        protocol = await this.protocolRepository.create({ projectId });
+      }
+
+      console.log('🔍 DEBUG - Datos recibidos para actualizar protocolo:', JSON.stringify(req.body, null, 2));
+
+      // Actualizar el protocolo
+      protocol = await this.protocolRepository.update(projectId, req.body);
+
+      if (!protocol) {
+        return res.status(404).json({
+          success: false,
+          message: 'No se pudo actualizar el protocolo'
+        });
+      }
+
+      console.log('✅ DEBUG - Protocolo actualizado y devuelto:', JSON.stringify(protocol.toJSON(), null, 2));
 
       res.status(200).json({
         success: true,

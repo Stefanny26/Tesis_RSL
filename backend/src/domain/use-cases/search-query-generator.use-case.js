@@ -38,6 +38,7 @@ class SearchQueryGenerator {
     try {
       console.log('🔍 Generando queries de búsqueda...');
       console.log('📌 Título RSL:', selectedTitle || 'No especificado');
+      console.log('📅 Rango temporal recibido: yearStart =', yearStart, ', yearEnd =', yearEnd);
 
       const prompt = this.buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData, yearStart, yearEnd, selectedTitle });
       
@@ -65,7 +66,7 @@ class SearchQueryGenerator {
       console.log(`🎯 Bases de datos solicitadas (${databases.length}):`, databases);
 
       // Parsear la respuesta
-      const queries = this.parseResponse(text, databases);
+      const queries = this.parseResponse(text, databases, yearStart, yearEnd);
       
       console.log(`📊 Resultado del parseo: ${queries.length} queries de ${databases.length} solicitadas`);
       
@@ -189,15 +190,15 @@ SINTAXIS POR BASE DE DATOS (NIVEL IMPLEMENTACIÓN)
 ═══════════════════════════════════════════════════════════════
 
 IEEE Xplore:
-- Query corta (máx. 3 grupos AND)
+- Query directa sin campos especiales
 - NO usar campos (TI:, AB:, "Document Title")
-- Cada grupo puede tener hasta 2 OR
-- NO paréntesis anidados
+- Estructura: (término1 OR término2) AND (término3 OR término4) AND (término5 OR término6)
+- Permite hasta 5 grupos AND con hasta 5 OR por grupo
 - Ejemplo: ("Internet of Things" OR IoT) AND ("digital health" OR telehealth) AND (privacy OR security)
 ${yearStart && yearEnd ? `- FILTRO TEMPORAL: La interfaz IEEE usa filtro separado de año, NO incluyas año en query` : ''}
 
 Scopus:
-- Formato: TITLE-ABS-KEY((...))
+- Formato: TITLE-ABS-KEY(("term1" OR "term2") AND ("term3" OR "term4"))
 - Agrupa sinónimos con OR dentro de paréntesis
 - Conecta bloques conceptuales con AND
 - Asegurar paréntesis balanceados
@@ -296,7 +297,7 @@ GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA AHORA:
   /**
    * Parsea y sanitiza la respuesta de la IA
    */
-  parseResponse(text, databases) {
+  parseResponse(text, databases, yearStart, yearEnd) {
     const queries = [];
     const lines = text.split('\n');
     
@@ -407,6 +408,13 @@ GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA AHORA:
           if (!q.query.startsWith('TITLE-ABS-KEY')) {
             q.query = `TITLE-ABS-KEY(${q.query})`;
           }
+        }
+        
+        // Agregar filtro temporal si falta
+        if (yearStart && yearEnd && !q.query.includes('PUBYEAR')) {
+          console.warn(`⚠️  Scopus query sin filtro temporal, agregando PUBYEAR...`);
+          q.query = `${q.query} AND PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}`;
+          console.log(`✅ Filtro temporal agregado: PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}`);
         }
       } else if (dbLower === 'pubmed') {
         if (!validatePubMed(q.query)) {

@@ -85,11 +85,34 @@ FASE 1: MARCO PICO
 INSTRUCCIONES CRÍTICAS PARA CADA COMPONENTE:
 
 🧑 POPULATION (P):
-- Debe derivar de la descripción del proyecto
-- Debe ser ESPECÍFICA y MEDIBLE (ej: "profesionales de TI", "pacientes diabéticos tipo 2")
-- Debe estar relacionada con el área: ${area}
-- Incluir: rango etario, contexto geográfico/profesional si aplica
-- **LONGITUD MÍNIMA: 40-60 palabras** explicando quiénes son, en qué contexto, por qué son relevantes para la RSL
+⚠️ **REGLA CRÍTICA PARA INGENIERÍA Y TECNOLOGÍA:**
+- La POBLACIÓN en una RSL de ingeniería NO son personas, sino ESTUDIOS o CONTEXTOS TECNOLÓGICOS
+- ❌ INCORRECTO: "Profesionales de TI entre 25-45 años en empresas latinoamericanas"
+- ✅ CORRECTO: "Estudios empíricos sobre desarrollo de software en contextos empresariales"
+
+**FORMATO OBLIGATORIO PARA POBLACIÓN:**
+"Estudios [tipo de estudios] sobre [fenómeno tecnológico] en [contexto técnico/dominio de aplicación]"
+
+**EJEMPLOS VÁLIDOS:**
+- "Estudios empíricos sobre aplicaciones de IA en ingeniería de software"
+- "Investigaciones académicas que evalúan métodos de pruebas automatizadas en desarrollo ágil"
+- "Evaluaciones técnicas de herramientas de aprendizaje automático en sistemas de producción"
+
+**QUÉ DEBE INCLUIR:**
+- Tipo de estudios (empíricos, evaluativos, experimentales, etc.)
+- Fenómeno o tecnología investigada
+- Contexto técnico o dominio de aplicación (relacionado con ${area})
+- **LONGITUD MÍNIMA: 40-60 palabras** explicando qué estudios, sobre qué fenómeno, en qué contexto
+
+**QUÉ NO DEBE INCLUIR JAMÁS:**
+- ❌ Edad de personas
+- ❌ Profesiones o roles humanos como población primaria  
+- ❌ Ubicación geográfica de personas
+- ❌ Características demográficas
+- ❌ "Profesionales", "usuarios", "trabajadores" como sujeto principal
+
+**JUSTIFICACIÓN METODOLÓGICA (incluir siempre):**
+"La población se define en términos de estudios/contextos técnicos conforme a metodología PRISMA 2020 y guías de revisiones sistemáticas en ingeniería, donde la unidad de análisis son publicaciones académicas, no sujetos humanos."
 
 🔬 INTERVENTION (I):
 - Debe ser la tecnología/método/fenómeno central del título
@@ -166,9 +189,9 @@ Genera exactamente 7 elementos de análisis con RESPUESTAS FUNDAMENTADAS:
     justificacion: "[por qué es relevante para la RSL, conexión con objetivos, min. 30-40 palabras]"
   },
   {
-    pregunta: "¿En qué población o contexto se aplica?",
-    presente: "[contexto específico con características, min. 20-30 palabras]",
-    justificacion: "[conexión con área ${area}, relevancia del contexto, min. 30-40 palabras]"
+    pregunta: "¿En qué contexto técnico o dominio se investiga?",
+    presente: "[contexto técnico/dominio específico, NO personas, min. 20-30 palabras]",
+    justificacion: "[relevancia del contexto técnico para ${area}, min. 30-40 palabras]"
   },
   {
     pregunta: "¿Qué tipo de intervención o método se analiza?",
@@ -187,7 +210,7 @@ Genera exactamente 7 elementos de análisis con RESPUESTAS FUNDAMENTADAS:
   },
   {
     pregunta: "¿Qué tipos de estudios se consideran válidos?",
-    presente: "[ej: experimentales, observacionales, revisiones - con detalles, min. 20-30 palabras]",
+    presente: "[ej: experimentales, observacionales, casos de estudio - con detalles, min. 20-30 palabras]",
     justificacion: "[adecuación al área ${area}, rigor metodológico requerido, min. 30-40 palabras]"
   },
   {
@@ -213,16 +236,20 @@ FORMATO JSON DE SALIDA (ESTRICTO)
   "fase1_marco_pico": {
     "marco_pico": {
       "population": {
-        "descripcion": "[P específica, medible, relacionada con ${area}]"
+        "descripcion": "[Estudios [tipo] sobre [fenómeno] en [contexto técnico/dominio]. NO INCLUIR edad, personas, profesiones como población principal. Mínimo 40 palabras.]",
+        "justificacion": "La población se define en términos de estudios/contextos técnicos conforme a metodología PRISMA 2020 y guías de revisiones sistemáticas en ingeniería, donde la unidad de análisis son publicaciones académicas, no sujetos humanos."
       },
       "intervention": {
-        "descripcion": "[I operacionalizable, derivada del título]"
+        "descripcion": "[I operacionalizable, derivada del título. Mínimo 40 palabras.]",
+        "justificacion": "[Por qué esta intervención es relevante, cómo se operacionaliza en estudios, relación con ${area}]"
       },
       "comparison": {
-        "descripcion": "[C explícita o 'No aplica']"
+        "descripcion": "[C explícita o 'No aplica'. Mínimo 30 palabras.]",
+        "justificacion": "[Relevancia de la comparación o justificación de su ausencia]"
       },
       "outcomes": {
-        "descripcion": "[O medibles y observables]"
+        "descripcion": "[O medibles y observables. Mínimo 40 palabras.]",
+        "justificacion": "[Por qué estos outcomes, cómo se relacionan con objetivos de la revisión]"
       }
     }
   },
@@ -238,7 +265,7 @@ FORMATO JSON DE SALIDA (ESTRICTO)
     "es": [
       "Elemento ES 1 (dimensión: tema/tecnología)",
       "Elemento ES 2 (dimensión: tipo de estudio)",
-      "Elemento ES 3 (dimensión: contexto/población)",
+      "Elemento ES 3 (dimensión: contexto técnico/dominio)",
       "Elemento ES 4 (dimensión: dominio aplicación)",
       "Elemento ES 5 (dimensión: tipo de evidencia)",
       "Elemento ES 6 (adicional: rango temporal ${yearStart}-${yearEnd})",
@@ -247,13 +274,13 @@ FORMATO JSON DE SALIDA (ESTRICTO)
     "no_es": [
       "Elemento NO ES 1 (exclusión tema/tecnología fuera de alcance)",
       "Elemento NO ES 2 (exclusión tipo de estudio no válido)",
-      "Elemento NO ES 3 (exclusión contexto/población no aplicable)",
+      "Elemento NO ES 3 (exclusión contexto técnico no aplicable)",
       "Elemento NO ES 4 (exclusión dominio fuera de ${area})",
       "Elemento NO ES 5 (exclusión tipo de evidencia no rigurosa)",
       "Elemento NO ES 6 (exclusión temporal: antes de ${yearStart})",
       "Elemento NO ES 7 (exclusión literatura gris o fuentes no académicas)"
     ],
-    "pregunta_refinada": "En [P], ¿[verbo investigativo] de [I] [comparación opcional] resulta en [O]?"
+    "pregunta_refinada": "En [estudios sobre contexto P], ¿[verbo investigativo] de [I] [comparación opcional] resulta en [O]?"
   }
 }
 
@@ -262,11 +289,24 @@ VALIDACIÓN FINAL OBLIGATORIA
 ═══════════════════════════════════════════════════════════════
 
 Antes de enviar el JSON, VERIFICA:
+✅ **POBLACIÓN NO CONTIENE:**
+   - ❌ Edad (años, rango etario)
+   - ❌ Profesiones como sujeto principal ("desarrolladores", "ingenieros", "profesionales")
+   - ❌ Ubicación geográfica de personas
+   - ❌ Características demográficas
+   
+✅ **POBLACIÓN SÍ CONTIENE:**
+   - ✅ Tipo de estudios (empíricos, evaluativos, etc.)
+   - ✅ Fenómeno tecnológico investigado
+   - ✅ Contexto técnico o dominio de aplicación
+   - ✅ Justificación metodológica PRISMA 2020
+
 ✅ Todos los elementos ES están reflejados en algún componente PICO
 ✅ Todos los elementos NO ES justifican exclusiones futuras
 ✅ Las 5 dimensiones mínimas están cubiertas en ES y NO ES
 ✅ No hay términos ambiguos ("muy", "poco", "relevante" sin cuantificar)
 ✅ La pregunta refinada puede responderse con los estudios delimitados
+✅ Cada componente PICO tiene descripción Y justificación
 
 RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
 `.trim();
@@ -278,7 +318,7 @@ RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'Eres un experto en metodología PRISMA/Cochrane para revisiones sistemáticas. Generas protocolos metodológicamente rigurosos siguiendo estándares internacionales. Respondes solo con JSON válido.' },
+          { role: 'system', content: 'Eres un experto en metodología PRISMA/Cochrane para revisiones sistemáticas en Ingeniería y Tecnología. REGLA CRÍTICA: La POBLACIÓN en RSL de ingeniería son ESTUDIOS o CONTEXTOS TECNOLÓGICOS, NUNCA personas. Respondes solo con JSON válido.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.6, // Aumentado de 0.3 a 0.6 para mayor especificidad
@@ -294,7 +334,7 @@ RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
     if (!this.gemini) throw new Error('Gemini no configurado');
     const model = this.gemini.getGenerativeModel({ 
       model: 'gemini-2.0-flash-exp',
-      systemInstruction: 'Eres un experto en metodología PRISMA/Cochrane para revisiones sistemáticas. Generas protocolos metodológicamente rigurosos siguiendo estándares internacionales.'
+      systemInstruction: 'Eres un experto en metodología PRISMA/Cochrane para revisiones sistemáticas en Ingeniería y Tecnología. REGLA CRÍTICA: La POBLACIÓN en RSL de ingeniería son ESTUDIOS o CONTEXTOS TECNOLÓGICOS, NUNCA personas (edad, profesiones, ubicación geográfica).'
     });
     const result = await this.retry(async () => {
       const r = await model.generateContent({

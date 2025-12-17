@@ -87,12 +87,32 @@ function WizardContent() {
       )
     }
     if (currentStep === 6) {
-      return data.searchPlan?.databases?.length > 0
+      // Requiere: bases de datos seleccionadas Y referencias cargadas
+      const hasDatabases = (data.searchPlan?.databases?.length ?? 0) > 0
+      const hasReferences = data.searchPlan?.uploadedFiles && data.searchPlan.uploadedFiles.length > 0
+      const totalReferences = hasReferences 
+        ? (data.searchPlan?.uploadedFiles ?? []).reduce((sum, f) => sum + f.recordCount, 0)
+        : 0
+      
+      return hasDatabases && hasReferences && totalReferences > 0
     }
     return true
   }
 
+  const getValidationMessage = () => {
+    if (currentStep === 6) {
+      const hasDatabases = (data.searchPlan?.databases?.length ?? 0) > 0
+      const hasReferences = data.searchPlan?.uploadedFiles && data.searchPlan.uploadedFiles.length > 0
+      
+      if (!hasDatabases) return "Genera las cadenas de búsqueda primero"
+      if (!hasReferences) return "Carga referencias desde al menos una base de datos"
+      return ""
+    }
+    return ""
+  }
+
   const canGoNext = validateStep()
+  const validationMessage = getValidationMessage()
 
   const renderStep = () => {
     switch (currentStep) {
@@ -126,6 +146,7 @@ function WizardContent() {
       <WizardNavigation
         canGoNext={canGoNext}
         isLastStep={currentStep === 7}
+        nextLabel={validationMessage || "Siguiente"}
         onNext={() => {
           if (!validateStep()) return
 

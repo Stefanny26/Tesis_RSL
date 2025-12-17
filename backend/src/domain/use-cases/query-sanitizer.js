@@ -55,17 +55,18 @@ function basicValidateQuery(q) {
 }
 
 /**
- * Validador específico para IEEE: max 3 AND groups y <=2 OR por grupo
+ * Validador específico para IEEE: max 5 AND groups y <=5 OR por grupo
+ * (Relajado para permitir queries más completas)
  */
 function validateIEEE(q) {
   if (!basicValidateQuery(q)) return false;
   
   const andGroups = q.split(/\s+AND\s+/i);
-  if (andGroups.length > 3) return false;
+  if (andGroups.length > 5) return false;
   
   for (const g of andGroups) {
     const orCount = (g.match(/\s+OR\s+/gi) || []).length;
-    if (orCount > 2) return false;
+    if (orCount > 5) return false;
   }
   
   return true;

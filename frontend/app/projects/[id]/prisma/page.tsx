@@ -2,254 +2,439 @@
 
 import { useState, useEffect } from "react"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
-import { PrismaItemCard } from "@/components/prisma/prisma-item-card"
+import { ProjectBreadcrumb } from "@/components/project-breadcrumb"
+import { ProjectHeader } from "@/components/project-header"
+import type { Project } from "@/lib/types"
 import { PrismaProgress } from "@/components/prisma/prisma-progress"
-import { AIValidationPanel } from "@/components/prisma/ai-validation-panel"
 import { SectionFilter } from "@/components/prisma/section-filter"
-import { prismaChecklist } from "@/lib/prisma-items"
+import { prismaChecklist, type PrismaItemData, type PrismaStats } from "@/lib/prisma-items"
 import { Button } from "@/components/ui/button"
-import { FileDown, Save, Loader2 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { FileDown, Loader2, RefreshCw, Sparkles, AlertCircle, Info } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
-
-// Función para generar contenido basado en datos del wizard
-function generateItemContent(itemId: number, protocolData: any): string {
-  switch (itemId) {
-    case 1: // Título
-      return protocolData.selectedTitle || "Pendiente de completar"
-    
-    case 2: // Resumen estructurado
-      return protocolData.projectDescription || "Pendiente de completar"
-    
-    case 3: // Justificación (background)
-      const pico = protocolData.pico
-      if (pico && (pico.population || pico.intervention)) {
-        return `Contexto: ${pico.population || 'N/A'}\nIntervención estudiada: ${pico.intervention || 'N/A'}\nObjetivo: ${pico.outcome || 'N/A'}`
-      }
-      return "Marco PICO completado en Paso 2"
-    
-    case 4: // Objetivos usando PICO
-      if (protocolData.pico) {
-        const { population, intervention, comparison, outcome } = protocolData.pico
-        return `Población: ${population || 'N/A'}\nIntervención: ${intervention || 'N/A'}\nComparación: ${comparison || 'N/A'}\nResultados: ${outcome || 'N/A'}`
-      }
-      return "Marco PICO definido en Paso 2"
-    
-    case 5: // Criterios de elegibilidad
-      const inclusion = protocolData.inclusionCriteria || []
-      const exclusion = protocolData.exclusionCriteria || []
-      if (inclusion.length > 0 || exclusion.length > 0) {
-        return `Criterios de Inclusión:\n${inclusion.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}\n\nCriterios de Exclusión:\n${exclusion.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}`
-      }
-      return "Criterios definidos en Paso 4"
-    
-    case 6: // Fuentes de información
-      const databases = protocolData.searchPlan?.databases || []
-      if (databases.length > 0) {
-        return `Bases de datos consultadas:\n${databases.map((db: any) => `• ${db.name}`).join('\n')}`
-      }
-      return "Bases de datos seleccionadas en Paso 5"
-    
-    case 7: // Estrategia de búsqueda
-      if (protocolData.searchPlan?.databases) {
-        const strategies = protocolData.searchPlan.databases.map((db: any) => 
-          `${db.name}:\n${db.searchString || 'Sin cadena definida'}\n`
-        ).join('\n')
-        return strategies || "Cadenas de búsqueda definidas en Paso 5"
-      }
-      return "Estrategia de búsqueda completa en Paso 5"
-    
-    case 8: // Proceso de selección
-      const matrix = protocolData.matrixIsNot || { is: [], isNot: [] }
-      if (matrix.is.length > 0 || matrix.isNot.length > 0) {
-        return `Matriz Es/No Es aplicada:\nES: ${matrix.is.join(', ')}\nNO ES: ${matrix.isNot.join(', ')}`
-      }
-      return "Matriz Es/No Es definida en Paso 2"
-    
-    case 9: // Proceso extracción de datos
-      const terms = protocolData.protocolDefinition
-      if (terms && (terms.technologies?.length > 0 || terms.applicationDomain?.length > 0)) {
-        return `Términos del protocolo:\nTecnologías: ${terms.technologies?.join(', ') || 'N/A'}\nDominio: ${terms.applicationDomain?.join(', ') || 'N/A'}`
-      }
-      return "Términos del protocolo definidos en Paso 6"
-    
-    case 10: // Datos extraídos
-      return "Datos a extraer según términos definidos en Paso 6"
-    
-    case 11: // Síntesis de resultados
-      const tableData = protocolData.matrixTable || []
-      if (tableData.length > 0) {
-        return `Tabla de elementos de matriz completada (${tableData.length} elementos)`
-      }
-      return "Método de síntesis basado en matriz Es/No Es"
-    
-    case 12: // Diagrama de flujo PRISMA
-      // Cargar datos reales del cribado si existen
-      if (protocolData.screeningResults && protocolData.screeningResults.summary) {
-        const { processed, included, excluded, phase1, phase2 } = protocolData.screeningResults.summary
-        return `📊 PRISMA Flow Diagram - Datos del Cribado Automático
-
-**Identificación:**
-- Referencias identificadas: ${processed}
-- Duplicados removidos: 0 (pendiente detección)
-
-**Cribado (Fase 1 - Embeddings):**
-- Alta confianza - Incluir: ${phase1?.highConfidenceInclude || 0} (similitud >30%)
-- Alta confianza - Excluir: ${phase1?.highConfidenceExclude || 0} (similitud <10%)
-- Zona gris: ${phase1?.greyZone || 0} (requirió análisis ChatGPT)
-
-**Elegibilidad (Fase 2 - ChatGPT):**
-- Analizadas en zona gris: ${phase2?.analyzed || 0}
-- Tiempo total: ${phase2?.totalTime || 0}s
-- Costo estimado: $${phase2?.estimatedCost || 0}
-
-**Resultados Finales:**
-- ✅ Incluidas: ${included} (${Math.round((included / processed) * 100)}%)
-- ❌ Excluidas: ${excluded} (${Math.round((excluded / processed) * 100)}%)
-- 📋 Para revisión manual: ${protocolData.screeningResults.summary.reviewManual || 0}
-
-Nota: Este diagrama se actualizará automáticamente con cada fase completada.`
-      }
-      return "⏳ Diagrama PRISMA pendiente - Ejecuta el cribado automático en la sección 'Cribado de Referencias' para generar el diagrama de flujo con datos reales."
-    
-    case 13: // Cumplimiento general
-      return "Checklist PRISMA completado - Revisar todos los ítems"
-    
-    default:
-      return "Pendiente de completar"
-  }
-}
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ContentTypeBadge } from "@/components/prisma/content-type-badge"
+import { Textarea } from "@/components/ui/textarea"
 
 export default function PrismaPage({ params }: { params: { id: string } }) {
   const { toast } = useToast()
   const [currentSection, setCurrentSection] = useState("Todos")
-  const [completedItems, setCompletedItems] = useState<Set<number>>(new Set())
-  const [itemContents, setItemContents] = useState<Record<number, string>>({})
-  const [aiSuggestions, setAiSuggestions] = useState<Record<number, string>>({})
+  const [project, setProject] = useState<Project | null>(null)
+  const [prismaItems, setPrismaItems] = useState<Record<number, PrismaItemData>>({})
+  const [stats, setStats] = useState<PrismaStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [protocolData, setProtocolData] = useState<any>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [hasTriedGenerate, setHasTriedGenerate] = useState(false)
+  const [projectName, setProjectName] = useState("")
+  const [protocol, setProtocol] = useState<any>(null)
 
-  // Cargar datos del protocolo al montar
   useEffect(() => {
-    async function loadProtocol() {
-      try {
-        const result = await apiClient.getProtocol(params.id)
-        
-        // El backend puede devolver { protocol: {...} } o directamente el protocolo
-        const protocol = result.protocol || result
-        setProtocolData(protocol)
-        
-        if (protocol) {
-          // Auto-generar contenido para todos los ítems basado en datos del wizard
-          const autoGeneratedContents: Record<number, string> = {}
-          const autoCompleted = new Set<number>()
-          
-          prismaChecklist.forEach(item => {
-            const content = generateItemContent(item.id, protocol)
-            autoGeneratedContents[item.id] = content
-            
-            // Marcar como completado si tiene contenido válido
-            if (content && !content.startsWith("Pendiente")) {
-              autoCompleted.add(item.id)
-            }
-          })
-          
-          // Si hay datos guardados previamente, sobrescribir
-          if (protocol.prismaCompliance) {
-            protocol.prismaCompliance.forEach((item: any) => {
-              const itemId = item.number || item.id
-              
-              if (item.complies === 'si' || item.complies === true) {
-                autoCompleted.add(itemId)
-              }
-              if (item.evidence) {
-                autoGeneratedContents[itemId] = item.evidence
-              }
-            })
-          }
-          
-          setCompletedItems(autoCompleted)
-          setItemContents(autoGeneratedContents)
-        }
-      } catch (error) {
-        console.error("Error cargando protocolo:", error)
-        toast({
-          title: "Error",
-          description: "No se pudo cargar el protocolo",
-          variant: "destructive"
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    
-    loadProtocol()
-  }, [params.id, toast])
+    loadProjectAndPrismaData()
+  }, [params.id])
 
-  const toggleItemComplete = (itemId: number) => {
-    setCompletedItems((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId)
-      } else {
-        newSet.add(itemId)
-      }
-      return newSet
-    })
-  }
-
-  const updateItemContent = (itemId: number, content: string) => {
-    setItemContents((prev) => ({ ...prev, [itemId]: content }))
-  }
-
-  const requestAISuggestion = (itemId: number) => {
-    // Mock AI suggestion - in production, this would call the AI API
-    const mockSuggestions: Record<number, string> = {
-      1: 'Considere incluir "Revisión Sistemática" en el título para mayor claridad. Ejemplo: "Inteligencia Artificial en Educación Superior: Una Revisión Sistemática"',
-      2: "Su resumen debe incluir: antecedentes (2-3 líneas), objetivo específico, bases de datos consultadas, criterios PICO, número de estudios incluidos, principales hallazgos y conclusión principal.",
-      3: "Explique por qué es importante realizar esta revisión ahora. Mencione las brechas en el conocimiento actual y cómo su revisión las abordará.",
-    }
-
-    setAiSuggestions((prev) => ({
-      ...prev,
-      [itemId]:
-        mockSuggestions[itemId] || "Asegúrese de proporcionar información completa y específica para este ítem.",
-    }))
-  }
-
-  const handleSave = async () => {
-    setIsSaving(true)
+  async function loadProjectAndPrismaData() {
     try {
-      // Construir array de PRISMA compliance
-      const prismaCompliance = prismaChecklist.map(item => ({
-        number: item.id,
-        item: item.title,
-        complies: completedItems.has(item.id) ? 'si' : 'no',
-        evidence: itemContents[item.id] || ''
-      }))
-
-      await apiClient.updateProtocol(params.id, {
-        prismaCompliance
+      setIsLoading(true)
+      
+      // Cargar proyecto
+      const projectData = await apiClient.getProject(params.id)
+      setProject(projectData)
+      setProjectName(projectData?.name || projectData?.title || "Proyecto")
+      
+      // Cargar protocolo
+      const protocolObj = await apiClient.getProtocol(params.id)
+      setProtocol(protocolObj)
+      
+      console.log('📋 Protocolo cargado:', protocolObj)
+      
+      // Mapear datos del protocolo a ítems PRISMA automáticamente
+      const itemsMap: Record<number, PrismaItemData> = {}
+      
+      if (!protocolObj) {
+        console.warn('⚠️ No se encontró protocolo')
+        setPrismaItems({})
+        setStats({ completed: 0, pending: 27, automated: 0, hybrid: 0, human: 0, total: 27, aiValidated: 0, completionPercentage: 0 })
+        setIsLoading(false)
+        return
+      }
+      
+      // Primero: cargar los 13 ítems del reporte final PRISMA si existen
+      if (protocolObj.prismaCompliance && Array.isArray(protocolObj.prismaCompliance) && protocolObj.prismaCompliance.length > 0) {
+        console.log('✅ Cargando ítems PRISMA desde reporte final del protocolo:', protocolObj.prismaCompliance.length)
+        
+        protocolObj.prismaCompliance.forEach((prismaItem: any) => {
+          // Soporte para múltiples formatos de datos
+          const itemNumber = prismaItem.itemNumber || prismaItem.item_number || prismaItem.number
+          const content = prismaItem.content || prismaItem.evidence || prismaItem.text || ''
+          
+          if (itemNumber && content) {
+            const prismaChecklistItem = prismaChecklist.find(p => p.id === itemNumber)
+            itemsMap[itemNumber] = {
+              projectId: params.id,
+              itemNumber: itemNumber,
+              section: prismaChecklistItem?.section || '',
+              content: content,
+              contentType: 'automated',
+              dataSource: prismaItem.dataSource || prismaItem.data_source || 'Protocolo: Reporte Final PRISMA',
+              completed: true
+            }
+          }
+        })
+        
+        console.log(`✅ ${Object.keys(itemsMap).length} ítems PRISMA cargados desde reporte final`)
+      } else {
+        console.log('⚠️ No se encontraron ítems PRISMA en el reporte final, cargando desde campos básicos del protocolo')
+      }
+      
+      // Si no hay ítems del reporte final, mapear desde campos básicos del protocolo
+      if (Object.keys(itemsMap).length === 0) {
+        // Ítem 1: Título (TÍTULO)
+        if (protocolObj.proposedTitle || protocolObj.selectedTitle) {
+          itemsMap[1] = {
+            projectId: params.id,
+            itemNumber: 1,
+            section: 'TÍTULO',
+            content: protocolObj.proposedTitle || protocolObj.selectedTitle,
+            contentType: 'automated',
+            dataSource: 'Protocolo: Título Propuesto',
+            completed: true
+          }
+        }
+      
+      // Ítem 2: Resumen estructurado (RESUMEN)
+      if (protocolObj.refinedQuestion || protocolObj.population) {
+        const resumenParts = []
+        if (protocolObj.refinedQuestion) resumenParts.push(`Pregunta de investigación: ${protocolObj.refinedQuestion}`)
+        if (protocolObj.population) resumenParts.push(`Población: ${protocolObj.population}`)
+        if (protocolObj.intervention) resumenParts.push(`Intervención: ${protocolObj.intervention}`)
+        if (protocolObj.outcomes) resumenParts.push(`Resultados esperados: ${protocolObj.outcomes}`)
+        
+        if (resumenParts.length > 0) {
+          itemsMap[2] = {
+            projectId: params.id,
+            itemNumber: 2,
+            section: 'RESUMEN',
+            content: resumenParts.join('\n\n'),
+            contentType: 'automated',
+            dataSource: 'Protocolo: Resumen derivado del protocolo',
+            completed: true
+          }
+        }
+      }
+      
+      // Ítem 3: Justificación (INTRODUCCIÓN)
+      if (protocolObj.justification || protocolObj.refinedQuestion) {
+        itemsMap[3] = {
+          projectId: params.id,
+          itemNumber: 3,
+          section: 'INTRODUCCIÓN',
+          content: protocolObj.justification || `Pregunta de investigación refinada: ${protocolObj.refinedQuestion}`,
+          contentType: 'automated',
+          dataSource: 'Protocolo: Justificación',
+          completed: true
+        }
+      }
+      
+      // Ítem 4: Objetivos (INTRODUCCIÓN - PICO)
+      if (protocolObj.population || protocolObj.intervention) {
+        const picoLines = []
+        if (protocolObj.population) picoLines.push(`Población: ${protocolObj.population}`)
+        if (protocolObj.intervention) picoLines.push(`Intervención: ${protocolObj.intervention}`)
+        if (protocolObj.comparison) picoLines.push(`Comparación: ${protocolObj.comparison}`)
+        if (protocolObj.outcomes) picoLines.push(`Resultados: ${protocolObj.outcomes}`)
+        
+        if (protocolObj.researchQuestions && protocolObj.researchQuestions.length > 0) {
+          picoLines.push('\nPreguntas de investigación:')
+          protocolObj.researchQuestions.forEach((q: string, i: number) => {
+            picoLines.push(`${i + 1}. ${q}`)
+          })
+        }
+        
+        itemsMap[4] = {
+          projectId: params.id,
+          itemNumber: 4,
+          section: 'INTRODUCCIÓN',
+          content: picoLines.join('\n'),
+          contentType: 'automated',
+          dataSource: 'Protocolo: Marco PICO y preguntas de investigación',
+          completed: true
+        }
+      }
+      
+      // Ítem 5: Criterios de elegibilidad (MÉTODOS)
+      if (protocolObj.inclusionCriteria || protocolObj.exclusionCriteria) {
+        const inclusion = protocolObj.inclusionCriteria || []
+        const exclusion = protocolObj.exclusionCriteria || []
+        const inclusionText = inclusion.map((c: string, i: number) => i + 1 + '. ' + c).join('\n')
+        const exclusionText = exclusion.map((c: string, i: number) => i + 1 + '. ' + c).join('\n')
+        const criteriosText = 'Criterios de Inclusión:\n' + inclusionText + '\n\nCriterios de Exclusión:\n' + exclusionText
+        itemsMap[5] = {
+          projectId: params.id,
+          itemNumber: 5,
+          section: 'MÉTODOS',
+          content: criteriosText,
+          contentType: 'automated',
+          dataSource: 'Protocolo: Criterios de Elegibilidad',
+          completed: true
+        }
+      }
+      
+      // Ítem 6: Fuentes de información (MÉTODOS - Bases de datos)
+      if (protocolObj.databases && protocolObj.databases.length > 0) {
+        const dbLines = ['Bases de datos consultadas:']
+        protocolObj.databases.forEach((db: any) => {
+          const dbName = db.name || db
+          dbLines.push(`• ${dbName}`)
+        })
+        
+        if (protocolObj.temporalRange) {
+          if (protocolObj.temporalRange.start || protocolObj.temporalRange.end) {
+            dbLines.push(`\nRango temporal: ${protocolObj.temporalRange.start || 'Sin límite'} - ${protocolObj.temporalRange.end || 'Actualidad'}`)
+          }
+        } else if (protocolObj.dateRangeStart || protocolObj.dateRangeEnd) {
+          dbLines.push(`\nRango temporal: ${protocolObj.dateRangeStart || 'Sin límite'} - ${protocolObj.dateRangeEnd || 'Actualidad'}`)
+        }
+        
+        itemsMap[6] = {
+          projectId: params.id,
+          itemNumber: 6,
+          section: 'MÉTODOS',
+          content: dbLines.join('\n'),
+          contentType: 'automated',
+          dataSource: 'Protocolo: Bases de Datos y rango temporal',
+          completed: true
+        }
+      }
+      
+      // Ítem 7: Estrategia de búsqueda (MÉTODOS)
+      if (protocolObj.searchQueries && protocolObj.searchQueries.length > 0) {
+        // Usar searchQueries que contiene todas las cadenas específicas por base de datos
+        const dbSearches = protocolObj.searchQueries.map((queryObj: any) => {
+          const dbName = queryObj.database || queryObj.databaseName || 'Base de datos'
+          return `${dbName}:\n${queryObj.query}`
+        })
+        
+        const searchText = dbSearches.join('\n\n')
+        
+        itemsMap[7] = {
+          projectId: params.id,
+          itemNumber: 7,
+          section: 'MÉTODOS',
+          content: searchText,
+          contentType: 'automated',
+          dataSource: 'Protocolo: Estrategia de Búsqueda',
+          completed: true
+        }
+      } else if (protocolObj.searchString || (protocolObj.databases && protocolObj.databases.length > 0)) {
+        // Fallback a método antiguo si no hay searchQueries
+        let searchText = ''
+        if (protocolObj.searchString) {
+          searchText = `Cadena de búsqueda:\n${protocolObj.searchString}`
+        } else if (protocolObj.databases) {
+          const dbSearches = protocolObj.databases
+            .filter((db: any) => db.searchString)
+            .map((db: any) => `${db.name}:\n${db.searchString}`)
+          if (dbSearches.length > 0) {
+            searchText = dbSearches.join('\n\n')
+          }
+        }
+        
+        if (searchText) {
+          itemsMap[7] = {
+            projectId: params.id,
+            itemNumber: 7,
+            section: 'MÉTODOS',
+            content: searchText,
+            contentType: 'automated',
+            dataSource: 'Protocolo: Estrategia de Búsqueda',
+            completed: true
+          }
+        }
+      }
+      
+      // Ítem 10: Elementos de datos (MÉTODOS)
+      if (protocolObj.keyTerms && Object.keys(protocolObj.keyTerms).length > 0) {
+        const termsLines = ['Términos clave extraídos:']
+        Object.entries(protocolObj.keyTerms).forEach(([category, terms]: [string, any]) => {
+          if (Array.isArray(terms) && terms.length > 0) {
+            termsLines.push(`\n${category}:`)
+            terms.forEach((term: string) => termsLines.push(`• ${term}`))
+          }
+        })
+        
+        if (termsLines.length > 1) {
+          itemsMap[10] = {
+            projectId: params.id,
+            itemNumber: 10,
+            section: 'MÉTODOS',
+            content: termsLines.join('\n'),
+            contentType: 'automated',
+            dataSource: 'Protocolo: Términos clave',
+            completed: true
+          }
+        }
+      }
+      }
+      
+      console.log('✅ Ítems mapeados:', Object.keys(itemsMap).length)
+      
+      setPrismaItems(itemsMap)
+      
+      // Calcular estadísticas
+      const completed = Object.keys(itemsMap).length
+      const pending = 27 - completed
+      setStats({
+        total: 27,
+        completed,
+        pending,
+        automated: completed,
+        human: 0,
+        hybrid: 0,
+        aiValidated: 0,
+        completionPercentage: Math.round((completed / 27) * 100)
       })
-
-      toast({
-        title: "✅ Guardado exitoso",
-        description: "Los cambios del checklist PRISMA se han guardado"
-      })
-    } catch (error) {
+      
+    } catch (error: any) {
+      console.error("❌ Error cargando datos:", error)
       toast({
         title: "Error",
-        description: "No se pudieron guardar los cambios",
+        description: "No se pudieron cargar los datos del protocolo",
         variant: "destructive"
       })
     } finally {
-      setIsSaving(false)
+      setIsLoading(false)
     }
   }
 
-  const filteredItems =
-    currentSection === "Todos" ? prismaChecklist : prismaChecklist.filter((item) => item.section === currentSection)
+  async function handleGenerateContent() {
+    try {
+      setIsGenerating(true)
+      setHasTriedGenerate(true)
+      
+      const data = await apiClient.generatePrismaContent(params.id)
+      
+      const itemsMap: Record<number, PrismaItemData> = {}
+      data.items.forEach((item: PrismaItemData) => {
+        itemsMap[item.itemNumber] = item
+      })
+      
+      setPrismaItems(itemsMap)
+      setStats(data.stats)
+      
+      toast({
+        title: "Contenido generado exitosamente",
+        description: `Se generó contenido para ${data.stats.completed} ítems PRISMA`,
+      })
+    } catch (error: any) {
+      console.error("Error generando contenido:", error)
+      toast({
+        title: "Error al generar contenido",
+        description: error.message || "No se pudo generar el contenido automáticamente",
+        variant: "destructive"
+      })
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  async function handleToggleComplete(itemNumber: number) {
+    try {
+      const currentItem = prismaItems[itemNumber]
+      const newCompleted = !currentItem?.completed
+      
+      const updatedItem = await apiClient.updatePrismaItem(params.id, itemNumber, {
+        completed: newCompleted
+      })
+      
+      setPrismaItems(prev => ({
+        ...prev,
+        [itemNumber]: updatedItem
+      }))
+
+      const newStats = await apiClient.getPrismaStats(params.id)
+      setStats(newStats)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el ítem",
+        variant: "destructive"
+      })
+    }
+  }
+
+  async function handleContentChange(itemNumber: number, content: string) {
+    try {
+      const updatedItem = await apiClient.updatePrismaItemContent(params.id, itemNumber, content)
+      
+      setPrismaItems(prev => ({
+        ...prev,
+        [itemNumber]: updatedItem
+      }))
+
+      const newStats = await apiClient.getPrismaStats(params.id)
+      setStats(newStats)
+      
+      toast({
+        description: "Contenido guardado automáticamente",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "No se pudo guardar el contenido",
+        variant: "destructive"
+      })
+    }
+  }
+
+  async function handleRequestAISuggestion(itemNumber: number) {
+    try {
+      const data = await apiClient.validatePrismaItemWithAI(params.id, itemNumber)
+      
+      setPrismaItems(prev => ({
+        ...prev,
+        [itemNumber]: data.item
+      }))
+
+      toast({
+        title: "Validación completada",
+        description: "Se generaron sugerencias metodológicas",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo validar el ítem",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const totalItems = prismaChecklist.length
+  const completedCount = Object.values(prismaItems).filter(item => item?.completed).length
+
+  const filteredItems = prismaChecklist.filter(item => {
+    if (currentSection === "Todos") return true
+    return item.section === currentSection
+  })
+
+  // Agrupar ítems por sección y mantener el orden
+  const sectionOrder = ['TÍTULO', 'RESUMEN', 'INTRODUCCIÓN', 'MÉTODOS', 'RESULTADOS', 'DISCUSIÓN', 'OTRA INFORMACIÓN']
+  
+  const groupedItems = filteredItems.reduce((acc, item) => {
+    if (!acc[item.section]) {
+      acc[item.section] = []
+    }
+    acc[item.section].push(item)
+    return acc
+  }, {} as Record<string, typeof filteredItems>)
+
+  const sections = sectionOrder.filter(section => groupedItems[section])
 
   if (isLoading) {
     return (
@@ -268,64 +453,214 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
   return (
     <div className="min-h-screen bg-background">
       <DashboardNav />
+      
+      <main className="container mx-auto px-4 py-6">
+        {/* Project Header */}
+        {project && <ProjectHeader project={project} />}
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Checklist PRISMA</h1>
-              <p className="text-muted-foreground">Valida el cumplimiento de los 27 ítems PRISMA 2020</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Guardar
-                  </>
-                )}
+        <div className="space-y-6 mt-6">
+
+          {Object.keys(prismaItems).length < 27 && (
+            <Alert className="bg-amber-50 border-amber-200">
+              <Info className="h-5 w-5 text-amber-600" />
+              <AlertDescription className="text-sm">
+                <strong>{27 - Object.keys(prismaItems).length} ítems pendientes de completar.</strong> Los datos del protocolo se cargan automáticamente. 
+                Si deseas completar los ítems restantes con IA, usa el botón abajo.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {Object.keys(prismaItems).length > 0 && (
+            <Alert className="bg-green-50 border-green-200">
+              <Info className="h-5 w-5 text-green-600" />
+              <AlertDescription className="text-sm">
+                <strong>✓ {Object.keys(prismaItems).length} ítems cargados automáticamente</strong> desde tu protocolo (título, PICO, criterios, bases de datos, etc.)
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-3">
+              {Object.keys(prismaItems).length < 27 && (
+                <Button 
+                  onClick={handleGenerateContent} 
+                  disabled={isGenerating}
+                  className="bg-primary"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generando con IA...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Completar con IA los {27 - Object.keys(prismaItems).length} ítems restantes
+                    </>
+                  )}
+                </Button>
+              )}
+
+              <Button 
+                onClick={loadProjectAndPrismaData} 
+                variant="outline"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Recargar
               </Button>
-              <Button variant="outline">
-                <FileDown className="mr-2 h-4 w-4" />
-                Exportar
-              </Button>
             </div>
+
+            <Button variant="outline">
+              <FileDown className="mr-2 h-4 w-4" />
+              Exportar
+            </Button>
           </div>
 
-          {/* Section Filter */}
-          <SectionFilter currentSection={currentSection} onSectionChange={setCurrentSection} />
-
           <div className="grid lg:grid-cols-3 gap-6">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-4">
-              {filteredItems.map((item) => (
-                <PrismaItemCard
-                  key={item.id}
-                  item={item}
-                  isCompleted={completedItems.has(item.id)}
-                  content={itemContents[item.id] || ""}
-                  aiSuggestion={aiSuggestions[item.id]}
-                  onToggleComplete={() => toggleItemComplete(item.id)}
-                  onContentChange={(content) => updateItemContent(item.id, content)}
-                  onRequestAISuggestion={() => requestAISuggestion(item.id)}
-                />
-              ))}
+            <div className="lg:col-span-2 space-y-6">
+              <SectionFilter 
+                currentSection={currentSection} 
+                onSectionChange={setCurrentSection} 
+              />
+
+              <div className="space-y-4">
+                {sections.length > 0 ? (
+                  <Accordion type="multiple" className="w-full space-y-2">
+                    {sections.map((section) => {
+                      const sectionItems = groupedItems[section]
+                      const completedInSection = sectionItems.filter(item => prismaItems[item.id]?.completed).length
+                      const totalInSection = sectionItems.length
+                      
+                      return (
+                        <AccordionItem 
+                          key={section} 
+                          value={section}
+                          className="border rounded-lg bg-card"
+                        >
+                          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                            <div className="flex items-center justify-between w-full pr-4">
+                              <div className="flex items-center gap-3">
+                                <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">
+                                  {section}
+                                </h2>
+                                <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
+                                  {completedInSection}/{totalInSection} completados
+                                </span>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          
+                          <AccordionContent className="px-6 pb-4">
+                            <div className="space-y-3 pt-2">
+                              {sectionItems.map((item) => {
+                                const itemData = prismaItems[item.id]
+                                const content = itemData?.content || ""
+                                const contentType = itemData?.contentType || 'pending'
+                                const dataSource = itemData?.dataSource
+                                
+                                return (
+                                  <Card key={item.id} className="overflow-hidden">
+                                    <CardHeader className="bg-muted/30 pb-3">
+                                      <div className="flex items-start justify-between gap-4">
+                                        <div className="flex-1">
+                                          <CardTitle className="text-base font-semibold">
+                                            {item.id}. {item.item}
+                                          </CardTitle>
+                                          <CardDescription className="text-sm mt-1">
+                                            {item.description}
+                                          </CardDescription>
+                                        </div>
+                                        {itemData && (
+                                          <div className="shrink-0">
+                                            <ContentTypeBadge contentType={contentType} dataSource={dataSource} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </CardHeader>
+                                    
+                                    <CardContent className="pt-4">
+                                      <div className="space-y-4">
+                                        {content ? (
+                                          <div>
+                                            <Textarea
+                                              value={content}
+                                              onChange={(e) => handleContentChange(item.id, e.target.value)}
+                                              placeholder="Editar contenido..."
+                                              className="min-h-[120px] resize-y"
+                                            />
+                                          </div>
+                                        ) : (
+                                          <div className="bg-muted/50 rounded-lg p-6 text-center">
+                                            <p className="text-muted-foreground text-sm">
+                                              Este ítem no tiene contenido aún. Puedes completarlo manualmente o usar el botón 
+                                              "Completar con IA los ítems restantes" en la parte superior de la página.
+                                            </p>
+                                          </div>
+                                        )}
+                                        
+                                        {dataSource && (
+                                          <p className="text-xs text-muted-foreground">
+                                            Fuente: {dataSource}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                )
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )
+                    })}
+                  </Accordion>
+                ) : (
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <AlertCircle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                      <p className="text-muted-foreground">
+                        No hay ítems en esta sección
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </div>
 
-            {/* Sidebar */}
-            <div className="space-y-4">
-              <PrismaProgress completedItems={completedItems.size} totalItems={prismaChecklist.length} />
-              <AIValidationPanel
-                completedItems={completedItems.size}
-                totalItems={prismaChecklist.length}
-                onRunValidation={() => {}}
+            <div className="space-y-6">
+              <PrismaProgress 
+                completedItems={stats?.completed || 0} 
+                totalItems={totalItems} 
               />
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Resumen</CardTitle>
+                  <CardDescription>Estado actual del checklist</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Total</span>
+                    <span className="font-semibold">{totalItems}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Completados</span>
+                    <span className="font-semibold text-green-600">{stats?.completed || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Pendientes</span>
+                    <span className="font-semibold text-amber-600">{stats?.pending || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Automatizados</span>
+                    <span className="font-semibold text-blue-600">{stats?.automated || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Híbridos</span>
+                    <span className="font-semibold text-purple-600">{stats?.hybrid || 0}</span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

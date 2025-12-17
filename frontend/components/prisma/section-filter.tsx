@@ -7,7 +7,7 @@ interface SectionFilterProps {
   onSectionChange: (section: string) => void
 }
 
-const sections = ["Todos", "Título", "Resumen", "Introducción", "Métodos", "Resultados", "Discusión", "Financiamiento"]
+const sections = ["Todos", "TÍTULO", "RESUMEN", "INTRODUCCIÓN", "MÉTODOS", "RESULTADOS", "DISCUSIÓN", "OTRA INFORMACIÓN"]
 
 export function SectionFilter({ currentSection, onSectionChange }: SectionFilterProps) {
   return (

@@ -19,7 +19,6 @@ export function ProtocolDefinitionStep() {
   const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false)
   const [regenerateSection, setRegenerateSection] = useState<'tecnologia' | 'dominio' | 'focosTematicos' | null>(null)
   const [regenerateFocus, setRegenerateFocus] = useState('')
-  const [hasFilteredTerms, setHasFilteredTerms] = useState(false)
   
   // Estado para términos confirmados
   const [confirmedTerms, setConfirmedTerms] = useState<{
@@ -68,32 +67,42 @@ export function ProtocolDefinitionStep() {
     focosTematicos: data.protocolTerms?.focosTematicos || []
   }
 
-  // Efecto para filtrar términos descartados del contexto cuando el usuario navega
+  // Efecto para filtrar términos descartados INMEDIATAMENTE cuando cambian
   useEffect(() => {
-    // Solo filtrar una vez cuando el componente se desmonta o cuando hay cambios significativos
-    return () => {
-      if (!hasFilteredTerms) {
-        const filteredTerms = {
-          tecnologia: protocolTerms.tecnologia.filter((_, i) => !discardedTerms.tecnologia.has(i)),
-          dominio: protocolTerms.dominio.filter((_, i) => !discardedTerms.dominio.has(i)),
-          tipoEstudio: protocolTerms.tipoEstudio.filter((_, i) => !discardedTerms.tipoEstudio.has(i)),
-          focosTematicos: protocolTerms.focosTematicos.filter((_, i) => !discardedTerms.focosTematicos.has(i))
-        }
-        
-        // Solo actualizar si realmente hay términos descartados
-        const hasDiscarded = 
-          discardedTerms.tecnologia.size > 0 ||
-          discardedTerms.dominio.size > 0 ||
-          discardedTerms.tipoEstudio.size > 0 ||
-          discardedTerms.focosTematicos.size > 0
-        
-        if (hasDiscarded) {
-          updateData({ protocolTerms: filteredTerms })
-          setHasFilteredTerms(true)
-        }
+    const hasDiscarded = 
+      discardedTerms.tecnologia.size > 0 ||
+      discardedTerms.dominio.size > 0 ||
+      discardedTerms.tipoEstudio.size > 0 ||
+      discardedTerms.focosTematicos.size > 0
+    
+    if (hasDiscarded && protocolTerms.tecnologia.length > 0) {
+      console.log('🗑️ Filtrando términos descartados:', {
+        tecnologia: discardedTerms.tecnologia.size,
+        dominio: discardedTerms.dominio.size,
+        tipoEstudio: discardedTerms.tipoEstudio.size,
+        focosTematicos: discardedTerms.focosTematicos.size
+      })
+      
+      const filteredTerms = {
+        tecnologia: protocolTerms.tecnologia.filter((_, i) => !discardedTerms.tecnologia.has(i)),
+        dominio: protocolTerms.dominio.filter((_, i) => !discardedTerms.dominio.has(i)),
+        tipoEstudio: protocolTerms.tipoEstudio.filter((_, i) => !discardedTerms.tipoEstudio.has(i)),
+        focosTematicos: protocolTerms.focosTematicos.filter((_, i) => !discardedTerms.focosTematicos.has(i))
       }
+      
+      console.log('✅ Términos filtrados:', filteredTerms)
+      
+      updateData({ 
+        protocolTerms: filteredTerms,
+        protocolDefinition: {
+          technologies: filteredTerms.tecnologia,
+          applicationDomain: filteredTerms.dominio,
+          studyType: filteredTerms.tipoEstudio,
+          thematicFocus: filteredTerms.focosTematicos
+        }
+      })
     }
-  }, []) // Solo ejecutar en unmount
+  }, [discardedTerms]) // Ejecutar cuando cambien los términos descartados
 
   const toggleConfirmTerm = (field: keyof typeof protocolTerms, index: number) => {
     setConfirmedTerms(prev => {
@@ -147,6 +156,12 @@ export function ProtocolDefinitionStep() {
           dominio: result.applicationDomain || [],
           tipoEstudio: result.studyType || [],
           focosTematicos: result.thematicFocus || []
+        },
+        protocolDefinition: {
+          technologies: result.technologies || [],
+          applicationDomain: result.applicationDomain || [],
+          studyType: result.studyType || [],
+          thematicFocus: result.thematicFocus || []
         }
       })
 
@@ -260,10 +275,18 @@ export function ProtocolDefinitionStep() {
       }
 
       const resultKey = sectionMap[regenerateSection]
+      const newProtocolTerms = {
+        ...protocolTerms,
+        [regenerateSection]: result[resultKey] || []
+      }
+      
       updateData({
-        protocolTerms: {
-          ...protocolTerms,
-          [regenerateSection]: result[resultKey] || []
+        protocolTerms: newProtocolTerms,
+        protocolDefinition: {
+          technologies: newProtocolTerms.tecnologia,
+          applicationDomain: newProtocolTerms.dominio,
+          studyType: newProtocolTerms.tipoEstudio,
+          thematicFocus: newProtocolTerms.focosTematicos
         }
       })
 

@@ -295,14 +295,21 @@ Ejemplo 1: "El aprendizaje automático en contextos cardiovasculares requiere an
 
 Ejemplo 2: "La simulación de redes de comunicación en entornos profesionales de ingeniería demanda metodologías específicas que permitan evaluar el rendimiento en escenarios controlados, considerando las particularidades técnicas del dominio de aplicación."
 
+**FORMATO BILINGÜE**: Todos los títulos DEBEN estar en INGLÉS como idioma principal (title) y ESPAÑOL como traducción (spanishTitle).
+- title: Título académico en INGLÉS (siguiendo patrones A, B o C)
+- spanishTitle: Traducción profesional al ESPAÑOL del mismo título
+- justification: Justificación en ESPAÑOL (30-50 palabras)
+- spanishJustification: Misma justificación (redundante, pero incluir para compatibilidad)
+
 {
   "titles": [
     {
-      "title": "[Título en ESPAÑOL, siguiendo patrones A, B o C]",
-      "spanishTitle": "[Mismo título en español - puede ser igual si ya está en español]",
-      "justification": "[OBLIGATORIO: 30-50 palabras hablando del CONTENIDO. Explica por qué esa combinación específica de población + intervención + contexto es relevante científicamente, qué necesidad justifica ese enfoque, sin mencionar el patrón ni referirse al título como objeto.]",
+      "title": "[Título académico en INGLÉS, siguiendo patrones A, B o C]",
+      "spanishTitle": "[Traducción profesional y académica del título al ESPAÑOL]",
+      "justification": "[OBLIGATORIO: 30-50 palabras en ESPAÑOL explicando la relevancia del contenido]",
+      "spanishJustification": "[Misma justificación en español - redundante pero incluir]",
       "cochraneCompliance": "full|partial|low",
-      "wordCount": [número de palabras del título],
+      "wordCount": [número de palabras del título EN INGLÉS],
       "pattern": "A|B|C",
       "components": {
         "fenomeno": "[tecnología/variable/constructo central]",
@@ -377,21 +384,22 @@ EJEMPLOS REFERENCIALES DE TÍTULOS VÁLIDOS
 - "análisis" es genérico
 
 ═══════════════════════════════════════════════════════════════
-EJEMPLO COMPLETO DE TÍTULO CON JUSTIFICACIÓN
+EJEMPLO COMPLETO DE TÍTULO CON JUSTIFICACIÓN (BILINGÜE)
 ═══════════════════════════════════════════════════════════════
 
 {
-  "title": "Técnicas de aprendizaje automático aplicadas a detección de fraudes financieros en transacciones digitales",
-  "spanishTitle": "Técnicas de aprendizaje automático aplicadas a detección de fraudes financieros en transacciones digitales",
+  "title": "Machine Learning Techniques Applied to Fraud Detection in Digital Financial Transactions",
+  "spanishTitle": "Técnicas de aprendizaje automático aplicadas a detección de fraudes en transacciones financieras digitales",
   "justification": "El aprendizaje automático en contextos financieros digitales permite analizar grandes volúmenes de transacciones e identificar patrones anómalos que superan los enfoques tradicionales de detección. La combinación de técnicas avanzadas con el dominio específico de fraudes financieros responde a la creciente complejidad de los ataques en entornos digitales.",
+  "spanishJustification": "El aprendizaje automático en contextos financieros digitales permite analizar grandes volúmenes de transacciones e identificar patrones anómalos que superan los enfoques tradicionales de detección. La combinación de técnicas avanzadas con el dominio específico de fraudes financieros responde a la creciente complejidad de los ataques en entornos digitales.",
   "cochraneCompliance": "full",
-  "wordCount": 14,
+  "wordCount": 12,
   "pattern": "A",
   "components": {
-    "fenomeno": "aprendizaje automático",
-    "poblacion": "transacciones digitales en contexto financiero",
-    "enfoque": "detección de fraudes",
-    "naturaleza": "Síntesis de evidencia"
+    "fenomeno": "machine learning techniques",
+    "poblacion": "digital financial transactions",
+    "enfoque": "fraud detection",
+    "naturaleza": "Evidence synthesis"
   },
   "validation": {
     "explicitReview": true,

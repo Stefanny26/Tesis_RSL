@@ -16,17 +16,22 @@ npm run dev
 
 ## 📚 Documentación
 
-- **[QUICKSTART.md](./QUICKSTART.md)** - ⚡ Configuración rápida en 5 minutos
-- **[INSTALLATION.md](./INSTALLATION.md)** - 📖 Guía completa de instalación
-- **[FRONTEND-INTEGRATION.md](./FRONTEND-INTEGRATION.md)** - 🔗 Cómo conectar con el frontend
-- **[SUMMARY.md](./SUMMARY.md)** - 📊 Resumen completo del proyecto
-- **[postman-collection.json](./postman-collection.json)** - 📬 Colección de Postman
+### Guías Principales
+- **[docs/QUICKSTART.md](./docs/QUICKSTART.md)** - ⚡ Configuración rápida en 5 minutos
+- **[docs/INSTALLATION.md](./docs/INSTALLATION.md)** - 📖 Guía completa de instalación
+- **[docs/SUMMARY.md](./docs/SUMMARY.md)** - 📊 Resumen completo del proyecto
+- **[docs/postman-collection.json](./docs/postman-collection.json)** - 📬 Colección de Postman para testing
+
+### Documentación Técnica
+- **[docs/MODELOS-GEMINI-DISPONIBLES.md](./docs/MODELOS-GEMINI-DISPONIBLES.md)** - Modelos de IA disponibles
+- **[docs/QUERY-SANITIZER-README.md](./docs/QUERY-SANITIZER-README.md)** - Sanitización de queries de búsqueda
+- **[docs/SOLUCION-QUERIES-SCOPUS.md](./docs/SOLUCION-QUERIES-SCOPUS.md)** - Integración con Scopus
 
 ## 🏗️ Arquitectura
 
 ```
 backend/
-├── src/
+├── src/                             # Código fuente principal
 │   ├── server.js                    # Punto de entrada
 │   ├── config/                      # Configuraciones
 │   │   ├── database.js              # Conexión PostgreSQL
@@ -41,8 +46,26 @@ backend/
 │       ├── controllers/             # Controladores
 │       ├── routes/                  # Rutas
 │       └── validators/              # Validadores
+├── docs/                            # Documentación
+│   ├── INSTALLATION.md
+│   ├── QUICKSTART.md
+│   ├── SUMMARY.md
+│   ├── postman-collection.json      # Testing API
+│   └── *.md                         # Guías técnicas
+├── scripts/                         # Scripts SQL y utilidades
+│   ├── *.sql                        # Migraciones de base de datos
+│   ├── utils/                       # Scripts de mantenimiento
+│   │   ├── test-apis.js             # Verificar APIs
+│   │   ├── check-duplicates.js      # Buscar duplicados
+│   │   └── README.md                # Documentación de utils
+│   └── deployment/                  # Scripts de deployment
+│       ├── Procfile                 # Railway/Heroku
+│       ├── railway.json             # Railway config
+│       └── migrate.*                # Scripts de migración
+├── uploads/                         # Archivos subidos (PDFs)
+├── .env.example                     # Template de variables de entorno
 ├── package.json
-├── .env.example
+├── postinstall.js                   # Script post-instalación
 └── README.md
 ```
 

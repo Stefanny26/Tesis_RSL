@@ -68,6 +68,7 @@ export function SearchPlanStep() {
   const [availableDatabases, setAvailableDatabases] = useState<any[]>([])
   const [loadingDatabases, setLoadingDatabases] = useState(false)
   const [detectedArea, setDetectedArea] = useState<string>("")
+  const [importedCounts, setImportedCounts] = useState<Record<string, number>>({})
 
   // 🔍 LOG INICIAL
   console.log('📊 SearchPlanStep - Estado inicial:', {
@@ -150,23 +151,23 @@ export function SearchPlanStep() {
   const getLocalDatabasesByArea = (area: string) => {
     const databasesByArea: Record<string, any[]> = {
       'ingenieria-tecnologia': [
-        { id: 'scopus', name: 'Scopus', url: 'https://www.scopus.com', hasAPI: true },
-        { id: 'ieee', name: 'IEEE Xplore', url: 'https://ieeexplore.ieee.org', hasAPI: true },
+        { id: 'scopus', name: 'Scopus', url: 'https://www.scopus.com', hasAPI: false },
+        { id: 'ieee', name: 'IEEE Xplore', url: 'https://ieeexplore.ieee.org', hasAPI: false },
         { id: 'acm', name: 'ACM Digital Library', url: 'https://dl.acm.org', hasAPI: false },
-        { id: 'springer', name: 'Springer Link', url: 'https://link.springer.com', hasAPI: true },
+        { id: 'springer', name: 'Springer Link', url: 'https://link.springer.com', hasAPI: false },
         { id: 'sciencedirect', name: 'ScienceDirect', url: 'https://www.sciencedirect.com', hasAPI: false },
         { id: 'webofscience', name: 'Web of Science', url: 'https://www.webofscience.com', hasAPI: false }
       ],
       'medicina-salud': [
-        { id: 'pubmed', name: 'PubMed', url: 'https://pubmed.ncbi.nlm.nih.gov', hasAPI: true },
-        { id: 'scopus', name: 'Scopus', url: 'https://www.scopus.com', hasAPI: true },
+        { id: 'pubmed', name: 'PubMed', url: 'https://pubmed.ncbi.nlm.nih.gov', hasAPI: false },
+        { id: 'scopus', name: 'Scopus', url: 'https://www.scopus.com', hasAPI: false },
         { id: 'embase', name: 'Embase', url: 'https://www.embase.com', hasAPI: false },
         { id: 'cochrane', name: 'Cochrane Library', url: 'https://www.cochranelibrary.com', hasAPI: false },
         { id: 'cinahl', name: 'CINAHL', url: 'https://www.ebsco.com/products/research-databases/cinahl-database', hasAPI: false },
         { id: 'webofscience', name: 'Web of Science', url: 'https://www.webofscience.com', hasAPI: false }
       ],
       'ciencias-sociales': [
-        { id: 'scopus', name: 'Scopus', url: 'https://www.scopus.com', hasAPI: true },
+        { id: 'scopus', name: 'Scopus', url: 'https://www.scopus.com', hasAPI: false },
         { id: 'webofscience', name: 'Web of Science', url: 'https://www.webofscience.com', hasAPI: false },
         { id: 'eric', name: 'ERIC', url: 'https://eric.ed.gov', hasAPI: false },
         { id: 'psycinfo', name: 'PsycINFO', url: 'https://www.apa.org/pubs/databases/psycinfo', hasAPI: false },
@@ -174,7 +175,7 @@ export function SearchPlanStep() {
         { id: 'sage', name: 'SAGE Journals', url: 'https://journals.sagepub.com', hasAPI: false }
       ],
       'arquitectura-diseño': [
-        { id: 'scopus', name: 'Scopus', url: 'https://www.scopus.com', hasAPI: true },
+        { id: 'scopus', name: 'Scopus', url: 'https://www.scopus.com', hasAPI: false },
         { id: 'avery', name: 'Avery Index', url: 'https://www.averyindex.com', hasAPI: false },
         { id: 'jstor', name: 'JSTOR', url: 'https://www.jstor.org', hasAPI: false },
         { id: 'taylor', name: 'Taylor & Francis', url: 'https://www.tandfonline.com', hasAPI: false },
@@ -226,11 +227,8 @@ export function SearchPlanStep() {
         console.log('📝 Creando proyecto para importación de referencias...')
         
         const projectData = {
-          name: data.projectName,
+          title: data.projectName || data.selectedTitle || 'Proyecto RSL',
           description: data.projectDescription || `RSL: ${data.selectedTitle}`,
-          researchArea: data.researchArea,
-          yearStart: data.yearStart,
-          yearEnd: data.yearEnd,
           status: 'draft' // Marcarlo como borrador
         }
 
@@ -318,6 +316,8 @@ export function SearchPlanStep() {
       console.log('   - Área de investigación:', data.researchArea)
       console.log('   - Matriz Is/Not:', data.matrixIsNot)
       console.log('   - Título RSL seleccionado:', data.selectedTitle)
+      console.log('   - 📅 Año inicio:', data.yearStart, '(tipo:', typeof data.yearStart, ')')
+      console.log('   - 📅 Año fin:', data.yearEnd, '(tipo:', typeof data.yearEnd, ')')
       
       const result = await apiClient.generateSearchQueries(
         data.protocolTerms,
@@ -398,90 +398,7 @@ export function SearchPlanStep() {
     }
   }
 
-  const handleCountResults = async (query: any) => {
-    console.log('🔢 Iniciando conteo para:', query)
-    console.log('   Database ID:', query.databaseId)
-    console.log('   Query completa:', query.query)
-
-    setCountingDatabases(prev => new Set(prev).add(query.databaseId))
-    
-    try {
-      toast({
-        title: "🔍 Contando resultados...",
-        description: `Consultando ${query.databaseName}`
-      })
-
-      let result
-      if (query.databaseId === 'scopus') {
-        result = await apiClient.scopusCount(query.query)
-      } else if (query.databaseId === 'google_scholar') {
-        result = await apiClient.googleScholarCount(query.query, 2019, new Date().getFullYear())
-      } else {
-        toast({
-          title: "ℹ️ No disponible",
-          description: `${query.databaseName} no tiene API implementada`,
-          variant: "default"
-        })
-        setCountingDatabases(prev => {
-          const next = new Set(prev)
-          next.delete(query.databaseId)
-          return next
-        })
-        return
-      }
-      
-      console.log('📥 Respuesta de API:', result)
-      console.log('📊 result.count:', result.count, 'tipo:', typeof result.count)
-
-      if (result.success && result.count !== undefined && result.count !== null) {
-        const countValue = Number(result.count) || 0
-        
-        // Actualizar el query con el conteo
-        setQueries(prev => {
-          const updated = prev.map(q => 
-            q.databaseId === query.databaseId
-              ? { 
-                  ...q, 
-                  resultCount: countValue, 
-                  lastSearched: result.searchedAt || new Date().toISOString(),
-                  status: 'completed' 
-                }
-              : q
-          )
-          console.log('🔄 Queries actualizadas:', updated)
-          return updated
-        })
-
-        toast({
-          title: "✅ Resultados obtenidos",
-          description: `${countValue.toLocaleString()} artículos encontrados en ${query.databaseName}`
-        })
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error: any) {
-      console.error("Error contando:", error)
-      
-      setQueries(prev => prev.map(q => 
-        q.databaseId === query.databaseId
-          ? { ...q, status: 'error' }
-          : q
-      ))
-
-      toast({
-        title: "❌ Error en la búsqueda",
-        description: error.message || "No se pudo conectar con la base de datos",
-        variant: "destructive"
-      })
-    } finally {
-      setCountingDatabases(prev => {
-        const next = new Set(prev)
-        next.delete(query.databaseId)
-        return next
-      })
-    }
-  }
-
+  // Funcionalidad de conteo API deshabilitada - importación manual
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     toast({
@@ -587,20 +504,32 @@ export function SearchPlanStep() {
 
       {/* TABLA DE CADENAS DE BÚSQUEDA */}
       {queries.length > 0 && (
-        <Card className="border-2 border-primary/20 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Database className="h-6 w-6 text-primary" />
-              </div>
-              Cadenas de Búsqueda por Base de Datos
-            </CardTitle>
-            <CardDescription className="mt-2 flex items-center gap-2">
-              {detectedArea && (
-                <Badge variant="outline" className="bg-primary/5 border-primary/20">
-                  📊 Área: {ACADEMIC_DATABASES[detectedArea]?.name || detectedArea}
-                </Badge>
-              )}
+        <>
+          {/* Alert de validación - debe cargar referencias */}
+          {(!data.searchPlan?.uploadedFiles || data.searchPlan.uploadedFiles.length === 0) && (
+            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                <strong>⚠️ Acción requerida:</strong> Debes cargar las referencias desde al menos una base de datos antes de continuar al siguiente paso. 
+                Usa el botón "Cargar Referencias" en la tabla de abajo.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Card className="border-2 border-primary/20 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Database className="h-6 w-6 text-primary" />
+                </div>
+                Cadenas de Búsqueda por Base de Datos
+              </CardTitle>
+              <CardDescription className="mt-2 flex items-center gap-2">
+                {detectedArea && (
+                  <Badge variant="outline" className="bg-primary/5 border-primary/20">
+                    📊 Área: {ACADEMIC_DATABASES[detectedArea]?.name || detectedArea}
+                  </Badge>
+                )}
               {data.searchPlan?.uploadedFiles && data.searchPlan.uploadedFiles.length > 0 && (
                 <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
                   ✓ {data.searchPlan.uploadedFiles.reduce((sum, f) => sum + f.recordCount, 0)} referencias cargadas
@@ -615,8 +544,8 @@ export function SearchPlanStep() {
                 <TableRow>
                   <TableHead className="w-[150px]">Base de Datos</TableHead>
                   <TableHead>Cadena de Búsqueda</TableHead>
-                  <TableHead className="w-[140px] text-center"># Artículos</TableHead>
-                  <TableHead className="w-[120px] text-center">Acciones</TableHead>
+                  <TableHead className="w-[120px] text-center">Referencias</TableHead>
+                  <TableHead className="w-[120px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -629,14 +558,7 @@ export function SearchPlanStep() {
                         </span>
                         <div>
                           <div className="font-semibold">{query.databaseName}</div>
-                          {query.hasAPI ? (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 text-xs mt-1">
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                              API
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs mt-1">Manual</Badge>
-                          )}
+                          <Badge variant="secondary" className="text-xs mt-1">Importación Manual</Badge>
                         </div>
                       </div>
                     </TableCell>
@@ -662,39 +584,17 @@ export function SearchPlanStep() {
                       </div>
                     </TableCell>
                     <TableCell className="align-top text-center">
-                      {query.hasAPI && (query.databaseId === 'scopus' || query.databaseId === 'google_scholar') ? (
-                        countingDatabases.has(query.databaseId) ? (
-                          <div className="flex flex-col items-center gap-2">
-                            <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                            <span className="text-xs text-muted-foreground">Contando...</span>
+                      {importedCounts[query.databaseId] ? (
+                        <div>
+                          <div className="text-2xl font-bold text-blue-600">
+                            {importedCounts[query.databaseId].toLocaleString()}
                           </div>
-                        ) : query.resultCount !== null && query.resultCount !== undefined && typeof query.resultCount === 'number' ? (
-                          <div>
-                            <div className="text-2xl font-bold text-green-600">
-                              {query.resultCount.toLocaleString()}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 text-xs mt-1"
-                              onClick={() => handleCountResults(query)}
-                            >
-                              <Search className="h-3 w-3 mr-1" />
-                              Actualizar
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCountResults(query)}
-                          >
-                            <Search className="h-4 w-4 mr-2" />
-                            Contar
-                          </Button>
-                        )
+                          <div className="text-xs text-muted-foreground mt-1">importadas</div>
+                        </div>
                       ) : (
-                        <div className="text-sm text-muted-foreground italic">Manual</div>
+                        <div className="text-sm text-muted-foreground italic">
+                          Pendiente
+                        </div>
                       )}
                     </TableCell>
                     <TableCell className="align-top text-center">
@@ -703,10 +603,37 @@ export function SearchPlanStep() {
                           projectId={data.projectId}
                           size="sm"
                           showLabel={true}
-                          onImportSuccess={() => {
+                          onImportSuccess={(count: number, fileInfo?: any) => {
+                            // Actualizar contador local
+                            setImportedCounts(prev => ({
+                              ...prev,
+                              [query.databaseId]: (prev[query.databaseId] || 0) + count
+                            }))
+                            
+                            // Actualizar uploadedFiles en el context
+                            const newUploadedFile = {
+                              filename: fileInfo?.filename || `import_${query.databaseName}.csv`,
+                              format: fileInfo?.format || 'csv',
+                              recordCount: count,
+                              uploadedAt: new Date().toISOString(),
+                              databaseId: query.databaseId,
+                              databaseName: query.databaseName,
+                              data: []
+                            }
+                            
+                            updateData({
+                              searchPlan: {
+                                ...data.searchPlan,
+                                uploadedFiles: [
+                                  ...(data.searchPlan?.uploadedFiles || []),
+                                  newUploadedFile
+                                ]
+                              }
+                            })
+                            
                             toast({
                               title: "✅ Referencias importadas",
-                              description: `Referencias de ${query.databaseName} cargadas en el proyecto`
+                              description: `${count} referencias cargadas de ${query.databaseName}`
                             })
                           }}
                         />
@@ -721,11 +648,8 @@ export function SearchPlanStep() {
                             onClick={async () => {
                               try {
                                 const projectData = {
-                                  name: data.projectName,
+                                  title: data.projectName || data.selectedTitle || 'Proyecto RSL',
                                   description: data.projectDescription || `RSL: ${data.selectedTitle}`,
-                                  researchArea: data.researchArea,
-                                  yearStart: data.yearStart,
-                                  yearEnd: data.yearEnd,
                                   status: 'draft'
                                 }
                                 const result = await apiClient.createProject(projectData)
@@ -772,6 +696,7 @@ export function SearchPlanStep() {
             </Table>
           </CardContent>
         </Card>
+        </>
       )}
 
     </div>

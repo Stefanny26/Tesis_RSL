@@ -8,7 +8,7 @@ import { apiClient } from "@/lib/api-client"
 
 interface ImportReferencesButtonProps {
   readonly projectId: string
-  readonly onImportSuccess?: () => void
+  readonly onImportSuccess?: (count: number) => void
   readonly variant?: "default" | "outline" | "ghost"
   readonly size?: "default" | "sm" | "lg"
   readonly showLabel?: boolean
@@ -35,14 +35,24 @@ export function ImportReferencesButton({
     try {
       const result = await apiClient.importReferences(projectId, formData)
       
+      // Backend retorna: { success: true, data: { success: N, failed: N, duplicates: N } }
+      const importedCount = result.data?.success || 0
+      const failedCount = result.data?.failed || 0
+      const duplicatesCount = result.data?.duplicates || 0
+      
+      const details = []
+      if (importedCount > 0) details.push(`${importedCount} importadas`)
+      if (failedCount > 0) details.push(`${failedCount} fallidas`)
+      if (duplicatesCount > 0) details.push(`${duplicatesCount} duplicadas`)
+      
       toast({
-        title: "✅ Referencias importadas",
-        description: `Se importaron ${result.imported || 0} referencias exitosamente`,
-        duration: 3000
+        title: "✅ Referencias procesadas",
+        description: details.join(', '),
+        duration: 4000
       })
 
       if (onImportSuccess) {
-        onImportSuccess()
+        onImportSuccess(importedCount)
       }
     } catch (error: any) {
       toast({

@@ -42,7 +42,7 @@ export function TitlesStep() {
     try {
       toast({
         title: "Generando títulos...",
-        description: `Usando ${getProviderName(data.aiProvider)} para crear 5 opciones...`
+        description: `Usando ${getProviderName(data.aiProvider)} para crear 5 opciones bilingües...`
       })
 
       const result = await apiClient.generateTitles(
@@ -55,15 +55,15 @@ export function TitlesStep() {
       console.log('📝 Títulos recibidos:', result?.titles)
 
       if (result && result.titles) {
-        // Procesar títulos sin traducción automática
+        // Procesar títulos con traducción automática
         const processedTitles = result.titles.map((t: any) => {
           const justificationText = t.reasoning || t.justification || ""
           
           return {
-            title: t.title,
-            spanishTitle: "", // Usuario lo llenará manualmente
+            title: t.title, // Título en inglés
+            spanishTitle: t.spanishTitle || t.title, // Traducción al español
             justification: justificationText,
-            spanishJustification: "", // Usuario lo llenará manualmente
+            spanishJustification: t.spanishJustification || justificationText,
             cochraneCompliance: t.cochraneCompliance || "partial",
             components: t.components || {
               population: "unspecified",
@@ -81,7 +81,7 @@ export function TitlesStep() {
 
         toast({
           title: "✅ Títulos generados",
-          description: `${processedTitles.length} opciones creadas. Ingresa las versiones en español manualmente.`
+          description: `${processedTitles.length} opciones bilingües creadas.`
         })
       }
     } catch (error: any) {
