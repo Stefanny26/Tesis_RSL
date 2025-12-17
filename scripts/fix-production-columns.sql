@@ -35,6 +35,10 @@ UPDATE "references" SET created_at = imported_at WHERE created_at IS NULL AND im
 ALTER TABLE protocols 
 ADD COLUMN IF NOT EXISTS screening_results JSONB DEFAULT '{}'::jsonb;
 
+-- 4.1 TABLA PROTOCOLS - Agregar fase2_unlocked
+ALTER TABLE protocols 
+ADD COLUMN IF NOT EXISTS fase2_unlocked BOOLEAN DEFAULT FALSE;
+
 -- 5. Crear índices
 CREATE INDEX IF NOT EXISTS idx_references_journal ON "references"(journal);
 CREATE INDEX IF NOT EXISTS idx_references_screening_status ON "references"(screening_status);
