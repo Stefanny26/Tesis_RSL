@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS references (
   title TEXT NOT NULL,
   authors TEXT,
   year INTEGER,
+  journal VARCHAR(500),
   source VARCHAR(255),
   doi VARCHAR(255),
   abstract TEXT,

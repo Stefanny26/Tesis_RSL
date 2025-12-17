@@ -18,6 +18,8 @@ const nextConfig = {
       },
     ],
   },
+  // Deshabilitar Vercel Analytics para evitar error 404
+  analyticsId: process.env.VERCEL_ANALYTICS_ID || '',
 }
 
 export default nextConfig

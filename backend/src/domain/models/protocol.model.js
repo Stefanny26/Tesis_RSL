@@ -71,6 +71,7 @@ class Protocol {
       },
       keyTerms: this.keyTerms,
       prismaCompliance: this.prismaCompliance,
+      screeningResults: this.screeningResults,
       completed: this.completed,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
@@ -100,6 +101,7 @@ class Protocol {
       temporal_range: JSON.stringify(this.temporalRange),
       key_terms: JSON.stringify(this.keyTerms),
       prisma_compliance: JSON.stringify(this.prismaCompliance),
+      screening_results: this.screeningResults ? JSON.stringify(this.screeningResults) : null,
       completed: this.completed,
       created_at: this.createdAt,
       updated_at: this.updatedAt

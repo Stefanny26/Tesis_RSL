@@ -103,6 +103,9 @@ class ProtocolRepository {
       // Cumplimiento PRISMA
       prismaCompliance: 'prisma_compliance',
       
+      // Resultados del screening
+      screeningResults: 'screening_results',
+      
       // Estado
       completed: 'completed'
     };
