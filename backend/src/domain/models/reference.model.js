@@ -52,6 +52,12 @@ class Reference {
     this.citationKey = data.citation_key || data.citationKey;
     this.fullTextAvailable = data.full_text_available || data.fullTextAvailable || false;
     this.fullTextUrl = data.full_text_url || data.fullTextUrl;
+    
+    // Datos extraídos de PDF (NUEVO)
+    this.fullTextData = data.full_text_data || data.fullTextData;
+    this.fullTextExtracted = data.full_text_extracted || data.fullTextExtracted || false;
+    this.fullTextExtractedAt = data.full_text_extracted_at || data.fullTextExtractedAt;
+    
     this.importedAt = data.imported_at || data.importedAt;
     this.createdAt = data.created_at || data.createdAt;
     this.updatedAt = data.updated_at || data.updatedAt;
@@ -94,6 +100,9 @@ class Reference {
       citationKey: this.citationKey,
       fullTextAvailable: this.fullTextAvailable,
       fullTextUrl: this.fullTextUrl,
+      fullTextData: this.fullTextData,
+      fullTextExtracted: this.fullTextExtracted,
+      fullTextExtractedAt: this.fullTextExtractedAt,
       importedAt: this.importedAt,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
@@ -130,6 +139,9 @@ class Reference {
       citation_key: this.citationKey,
       full_text_available: this.fullTextAvailable,
       full_text_url: this.fullTextUrl,
+      full_text_data: typeof this.fullTextData === 'object' ? JSON.stringify(this.fullTextData) : this.fullTextData,
+      full_text_extracted: this.fullTextExtracted,
+      full_text_extracted_at: this.fullTextExtractedAt,
       imported_at: this.importedAt,
       created_at: this.createdAt,
       updated_at: this.updatedAt

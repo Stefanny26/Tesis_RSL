@@ -104,7 +104,8 @@ class ReferenceRepository {
       'title', 'authors', 'year', 'journal', 'doi', 'abstract', 'keywords', 'url',
       'screeningStatus', 'aiClassification', 'aiConfidenceScore', 'aiReasoning',
       'manualReviewStatus', 'manualReviewNotes', 'reviewedBy',
-      'fullTextAvailable', 'fullTextUrl', 'screeningScore', 'aiDecision', 'exclusionReason'
+      'fullTextAvailable', 'fullTextUrl', 'screeningScore', 'aiDecision', 'exclusionReason',
+      'fullTextData', 'fullTextExtracted', 'fullTextExtractedAt'
     ];
 
     const fieldMap = {
@@ -119,14 +120,23 @@ class ReferenceRepository {
       fullTextUrl: 'full_text_url',
       screeningScore: 'screening_score',
       aiDecision: 'ai_decision',
-      exclusionReason: 'exclusion_reason'
+      exclusionReason: 'exclusion_reason',
+      fullTextData: 'full_text_data',
+      fullTextExtracted: 'full_text_extracted',
+      fullTextExtractedAt: 'full_text_extracted_at'
     };
 
     for (const field of allowedFields) {
       if (referenceData[field] !== undefined) {
         const dbField = fieldMap[field] || field;
         updates.push(`${dbField} = $${paramCount++}`);
-        values.push(referenceData[field]);
+        
+        // Convertir objetos a JSON string para JSONB
+        if (field === 'fullTextData' && typeof referenceData[field] === 'object') {
+          values.push(JSON.stringify(referenceData[field]));
+        } else {
+          values.push(referenceData[field]);
+        }
       }
     }
 

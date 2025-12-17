@@ -719,6 +719,38 @@ class ApiClient {
     })
     return data.data
   }
+
+  // === PRISMA ENDPOINTS ===
+  
+  /**
+   * Extrae datos estructurados de PDFs completos
+   */
+  async extractPDFsData(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/prisma/extract-pdfs`, {
+      method: 'POST',
+    })
+    return data
+  }
+
+  /**
+   * Genera el PRISMA Context Object
+   */
+  async generatePrismaContext(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/prisma/generate-context`, {
+      method: 'POST',
+    })
+    return data
+  }
+
+  /**
+   * Completa ítems PRISMA automáticamente
+   */
+  async completePrismaItems(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/prisma/complete-items`, {
+      method: 'POST',
+    })
+    return data
+  }
 }
 
 export { ApiClient }

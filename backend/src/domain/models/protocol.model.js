@@ -34,9 +34,14 @@ class Protocol {
     
     // Cumplimiento PRISMA
     this.prismaCompliance = data.prisma_compliance || data.prismaCompliance || [];
+    this.prismaLocked = data.prisma_locked || data.prismaLocked || false;
+    this.prismaCompletedAt = data.prisma_completed_at || data.prismaCompletedAt;
     
     // Resultados de cribado (embeddings + ChatGPT)
     this.screeningResults = data.screening_results || data.screeningResults || null;
+    
+    // Fase 2 desbloqueada (Revisión Manual)
+    this.fase2Unlocked = data.fase2_unlocked || data.fase2_unlocked || false;
     
     // Metadatos
     this.completed = data.completed || false;
@@ -71,7 +76,10 @@ class Protocol {
       },
       keyTerms: this.keyTerms,
       prismaCompliance: this.prismaCompliance,
+      prismaLocked: this.prismaLocked,
+      prismaCompletedAt: this.prismaCompletedAt,
       screeningResults: this.screeningResults,
+      fase2_unlocked: this.fase2Unlocked,
       completed: this.completed,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
@@ -101,7 +109,10 @@ class Protocol {
       temporal_range: JSON.stringify(this.temporalRange),
       key_terms: JSON.stringify(this.keyTerms),
       prisma_compliance: JSON.stringify(this.prismaCompliance),
+      prisma_locked: this.prismaLocked,
+      prisma_completed_at: this.prismaCompletedAt,
       screening_results: this.screeningResults ? JSON.stringify(this.screeningResults) : null,
+      fase2_unlocked: this.fase2Unlocked,
       completed: this.completed,
       created_at: this.createdAt,
       updated_at: this.updatedAt

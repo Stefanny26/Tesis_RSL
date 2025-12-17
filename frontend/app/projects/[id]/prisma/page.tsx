@@ -34,6 +34,9 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
   const [hasTriedGenerate, setHasTriedGenerate] = useState(false)
   const [projectName, setProjectName] = useState("")
   const [protocol, setProtocol] = useState<any>(null)
+  const [isExtractingPDFs, setIsExtractingPDFs] = useState(false)
+  const [isCompletingPrisma, setIsCompletingPrisma] = useState(false)
+  const [extractionResult, setExtractionResult] = useState<any>(null)
 
   useEffect(() => {
     loadProjectAndPrismaData()
@@ -344,6 +347,70 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
     }
   }
 
+  async function handleExtractPDFs() {
+    try {
+      setIsExtractingPDFs(true)
+      
+      toast({
+        title: "Procesando PDFs",
+        description: "Esto puede tomar varios minutos dependiendo del número de referencias...",
+      })
+      
+      const response = await apiClient.extractPDFsData(params.id)
+      
+      setExtractionResult(response.data)
+      
+      toast({
+        title: "PDFs procesados exitosamente",
+        description: `${response.data.processed} PDFs analizados de ${response.data.total}`,
+      })
+      
+      console.log('✅ Resultado de extracción:', response.data)
+    } catch (error: any) {
+      console.error('❌ Error procesando PDFs:', error)
+      toast({
+        title: "Error al procesar PDFs",
+        description: error.message || "No se pudieron procesar los PDFs. Verifica que haya PDFs cargados.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsExtractingPDFs(false)
+    }
+  }
+
+  async function handleCompletePrisma() {
+    try {
+      setIsCompletingPrisma(true)
+      
+      toast({
+        title: "Completando PRISMA",
+        description: "Generando ítems pendientes con IA...",
+      })
+      
+      const response = await apiClient.completePrismaItems(params.id)
+      
+      toast({
+        title: "PRISMA actualizado",
+        description: response.data.message,
+      })
+      
+      console.log('✅ Ítems generados:', response.data)
+      
+      // Recargar datos de PRISMA
+      await loadProjectAndPrismaData()
+      
+    } catch (error: any) {
+      console.error('❌ Error completando PRISMA:', error)
+      toast({
+        title: "Error al completar PRISMA",
+        description: error.message || "No se pudieron generar los ítems PRISMA automáticamente",
+        variant: "destructive"
+      })
+    } finally {
+      setIsCompletingPrisma(false)
+    }
+  }
+
   async function handleToggleComplete(itemNumber: number) {
     try {
       const currentItem = prismaItems[itemNumber]
@@ -460,6 +527,53 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
 
         <div className="space-y-6 mt-6">
 
+          {/* Alert cuando PRISMA está bloqueado */}
+          {protocol?.prismaLocked && (
+            <Alert className="bg-gradient-to-r from-green-50 to-blue-50 border-green-300">
+              <AlertCircle className="h-5 w-5 text-green-600" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <div className="font-semibold text-green-700">
+                    🎉 PRISMA 2020 Completado y Bloqueado
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    Los 27 ítems del checklist PRISMA están completos. Esta sección está bloqueada para preservar la integridad metodológica.
+                    <br />
+                    <span className="font-medium">Siguiente paso:</span> Dirígete a la sección <strong>Artículo</strong> para generar el manuscrito final.
+                  </div>
+                  {protocol.prismaCompletedAt && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Completado: {new Date(protocol.prismaCompletedAt).toLocaleString('es-ES')}
+                    </div>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Alert cuando PRISMA está completo pero no bloqueado */}
+          {!protocol?.prismaLocked && Object.keys(prismaItems).length === 27 && (
+            <Alert className="bg-green-50 border-green-300">
+              <AlertCircle className="h-5 w-5 text-green-600" />
+              <AlertDescription className="text-sm">
+                <strong>🎉 PRISMA Completado (27/27 ítems)</strong>
+                <br />
+                El checklist PRISMA 2020 está completo. Puedes proceder a la sección de <strong>Artículo</strong> para generar el manuscrito final.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Alert para PDFs extraídos */}
+          {extractionResult && extractionResult.processed > 0 && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <Info className="h-5 w-5 text-blue-600" />
+              <AlertDescription className="text-sm">
+                <strong>✓ {extractionResult.processed} PDFs analizados</strong> - Datos estructurados extraídos exitosamente. 
+                {extractionResult.errors > 0 && ` (${extractionResult.errors} errores)`}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {Object.keys(prismaItems).length < 27 && (
             <Alert className="bg-amber-50 border-amber-200">
               <Info className="h-5 w-5 text-amber-600" />
@@ -481,7 +595,51 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap gap-3">
-              {Object.keys(prismaItems).length < 27 && (
+              {/* Botón para analizar PDFs */}
+              {protocol?.fase2_unlocked && !protocol?.prismaLocked && (
+                <Button 
+                  onClick={handleExtractPDFs} 
+                  disabled={isExtractingPDFs}
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                >
+                  {isExtractingPDFs ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analizando PDFs...
+                    </>
+                  ) : (
+                    <>
+                      <FileDown className="mr-2 h-4 w-4" />
+                      Analizar PDFs Completos
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {/* Botón para completar PRISMA automáticamente */}
+              {protocol?.fase2_unlocked && Object.keys(prismaItems).length < 27 && !protocol?.prismaLocked && (
+                <Button 
+                  onClick={handleCompletePrisma} 
+                  disabled={isCompletingPrisma}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  {isCompletingPrisma ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Completando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Completar PRISMA Automáticamente
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {/* Botón original de generar contenido (legacy) */}
+              {Object.keys(prismaItems).length < 27 && !protocol?.fase2_unlocked && !protocol?.prismaLocked && (
                 <Button 
                   onClick={handleGenerateContent} 
                   disabled={isGenerating}
@@ -510,7 +668,7 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
               </Button>
             </div>
 
-            <Button variant="outline">
+            <Button variant="outline" disabled={protocol?.prismaLocked}>
               <FileDown className="mr-2 h-4 w-4" />
               Exportar
             </Button>
@@ -587,7 +745,13 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
                                               onChange={(e) => handleContentChange(item.id, e.target.value)}
                                               placeholder="Editar contenido..."
                                               className="min-h-[120px] resize-y"
+                                              disabled={protocol?.prismaLocked}
                                             />
+                                            {protocol?.prismaLocked && (
+                                              <p className="text-xs text-muted-foreground mt-2">
+                                                🔒 PRISMA bloqueado - No se puede editar
+                                              </p>
+                                            )}
                                           </div>
                                         ) : (
                                           <div className="bg-muted/50 rounded-lg p-6 text-center">

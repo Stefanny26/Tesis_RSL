@@ -112,4 +112,45 @@ router.post(
   (req, res) => prismaController.validateWithAI(req, res)
 );
 
-module.exports = router;
+/**
+ * @route   POST /api/projects/:projectId/prisma/extract-pdfs
+ * @desc    Extraer datos estructurados de PDFs completos
+ * @access  Private
+ */
+router.post(
+  '/:projectId/prisma/extract-pdfs',
+  [
+    param('projectId').isUUID().withMessage('ID de proyecto inválido'),
+    validateRequest
+  ],
+  (req, res) => prismaController.extractPDFData(req, res)
+);
+
+/**
+ * @route   POST /api/projects/:projectId/prisma/generate-context
+ * @desc    Generar PRISMA Context Object
+ * @access  Private
+ */
+router.post(
+  '/:projectId/prisma/generate-context',
+  [
+    param('projectId').isUUID().withMessage('ID de proyecto inválido'),
+    validateRequest
+  ],
+  (req, res) => prismaController.generateContext(req, res)
+);
+
+/**
+ * @route   POST /api/projects/:projectId/prisma/complete-items
+ * @desc    Completar ítems PRISMA automáticamente
+ * @access  Private
+ */
+router.post(
+  '/:projectId/prisma/complete-items',
+  [
+    param('projectId').isUUID().withMessage('ID de proyecto inválido'),
+    validateRequest
+  ],
+  (req, res) => prismaController.completeItems(req, res)
+);
+

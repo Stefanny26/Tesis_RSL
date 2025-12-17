@@ -1,7 +1,12 @@
 const PrismaItemRepository = require('../../infrastructure/repositories/prisma-item.repository');
 const ProtocolRepository = require('../../infrastructure/repositories/protocol.repository');
 const ProjectRepository = require('../../infrastructure/repositories/project.repository');
+const ReferenceRepository = require('../../infrastructure/repositories/reference.repository');
 const GeneratePrismaContentUseCase = require('../../domain/use-cases/generate-prisma-content.use-case');
+const ExtractFullTextDataUseCase = require('../../domain/use-cases/extract-fulltext-data.use-case');
+const GeneratePrismaContextUseCase = require('../../domain/use-cases/generate-prisma-context.use-case');
+const CompletePrismaItemsUseCase = require('../../domain/use-cases/complete-prisma-items.use-case');
+const AIService = require('../../infrastructure/services/ai.service');
 
 /**
  * Controlador de ítems PRISMA
@@ -11,6 +16,8 @@ class PrismaController {
     this.prismaItemRepository = new PrismaItemRepository();
     this.protocolRepository = new ProtocolRepository();
     this.projectRepository = new ProjectRepository();
+    this.referenceRepository = new ReferenceRepository();
+    this.aiService = new AIService();
   }
 
   /**
@@ -377,6 +384,135 @@ class PrismaController {
       res.status(500).json({
         success: false,
         message: 'Error al obtener estadísticas'
+      });
+    }
+  }
+
+  /**
+   * POST /api/projects/:projectId/prisma/extract-pdfs
+   * Extraer datos de PDFs completos
+   */
+  async extractPDFData(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para procesar PDFs de este proyecto'
+        });
+      }
+
+      const extractUseCase = new ExtractFullTextDataUseCase({
+        referenceRepository: this.referenceRepository,
+        aiService: this.aiService
+      });
+
+      const result = await extractUseCase.processProjectPDFs(projectId);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: `${result.processed} PDFs procesados exitosamente`
+      });
+
+    } catch (error) {
+      console.error('❌ Error extrayendo datos de PDFs:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al procesar PDFs',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * POST /api/projects/:projectId/prisma/generate-context
+   * Generar PRISMA Context Object
+   */
+  async generateContext(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para generar PRISMA Context'
+        });
+      }
+
+      const generateContextUseCase = new GeneratePrismaContextUseCase({
+        protocolRepository: this.protocolRepository,
+        referenceRepository: this.referenceRepository,
+        projectRepository: this.projectRepository
+      });
+
+      const result = await generateContextUseCase.execute(projectId);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'PRISMA Context generado exitosamente'
+      });
+
+    } catch (error) {
+      console.error('❌ Error generando PRISMA Context:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al generar PRISMA Context',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * POST /api/projects/:projectId/prisma/complete-items
+   * Completar ítems PRISMA automáticamente
+   */
+  async completeItems(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para completar ítems PRISMA'
+        });
+      }
+
+      // Crear use cases
+      const generateContextUseCase = new GeneratePrismaContextUseCase({
+        protocolRepository: this.protocolRepository,
+        referenceRepository: this.referenceRepository,
+        projectRepository: this.projectRepository
+      });
+
+      const completeItemsUseCase = new CompletePrismaItemsUseCase({
+        protocolRepository: this.protocolRepository,
+        aiService: this.aiService,
+        generatePrismaContextUseCase: generateContextUseCase
+      });
+
+      const result = await completeItemsUseCase.execute(projectId);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: result.message
+      });
+
+    } catch (error) {
+      console.error('❌ Error completando ítems PRISMA:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al completar ítems PRISMA',
+        error: error.message
       });
     }
   }
