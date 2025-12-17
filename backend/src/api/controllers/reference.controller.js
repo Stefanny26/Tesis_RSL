@@ -19,7 +19,15 @@ const getProjectReferences = async (req, res) => {
     const { projectId } = req.params;
     const { status, year, source, limit = 100, offset = 0 } = req.query;
 
-    console.log(`📊 GET References - projectId: ${projectId}, limit: ${limit}, offset: ${offset}`);
+    console.log(`📊 GET References - projectId: ${projectId}, limit: ${limit}, offset: ${offset}, userId: ${req.userId}`);
+
+    if (!req.userId) {
+      console.error('❌ userId no está definido en req');
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
+      });
+    }
 
     const filters = {};
     if (status) filters.screeningStatus = status;
@@ -32,6 +40,7 @@ const getProjectReferences = async (req, res) => {
       parseInt(limit), 
       parseInt(offset)
     );
+    console.log(`✅ Referencias encontradas: ${references.length}`);
 
     const total = await referenceRepository.countByProject(projectId, filters);
 
@@ -59,10 +68,12 @@ const getProjectReferences = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error obteniendo referencias:', error);
+    console.error('❌ Error obteniendo referencias:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       success: false,
-      message: error.message || 'Error al obtener referencias'
+      message: error.message || 'Error al obtener referencias',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

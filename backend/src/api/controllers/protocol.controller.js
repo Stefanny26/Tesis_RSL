@@ -16,9 +16,20 @@ class ProtocolController {
   async get(req, res) {
     try {
       const { projectId } = req.params;
+      console.log('📋 GET Protocol - projectId:', projectId, 'userId:', req.userId);
+
+      if (!req.userId) {
+        console.error('❌ userId no está definido en req');
+        return res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado'
+        });
+      }
 
       // Verificar permisos
       const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      console.log('🔐 isOwner:', isOwner);
+      
       if (!isOwner) {
         return res.status(403).json({
           success: false,
@@ -27,9 +38,11 @@ class ProtocolController {
       }
 
       let protocol = await this.protocolRepository.findByProjectId(projectId);
+      console.log('📋 Protocol found:', !!protocol);
 
       // Si no existe, crear uno vacío
       if (!protocol) {
+        console.log('⚠️ Protocolo no existe, creando uno nuevo');
         protocol = await this.protocolRepository.create({ projectId });
       }
 
@@ -38,10 +51,12 @@ class ProtocolController {
         data: { protocol: protocol.toJSON() }
       });
     } catch (error) {
-      console.error('Error obteniendo protocolo:', error);
+      console.error('❌ Error obteniendo protocolo:', error);
+      console.error('Stack trace:', error.stack);
       res.status(500).json({
         success: false,
-        message: 'Error al obtener protocolo'
+        message: 'Error al obtener protocolo',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
