@@ -72,7 +72,11 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
 
     try {
       const textToAnalyze = text.substring(0, 6000);
-      const response = await this.aiService.generateText(prompt, textToAnalyze);
+      
+      // Combinar prompt con el texto a analizar
+      const fullPrompt = `${prompt}\n\nTEXT TO ANALYZE:\n${textToAnalyze}`;
+      
+      const response = await this.aiService.generateText(fullPrompt);
       
       // Limpiar respuesta y parsear JSON
       let cleanedResponse = response.trim();
