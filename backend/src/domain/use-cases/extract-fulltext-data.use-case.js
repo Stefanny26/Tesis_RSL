@@ -32,18 +32,22 @@ class ExtractFullTextDataUseCase {
   }
 
   /**
-   * Usa IA para extraer información estructurada del texto del PDF
+   * Usa IA para extraer información estructurada del texto (PDF completo o abstract)
    * ⚠️ NO toma decisiones, solo extrae datos
    */
-  async extractStructuredData(pdfText, referenceMetadata) {
+  async extractStructuredData(text, referenceMetadata, isAbstractOnly = false) {
+    const sourceType = isAbstractOnly ? 'abstract' : 'full text';
     const prompt = `You are analyzing a scientific article for data extraction in a systematic literature review.
 
 Article Metadata:
 - Title: ${referenceMetadata.title}
 - Authors: ${referenceMetadata.authors || 'Not specified'}
 - Year: ${referenceMetadata.year || 'Not specified'}
+- Source: ${isAbstractOnly ? 'ABSTRACT ONLY (no full text available)' : 'FULL TEXT'}
 
-Extract the following information from the full text:
+${isAbstractOnly ? '⚠️ IMPORTANT: You are analyzing ONLY the abstract. Extract what you can, but indicate when information is not available in the abstract.' : ''}
+
+Extract the following information from the ${sourceType}:
 
 1. Study Type: (e.g., Empirical study, Survey, Case study, Literature review, Theoretical)
 2. Research Context: (e.g., Industry, Academia, Healthcare, Software development)
@@ -67,7 +71,8 @@ Respond ONLY with valid JSON in this exact format:
 Do NOT add any text before or after the JSON. Extract factual information only, do not interpret or evaluate.`;
 
     try {
-      const response = await this.aiService.generateText(prompt, pdfText.substring(0, 6000));
+      const textToAnalyze = text.substring(0, 6000);
+      const response = await this.aiService.generateText(prompt, textToAnalyze);
       
       // Limpiar respuesta y parsear JSON
       let cleanedResponse = response.trim();
@@ -100,7 +105,8 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
   }
 
   /**
-   * Procesa un PDF individual
+   * Procesa un PDF individual o abstract si no hay PDF
+   * Según instrucción del tutor: si no hay PDF, analizar solo el abstract
    */
   async processSinglePDF(referenceId, projectId) {
     try {
@@ -115,42 +121,64 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
         throw new Error('La referencia no pertenece al proyecto especificado');
       }
 
-      // 2. Verificar que hay PDF cargado
-      if (!reference.pdfPath) {
-        throw new Error('La referencia no tiene PDF asociado');
+      let textToAnalyze;
+      let isAbstractOnly = false;
+      let source;
+
+      // 2. Verificar si hay PDF cargado
+      if (reference.pdfPath) {
+        const fullPath = path.resolve(__dirname, '../../../', reference.pdfPath);
+        
+        if (fs.existsSync(fullPath)) {
+          // Caso 1: Hay PDF completo disponible
+          console.log(`📄 Extrayendo texto completo de: ${reference.title}`);
+          textToAnalyze = await this.extractTextFromPDF(fullPath);
+          source = 'full_text';
+        } else {
+          // PDF path existe pero archivo no encontrado, usar abstract
+          console.log(`⚠️ PDF no encontrado, analizando abstract de: ${reference.title}`);
+          textToAnalyze = reference.abstract || '';
+          isAbstractOnly = true;
+          source = 'abstract_only';
+        }
+      } else {
+        // Caso 2: No hay PDF, analizar solo abstract (instrucción del tutor)
+        console.log(`📝 No hay PDF, analizando abstract de: ${reference.title}`);
+        textToAnalyze = reference.abstract || '';
+        isAbstractOnly = true;
+        source = 'abstract_only';
+        
+        if (!textToAnalyze) {
+          throw new Error('La referencia no tiene PDF ni abstract disponible');
+        }
       }
 
-      const fullPath = path.resolve(__dirname, '../../../', reference.pdfPath);
-      
-      if (!fs.existsSync(fullPath)) {
-        throw new Error(`Archivo PDF no encontrado: ${fullPath}`);
-      }
-
-      // 3. Extraer texto del PDF
-      console.log(`📄 Extrayendo texto de: ${reference.title}`);
-      const pdfText = await this.extractTextFromPDF(fullPath);
-
-      // 4. Extraer datos estructurados con IA
-      console.log(`🤖 Analizando contenido con IA...`);
-      const structuredData = await this.extractStructuredData(pdfText, {
+      // 3. Extraer datos estructurados con IA
+      console.log(`🤖 Analizando ${isAbstractOnly ? 'abstract' : 'texto completo'} con IA...`);
+      const structuredData = await this.extractStructuredData(textToAnalyze, {
         title: reference.title,
         authors: reference.authors,
         year: reference.year
-      });
+      }, isAbstractOnly);
 
-      // 5. Guardar datos extraídos en la referencia
+      // Agregar metadata sobre la fuente
+      structuredData.source = source;
+      structuredData.analyzed_from = isAbstractOnly ? 'abstract' : 'full_text';
+
+      // 4. Guardar datos extraídos en la referencia
       await this.referenceRepository.update(referenceId, {
         fullTextData: JSON.stringify(structuredData),
         fullTextExtracted: true,
         fullTextExtractedAt: new Date()
       });
 
-      console.log(`✅ Datos extraídos exitosamente de: ${reference.title}`);
+      console.log(`✅ Datos extraídos exitosamente de: ${reference.title} (${source})`);
 
       return {
         success: true,
         referenceId,
         title: reference.title,
+        source,
         extractedData: structuredData
       };
 
@@ -161,31 +189,35 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
   }
 
   /**
-   * Procesa todos los PDFs de referencias incluidas en un proyecto
+   * Procesa todos los PDFs o abstracts de referencias incluidas en un proyecto
+   * Según instrucción del tutor: si no hay PDF, analizar abstract
    */
   async processProjectPDFs(projectId) {
     try {
-      // 1. Obtener todas las referencias incluidas con PDF
+      // 1. Obtener todas las referencias incluidas (con o sin PDF)
       const references = await this.referenceRepository.findByProject(projectId);
       
       const includedReferences = references.filter(ref => 
         (ref.screeningStatus === 'included' || 
          ref.screeningStatus === 'fulltext_included') &&
-        ref.pdfPath
+        (ref.pdfPath || ref.abstract) // Acepta con PDF o con abstract
       );
 
       if (includedReferences.length === 0) {
         return {
           success: true,
-          message: 'No hay referencias incluidas con PDFs para procesar',
+          message: 'No hay referencias incluidas con PDFs o abstracts para procesar',
           processed: 0,
           results: []
         };
       }
 
-      console.log(`📚 Procesando ${includedReferences.length} PDFs...`);
+      const withPDF = includedReferences.filter(ref => ref.pdfPath).length;
+      const abstractOnly = includedReferences.length - withPDF;
 
-      // 2. Procesar cada PDF secuencialmente (evitar rate limits)
+      console.log(`📚 Procesando ${includedReferences.length} referencias (${withPDF} con PDF completo, ${abstractOnly} solo abstract)...`);
+
+      // 2. Procesar cada referencia secuencialmente (evitar rate limits)
       const results = [];
       let processed = 0;
       let errors = 0;
@@ -211,12 +243,16 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
       }
 
       console.log(`✅ Procesamiento completo: ${processed} exitosos, ${errors} errores`);
+      console.log(`   - Con PDF completo: ${withPDF}`);
+      console.log(`   - Solo abstract: ${abstractOnly}`);
 
       return {
         success: true,
         total: includedReferences.length,
         processed,
         errors,
+        withFullText: withPDF,
+        abstractOnly: abstractOnly,
         results
       };
 

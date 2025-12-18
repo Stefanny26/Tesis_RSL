@@ -352,25 +352,28 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
       setIsExtractingPDFs(true)
       
       toast({
-        title: "Procesando PDFs",
-        description: "Esto puede tomar varios minutos dependiendo del número de referencias...",
+        title: "Procesando referencias incluidas",
+        description: "Analizando PDFs completos y abstracts cuando no hay PDF. Esto puede tomar varios minutos...",
       })
       
       const response = await apiClient.extractPDFsData(params.id)
       
       setExtractionResult(response.data)
       
+      const withFullText = response.data.withFullText || 0
+      const abstractOnly = response.data.abstractOnly || 0
+      
       toast({
-        title: "PDFs procesados exitosamente",
-        description: `${response.data.processed} PDFs analizados de ${response.data.total}`,
+        title: "Referencias analizadas exitosamente",
+        description: `${response.data.processed} referencias procesadas: ${withFullText} con PDF completo, ${abstractOnly} solo abstract`,
       })
       
       console.log('✅ Resultado de extracción:', response.data)
     } catch (error: any) {
       console.error('❌ Error procesando PDFs:', error)
       toast({
-        title: "Error al procesar PDFs",
-        description: error.message || "No se pudieron procesar los PDFs. Verifica que haya PDFs cargados.",
+        title: "Error al procesar referencias",
+        description: error.message || "No se pudieron procesar las referencias. Verifica que haya PDFs o abstracts disponibles.",
         variant: "destructive"
       })
     } finally {
@@ -568,7 +571,9 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
             <Alert className="bg-blue-50 border-blue-200">
               <Info className="h-5 w-5 text-blue-600" />
               <AlertDescription className="text-sm">
-                <strong>✓ {extractionResult.processed} PDFs analizados</strong> - Datos estructurados extraídos exitosamente. 
+                <strong>✓ {extractionResult.processed} referencias analizadas</strong> - Datos estructurados extraídos exitosamente.
+                {extractionResult.withFullText > 0 && ` ${extractionResult.withFullText} con PDF completo`}
+                {extractionResult.abstractOnly > 0 && `, ${extractionResult.abstractOnly} solo abstract`}
                 {extractionResult.errors > 0 && ` (${extractionResult.errors} errores)`}
               </AlertDescription>
             </Alert>
@@ -606,12 +611,12 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
                   {isExtractingPDFs ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analizando PDFs...
+                      Analizando referencias...
                     </>
                   ) : (
                     <>
                       <FileDown className="mr-2 h-4 w-4" />
-                      Analizar PDFs Completos
+                      Analizar Referencias
                     </>
                   )}
                 </Button>
