@@ -154,3 +154,5 @@ router.post(
   (req, res) => prismaController.completeItems(req, res)
 );
 
+module.exports = router;
+
