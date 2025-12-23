@@ -1,13 +1,19 @@
 #!/bin/bash
-# Script para ejecutar todas las migraciones en Railway
-# Ejecutar desde Railway CLI o manualmente
+# Script de migración rápida para Railway - Nueva versión con Node.js
+echo "🚀 Ejecutando migración de producción..."
 
-echo "🚀 Iniciando migraciones de base de datos..."
+# Ejecutar el script de migración de Node.js
+node scripts/deployment/migrate-production.js
 
-# Lista de scripts en orden
-scripts=(
-  "01-create-users-table.sql"
-  "02-create-projects-table.sql"
+# Verificar el resultado
+if [ $? -eq 0 ]; then
+    echo "✅ Migración completada exitosamente"
+    echo "🚀 Listo para iniciar servidor"
+    exit 0
+else
+    echo "❌ Error en la migración"
+    exit 1
+fi
   "03-create-project-members-table.sql"
   "04-create-protocols-table.sql"
   "05-create-references-table.sql"

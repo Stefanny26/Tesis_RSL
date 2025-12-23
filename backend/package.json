@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "node postinstall.js"
+    "postinstall": "node postinstall.js",
+    "migrate": "node scripts/deployment/migrate-production.js",
+    "migrate:prod": "node scripts/deployment/migrate-production.js"
   },
   "keywords": [
     "systematic-review",
