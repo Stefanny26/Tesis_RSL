@@ -156,9 +156,9 @@ export function PicoMatrixStep() {
       </div>
 
       {/* Texto Introductorio */}
-      <Alert className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
+      <Alert className="border-blue-300 dark:border-blue-700">
         <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-        <AlertDescription className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
+        <AlertDescription className="text-sm text-foreground leading-relaxed">
           <p className="font-semibold mb-2">📊 Análisis Preliminar Integrado</p>
           <p>
             En esta sección se genera el <strong>análisis preliminar del tema</strong> mediante la integración del{' '}
@@ -174,48 +174,56 @@ export function PicoMatrixStep() {
       </Alert>
 
       {/* AI Generation Panel */}
-      <Card className="border-primary/30 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-200 dark:border-purple-800">
+      <Card className="border-2 border-primary/20">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <CardTitle className="dark:text-blue-100">Generar automáticamente con IA</CardTitle>
+            <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <CardTitle className="text-foreground">Generar automáticamente con IA</CardTitle>
           </div>
-          <CardDescription className="dark:text-blue-200">
+          <CardDescription className="text-muted-foreground">
             La IA analizará tu propuesta y generará la tabla unificada PICO + Es/No Es
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            <Label className="text-base font-semibold">Selecciona el modelo de IA:</Label>
+            <Label className="text-base font-semibold text-foreground">Selecciona el modelo de IA:</Label>
             <RadioGroup
               value={selectedAI}
               onValueChange={(value) => setSelectedAI(value as 'chatgpt' | 'gemini')}
               className="flex flex-col space-y-3"
               disabled={isGenerating}
             >
-              <div className="flex items-center space-x-3 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 cursor-pointer">
+              <div className={`flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
+                selectedAI === 'chatgpt' 
+                  ? 'border-blue-500 dark:border-blue-500 bg-muted shadow-sm' 
+                  : 'border-border hover:bg-muted/50'
+              }`}>
                 <RadioGroupItem value="chatgpt" id="chatgpt" />
                 <Label 
                   htmlFor="chatgpt" 
                   className="flex items-center gap-2 cursor-pointer flex-1"
                 >
-                  <Brain className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                  <span className="font-medium">ChatGPT (GPT-4o-mini)</span>
-                  <span className="ml-auto px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs rounded">
+                  <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <span className="font-medium text-foreground">ChatGPT (GPT-4o-mini)</span>
+                  <span className="ml-auto px-2 py-1 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs rounded font-medium">
                     Por defecto
                   </span>
                 </Label>
               </div>
               
-              <div className="flex items-center space-x-3 rounded-lg border border-blue-200 dark:border-blue-800 p-4 hover:bg-blue-50 dark:hover:bg-blue-950/30 cursor-pointer">
+              <div className={`flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
+                selectedAI === 'gemini' 
+                  ? 'border-green-500 dark:border-green-500 bg-muted shadow-sm' 
+                  : 'border-border hover:bg-muted/50'
+              }`}>
                 <RadioGroupItem value="gemini" id="gemini" />
                 <Label 
                   htmlFor="gemini" 
                   className="flex items-center gap-2 cursor-pointer flex-1"
                 >
-                  <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  <span className="font-medium">Gemini (gemini-2.0-flash-exp)</span>
-                  <span className="ml-auto px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded">
+                  <Zap className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <span className="font-medium text-foreground">Gemini (gemini-2.0-flash-exp)</span>
+                  <span className="ml-auto px-2 py-1 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 text-xs rounded font-medium">
                     Rápido
                   </span>
                 </Label>
@@ -258,14 +266,14 @@ export function PicoMatrixStep() {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className="border-b-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
-                      <th className="text-left p-4 font-semibold text-blue-900 dark:text-blue-100 w-1/4">
+                    <tr className="border-b-2 bg-muted">
+                      <th className="text-left p-4 font-semibold text-foreground w-1/4">
                         Componente PICO
                       </th>
-                      <th className="text-left p-4 font-semibold text-blue-900 dark:text-blue-100 w-1/3">
+                      <th className="text-left p-4 font-semibold text-foreground w-1/3">
                         Contenido Generado por IA
                       </th>
-                      <th className="text-left p-4 font-semibold text-blue-900 dark:text-blue-100 w-5/12">
+                      <th className="text-left p-4 font-semibold text-foreground w-5/12">
                         Justificación (Es / No Es)
                       </th>
                     </tr>
@@ -321,9 +329,9 @@ export function PicoMatrixStep() {
                 </table>
               </div>
 
-              <Alert className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 border-amber-200 dark:border-amber-800">
+              <Alert className="border-amber-300 dark:border-amber-700">
                 <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                <AlertDescription className="text-sm text-amber-900 dark:text-amber-100">
+                <AlertDescription className="text-sm text-foreground">
                   <p className="font-semibold mb-1">⭐ Nota Metodológica:</p>
                   <p>
                     El marco PICO se realizó integrando la matriz Es/No Es con otros marcos metodológicos, 

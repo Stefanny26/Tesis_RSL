@@ -68,37 +68,37 @@ export function HybridScreeningStats({ result }: HybridScreeningStatsProps) {
               <BarChart3 className="h-4 w-4 text-purple-600" />
               <h4 className="font-semibold text-sm">Fase 1: Embeddings</h4>
             </div>
-            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+            <Badge variant="outline" className="border-primary/30">
               🤖 Análisis masivo
             </Badge>
           </div>
           
           <div className="grid grid-cols-3 gap-2">
-            <div className="bg-green-50 border border-green-200 rounded-md p-3">
-              <div className="flex items-center gap-1 text-green-700 mb-1">
+            <div className="border border-primary/20 rounded-md p-3">
+              <div className="flex items-center gap-1 text-green-600 dark:text-green-400 mb-1">
                 <CheckCircle className="h-3 w-3" />
                 <span className="text-xs font-medium">Alta confianza +</span>
               </div>
-              <p className="text-xl font-bold text-green-900">{phase1.highConfidenceInclude}</p>
-              <p className="text-xs text-green-600">Similitud &gt;30%</p>
+              <p className="text-xl font-bold text-foreground">{phase1.highConfidenceInclude}</p>
+              <p className="text-xs text-muted-foreground">Similitud &gt;30%</p>
             </div>
             
-            <div className="bg-red-50 border border-red-200 rounded-md p-3">
-              <div className="flex items-center gap-1 text-red-700 mb-1">
+            <div className="border border-primary/20 rounded-md p-3">
+              <div className="flex items-center gap-1 text-red-600 dark:text-red-400 mb-1">
                 <XCircle className="h-3 w-3" />
                 <span className="text-xs font-medium">Alta confianza -</span>
               </div>
-              <p className="text-xl font-bold text-red-900">{phase1.highConfidenceExclude}</p>
-              <p className="text-xs text-red-600">Similitud &lt;10%</p>
+              <p className="text-xl font-bold text-foreground">{phase1.highConfidenceExclude}</p>
+              <p className="text-xs text-muted-foreground">Similitud &lt;10%</p>
             </div>
             
-            <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-              <div className="flex items-center gap-1 text-amber-700 mb-1">
+            <div className="border border-primary/20 rounded-md p-3">
+              <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 mb-1">
                 <AlertCircle className="h-3 w-3" />
                 <span className="text-xs font-medium">Zona gris</span>
               </div>
-              <p className="text-xl font-bold text-amber-900">{phase1.greyZone}</p>
-              <p className="text-xs text-amber-600">10-30%</p>
+              <p className="text-xl font-bold text-foreground">{phase1.greyZone}</p>
+              <p className="text-xs text-muted-foreground">10-30%</p>
             </div>
           </div>
 
@@ -117,17 +117,17 @@ export function HybridScreeningStats({ result }: HybridScreeningStatsProps) {
               <Brain className="h-4 w-4 text-blue-600" />
               <h4 className="font-semibold text-sm">Fase 2: ChatGPT</h4>
             </div>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+            <Badge variant="outline" className="border-primary/30">
               🧠 Análisis experto
             </Badge>
           </div>
           
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+          <div className="border border-primary/20 rounded-md p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-900">Referencias analizadas</span>
-              <span className="text-2xl font-bold text-blue-900">{phase2.analyzed}</span>
+              <span className="text-sm font-medium text-foreground">Referencias analizadas</span>
+              <span className="text-2xl font-bold text-foreground">{phase2.analyzed}</span>
             </div>
-            <p className="text-xs text-blue-600">
+            <p className="text-xs text-muted-foreground">
               Solo las referencias de la zona gris fueron enviadas a ChatGPT para análisis profundo con el protocolo PICO
             </p>
           </div>
@@ -155,35 +155,35 @@ export function HybridScreeningStats({ result }: HybridScreeningStatsProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                 <span>Incluidas</span>
               </div>
-              <span className="font-bold text-green-600">{summary.included} ({includedPercentage}%)</span>
+              <span className="font-bold text-green-600 dark:text-green-400">{summary.included} ({includedPercentage}%)</span>
             </div>
-            <Progress value={includedPercentage} className="h-2 bg-green-100 [&>div]:bg-green-600" />
+            <Progress value={includedPercentage} className="h-2" />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
-                <XCircle className="h-4 w-4 text-red-600" />
+                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                 <span>Excluidas</span>
               </div>
-              <span className="font-bold text-red-600">{summary.excluded} ({excludedPercentage}%)</span>
+              <span className="font-bold text-red-600 dark:text-red-400">{summary.excluded} ({excludedPercentage}%)</span>
             </div>
-            <Progress value={excludedPercentage} className="h-2 bg-red-100 [&>div]:bg-red-600" />
+            <Progress value={excludedPercentage} className="h-2" />
           </div>
 
           {summary.reviewManual > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   <span>Revisión manual</span>
                 </div>
-                <span className="font-bold text-amber-600">{summary.reviewManual} ({reviewPercentage}%)</span>
+                <span className="font-bold text-amber-600 dark:text-amber-400">{summary.reviewManual} ({reviewPercentage}%)</span>
               </div>
-              <Progress value={reviewPercentage} className="h-2 bg-amber-100 [&>div]:bg-amber-600" />
+              <Progress value={reviewPercentage} className="h-2" />
             </div>
           )}
         </div>

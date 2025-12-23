@@ -88,30 +88,38 @@ class Protocol {
 
   /**
    * Convierte a formato snake_case para PostgreSQL
+   * Maneja correctamente la serialización de arrays/objetos a JSONB
    */
   toDatabase() {
+    // Helper para serializar solo si no es ya un string
+    const safeStringify = (value) => {
+      if (value === null || value === undefined) return null;
+      if (typeof value === 'string') return value; // Ya es string, no re-serializar
+      return JSON.stringify(value);
+    };
+
     return {
       id: this.id,
       project_id: this.projectId,
       proposed_title: this.proposedTitle,
-      is_matrix: JSON.stringify(this.isMatrix),
-      is_not_matrix: JSON.stringify(this.isNotMatrix),
+      is_matrix: safeStringify(this.isMatrix),
+      is_not_matrix: safeStringify(this.isNotMatrix),
       refined_question: this.refinedQuestion,
       population: this.population,
       intervention: this.intervention,
       comparison: this.comparison,
       outcomes: this.outcomes,
-      inclusion_criteria: JSON.stringify(this.inclusionCriteria),
-      exclusion_criteria: JSON.stringify(this.exclusionCriteria),
-      databases: JSON.stringify(this.databases),
+      inclusion_criteria: safeStringify(this.inclusionCriteria),
+      exclusion_criteria: safeStringify(this.exclusionCriteria),
+      databases: safeStringify(this.databases),
       search_string: this.searchString,
-      search_queries: JSON.stringify(this.searchQueries),
-      temporal_range: JSON.stringify(this.temporalRange),
-      key_terms: JSON.stringify(this.keyTerms),
-      prisma_compliance: JSON.stringify(this.prismaCompliance),
+      search_queries: safeStringify(this.searchQueries),
+      temporal_range: safeStringify(this.temporalRange),
+      key_terms: safeStringify(this.keyTerms),
+      prisma_compliance: safeStringify(this.prismaCompliance),
       prisma_locked: this.prismaLocked,
       prisma_completed_at: this.prismaCompletedAt,
-      screening_results: this.screeningResults ? JSON.stringify(this.screeningResults) : null,
+      screening_results: safeStringify(this.screeningResults),
       fase2_unlocked: this.fase2Unlocked,
       completed: this.completed,
       created_at: this.createdAt,

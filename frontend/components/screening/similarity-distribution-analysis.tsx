@@ -193,29 +193,29 @@ export function SimilarityDistributionAnalysis({
             </div>
 
             {/* Punto de Corte Recomendado */}
-            <Alert className="bg-green-50 border-green-200">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-900">
+            <Alert className="border-green-300 dark:border-green-700">
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <AlertDescription className="text-foreground">
                 <div className="space-y-3">
                   <div>
                     <p className="font-semibold text-base">🎯 Umbral Óptimo Encontrado (Elbow Point)</p>
-                    <p className="text-xs text-green-700 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Este es el punto de inflexión donde la relación calidad/cantidad es óptima
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-3">
-                    <div className="bg-white/50 p-3 rounded-lg">
+                    <div className="bg-muted/30 p-3 rounded-lg">
                       <p className="text-sm text-muted-foreground">📊 Umbral Recomendado</p>
-                      <p className="text-3xl font-bold text-green-700 mt-1">
+                      <p className="text-3xl font-bold text-green-700 dark:text-green-400 mt-1">
                         {(analysis.recommendedCutoff.threshold * 100).toFixed(2)}%
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Artículos con similitud ≥ este valor serán incluidos
                       </p>
                     </div>
-                    <div className="bg-white/50 p-3 rounded-lg">
+                    <div className="bg-muted/30 p-3 rounded-lg">
                       <p className="text-sm text-muted-foreground">📚 Artículos a Revisar</p>
-                      <p className="text-3xl font-bold text-green-700 mt-1">
+                      <p className="text-3xl font-bold text-green-700 dark:text-green-400 mt-1">
                         {analysis.recommendedCutoff.articlesToReview}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -223,8 +223,8 @@ export function SimilarityDistributionAnalysis({
                       </p>
                     </div>
                   </div>
-                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-3">
-                    <p className="text-xs text-blue-900">
+                  <div className="bg-muted/30 p-3 rounded-lg border border-primary/20 mt-3">
+                    <p className="text-xs text-foreground">
                       <strong>💡 ¿Cómo se calculó?</strong> El algoritmo analizó la curva de similitudes 
                       y encontró el punto donde la "ganancia" de incluir más artículos disminuye significativamente. 
                       Este es el balance ideal entre <strong>exhaustividad</strong> (no perder artículos relevantes) 
@@ -264,9 +264,9 @@ export function SimilarityDistributionAnalysis({
               <AlertDescription>
                 <p className="font-semibold mb-2">💡 Cómo Usar Este Análisis:</p>
                 <div className="space-y-3 text-sm">
-                  <div className="bg-green-50 p-3 rounded border border-green-200">
-                    <p className="font-semibold text-green-800">✅ Zona Verde (Alta Confianza)</p>
-                    <p className="text-green-700 mt-1">
+                  <div className="border border-green-300 dark:border-green-700 p-3 rounded">
+                    <p className="font-semibold text-green-800 dark:text-green-400">✅ Zona Verde (Alta Confianza)</p>
+                    <p className="text-foreground mt-1">
                       <strong>Similitud {'>'} {(analysis.statistics.percentile90 * 100).toFixed(0)}% (Top 10%)</strong>
                       <br />
                       → Estos artículos son MUY similares a tu protocolo. Revísalos primero.
@@ -275,9 +275,9 @@ export function SimilarityDistributionAnalysis({
                     </p>
                   </div>
                   
-                  <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
-                    <p className="font-semibold text-yellow-800">⚠️ Zona Gris (Revisar Manualmente)</p>
-                    <p className="text-yellow-700 mt-1">
+                  <div className="border border-yellow-300 dark:border-yellow-700 p-3 rounded">
+                    <p className="font-semibold text-yellow-800 dark:text-yellow-400">⚠️ Zona Gris (Revisar Manualmente)</p>
+                    <p className="text-foreground mt-1">
                       <strong>Similitud entre {(analysis.statistics.percentile25 * 100).toFixed(0)}% 
                       y {(analysis.recommendedCutoff.threshold * 100).toFixed(0)}%</strong>
                       <br />
@@ -287,9 +287,9 @@ export function SimilarityDistributionAnalysis({
                     </p>
                   </div>
                   
-                  <div className="bg-red-50 p-3 rounded border border-red-200">
-                    <p className="font-semibold text-red-800">❌ Zona Roja (Baja Confianza)</p>
-                    <p className="text-red-700 mt-1">
+                  <div className="border border-red-300 dark:border-red-700 p-3 rounded">
+                    <p className="font-semibold text-red-800 dark:text-red-400">❌ Zona Roja (Baja Confianza)</p>
+                    <p className="text-foreground mt-1">
                       <strong>Similitud {'<'} {(analysis.recommendedCutoff.threshold * 100).toFixed(0)}%</strong>
                       <br />
                       → Artículos con baja similitud al protocolo.
@@ -298,8 +298,8 @@ export function SimilarityDistributionAnalysis({
                     </p>
                   </div>
 
-                  <div className="bg-blue-50 p-3 rounded border border-blue-200 mt-3">
-                    <p className="text-xs text-blue-900">
+                  <div className="border border-primary/30 p-3 rounded mt-3">
+                    <p className="text-xs text-foreground">
                       <strong>🎯 Paso siguiente:</strong> Aplica el umbral recomendado de{' '}
                       <strong>{(analysis.recommendedCutoff.threshold * 100).toFixed(2)}%</strong> en 
                       el panel de "Cribado Automatico con IA" para clasificar tus {analysis.totalReferences} referencias 
@@ -348,9 +348,13 @@ function StatCard({
   highlight?: boolean
 }) {
   return (
-    <div className={`p-3 rounded-lg border ${highlight ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'}`}>
+    <div className={`p-3 rounded-lg border ${
+      highlight ? 'border-blue-300 dark:border-blue-700' : 'border-primary/20'
+    }`}>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-lg font-semibold ${highlight ? 'text-blue-700' : ''}`}>
+      <p className={`text-lg font-semibold ${
+        highlight ? 'text-blue-700 dark:text-blue-400' : 'text-foreground'
+      }`}>
         {value}
       </p>
       {description && (
@@ -375,16 +379,16 @@ function ThresholdRow({
 }) {
   return (
     <div className={`flex items-center justify-between p-3 rounded-lg border ${
-      isRecommended ? 'bg-green-50 border-green-300' : 'bg-gray-50'
+      isRecommended ? 'border-green-300 dark:border-green-700' : 'border-primary/20'
     }`}>
       <div className="flex items-center gap-3">
         <span className={`font-mono text-sm font-semibold ${
-          isRecommended ? 'text-green-700' : ''
+          isRecommended ? 'text-green-700 dark:text-green-400' : 'text-foreground'
         }`}>
           {(threshold * 100).toFixed(0)}%
         </span>
         {isRecommended && (
-          <Badge variant="default" className="bg-green-600">Recomendado</Badge>
+          <Badge variant="default" className="bg-green-600 dark:bg-green-700">Recomendado</Badge>
         )}
       </div>
       <div className="flex items-center gap-6 text-sm">

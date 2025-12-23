@@ -139,13 +139,7 @@ export function ReferenceTable({ references, onStatusChange, onDelete, selectedI
                         {reference.aiReasoning && (
                           <Badge 
                             variant="outline" 
-                            className={`text-[10px] ${
-                              reference.aiReasoning.includes('🤖 Embeddings') && reference.aiReasoning.includes('🧠 CHATGPT')
-                                ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                : reference.aiReasoning.includes('🧠 CHATGPT')
-                                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                : 'bg-gray-50 text-gray-700 border-gray-200'
-                            }`}
+                            className="text-[10px]"
                           >
                             {reference.aiReasoning.includes('🤖 Embeddings') && reference.aiReasoning.includes('🧠 CHATGPT')
                               ? '🔀 Híbrido'
@@ -167,10 +161,10 @@ export function ReferenceTable({ references, onStatusChange, onDelete, selectedI
                           variant="outline" 
                           className={`text-[10px] ${
                             reference.aiClassification === 'include'
-                              ? 'bg-green-50 text-green-700 border-green-200'
+                              ? 'border-green-300 dark:border-green-700 text-green-700 dark:text-green-400'
                               : reference.aiClassification === 'exclude'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                              ? 'border-red-300 dark:border-red-700 text-red-700 dark:text-red-400'
+                              : 'border-yellow-300 dark:border-yellow-700 text-yellow-700 dark:text-yellow-400'
                           }`}
                         >
                           {reference.aiClassification === 'include'

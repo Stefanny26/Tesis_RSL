@@ -17,29 +17,29 @@ export function ContentTypeBadge({ contentType, dataSource, className }: Content
       label: "Automatizado",
       icon: Bot,
       variant: "default" as const,
-      color: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-200",
-      tooltip: "Contenido generado automáticamente desde datos del sistema. Declarado como 'AI-assisted' en cumplimiento metodológico PRISMA."
+      color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300",
+      tooltip: "Contenido generado automáticamente desde datos del protocolo y referencias"
     },
     human: {
       label: "Manual",
       icon: User,
       variant: "default" as const,
-      color: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950 dark:text-green-200",
-      tooltip: "Contenido escrito completamente por el investigador. Sin intervención automatizada."
+      color: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300",
+      tooltip: "Contenido escrito manualmente por el investigador"
     },
     hybrid: {
       label: "Híbrido",
       icon: UserCog,
       variant: "default" as const,
-      color: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950 dark:text-purple-200",
-      tooltip: "Contenido generado automáticamente y posteriormente editado/validado por el investigador. Decisión final: humana."
+      color: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300",
+      tooltip: "Contenido generado automáticamente y editado por el investigador"
     },
     pending: {
       label: "Pendiente",
       icon: Clock,
       variant: "outline" as const,
-      color: "bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-400",
-      tooltip: "Ítem pendiente de completar. Requiere contenido o validación."
+      color: "bg-gray-50 text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-400",
+      tooltip: "Ítem pendiente de completar"
     }
   }
 

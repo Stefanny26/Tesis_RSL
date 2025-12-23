@@ -124,7 +124,8 @@ class PrismaItemRepository {
    * Crear o actualizar múltiples ítems PRISMA en batch
    */
   async upsertBatch(prismaItems) {
-    const client = await database.getClient();
+    const pool = database.getPool();
+    const client = await pool.connect();
     
     try {
       await client.query('BEGIN');

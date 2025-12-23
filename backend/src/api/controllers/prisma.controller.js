@@ -493,10 +493,16 @@ class PrismaController {
         projectRepository: this.projectRepository
       });
 
+      const extractFullTextUseCase = new ExtractFullTextDataUseCase({
+        referenceRepository: this.referenceRepository,
+        aiService: this.aiService
+      });
+
       const completeItemsUseCase = new CompletePrismaItemsUseCase({
         protocolRepository: this.protocolRepository,
         aiService: this.aiService,
-        generatePrismaContextUseCase: generateContextUseCase
+        generatePrismaContextUseCase: generateContextUseCase,
+        extractFullTextDataUseCase: extractFullTextUseCase
       });
 
       const result = await completeItemsUseCase.execute(projectId);

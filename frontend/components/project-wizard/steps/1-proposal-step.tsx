@@ -32,9 +32,9 @@ export function ProposalStep() {
         </p>
       </div>
 
-      <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+      <Alert className="border-blue-200 dark:border-blue-800">
         <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertDescription className="text-blue-900 dark:text-blue-100">
+        <AlertDescription className="text-foreground">
           No necesitas tener todo definido ahora. Solo proporciona una descripción básica 
           y el asistente te ayudará a estructurar tu protocolo completo.
         </AlertDescription>

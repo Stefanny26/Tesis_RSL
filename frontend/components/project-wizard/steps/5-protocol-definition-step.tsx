@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Sparkles, Loader2, Wrench, Microscope, Focus, Check, X, Pencil, RefreshCw } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 
@@ -67,43 +67,6 @@ export function ProtocolDefinitionStep() {
     focosTematicos: data.protocolTerms?.focosTematicos || []
   }
 
-  // Efecto para filtrar términos descartados INMEDIATAMENTE cuando cambian
-  useEffect(() => {
-    const hasDiscarded = 
-      discardedTerms.tecnologia.size > 0 ||
-      discardedTerms.dominio.size > 0 ||
-      discardedTerms.tipoEstudio.size > 0 ||
-      discardedTerms.focosTematicos.size > 0
-    
-    if (hasDiscarded && protocolTerms.tecnologia.length > 0) {
-      console.log('🗑️ Filtrando términos descartados:', {
-        tecnologia: discardedTerms.tecnologia.size,
-        dominio: discardedTerms.dominio.size,
-        tipoEstudio: discardedTerms.tipoEstudio.size,
-        focosTematicos: discardedTerms.focosTematicos.size
-      })
-      
-      const filteredTerms = {
-        tecnologia: protocolTerms.tecnologia.filter((_, i) => !discardedTerms.tecnologia.has(i)),
-        dominio: protocolTerms.dominio.filter((_, i) => !discardedTerms.dominio.has(i)),
-        tipoEstudio: protocolTerms.tipoEstudio.filter((_, i) => !discardedTerms.tipoEstudio.has(i)),
-        focosTematicos: protocolTerms.focosTematicos.filter((_, i) => !discardedTerms.focosTematicos.has(i))
-      }
-      
-      console.log('✅ Términos filtrados:', filteredTerms)
-      
-      updateData({ 
-        protocolTerms: filteredTerms,
-        protocolDefinition: {
-          technologies: filteredTerms.tecnologia,
-          applicationDomain: filteredTerms.dominio,
-          studyType: filteredTerms.tipoEstudio,
-          thematicFocus: filteredTerms.focosTematicos
-        }
-      })
-    }
-  }, [discardedTerms]) // Ejecutar cuando cambien los términos descartados
-
   const toggleConfirmTerm = (field: keyof typeof protocolTerms, index: number) => {
     setConfirmedTerms(prev => {
       const newSet = new Set(prev[field])
@@ -112,14 +75,19 @@ export function ProtocolDefinitionStep() {
       } else {
         newSet.add(index)
       }
-      return { ...prev, [field]: newSet }
+      const newConfirmed = { ...prev, [field]: newSet }
+      // Guardar en el contexto del wizard
+      updateData({ confirmedTerms: newConfirmed })
+      return newConfirmed
     })
     
     // Si confirmamos un término, quitarlo de descartados
     setDiscardedTerms(prev => {
       const newSet = new Set(prev[field])
       newSet.delete(index)
-      return { ...prev, [field]: newSet }
+      const newDiscarded = { ...prev, [field]: newSet }
+      updateData({ discardedTerms: newDiscarded })
+      return newDiscarded
     })
   }
 
@@ -200,15 +168,6 @@ export function ProtocolDefinitionStep() {
     })
   }
 
-  const removeArrayItem = (field: keyof typeof protocolTerms, index: number) => {
-    updateData({
-      protocolTerms: {
-        ...protocolTerms,
-        [field]: protocolTerms[field].filter((_, i) => i !== index)
-      }
-    })
-  }
-
   const toggleDiscardTerm = (field: keyof typeof protocolTerms, index: number) => {
     setDiscardedTerms(prev => {
       const newSet = new Set(prev[field])
@@ -217,14 +176,20 @@ export function ProtocolDefinitionStep() {
       } else {
         newSet.add(index)
       }
-      return { ...prev, [field]: newSet }
+      const newDiscarded = { ...prev, [field]: newSet }
+      // Guardar en el contexto del wizard
+      updateData({ discardedTerms: newDiscarded })
+      return newDiscarded
     })
     
     // Si descartamos un término, quitarlo de confirmados
     setConfirmedTerms(prev => {
       const newSet = new Set(prev[field])
       newSet.delete(index)
-      return { ...prev, [field]: newSet }
+      const newConfirmed = { ...prev, [field]: newSet }
+      // Guardar en el contexto del wizard
+      updateData({ confirmedTerms: newConfirmed })
+      return newConfirmed
     })
   }
 
@@ -320,14 +285,21 @@ export function ProtocolDefinitionStep() {
         <p className="text-lg text-muted-foreground">
           Rellena la parte inicial del protocolo con la definición de los términos clave
         </p>
+        <div className="border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-4">
+          <p className="text-sm text-foreground">
+            <strong>Instrucciones:</strong> Usa el botón <Check className="inline h-4 w-4 text-green-600" /> para confirmar términos que incluirás en tu protocolo, 
+            y el botón <X className="inline h-4 w-4 text-red-600" /> para marcar términos como rechazados (se mostrarán tachados pero no se eliminarán). 
+            Debes confirmar al menos un término para continuar al siguiente paso.
+          </p>
+        </div>
       </div>
 
       {/* AI Generation Card */}
       {protocolTerms.tecnologia.length === 0 && (
-        <Card className="border-primary/30 bg-gradient-to-r from-purple-50 to-indigo-50">
+        <Card className="border-2 border-primary/20">
           <CardHeader>
-            <CardTitle>Generar Definiciones con IA</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-gray-900 dark:text-gray-100">Generar Definiciones con IA</CardTitle>
+            <CardDescription className="text-gray-700 dark:text-gray-300">
               La IA analizará tu proyecto y generará términos específicos basados en tu tema, PICO y matriz Es/No Es. 
               Los términos estarán personalizados para "{data.projectName}" (no serán ejemplos genéricos).
             </CardDescription>
@@ -361,7 +333,7 @@ export function ProtocolDefinitionStep() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Wrench className="h-5 w-5 text-blue-600" />
-              <CardTitle>🧩 Tecnología / Herramientas</CardTitle>
+              <CardTitle>Tecnología / Herramientas</CardTitle>
             </div>
             {protocolTerms.tecnologia.length > 0 && (
               <Button
@@ -399,14 +371,14 @@ export function ProtocolDefinitionStep() {
                     placeholder="Ej: Object Document Mapping (ODM)"
                     rows={2}
                     disabled={!isEditing}
-                    className={`resize-none transition-all pr-12 ${
+                    className={`resize-none transition-all pr-12 disabled:opacity-100 ${
                       isDiscarded
-                        ? 'opacity-40 bg-red-50 dark:bg-red-950/20 line-through'
+                        ? 'opacity-50 bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 line-through !text-red-600 dark:!text-red-400'
                         : isConfirmed
-                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20' 
+                        ? 'border-2 border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-950/30 !text-gray-900 dark:!text-gray-100' 
                         : !isEditing
-                        ? 'cursor-default bg-muted/50'
-                        : ''
+                        ? 'cursor-default bg-muted/50 dark:bg-gray-700 !text-gray-900 dark:!text-gray-200'
+                        : '!text-gray-900 dark:!text-gray-100'
                     }`}
                   />
                   <Button
@@ -433,8 +405,8 @@ export function ProtocolDefinitionStep() {
                     size="icon"
                     variant="ghost"
                     onClick={() => toggleDiscardTerm('tecnologia', index)}
-                    className={isDiscarded ? "bg-red-100 text-red-700" : "text-red-600 hover:text-red-700 hover:bg-red-50"}
-                    title={isDiscarded ? "Restaurar término" : "Descartar término"}
+                    className={isDiscarded ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400" : "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"}
+                    title={isDiscarded ? "Restaurar término rechazado" : "Marcar como rechazado"}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -449,6 +421,13 @@ export function ProtocolDefinitionStep() {
           >
             + Agregar Tecnología
           </Button>
+          {protocolTerms.tecnologia.length > 0 && (
+            <div className="text-sm text-muted-foreground text-center pt-2">
+              {confirmedTerms.tecnologia.size} confirmado{confirmedTerms.tecnologia.size !== 1 ? 's' : ''} · {' '}
+              {discardedTerms.tecnologia.size} rechazado{discardedTerms.tecnologia.size !== 1 ? 's' : ''} · {' '}
+              {protocolTerms.tecnologia.length - confirmedTerms.tecnologia.size - discardedTerms.tecnologia.size} pendiente{(protocolTerms.tecnologia.length - confirmedTerms.tecnologia.size - discardedTerms.tecnologia.size) !== 1 ? 's' : ''}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -458,7 +437,7 @@ export function ProtocolDefinitionStep() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Microscope className="h-5 w-5 text-green-600" />
-              <CardTitle>🧪 Dominio de Aplicación</CardTitle>
+              <CardTitle>Dominio de Aplicación</CardTitle>
             </div>
             {protocolTerms.dominio.length > 0 && (
               <Button
@@ -496,14 +475,14 @@ export function ProtocolDefinitionStep() {
                     placeholder="Ej: Applications (en el contexto de Node.js, MongoDB...)"
                     rows={2}
                     disabled={!isEditing}
-                    className={`resize-none transition-all pr-12 ${
+                    className={`resize-none transition-all pr-12 disabled:opacity-100 ${
                       isDiscarded
-                        ? 'opacity-40 bg-red-50 dark:bg-red-950/20 line-through'
+                        ? 'opacity-50 bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 line-through !text-red-600 dark:!text-red-400'
                         : isConfirmed
-                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20' 
+                        ? 'border-2 border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-950/30 !text-gray-900 dark:!text-gray-100' 
                         : !isEditing
-                        ? 'cursor-default bg-muted/50'
-                        : ''
+                        ? 'cursor-default bg-muted/50 dark:bg-gray-700 !text-gray-900 dark:!text-gray-200'
+                        : '!text-gray-900 dark:!text-gray-100'
                     }`}
                   />
                   <Button
@@ -530,8 +509,8 @@ export function ProtocolDefinitionStep() {
                     size="icon"
                     variant="ghost"
                     onClick={() => toggleDiscardTerm('dominio', index)}
-                    className={isDiscarded ? "bg-red-100 text-red-700" : "text-red-600 hover:text-red-700 hover:bg-red-50"}
-                    title={isDiscarded ? "Restaurar término" : "Descartar término"}
+                    className={isDiscarded ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400" : "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"}
+                    title={isDiscarded ? "Restaurar término rechazado" : "Marcar como rechazado"}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -546,6 +525,13 @@ export function ProtocolDefinitionStep() {
           >
             + Agregar Dominio
           </Button>
+          {protocolTerms.dominio.length > 0 && (
+            <div className="text-sm text-muted-foreground text-center pt-2">
+              {confirmedTerms.dominio.size} confirmado{confirmedTerms.dominio.size !== 1 ? 's' : ''} · {' '}
+              {discardedTerms.dominio.size} rechazado{discardedTerms.dominio.size !== 1 ? 's' : ''} · {' '}
+              {protocolTerms.dominio.length - confirmedTerms.dominio.size - discardedTerms.dominio.size} pendiente{(protocolTerms.dominio.length - confirmedTerms.dominio.size - discardedTerms.dominio.size) !== 1 ? 's' : ''}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -555,7 +541,7 @@ export function ProtocolDefinitionStep() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Focus className="h-5 w-5 text-orange-600" />
-              <CardTitle>🔍 Focos Temáticos</CardTitle>
+              <CardTitle>Focos Temáticos</CardTitle>
             </div>
             {protocolTerms.focosTematicos.length > 0 && (
               <Button
@@ -593,14 +579,14 @@ export function ProtocolDefinitionStep() {
                     placeholder="Ej: Development Practices"
                     rows={2}
                     disabled={!isEditing}
-                    className={`resize-none transition-all pr-12 ${
+                    className={`resize-none transition-all pr-12 disabled:opacity-100 ${
                       isDiscarded
-                        ? 'opacity-40 bg-red-50 dark:bg-red-950/20 line-through'
+                        ? 'opacity-50 bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 line-through !text-red-600 dark:!text-red-400'
                         : isConfirmed
-                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20' 
+                        ? 'border-2 border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-950/30 !text-gray-900 dark:!text-gray-100' 
                         : !isEditing
-                        ? 'cursor-default bg-muted/50'
-                        : ''
+                        ? 'cursor-default bg-muted/50 dark:bg-gray-700 !text-gray-900 dark:!text-gray-200'
+                        : '!text-gray-900 dark:!text-gray-100'
                     }`}
                   />
                   <Button
@@ -627,8 +613,8 @@ export function ProtocolDefinitionStep() {
                     size="icon"
                     variant="ghost"
                     onClick={() => toggleDiscardTerm('focosTematicos', index)}
-                    className={isDiscarded ? "bg-red-100 text-red-700" : "text-red-600 hover:text-red-700 hover:bg-red-50"}
-                    title={isDiscarded ? "Restaurar término" : "Descartar término"}
+                    className={isDiscarded ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400" : "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"}
+                    title={isDiscarded ? "Restaurar término rechazado" : "Marcar como rechazado"}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -643,6 +629,13 @@ export function ProtocolDefinitionStep() {
           >
             + Agregar Foco Temático
           </Button>
+          {protocolTerms.focosTematicos.length > 0 && (
+            <div className="text-sm text-muted-foreground text-center pt-2">
+              {confirmedTerms.focosTematicos.size} confirmado{confirmedTerms.focosTematicos.size !== 1 ? 's' : ''} · {' '}
+              {discardedTerms.focosTematicos.size} rechazado{discardedTerms.focosTematicos.size !== 1 ? 's' : ''} · {' '}
+              {protocolTerms.focosTematicos.length - confirmedTerms.focosTematicos.size - discardedTerms.focosTematicos.size} pendiente{(protocolTerms.focosTematicos.length - confirmedTerms.focosTematicos.size - discardedTerms.focosTematicos.size) !== 1 ? 's' : ''}
+            </div>
+          )}
         </CardContent>
       </Card>
 

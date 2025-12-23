@@ -61,30 +61,31 @@ function WizardContent() {
       return !!(data.projectName && data.projectDescription && data.researchArea)
     }
     if (currentStep === 2) {
-      const hasBasicPICO = !!(
-        data.pico?.population &&
-        data.pico?.intervention &&
-        data.pico?.outcome
-      )
-      const hasMatrix =
-        (data.matrixIsNot?.is?.length > 0 &&
-          data.matrixIsNot?.isNot?.length > 0) ||
-        (data.matrixTable && data.matrixTable.length > 0)
-
-      return hasBasicPICO && hasMatrix
+      // Solo validar que haya algo generado, no requiere completitud
+      return !!(data.pico?.population || data.pico?.intervention)
     }
-    if (currentStep === 3) return !!data.selectedTitle
+    if (currentStep === 3) {
+      // No validar, permitir avanzar
+      return true
+    }
     if (currentStep === 4) {
-      return (
-        data.protocolTerms?.tecnologia?.length > 0 ||
-        data.protocolTerms?.dominio?.length > 0
-      )
+      // Validar que haya términos generados
+      const hasTerms = 
+        (data.protocolTerms?.tecnologia?.length ?? 0) > 0 ||
+        (data.protocolTerms?.dominio?.length ?? 0) > 0 ||
+        (data.protocolTerms?.focosTematicos?.length ?? 0) > 0
+      
+      // Validar que al menos un término esté confirmado
+      const hasConfirmed = 
+        (data.confirmedTerms?.tecnologia?.size ?? 0) > 0 ||
+        (data.confirmedTerms?.dominio?.size ?? 0) > 0 ||
+        (data.confirmedTerms?.focosTematicos?.size ?? 0) > 0
+      
+      return hasTerms && hasConfirmed
     }
     if (currentStep === 5) {
-      return (
-        data.inclusionCriteria.length > 0 &&
-        data.exclusionCriteria.length > 0
-      )
+      // No validar criterios, permitir avanzar
+      return true
     }
     if (currentStep === 6) {
       // Requiere: bases de datos seleccionadas Y referencias cargadas
@@ -100,15 +101,31 @@ function WizardContent() {
   }
 
   const getValidationMessage = () => {
+    // Solo mostrar mensajes en los pasos que requieren validación
+    if (currentStep === 4) {
+      const hasTerms = 
+        (data.protocolTerms?.tecnologia?.length ?? 0) > 0 ||
+        (data.protocolTerms?.dominio?.length ?? 0) > 0 ||
+        (data.protocolTerms?.focosTematicos?.length ?? 0) > 0
+      
+      const hasConfirmed = 
+        (data.confirmedTerms?.tecnologia?.size ?? 0) > 0 ||
+        (data.confirmedTerms?.dominio?.size ?? 0) > 0 ||
+        (data.confirmedTerms?.focosTematicos?.size ?? 0) > 0
+      
+      if (!hasTerms) return "Genera términos con IA o agrégalos manualmente"
+      if (!hasConfirmed) return "Confirma al menos un término con ✓"
+    }
     if (currentStep === 6) {
       const hasDatabases = (data.searchPlan?.databases?.length ?? 0) > 0
       const hasReferences = data.searchPlan?.uploadedFiles && data.searchPlan.uploadedFiles.length > 0
       
       if (!hasDatabases) return "Genera las cadenas de búsqueda primero"
       if (!hasReferences) return "Carga referencias desde al menos una base de datos"
-      return ""
     }
-    return ""
+    
+    // Si no hay mensaje de validación, retornar "Siguiente"
+    return "Siguiente"
   }
 
   const canGoNext = validateStep()
@@ -146,7 +163,7 @@ function WizardContent() {
       <WizardNavigation
         canGoNext={canGoNext}
         isLastStep={currentStep === 7}
-        nextLabel={validationMessage || "Siguiente"}
+        nextLabel={validationMessage}
         onNext={() => {
           if (!validateStep()) return
 

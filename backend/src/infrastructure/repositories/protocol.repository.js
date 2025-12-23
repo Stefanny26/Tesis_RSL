@@ -102,9 +102,14 @@ class ProtocolRepository {
       
       // Cumplimiento PRISMA
       prismaCompliance: 'prisma_compliance',
+      prismaLocked: 'prisma_locked',
+      prismaCompletedAt: 'prisma_completed_at',
       
       // Resultados del screening
       screeningResults: 'screening_results',
+      
+      // Fase 2
+      fase2Unlocked: 'fase2_unlocked',
       
       // Estado
       completed: 'completed'
@@ -124,17 +129,18 @@ class ProtocolRepository {
     
     // Mapear los campos del modelo a la base de datos
     for (const [jsKey, dbKey] of Object.entries(fieldMap)) {
-      // Convertir camelCase a snake_case para buscar en dbData
-      const snakeKey = dbKey;
-      
-      if (dbData[snakeKey] !== undefined && protocolData[jsKey] !== undefined) {
-        console.log(`   📦 Campo ${jsKey} (${snakeKey}):`, 
-          typeof dbData[snakeKey] === 'string' 
-            ? dbData[snakeKey].substring(0, 100) 
-            : dbData[snakeKey]);
+      // Solo actualizar campos que están presentes en protocolData
+      if (protocolData[jsKey] !== undefined) {
+        const snakeKey = dbKey;
+        const valueToUpdate = dbData[snakeKey];
+        
+        console.log(`   📦 Campo ${jsKey} → ${dbKey}:`, 
+          typeof valueToUpdate === 'string' 
+            ? valueToUpdate.substring(0, 100) + '...' 
+            : valueToUpdate);
         
         updates.push(`${dbKey} = $${paramCount++}`);
-        values.push(dbData[snakeKey]);
+        values.push(valueToUpdate);
       }
     }
 
@@ -145,15 +151,27 @@ class ProtocolRepository {
     updates.push(`updated_at = NOW()`);
     values.push(projectId);
 
+    // Detectar si projectId es un UUID de protocolo o de proyecto
+    // Si el protocolo existe con este ID, usar id en lugar de project_id
+    const checkQuery = 'SELECT id, project_id FROM protocols WHERE id = $1 OR project_id = $1';
+    const checkResult = await database.query(checkQuery, [projectId]);
+    
+    const whereClause = checkResult.rows.length > 0 && checkResult.rows[0].id === projectId
+      ? `id = $${paramCount}`
+      : `project_id = $${paramCount}`;
+
     const query = `
       UPDATE protocols
       SET ${updates.join(', ')}
-      WHERE project_id = $${paramCount}
+      WHERE ${whereClause}
       RETURNING *
     `;
 
-    await database.query(query, values);
-    return this.findByProjectId(projectId);
+    const result = await database.query(query, values);
+    
+    // Retornar por project_id para consistencia
+    const finalProjectId = result.rows[0]?.project_id || projectId;
+    return this.findByProjectId(finalProjectId);
   }
 
   async delete(projectId) {

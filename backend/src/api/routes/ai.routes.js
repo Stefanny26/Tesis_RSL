@@ -16,6 +16,7 @@ const {
   generateProtocolTerms,
   generateInclusionExclusionCriteria,
   runProjectScreeningEmbeddings,
+  runProjectScreeningStream,
   runProjectScreeningLLM,
   analyzeScreeningResults,
   generateSearchQueries,
@@ -193,6 +194,16 @@ router.post(
   '/run-project-screening-embeddings',
   authMiddleware,
   runProjectScreeningEmbeddings
+);
+
+/**
+ * @route   GET /api/ai/run-project-screening-stream
+ * @desc    Ejecutar cribado completo con SSE para progreso en tiempo real
+ * @access  Private (token en query parameter)
+ */
+router.get(
+  '/run-project-screening-stream',
+  runProjectScreeningStream // Sin authMiddleware, se valida token manualmente
 );
 
 /**

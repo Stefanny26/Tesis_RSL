@@ -100,12 +100,29 @@ class ApiClient {
       this.setToken(data.data.token)
     }
     
+    // Mapear 'name' a 'fullName' si es necesario
+    if (data.data.user) {
+      data.data.user.fullName = data.data.user.fullName || data.data.user.name || data.data.user.email?.split('@')[0] || 'Usuario'
+    }
+    
     return data.data
   }
 
   async getMe() {
     const data = await this.request('/api/auth/me')
-    return data.data.user
+    const user = data.data.user
+    
+    console.log('🔍 Datos del usuario desde backend:', user)
+    
+    // Mapear 'name' a 'fullName' si es necesario
+    const mappedUser = {
+      ...user,
+      fullName: user.fullName || user.name || user.email?.split('@')[0] || 'Usuario'
+    }
+    
+    console.log('✅ Usuario mapeado:', mappedUser)
+    
+    return mappedUser
   }
 
   getGoogleAuthUrl() {

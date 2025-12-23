@@ -49,6 +49,22 @@ const DATABASE_ICONS: Record<string, string> = {
   wiley: "📙"
 }
 
+// URLs de búsqueda avanzada por base de datos
+const DATABASE_ADVANCED_SEARCH_URLS: Record<string, string> = {
+  scopus: "https://www.scopus.com/search/form.uri?display=advanced",
+  ieee: "https://ieeexplore.ieee.org/search/advanced",
+  webofscience: "https://www.webofscience.com/wos/woscc/advanced-search",
+  pubmed: "https://pubmed.ncbi.nlm.nih.gov/advanced/",
+  sciencedirect: "https://www.sciencedirect.com/search/advanced",
+  acm: "https://dl.acm.org/search/advanced",
+  springer: "https://link.springer.com/advanced-search",
+  google_scholar: "https://scholar.google.com/advanced_scholar_search",
+  wiley: "https://onlinelibrary.wiley.com/advanced/search",
+  taylor: "https://www.tandfonline.com/action/advancedSearch",
+  eric: "https://eric.ed.gov/?advanced",
+  doaj: "https://doaj.org/search"
+}
+
 // Nombres de áreas (para display)
 const ACADEMIC_DATABASES: Record<string, { name: string }> = {
   'ingenieria-tecnologia': { name: '🟦 Ingeniería y Tecnología' },
@@ -507,11 +523,18 @@ export function SearchPlanStep() {
         <>
           {/* Alert de validación - debe cargar referencias */}
           {(!data.searchPlan?.uploadedFiles || data.searchPlan.uploadedFiles.length === 0) && (
-            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800 dark:text-amber-200">
-                <strong>⚠️ Acción requerida:</strong> Debes cargar las referencias desde al menos una base de datos antes de continuar al siguiente paso. 
-                Usa el botón "Cargar Referencias" en la tabla de abajo.
+            <Alert className="border-amber-300 dark:border-amber-700">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertDescription className="text-foreground">
+                <strong>⚠️ Acción requerida:</strong> Debes cargar las referencias desde al menos una base de datos antes de continuar al siguiente paso.
+                <br /><br />
+                <strong>Instrucciones:</strong>
+                <ol className="list-decimal ml-5 mt-2 space-y-1">
+                  <li>Haz clic en el botón <strong>"Ir al sitio oficial"</strong> de la base de datos que deseas consultar</li>
+                  <li>Copia y pega la <strong>cadena de búsqueda</strong> proporcionada en el campo de búsqueda avanzada del sitio</li>
+                  <li>Ejecuta la búsqueda y <strong>exporta las referencias</strong> en formato CSV, RIS o BibTeX desde el sitio oficial</li>
+                  <li>Regresa aquí y usa el botón <strong>"Cargar Referencias"</strong> para importar el archivo descargado</li>
+                </ol>
               </AlertDescription>
             </Alert>
           )}
@@ -544,6 +567,7 @@ export function SearchPlanStep() {
                 <TableRow>
                   <TableHead className="w-[150px]">Base de Datos</TableHead>
                   <TableHead>Cadena de Búsqueda</TableHead>
+                  <TableHead className="w-[140px] text-center">Búsqueda Avanzada</TableHead>
                   <TableHead className="w-[120px] text-center">Referencias</TableHead>
                   <TableHead className="w-[120px]">Acciones</TableHead>
                 </TableRow>
@@ -582,6 +606,23 @@ export function SearchPlanStep() {
                           className="text-xs font-mono resize-none bg-muted/50 border-muted-foreground/20"
                         />
                       </div>
+                    </TableCell>
+                    <TableCell className="align-top text-center">
+                      {DATABASE_ADVANCED_SEARCH_URLS[query.databaseId] ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(DATABASE_ADVANCED_SEARCH_URLS[query.databaseId], '_blank')}
+                          className="w-full"
+                        >
+                          <Search className="h-3 w-3 mr-1" />
+                          <span className="text-xs">Ir al sitio oficial</span>
+                        </Button>
+                      ) : (
+                        <div className="text-xs text-muted-foreground italic">
+                          No disponible
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="align-top text-center">
                       {importedCounts[query.databaseId] ? (

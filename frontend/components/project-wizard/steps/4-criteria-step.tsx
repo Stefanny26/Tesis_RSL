@@ -247,14 +247,14 @@ export function CriteriaStep() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[180px] bg-muted">Categoría</TableHead>
-                  <TableHead className="bg-green-50 dark:bg-green-950/20">✅ Criterios de Inclusión</TableHead>
-                  <TableHead className="bg-red-50 dark:bg-red-950/20">❌ Criterios de Exclusión</TableHead>
+                  <TableHead className="w-[180px] bg-muted/50 text-foreground font-semibold">Categoría</TableHead>
+                  <TableHead className="bg-green-50 dark:bg-green-950/20 text-green-900 dark:text-green-100 font-semibold">✅ Criterios de Inclusión</TableHead>
+                  <TableHead className="bg-red-50 dark:bg-red-950/20 text-red-900 dark:text-red-100 font-semibold">❌ Criterios de Exclusión</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <TableRow className="hover:bg-muted/50">
-                  <TableCell className="font-semibold bg-muted">Cobertura Temática</TableCell>
+                  <TableCell className="font-semibold bg-muted/50 text-foreground">Cobertura Temática</TableCell>
                   <TableCell>
                     <div className="space-y-2">
                       <Textarea
@@ -299,7 +299,7 @@ export function CriteriaStep() {
                   </TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-muted/50">
-                  <TableCell className="font-semibold bg-muted">Tecnologías Abordadas</TableCell>
+                  <TableCell className="font-semibold bg-muted/50 text-foreground">Tecnologías Abordadas</TableCell>
                   <TableCell>
                     <div className="space-y-2">
                       <Textarea
@@ -344,7 +344,7 @@ export function CriteriaStep() {
                   </TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-muted/50">
-                  <TableCell className="font-semibold bg-muted">Tipo de Estudio</TableCell>
+                  <TableCell className="font-semibold bg-muted/50 text-foreground">Tipo de Estudio</TableCell>
                   <TableCell>
                     <div className="space-y-2">
                       <Textarea
@@ -389,7 +389,7 @@ export function CriteriaStep() {
                   </TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-muted/50">
-                  <TableCell className="font-semibold bg-muted">Tipo de Documento</TableCell>
+                  <TableCell className="font-semibold bg-muted/50 text-foreground">Tipo de Documento</TableCell>
                   <TableCell>
                     <div className="space-y-2">
                       <Textarea
@@ -434,7 +434,7 @@ export function CriteriaStep() {
                   </TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-muted/50">
-                  <TableCell className="font-semibold bg-muted">Rango Temporal</TableCell>
+                  <TableCell className="font-semibold bg-muted/50 text-foreground">Rango Temporal</TableCell>
                   <TableCell>
                     <div className="space-y-2">
                       <Textarea
@@ -479,7 +479,7 @@ export function CriteriaStep() {
                   </TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-muted/50">
-                  <TableCell className="font-semibold bg-muted">Idioma</TableCell>
+                  <TableCell className="font-semibold bg-muted/50 text-foreground">Idioma</TableCell>
                   <TableCell>
                     <div className="space-y-2">
                       <Textarea

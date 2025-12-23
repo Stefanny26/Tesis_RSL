@@ -134,7 +134,7 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-600" />
+            <TrendingUp className="h-5 w-5 text-primary" />
             Distribución de Puntajes de Prioridad
           </CardTitle>
           <CardDescription>
@@ -143,21 +143,21 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-3 bg-green-50 rounded-lg">
-              <p className="text-xs text-green-700 font-semibold mb-1">Puntaje Máximo</p>
-              <p className="text-2xl font-bold text-green-900">{(stats.max * 100).toFixed(1)}%</p>
+            <div className="p-3 border border-green-300 dark:border-green-700 rounded-lg">
+              <p className="text-xs text-green-700 dark:text-green-400 font-semibold mb-1">Puntaje Máximo</p>
+              <p className="text-2xl font-bold text-foreground">{(stats.max * 100).toFixed(1)}%</p>
             </div>
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <p className="text-xs text-blue-700 font-semibold mb-1">Top 10% (Percentil 90)</p>
-              <p className="text-2xl font-bold text-blue-900">{(stats.p90 * 100).toFixed(1)}%</p>
+            <div className="p-3 border border-blue-300 dark:border-blue-700 rounded-lg">
+              <p className="text-xs text-blue-700 dark:text-blue-400 font-semibold mb-1">Top 10% (Percentil 90)</p>
+              <p className="text-2xl font-bold text-foreground">{(stats.p90 * 100).toFixed(1)}%</p>
             </div>
-            <div className="p-3 bg-purple-50 rounded-lg">
-              <p className="text-xs text-purple-700 font-semibold mb-1">Top 25% (Percentil 75)</p>
-              <p className="text-2xl font-bold text-purple-900">{(stats.p75 * 100).toFixed(1)}%</p>
+            <div className="p-3 border border-purple-300 dark:border-purple-700 rounded-lg">
+              <p className="text-xs text-purple-700 dark:text-purple-400 font-semibold mb-1">Top 25% (Percentil 75)</p>
+              <p className="text-2xl font-bold text-foreground">{(stats.p75 * 100).toFixed(1)}%</p>
             </div>
-            <div className="p-3 bg-orange-50 rounded-lg">
-              <p className="text-xs text-orange-700 font-semibold mb-1">Mediana (Percentil 50)</p>
-              <p className="text-2xl font-bold text-orange-900">{(stats.p50 * 100).toFixed(1)}%</p>
+            <div className="p-3 border border-orange-300 dark:border-orange-700 rounded-lg">
+              <p className="text-xs text-orange-700 dark:text-orange-400 font-semibold mb-1">Mediana (Percentil 50)</p>
+              <p className="text-2xl font-bold text-foreground">{(stats.p50 * 100).toFixed(1)}%</p>
             </div>
           </div>
         </CardContent>
@@ -172,9 +172,9 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="relative h-64 bg-slate-50 rounded-lg p-4">
+          <div className="relative h-64 bg-muted/30 rounded-lg p-4">
             {/* Eje Y (Puntajes) */}
-            <div className="absolute left-0 top-0 bottom-0 w-12 flex flex-col justify-between text-xs text-slate-600">
+            <div className="absolute left-0 top-0 bottom-0 w-12 flex flex-col justify-between text-xs text-muted-foreground">
               <span>{(stats.max * 100).toFixed(0)}%</span>
               <span>{(stats.mean * 100).toFixed(0)}%</span>
               <span>{(stats.min * 100).toFixed(0)}%</span>
@@ -184,36 +184,36 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
             <div className="ml-12 h-full relative">
               {/* Líneas de percentiles */}
               <div 
-                className="absolute left-0 right-0 border-t-2 border-dashed border-red-400"
+                className="absolute left-0 right-0 border-t-2 border-dashed border-red-400 dark:border-red-600"
                 style={{ top: `${(1 - stats.p90 / stats.max) * 100}%` }}
               >
-                <span className="absolute -top-2 right-2 text-xs text-red-600 bg-white px-1">
+                <span className="absolute -top-2 right-2 text-xs text-red-600 dark:text-red-400 bg-background px-1">
                   Top 10%: {(stats.p90 * 100).toFixed(1)}%
                 </span>
               </div>
               <div 
-                className="absolute left-0 right-0 border-t-2 border-dashed border-green-400"
+                className="absolute left-0 right-0 border-t-2 border-dashed border-green-400 dark:border-green-600"
                 style={{ top: `${(1 - stats.p75 / stats.max) * 100}%` }}
               >
-                <span className="absolute -top-2 right-2 text-xs text-green-600 bg-white px-1">
+                <span className="absolute -top-2 right-2 text-xs text-green-600 dark:text-green-400 bg-background px-1">
                   Top 25%: {(stats.p75 * 100).toFixed(1)}%
                 </span>
               </div>
               <div 
-                className="absolute left-0 right-0 border-t-2 border-dashed border-orange-400"
+                className="absolute left-0 right-0 border-t-2 border-dashed border-orange-400 dark:border-orange-600"
                 style={{ top: `${(1 - stats.p50 / stats.max) * 100}%` }}
               >
-                <span className="absolute -top-2 right-2 text-xs text-orange-600 bg-white px-1">
+                <span className="absolute -top-2 right-2 text-xs text-orange-600 dark:text-orange-400 bg-background px-1">
                   Mediana: {(stats.p50 * 100).toFixed(1)}%
                 </span>
               </div>
 
               {/* Línea vertical del codo */}
               <div 
-                className="absolute top-0 bottom-0 border-l-2 border-dashed border-purple-600"
+                className="absolute top-0 bottom-0 border-l-2 border-dashed border-purple-600 dark:border-purple-400"
                 style={{ left: `${(indices.elbow / analysis.total) * 100}%` }}
               >
-                <span className="absolute bottom-2 -left-8 text-xs text-purple-600 bg-white px-1 font-semibold">
+                <span className="absolute bottom-2 -left-8 text-xs text-purple-600 dark:text-purple-400 bg-background px-1 font-semibold">
                   Codo ↓
                 </span>
               </div>
@@ -241,7 +241,7 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
             </div>
 
             {/* Eje X (Número de artículo) */}
-            <div className="absolute bottom-0 left-12 right-0 h-8 flex justify-between items-end text-xs text-slate-600">
+            <div className="absolute bottom-0 left-12 right-0 h-8 flex justify-between items-end text-xs text-muted-foreground">
               <span>1</span>
               <span>{Math.floor(analysis.total / 2)}</span>
               <span>{analysis.total}</span>
@@ -264,14 +264,14 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+          <div className="p-4 border-2 border-green-300 dark:border-green-700 rounded-lg">
             <div className="flex items-start gap-3">
-              <Badge className="bg-green-600">Fase 1: Alta Confianza</Badge>
+              <Badge className="bg-green-600 dark:bg-green-700">Fase 1: Alta Confianza</Badge>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-green-900 mb-1">
+                <p className="text-sm font-semibold text-foreground mb-1">
                   Revisa los primeros {indices.top10} artículos
                 </p>
-                <p className="text-xs text-green-700">
+                <p className="text-xs text-green-700 dark:text-green-400">
                   Puntaje &gt; {(stats.p90 * 100).toFixed(1)}% (Top 10%)
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -282,14 +282,14 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
             </div>
           </div>
 
-          <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+          <div className="p-4 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
             <div className="flex items-start gap-3">
-              <Badge className="bg-blue-600">Fase 2: Recomendado</Badge>
+              <Badge className="bg-blue-600 dark:bg-blue-700">Fase 2: Recomendado</Badge>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-blue-900 mb-1">
+                <p className="text-sm font-semibold text-foreground mb-1">
                   Continúa hasta el artículo {indices.top25}
                 </p>
-                <p className="text-xs text-blue-700">
+                <p className="text-xs text-blue-700 dark:text-blue-400">
                   Puntaje &gt; {(stats.p75 * 100).toFixed(1)}% (Top 25%)
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -300,14 +300,14 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
             </div>
           </div>
 
-          <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
+          <div className="p-4 border-2 border-purple-300 dark:border-purple-700 rounded-lg">
             <div className="flex items-start gap-3">
-              <Badge className="bg-purple-600">Fase 3: Punto de Corte (Codo)</Badge>
+              <Badge className="bg-purple-600 dark:bg-purple-700">Fase 3: Punto de Corte (Codo)</Badge>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-purple-900 mb-1">
+                <p className="text-sm font-semibold text-foreground mb-1">
                   Extiende hasta el artículo {indices.elbow}
                 </p>
-                <p className="text-xs text-purple-700">
+                <p className="text-xs text-purple-700 dark:text-purple-400">
                   Puntaje &gt; {(elbowScore * 100).toFixed(1)}% (Punto de inflexión detectado)
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -318,11 +318,11 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
             </div>
           </div>
 
-          <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="p-4 border border-orange-300 dark:border-orange-700 rounded-lg">
             <div className="flex items-start gap-3">
-              <TrendingDown className="h-5 w-5 text-orange-600 mt-0.5" />
+              <TrendingDown className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-orange-900 mb-1">
+                <p className="text-sm font-semibold text-foreground mb-1">
                   Criterio de Detención
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -344,29 +344,29 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="flex justify-between items-center p-2 bg-green-50 rounded">
-              <span className="text-sm font-semibold text-green-900">Mínimo recomendado (Top 10%):</span>
-              <Badge className="bg-green-600">{indices.top10} artículos</Badge>
+            <div className="flex justify-between items-center p-2 border border-green-300 dark:border-green-700 rounded">
+              <span className="text-sm font-semibold text-foreground">Mínimo recomendado (Top 10%):</span>
+              <Badge className="bg-green-600 dark:bg-green-700">{indices.top10} artículos</Badge>
             </div>
-            <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
-              <span className="text-sm font-semibold text-blue-900">Recomendado estándar (Top 25%):</span>
-              <Badge className="bg-blue-600">{indices.top25} artículos</Badge>
+            <div className="flex justify-between items-center p-2 border border-blue-300 dark:border-blue-700 rounded">
+              <span className="text-sm font-semibold text-foreground">Recomendado estándar (Top 25%):</span>
+              <Badge className="bg-blue-600 dark:bg-blue-700">{indices.top25} artículos</Badge>
             </div>
-            <div className="flex justify-between items-center p-2 bg-purple-50 rounded">
-              <span className="text-sm font-semibold text-purple-900">Punto de corte óptimo (Codo):</span>
-              <Badge className="bg-purple-600">{indices.elbow} artículos</Badge>
+            <div className="flex justify-between items-center p-2 border border-purple-300 dark:border-purple-700 rounded">
+              <span className="text-sm font-semibold text-foreground">Punto de corte óptimo (Codo):</span>
+              <Badge className="bg-purple-600 dark:bg-purple-700">{indices.elbow} artículos</Badge>
             </div>
-            <div className="flex justify-between items-center p-2 bg-orange-50 rounded">
-              <span className="text-sm font-semibold text-orange-900">Máximo razonable (Mediana):</span>
-              <Badge className="bg-orange-600">{indices.top50} artículos</Badge>
+            <div className="flex justify-between items-center p-2 border border-orange-300 dark:border-orange-700 rounded">
+              <span className="text-sm font-semibold text-foreground">Máximo razonable (Mediana):</span>
+              <Badge className="bg-orange-600 dark:bg-orange-700">{indices.top50} artículos</Badge>
             </div>
           </div>
 
-          <div className="mt-4 p-4 bg-slate-100 rounded-lg">
-            <p className="text-sm font-semibold text-slate-900 mb-2">
+          <div className="mt-4 p-4 border border-primary/30 rounded-lg">
+            <p className="text-sm font-semibold text-foreground mb-2">
               ✅ Recomendación Final:
             </p>
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-foreground">
               Para tu revisión de texto completo, enfócate en los primeros <strong>{indices.top25} artículos</strong>
               {' '}(Top 25%). Si tienes tiempo adicional, extiende hasta el artículo <strong>{indices.elbow}</strong>
               {' '}(punto de inflexión del codo).

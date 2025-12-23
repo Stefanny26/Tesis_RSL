@@ -6,7 +6,8 @@ class User {
   constructor(data) {
     this.id = data.id;
     this.email = data.email;
-    this.fullName = data.name || data.fullName;
+    // Soporta tanto 'name' como 'full_name' de la BD, y 'fullName' de objetos JS
+    this.fullName = data.full_name || data.name || data.fullName;
     this.avatarUrl = data.avatar_url || data.avatarUrl;
     this.googleId = data.google_id || data.googleId;
     this.passwordHash = data.password_hash || data.passwordHash;

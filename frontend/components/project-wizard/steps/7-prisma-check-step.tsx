@@ -572,7 +572,7 @@ export function PrismaCheckStep() {
       </div>
 
       {/* Mensaje informativo */}
-      <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900">
+      <Card className="border-blue-200 dark:border-blue-900">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg flex-shrink-0">
@@ -582,7 +582,7 @@ export function PrismaCheckStep() {
               <h3 className="font-semibold text-blue-900 dark:text-blue-100">
                 Reporte Final del Protocolo
               </h3>
-              <p className="text-sm text-blue-800 dark:text-blue-200">
+              <p className="text-sm text-gray-700 dark:text-gray-200">
                 Este es el paso final de tu protocolo de investigación. A continuación se presenta un reporte completo con la verificación de calidad PRISMA 2020. 
                 Los campos son de <strong>solo lectura</strong> y representan tu protocolo final.
               </p>
@@ -592,7 +592,7 @@ export function PrismaCheckStep() {
                   Las respuestas no son genéricas, sino fundamentadas en los componentes de tu protocolo (PICO, términos, criterios I/E, cadenas de búsqueda).
                 </p>
               </div>
-              <p className="text-sm text-blue-800 dark:text-blue-200">
+              <p className="text-sm text-gray-700 dark:text-gray-200">
                 Una vez que confirmes, se creará tu proyecto y podrás comenzar la fase de ejecución.
               </p>
             </div>
@@ -601,15 +601,15 @@ export function PrismaCheckStep() {
       </Card>
 
       {/* Resumen Ejecutivo del Protocolo */}
-      <Card className="border-2 border-primary/20 shadow-xl bg-gradient-to-br from-white to-blue-50 dark:from-gray-950 dark:to-blue-950/20">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+      <Card className="border-2 border-primary/20 shadow-xl">
+        <CardHeader className="bg-primary text-primary-foreground rounded-t-lg">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-lg">
               <FileText className="h-6 w-6" />
             </div>
             <div>
               <CardTitle className="text-2xl">Resumen Ejecutivo del Protocolo</CardTitle>
-              <CardDescription className="text-blue-100 mt-1">
+              <CardDescription className="text-primary-foreground/80 mt-1">
                 Reporte final de tu revisión sistemática
               </CardDescription>
             </div>
@@ -617,48 +617,48 @@ export function PrismaCheckStep() {
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
           {/* Título del Proyecto */}
-          <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800">
-            <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+          <div className="p-4 rounded-lg border-2 border-primary/20">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Título de la Investigación
             </div>
-            <p className="text-lg font-semibold mt-1">{data.selectedTitle}</p>
+            <p className="text-lg font-semibold mt-1 text-gray-900 dark:text-gray-100">{data.selectedTitle}</p>
           </div>
 
           {/* Estadísticas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800">
-              <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">Bases de Datos</div>
-              <div className="text-3xl font-bold text-blue-700 dark:text-blue-300 mt-2">
+            <div className="p-4 rounded-lg border-2 border-primary/20">
+              <div className="text-xs font-semibold text-muted-foreground uppercase">Bases de Datos</div>
+              <div className="text-3xl font-bold text-foreground mt-2">
                 {data.searchPlan?.databases?.length || 0}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 p-4 rounded-lg border-2 border-purple-200 dark:border-purple-800">
-              <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase">Criterios I/E</div>
-              <div className="text-3xl font-bold text-purple-700 dark:text-purple-300 mt-2">
+            <div className="p-4 rounded-lg border-2 border-primary/20">
+              <div className="text-xs font-semibold text-muted-foreground uppercase">Criterios I/E</div>
+              <div className="text-3xl font-bold text-foreground mt-2">
                 {(data.inclusionCriteria?.length || 0) + (data.exclusionCriteria?.length || 0)}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 p-4 rounded-lg border-2 border-green-200 dark:border-green-800">
-              <div className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase">Términos Clave</div>
-              <div className="text-3xl font-bold text-green-700 dark:text-green-300 mt-2">
+            <div className="p-4 rounded-lg border-2 border-primary/20">
+              <div className="text-xs font-semibold text-muted-foreground uppercase">Términos Clave</div>
+              <div className="text-3xl font-bold text-foreground mt-2">
                 {(data.protocolTerms?.tecnologia?.length || 0) + (data.protocolTerms?.dominio?.length || 0)}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 p-4 rounded-lg border-2 border-orange-200 dark:border-orange-800">
-              <div className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase">Calidad PRISMA</div>
-              <div className="text-3xl font-bold text-orange-700 dark:text-orange-300 mt-2">{compliance}%</div>
+            <div className="p-4 rounded-lg border-2 border-primary/20">
+              <div className="text-xs font-semibold text-muted-foreground uppercase">Calidad PRISMA</div>
+              <div className="text-3xl font-bold text-foreground mt-2">{compliance}%</div>
             </div>
           </div>
 
           {/* Metadata */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border">
+            <div className="p-3 rounded-lg border border-border">
               <span className="text-xs font-semibold text-muted-foreground uppercase">Proyecto</span>
-              <p className="font-medium mt-1">📚 {data.projectName}</p>
+              <p className="font-medium mt-1 text-foreground">📚 {data.projectName}</p>
             </div>
-            <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border">
+            <div className="p-3 rounded-lg border border-border">
               <span className="text-xs font-semibold text-muted-foreground uppercase">Área de Investigación</span>
-              <p className="font-medium mt-1">🎯 {researchArea.replace('-', ' ').toUpperCase()}</p>
+              <p className="font-medium mt-1 text-gray-900 dark:text-gray-100">🎯 {researchArea.replace('-', ' ').toUpperCase()}</p>
             </div>
           </div>
         </CardContent>
@@ -770,7 +770,7 @@ export function PrismaCheckStep() {
       </Card>
 
       {/* Card de Finalización */}
-      <Card className="border-4 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 dark:from-green-950 dark:via-blue-950 dark:to-purple-950 shadow-2xl">
+      <Card className="border-4 border-primary shadow-2xl">
         <CardContent className="pt-8 pb-8">
           <div className="text-center space-y-6">
             {/* Icono y Título Principal */}
@@ -781,24 +781,24 @@ export function PrismaCheckStep() {
             </div>
             
             <div className="space-y-2">
-              <h3 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+              <h3 className="text-3xl font-bold text-green-600 dark:text-green-400">
                 ¡Protocolo Completado!
               </h3>
-              <p className="text-lg font-medium text-muted-foreground">
+              <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
                 Has finalizado la definición de tu protocolo de investigación
               </p>
             </div>
 
             {/* Información de completitud */}
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border-2 border-green-200 dark:border-green-800 max-w-2xl mx-auto">
+            <div className="border-2 border-green-300 dark:border-green-700 p-6 rounded-xl max-w-2xl mx-auto">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-semibold text-muted-foreground">Calidad PRISMA 2020</span>
+                <span className="text-sm font-semibold text-foreground">Calidad PRISMA 2020</span>
                 <Badge variant={compliance >= 80 ? "default" : "secondary"} className="text-lg px-3 py-1">
                   {compliance}%
                 </Badge>
               </div>
               <Progress value={compliance} className="h-3 mb-4" />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-foreground">
                 {compliance >= 80 
                   ? "✅ Excelente: Tu protocolo cumple con altos estándares de calidad"
                   : compliance >= 60
@@ -808,14 +808,14 @@ export function PrismaCheckStep() {
             </div>
 
             {/* Mensaje de cierre */}
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-lg border border-blue-300 dark:border-blue-700 max-w-2xl mx-auto">
+            <div className="border-2 border-blue-300 dark:border-blue-700 p-4 rounded-lg max-w-2xl mx-auto">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="text-left space-y-1">
-                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                  <p className="text-sm font-semibold text-foreground">
                     Este es el cierre de la fase de planificación
                   </p>
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <p className="text-sm text-foreground">
                     Al confirmar, se creará tu proyecto y podrás comenzar con la <strong>fase de ejecución</strong>: 
                     búsqueda de literatura, cribado de referencias y análisis de datos.
                   </p>
@@ -843,7 +843,7 @@ export function PrismaCheckStep() {
               )}
             </Button>
 
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               Al confirmar aceptas que el protocolo está listo para la fase de ejecución
             </p>
           </div>

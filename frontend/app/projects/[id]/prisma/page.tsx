@@ -290,18 +290,22 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
       
       setPrismaItems(itemsMap)
       
-      // Calcular estadísticas
-      const completed = Object.keys(itemsMap).length
-      const pending = 27 - completed
+      // Calcular estadísticas - contar solo ítems realmente completados
+      const allItems = Object.values(itemsMap)
+      const completedCount = allItems.filter(item => item.completed === true).length
+      const pending = 27 - completedCount
+      
+      console.log(`📊 Estadísticas PRISMA: ${completedCount}/27 completados, ${pending} pendientes`)
+      
       setStats({
         total: 27,
-        completed,
+        completed: completedCount,
         pending,
-        automated: completed,
+        automated: completedCount,
         human: 0,
         hybrid: 0,
         aiValidated: 0,
-        completionPercentage: Math.round((completed / 27) * 100)
+        completionPercentage: Math.round((completedCount / 27) * 100)
       })
       
     } catch (error: any) {
@@ -556,9 +560,9 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
 
           {/* Alert cuando PRISMA está completo pero no bloqueado */}
           {!protocol?.prismaLocked && Object.keys(prismaItems).length === 27 && (
-            <Alert className="bg-green-50 border-green-300">
-              <AlertCircle className="h-5 w-5 text-green-600" />
-              <AlertDescription className="text-sm">
+            <Alert className="border-green-300 dark:border-green-700">
+              <AlertCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <AlertDescription className="text-sm text-foreground">
                 <strong>🎉 PRISMA Completado (27/27 ítems)</strong>
                 <br />
                 El checklist PRISMA 2020 está completo. Puedes proceder a la sección de <strong>Artículo</strong> para generar el manuscrito final.
@@ -568,9 +572,9 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
 
           {/* Alert para PDFs extraídos */}
           {extractionResult && extractionResult.processed > 0 && (
-            <Alert className="bg-blue-50 border-blue-200">
-              <Info className="h-5 w-5 text-blue-600" />
-              <AlertDescription className="text-sm">
+            <Alert className="border-blue-300 dark:border-blue-700">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <AlertDescription className="text-sm text-foreground">
                 <strong>✓ {extractionResult.processed} referencias analizadas</strong> - Datos estructurados extraídos exitosamente.
                 {extractionResult.withFullText > 0 && ` ${extractionResult.withFullText} con PDF completo`}
                 {extractionResult.abstractOnly > 0 && `, ${extractionResult.abstractOnly} solo abstract`}
@@ -579,20 +583,35 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
             </Alert>
           )}
 
-          {Object.keys(prismaItems).length < 27 && (
-            <Alert className="bg-amber-50 border-amber-200">
-              <Info className="h-5 w-5 text-amber-600" />
-              <AlertDescription className="text-sm">
+          {Object.keys(prismaItems).length < 27 && protocol?.fase2_unlocked && !protocol?.prismaLocked && (
+            <Alert className="border-purple-300 dark:border-purple-700">
+              <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <AlertDescription className="text-sm text-foreground">
+                <strong>{27 - Object.keys(prismaItems).length} ítems pendientes.</strong> Haz clic en <strong>"Completar PRISMA Automáticamente"</strong> para que el sistema:
+                <ol className="mt-2 ml-4 list-decimal space-y-1">
+                  <li><strong>Analice</strong> todas las referencias incluidas (PDFs y abstracts)</li>
+                  <li><strong>Genere</strong> el contexto PRISMA con tus datos</li>
+                  <li><strong>Complete</strong> automáticamente los ítems 16, 17, 23, 24, 26, 27</li>
+                </ol>
+                <p className="mt-2 text-xs text-muted-foreground">Este proceso puede tomar 2-3 minutos dependiendo del número de referencias.</p>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {Object.keys(prismaItems).length < 27 && !protocol?.fase2_unlocked && (
+            <Alert className="border-amber-300 dark:border-amber-700">
+              <Info className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <AlertDescription className="text-sm text-foreground">
                 <strong>{27 - Object.keys(prismaItems).length} ítems pendientes de completar.</strong> Los datos del protocolo se cargan automáticamente. 
-                Si deseas completar los ítems restantes con IA, usa el botón abajo.
+                Completa el cribado (Fase 2) para habilitar la generación automática con IA.
               </AlertDescription>
             </Alert>
           )}
 
           {Object.keys(prismaItems).length > 0 && (
-            <Alert className="bg-green-50 border-green-200">
-              <Info className="h-5 w-5 text-green-600" />
-              <AlertDescription className="text-sm">
+            <Alert className="border-green-300 dark:border-green-700">
+              <Info className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <AlertDescription className="text-sm text-foreground">
                 <strong>✓ {Object.keys(prismaItems).length} ítems cargados automáticamente</strong> desde tu protocolo (título, PICO, criterios, bases de datos, etc.)
               </AlertDescription>
             </Alert>
@@ -600,39 +619,17 @@ export default function PrismaPage({ params }: { params: { id: string } }) {
 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap gap-3">
-              {/* Botón para analizar PDFs */}
-              {protocol?.fase2_unlocked && !protocol?.prismaLocked && (
-                <Button 
-                  onClick={handleExtractPDFs} 
-                  disabled={isExtractingPDFs}
-                  variant="outline"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                >
-                  {isExtractingPDFs ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analizando referencias...
-                    </>
-                  ) : (
-                    <>
-                      <FileDown className="mr-2 h-4 w-4" />
-                      Analizar Referencias
-                    </>
-                  )}
-                </Button>
-              )}
-
-              {/* Botón para completar PRISMA automáticamente */}
+              {/* Botón unificado: Analiza referencias + Completa PRISMA */}
               {protocol?.fase2_unlocked && Object.keys(prismaItems).length < 27 && !protocol?.prismaLocked && (
                 <Button 
                   onClick={handleCompletePrisma} 
                   disabled={isCompletingPrisma}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg"
                 >
                   {isCompletingPrisma ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Completando...
+                      Procesando (Paso {isCompletingPrisma ? '1-3' : ''}...)
                     </>
                   ) : (
                     <>

@@ -175,7 +175,7 @@ export function ClassifiedReferencesView({ references, onViewDetails }: Classifi
           title="🤖 Alta Confianza - INCLUIR (Embeddings)"
           icon={CheckCircle}
           count={embeddingsGroups.included.length}
-          color="border-green-200 bg-green-50/50"
+          color="border-green-300 dark:border-green-700"
           refs={embeddingsGroups.included}
           description="Referencias con alta similitud semántica (>30%) clasificadas automáticamente como incluidas"
         />
@@ -186,7 +186,7 @@ export function ClassifiedReferencesView({ references, onViewDetails }: Classifi
           title="🤖 Alta Confianza - EXCLUIR (Embeddings)"
           icon={XCircle}
           count={embeddingsGroups.excluded.length}
-          color="border-red-200 bg-red-50/50"
+          color="border-red-300 dark:border-red-700"
           refs={embeddingsGroups.excluded}
           description="Referencias con baja similitud semántica (<10%) clasificadas automáticamente como excluidas"
         />
@@ -199,7 +199,7 @@ export function ClassifiedReferencesView({ references, onViewDetails }: Classifi
               title="🔀 Zona Gris - INCLUIR (Embeddings + ChatGPT)"
               icon={CheckCircle}
               count={hybridGroups.included.length}
-              color="border-blue-200 bg-blue-50/50"
+              color="border-blue-300 dark:border-blue-700"
               refs={hybridGroups.included}
               description="Referencias de la zona gris (10-30% similitud) que ChatGPT clasificó como incluidas después de análisis detallado"
             />
@@ -209,7 +209,7 @@ export function ClassifiedReferencesView({ references, onViewDetails }: Classifi
               title="🔀 Zona Gris - EXCLUIR (Embeddings + ChatGPT)"
               icon={XCircle}
               count={hybridGroups.excluded.length}
-              color="border-orange-200 bg-orange-50/50"
+              color="border-orange-300 dark:border-orange-700"
               refs={hybridGroups.excluded}
               description="Referencias de la zona gris (10-30% similitud) que ChatGPT clasificó como excluidas después de análisis detallado"
             />
@@ -221,19 +221,19 @@ export function ClassifiedReferencesView({ references, onViewDetails }: Classifi
           <CardContent className="pt-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               <div>
-                <p className="text-2xl font-bold text-green-600">{embeddingsGroups.included.length}</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{embeddingsGroups.included.length}</p>
                 <p className="text-xs text-muted-foreground">Embeddings → Incluir</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-red-600">{embeddingsGroups.excluded.length}</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{embeddingsGroups.excluded.length}</p>
                 <p className="text-xs text-muted-foreground">Embeddings → Excluir</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-blue-600">{hybridGroups.included.length}</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{hybridGroups.included.length}</p>
                 <p className="text-xs text-muted-foreground">ChatGPT → Incluir</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-orange-600">{hybridGroups.excluded.length}</p>
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{hybridGroups.excluded.length}</p>
                 <p className="text-xs text-muted-foreground">ChatGPT → Excluir</p>
               </div>
             </div>

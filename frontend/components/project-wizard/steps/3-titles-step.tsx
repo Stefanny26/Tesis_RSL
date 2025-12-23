@@ -124,11 +124,11 @@ export function TitlesStep() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="text-center space-y-4 mb-8">
-        <h2 className="text-3xl font-bold text-foreground">
+        <h2 className="text-3xl font-bold">
           Gestión de Títulos
         </h2>
-        <div className="max-w-3xl mx-auto p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-          <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
+        <div className="p-4 rounded-lg border border-blue-300 dark:border-blue-700">
+          <p className="text-sm leading-relaxed">
             💡 La IA ha generado 5 títulos académicos bilingües con sus justificaciones siguiendo los criterios de Cochrane Review. 
             Revisa las opciones y <strong>selecciona el que más te convenza</strong>, o bien, 
             <strong> edita cualquiera</strong> usando el botón de edición para adaptarlo a tus necesidades específicas.
@@ -219,7 +219,7 @@ export function TitlesStep() {
                         {/* Título en Inglés */}
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 font-semibold">
+                            <Badge variant="outline" className="border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 font-semibold">
                               EN
                             </Badge>
                             <span className="text-sm font-medium text-muted-foreground">English Title</span>
@@ -242,7 +242,7 @@ export function TitlesStep() {
                         {/* Título en Español */}
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200 font-semibold">
+                            <Badge variant="outline" className="border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 font-semibold">
                               ES
                             </Badge>
                             <span className="text-sm font-medium text-muted-foreground">Título en Español</span>

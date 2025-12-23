@@ -278,9 +278,9 @@ export function ScreeningAnalysisPanel({
             </ResponsiveContainer>
           </div>
           
-          <Alert className="mt-4 bg-amber-50 border-amber-200">
-            <Target className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-900">
+          <Alert className="mt-4 border-amber-300 dark:border-amber-700">
+            <Target className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-foreground">
               <strong>Punto de Codo Detectado:</strong> Artículo #{elbowPoint.index} (Top {elbowPoint.percentage}%) 
               con puntaje {elbowPoint.score.toFixed(4)}. Este es el punto donde la relevancia cae significativamente.
             </AlertDescription>
@@ -345,9 +345,9 @@ export function ScreeningAnalysisPanel({
             </div>
           ))}
 
-          <Alert className="bg-blue-50 border-blue-200 mt-4">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-900">
+          <Alert className="border-primary/20 mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-foreground">
               <strong>Método Híbrido Recomendado:</strong>
               <ol className="list-decimal ml-4 mt-2 space-y-1">
                 <li>Empieza revisando los artículos del <strong>Top 10%</strong> (alta confianza)</li>

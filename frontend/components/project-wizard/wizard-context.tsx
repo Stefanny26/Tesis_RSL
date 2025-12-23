@@ -51,6 +51,21 @@ export interface WizardData {
     focosTematicos?: string[]
   }
   
+  // Estado de validación de términos (cuáles están confirmados y rechazados)
+  confirmedTerms?: {
+    tecnologia?: Set<number>
+    dominio?: Set<number>
+    tipoEstudio?: Set<number>
+    focosTematicos?: Set<number>
+  }
+  
+  discardedTerms?: {
+    tecnologia?: Set<number>
+    dominio?: Set<number>
+    tipoEstudio?: Set<number>
+    focosTematicos?: Set<number>
+  }
+  
   // Paso 5: Criterios I/E (alimentados por términos)
   inclusionCriteria: string[]
   exclusionCriteria: string[]
@@ -142,6 +157,18 @@ const initialData: WizardData = {
     dominio: [],
     tipoEstudio: [],
     focosTematicos: []
+  },
+  confirmedTerms: {
+    tecnologia: new Set(),
+    dominio: new Set(),
+    tipoEstudio: new Set(),
+    focosTematicos: new Set()
+  },
+  discardedTerms: {
+    tecnologia: new Set(),
+    dominio: new Set(),
+    tipoEstudio: new Set(),
+    focosTematicos: new Set()
   },
   inclusionCriteria: [],
   exclusionCriteria: [],

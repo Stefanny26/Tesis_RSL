@@ -110,11 +110,18 @@ class RunProjectScreeningUseCase {
    * Ejecuta cribado HÍBRIDO: Embeddings + ChatGPT para zona gris
    * OPCIÓN 3 RECOMENDADA
    */
-  async executeHybrid({ projectId, protocol, embeddingThreshold = 0.15, aiProvider = 'chatgpt' }) {
+  async executeHybrid({ projectId, protocol, embeddingThreshold = 0.15, aiProvider = 'chatgpt', progressCallback = null }) {
     try {
       console.log(`[HYBRID] Ejecutando cribado HÍBRIDO para proyecto ${projectId}...`);
       console.log(`[HYBRID] Fase 1: Embeddings (threshold: ${embeddingThreshold})`);
       console.log(`[HYBRID] Fase 2: ${aiProvider.toUpperCase()} para zona gris`);
+
+      // Helper para emitir eventos de progreso
+      const emitProgress = (event) => {
+        if (progressCallback) {
+          progressCallback(event);
+        }
+      };
 
       // Obtener referencias pendientes
       let references = await this.referenceRepository.getPendingReferences(projectId);
@@ -148,6 +155,14 @@ class RunProjectScreeningUseCase {
       console.log('\n[PHASE 1] Análisis con Embeddings...');
       console.log(`[PHASE 1] Procesando ${references.length} referencias en batch...`);
       const embeddingsStartTime = Date.now();
+      
+      emitProgress({
+        type: 'phase',
+        phase: 1,
+        message: `Fase 1: Calculando similitudes con Embeddings (${references.length} referencias)`,
+        progress: 10,
+        total: references.length
+      });
       
       const embeddingsResult = await this.screenEmbeddingsUseCase.executeBatch({
         references: references,
@@ -201,11 +216,32 @@ class RunProjectScreeningUseCase {
       console.log(`[PHASE 1]   Alta confianza EXCLUIR: ${highConfidenceExclude.length}`);
       console.log(`[PHASE 1]   Zona gris (para ${aiProvider}): ${greyZone.length}`);
 
+      emitProgress({
+        type: 'phase',
+        phase: 1,
+        message: `Fase 1 completada: ${highConfidenceInclude.length} incluidas, ${highConfidenceExclude.length} excluidas, ${greyZone.length} en zona gris`,
+        progress: 30,
+        stats: {
+          highConfidenceInclude: highConfidenceInclude.length,
+          highConfidenceExclude: highConfidenceExclude.length,
+          greyZone: greyZone.length
+        }
+      });
+
       // FASE 2: ChatGPT solo para zona gris
       console.log(`\n[PHASE 2] Análisis con ${aiProvider.toUpperCase()} (zona gris)...`);
       console.log(`[PHASE 2] Iniciando análisis secuencial de ${greyZone.length} referencias...`);
       const llmResults = [];
       const llmStartTime = Date.now();
+      
+      emitProgress({
+        type: 'phase',
+        phase: 2,
+        message: `Fase 2: Analizando zona gris con ${aiProvider.toUpperCase()} (${greyZone.length} referencias)`,
+        progress: 35,
+        total: greyZone.length,
+        current: 0
+      });
       
       for (let i = 0; i < greyZone.length; i++) {
         const item = greyZone[i];
@@ -234,6 +270,17 @@ class RunProjectScreeningUseCase {
             llmCriteriosNoCumplidos: llmResult.data.criterios_no_cumplidos
           });
 
+          // Emitir progreso después de cada referencia procesada
+          const progressPercent = 35 + Math.floor(((i + 1) / greyZone.length) * 55);
+          emitProgress({
+            type: 'progress',
+            phase: 2,
+            message: `Procesando referencia ${i + 1} de ${greyZone.length}`,
+            progress: progressPercent,
+            total: greyZone.length,
+            current: i + 1
+          });
+
         } catch (error) {
           const refDuration = ((Date.now() - refStartTime) / 1000).toFixed(1);
           console.error(`[PHASE 2] [${i + 1}/${greyZone.length}] Error después de ${refDuration}s:`, error.message);
@@ -251,6 +298,13 @@ class RunProjectScreeningUseCase {
 
       // FASE 3: Guardar resultados en base de datos
       console.log('\n[PHASE 3] Guardando resultados...');
+      
+      emitProgress({
+        type: 'phase',
+        phase: 3,
+        message: 'Fase 3: Guardando resultados en la base de datos',
+        progress: 90
+      });
       
       let totalIncluded = 0;
       let totalExcluded = 0;

@@ -121,4 +121,11 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Fix disabled textarea text visibility - base rule */
+  textarea:disabled,
+  textarea[disabled] {
+    -webkit-text-fill-color: currentColor !important;
+    opacity: 1 !important;
+  }
 }

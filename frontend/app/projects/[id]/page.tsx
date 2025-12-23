@@ -120,38 +120,38 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <>
                   {/* Título propuesto */}
                   {project.protocol.proposedTitle && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm font-medium text-blue-900 mb-2">Título Refinado (Propuesto por IA)</p>
-                      <p className="text-lg font-semibold text-gray-900">{project.protocol.proposedTitle}</p>
+                    <div className="p-4 border border-primary/20 rounded-lg">
+                      <p className="text-sm font-medium text-muted-foreground mb-2">Título Refinado (Propuesto por IA)</p>
+                      <p className="text-lg font-semibold text-foreground">{project.protocol.proposedTitle}</p>
                     </div>
                   )}
 
                   {/* Marco PICO */}
                   {project.protocol.picoFramework && (
-                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                      <p className="text-sm font-medium text-purple-900 mb-3">Marco PICO</p>
+                    <div className="p-4 border border-primary/20 rounded-lg">
+                      <p className="text-sm font-medium text-muted-foreground mb-3">Marco PICO</p>
                       <div className="grid md:grid-cols-2 gap-4">
-                        <div className="p-3 bg-white rounded-lg">
-                          <p className="text-xs font-semibold text-purple-700 mb-1">Población</p>
-                          <p className="text-sm text-gray-700">
+                        <div className="p-3 border border-border rounded-lg">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Población</p>
+                          <p className="text-sm text-foreground">
                             {project.protocol.picoFramework.population || <span className="text-gray-400 italic">No especificado</span>}
                           </p>
                         </div>
-                        <div className="p-3 bg-white rounded-lg">
-                          <p className="text-xs font-semibold text-purple-700 mb-1">Intervención</p>
-                          <p className="text-sm text-gray-700">
-                            {project.protocol.picoFramework.intervention || <span className="text-gray-400 italic">No especificado</span>}
+                        <div className="p-3 border border-border rounded-lg">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Intervención</p>
+                          <p className="text-sm text-foreground">
+                            {project.protocol.picoFramework.intervention || <span className="text-muted-foreground italic">No especificado</span>}
                           </p>
                         </div>
-                        <div className="p-3 bg-white rounded-lg">
-                          <p className="text-xs font-semibold text-purple-700 mb-1">Comparación</p>
-                          <p className="text-sm text-gray-700">
-                            {project.protocol.picoFramework.comparison || <span className="text-gray-400 italic">No especificado</span>}
+                        <div className="p-3 border border-border rounded-lg">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Comparación</p>
+                          <p className="text-sm text-foreground">
+                            {project.protocol.picoFramework.comparison || <span className="text-muted-foreground italic">No especificado</span>}
                           </p>
                         </div>
-                        <div className="p-3 bg-white rounded-lg">
-                          <p className="text-xs font-semibold text-purple-700 mb-1">Resultado</p>
-                          <p className="text-sm text-gray-700">
+                        <div className="p-3 border border-border rounded-lg">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Resultado</p>
+                          <p className="text-sm text-foreground">
                             {project.protocol.picoFramework.outcomes || <span className="text-gray-400 italic">No especificado</span>}
                           </p>
                         </div>
@@ -161,25 +161,25 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
                   {/* Matriz Es/No Es */}
                   {(project.protocol.isMatrix?.length > 0 || project.protocol.isNotMatrix?.length > 0) && (
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
-                      <p className="text-sm font-medium text-slate-900 mb-3">Matriz Es/No Es</p>
+                    <div className="p-4 border border-primary/20 rounded-lg">
+                      <p className="text-sm font-medium text-muted-foreground mb-3">Matriz Es/No Es</p>
                       <div className="grid md:grid-cols-2 gap-4">
                         {project.protocol.isMatrix && project.protocol.isMatrix.length > 0 && (
-                          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                            <p className="text-xs font-semibold text-green-700 mb-2">ES (Incluye)</p>
+                          <div className="p-3 border border-green-300 dark:border-green-700 rounded-lg">
+                            <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">ES (Incluye)</p>
                             <ul className="list-disc list-inside space-y-1">
                               {project.protocol.isMatrix.map((item, i) => (
-                                <li key={i} className="text-sm text-gray-700">{item}</li>
+                                <li key={i} className="text-sm text-foreground">{item}</li>
                               ))}
                             </ul>
                           </div>
                         )}
                         {project.protocol.isNotMatrix && project.protocol.isNotMatrix.length > 0 && (
-                          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-xs font-semibold text-red-700 mb-2">NO ES (Excluye)</p>
+                          <div className="p-3 border border-red-300 dark:border-red-700 rounded-lg">
+                            <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-2">NO ES (Excluye)</p>
                             <ul className="list-disc list-inside space-y-1">
                               {project.protocol.isNotMatrix.map((item, i) => (
-                                <li key={i} className="text-sm text-gray-700">{item}</li>
+                                <li key={i} className="text-sm text-foreground">{item}</li>
                               ))}
                             </ul>
                           </div>
@@ -190,45 +190,45 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
                   {/* Términos Clave */}
                   {project.protocol.keyTerms && (
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-sm font-medium text-amber-900 mb-3">Términos Clave</p>
+                    <div className="p-4 border border-primary/20 rounded-lg">
+                      <p className="text-sm font-medium text-muted-foreground mb-3">Términos Clave</p>
                       <div className="space-y-3">
                         {project.protocol.keyTerms.technology && project.protocol.keyTerms.technology.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-amber-700 mb-2">Tecnología:</p>
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">Tecnología:</p>
                             <div className="flex flex-wrap gap-2">
                               {project.protocol.keyTerms.technology.map((term, i) => (
-                                <Badge key={i} variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">{term}</Badge>
+                                <Badge key={i} variant="outline">{term}</Badge>
                               ))}
                             </div>
                           </div>
                         )}
                         {project.protocol.keyTerms.domain && project.protocol.keyTerms.domain.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-amber-700 mb-2">Dominio:</p>
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">Dominio:</p>
                             <div className="flex flex-wrap gap-2">
                               {project.protocol.keyTerms.domain.map((term, i) => (
-                                <Badge key={i} variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">{term}</Badge>
+                                <Badge key={i} variant="outline">{term}</Badge>
                               ))}
                             </div>
                           </div>
                         )}
                         {project.protocol.keyTerms.themes && project.protocol.keyTerms.themes.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-amber-700 mb-2">Temas:</p>
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">Temas:</p>
                             <div className="flex flex-wrap gap-2">
                               {project.protocol.keyTerms.themes.map((term, i) => (
-                                <Badge key={i} variant="outline" className="bg-green-100 text-green-800 border-green-300">{term}</Badge>
+                                <Badge key={i} variant="outline">{term}</Badge>
                               ))}
                             </div>
                           </div>
                         )}
                         {project.protocol.keyTerms.studyType && project.protocol.keyTerms.studyType.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-amber-700 mb-2">Tipo de Estudio:</p>
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">Tipo de Estudio:</p>
                             <div className="flex flex-wrap gap-2">
                               {project.protocol.keyTerms.studyType.map((term, i) => (
-                                <Badge key={i} variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">{term}</Badge>
+                                <Badge key={i} variant="outline">{term}</Badge>
                               ))}
                             </div>
                           </div>
@@ -240,25 +240,25 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
                   {/* Criterios de Inclusión/Exclusión */}
                   {(project.protocol.inclusionCriteria?.length > 0 || project.protocol.exclusionCriteria?.length > 0) && (
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
-                      <p className="text-sm font-medium text-slate-900 mb-3">Criterios de Inclusión y Exclusión</p>
+                    <div className="p-4 border border-primary/20 rounded-lg">
+                      <p className="text-sm font-medium text-muted-foreground mb-3">Criterios de Inclusión y Exclusión</p>
                       <div className="grid md:grid-cols-2 gap-4">
                         {project.protocol.inclusionCriteria && project.protocol.inclusionCriteria.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-green-700 mb-2">Inclusión:</p>
+                            <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">Inclusión:</p>
                             <ul className="list-disc list-inside space-y-1">
                               {project.protocol.inclusionCriteria.map((criteria, i) => (
-                                <li key={i} className="text-sm text-gray-700">{criteria}</li>
+                                <li key={i} className="text-sm text-foreground">{criteria}</li>
                               ))}
                             </ul>
                           </div>
                         )}
                         {project.protocol.exclusionCriteria && project.protocol.exclusionCriteria.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-red-700 mb-2">Exclusión:</p>
+                            <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-2">Exclusión:</p>
                             <ul className="list-disc list-inside space-y-1">
                               {project.protocol.exclusionCriteria.map((criteria, i) => (
-                                <li key={i} className="text-sm text-gray-700">{criteria}</li>
+                                <li key={i} className="text-sm text-foreground">{criteria}</li>
                               ))}
                             </ul>
                           </div>
@@ -276,16 +276,16 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                     return null
                   })()}
                   {(project.protocol.searchStrategy?.searchQueries?.length > 0 || project.protocol.searchQueries?.length > 0 || project.protocol.searchStrategy || project.protocol.databases || project.protocol.searchString) && (
-                    <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                      <p className="text-sm font-medium text-indigo-900 mb-3">Estrategia de Búsqueda</p>
+                    <div className="p-4 border border-primary/20 rounded-lg">
+                      <p className="text-sm font-medium text-muted-foreground mb-3">Estrategia de Búsqueda</p>
 
                       {/* Bases de datos */}
                       {((project.protocol.searchStrategy?.databases?.length > 0) || (project.protocol.databases?.length > 0)) && (
                         <div className="mb-3">
-                          <p className="text-xs font-semibold text-indigo-700 mb-2">Bases de datos:</p>
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">Bases de datos:</p>
                           <div className="flex flex-wrap gap-2">
                             {(project.protocol.searchStrategy?.databases || project.protocol.databases || []).map((db, i) => (
-                              <Badge key={i} variant="outline" className="bg-indigo-100 text-indigo-800 border-indigo-300">{db}</Badge>
+                              <Badge key={i} variant="outline">{db}</Badge>
                             ))}
                           </div>
                         </div>
@@ -294,13 +294,13 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                       {/* Cadenas de búsqueda específicas por base de datos */}
                       {(project.protocol.searchStrategy?.searchQueries && project.protocol.searchStrategy.searchQueries.length > 0) || (project.protocol.searchQueries && project.protocol.searchQueries.length > 0) ? (
                         <div className="mb-3 space-y-3">
-                          <p className="text-xs font-semibold text-indigo-700 mb-2">Cadenas de búsqueda:</p>
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">Cadenas de búsqueda:</p>
                           {(project.protocol.searchStrategy?.searchQueries || project.protocol.searchQueries || []).map((queryObj: any, index: number) => (
-                            <div key={index} className="bg-white p-3 rounded border border-indigo-200">
-                              <p className="text-xs font-medium text-indigo-600 mb-1">
+                            <div key={index} className="p-3 rounded border border-primary/20">
+                              <p className="text-xs font-medium text-muted-foreground mb-1">
                                 {queryObj.database || queryObj.databaseName || `Base de datos ${index + 1}`}:
                               </p>
-                              <code className="text-xs bg-gray-50 p-2 rounded block overflow-x-auto text-gray-800 border border-gray-200">
+                              <code className="text-xs bg-muted p-2 rounded block overflow-x-auto text-foreground border border-primary/20">
                                 {queryObj.query}
                               </code>
                             </div>
@@ -308,8 +308,8 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                         </div>
                       ) : (project.protocol.searchStrategy?.searchString || project.protocol.searchString) ? (
                         <div className="mb-3">
-                          <p className="text-xs font-semibold text-indigo-700 mb-2">Cadena de búsqueda:</p>
-                          <code className="text-xs bg-white p-3 rounded block overflow-x-auto text-gray-800 border border-indigo-200">
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">Cadena de búsqueda:</p>
+                          <code className="text-xs bg-muted p-3 rounded block overflow-x-auto text-foreground border border-primary/20">
                             {project.protocol.searchStrategy?.searchString || project.protocol.searchString}
                           </code>
                         </div>
@@ -318,9 +318,9 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                       {/* Rango temporal */}
                       {(project.protocol.searchStrategy?.temporalRange || project.protocol.temporalRange) && (
                         <div>
-                          <p className="text-xs font-semibold text-indigo-700 mb-2">Rango temporal:</p>
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">Rango temporal:</p>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="bg-indigo-100 text-indigo-800">
+                            <Badge variant="outline">
                               {(project.protocol.searchStrategy?.temporalRange?.start || project.protocol.temporalRange?.start)} - {(project.protocol.searchStrategy?.temporalRange?.end || project.protocol.temporalRange?.end)}
                             </Badge>
                             {(project.protocol.searchStrategy?.temporalRange?.justification || project.protocol.temporalRange?.justification) && (

@@ -11,47 +11,50 @@ class CompletePrismaItemsUseCase {
   constructor({ 
     protocolRepository,
     aiService,
-    generatePrismaContextUseCase
+    generatePrismaContextUseCase,
+    extractFullTextDataUseCase
   }) {
     this.protocolRepository = protocolRepository;
     this.aiService = aiService;
     this.generatePrismaContextUseCase = generatePrismaContextUseCase;
+    this.extractFullTextDataUseCase = extractFullTextDataUseCase;
   }
 
   /**
    * Genera el prompt específico para completar ítems PRISMA
    */
   generatePrompt(prismaContext, pendingItems) {
-    return `You are completing the PRISMA 2020 checklist for a systematic literature review.
+    return `Eres un asistente especializado en completar la lista de verificación PRISMA 2020 para revisiones sistemáticas de literatura.
 
-CRITICAL INSTRUCTIONS:
-1. Use ONLY the data provided in the PRISMA Context below
-2. Do NOT introduce new decisions, interpretations, or assumptions
-3. Your task is to DESCRIBE, not to JUSTIFY or MODIFY the study selection process
-4. Write in formal academic language suitable for a systematic literature review
-5. If an item cannot be fully completed based on provided data, state this explicitly
+INSTRUCCIONES CRÍTICAS:
+1. Usa ÚNICAMENTE los datos proporcionados en el Contexto PRISMA que aparece abajo
+2. NO introduzcas nuevas decisiones, interpretaciones o suposiciones
+3. Tu tarea es DESCRIBIR, no JUSTIFICAR o MODIFICAR el proceso de selección de estudios
+4. Escribe en lenguaje académico formal apropiado para una revisión sistemática
+5. Si un ítem no puede completarse con los datos disponibles, indícalo explícitamente
+6. Escribe TODO el contenido en ESPAÑOL (idioma español académico)
 
-PRISMA CONTEXT:
+CONTEXTO PRISMA:
 ${JSON.stringify(prismaContext, null, 2)}
 
-PENDING ITEMS TO COMPLETE:
-${pendingItems.map(item => `- Item ${item.id}: ${item.section} - ${item.topic}`).join('\n')}
+ÍTEMS PENDIENTES POR COMPLETAR:
+${pendingItems.map(item => `- Ítem ${item.id}: ${item.section} - ${item.topic}`).join('\n')}
 
-For each pending item, generate formal academic text that:
-- Describes the process or findings factually
-- Uses passive voice and formal language
-- Maintains consistency with the protocol
-- Declares AI usage when applicable
-- Does not make new methodological decisions
+Para cada ítem pendiente, genera texto académico formal en ESPAÑOL que:
+- Describa el proceso o hallazgos de forma factual
+- Use voz pasiva y lenguaje académico formal
+- Mantenga consistencia con el protocolo
+- Declare el uso de IA cuando sea aplicable
+- No tome nuevas decisiones metodológicas
 
-Respond with valid JSON in this exact format:
+Responde con JSON válido en este formato exacto (todo el contenido en español):
 {
   "items": [
     {
       "itemNumber": 16,
       "section": "RESULTADOS",
-      "content": "Academic text here...",
-      "dataSource": "Brief description of data source"
+      "content": "Texto académico en español aquí...",
+      "dataSource": "Breve descripción de la fuente de datos"
     }
   ]
 }
@@ -307,13 +310,24 @@ Do NOT add any text before or after the JSON.`;
     try {
       console.log(`🔄 Completando ítems PRISMA para proyecto ${projectId}`);
 
-      // 1. Generar PRISMA Context
+      // 1. Extraer datos de PDFs/abstracts automáticamente
+      console.log('📄 Paso 1/3: Extrayendo datos de referencias...');
+      try {
+        await this.extractFullTextDataUseCase.execute(projectId);
+        console.log('✅ Datos de referencias extraídos');
+      } catch (extractError) {
+        console.warn('⚠️ Error extrayendo datos (continuando):', extractError.message);
+      }
+
+      // 2. Generar PRISMA Context
+      console.log('📊 Paso 2/3: Generando contexto PRISMA...');
       const { context: prismaContext } = await this.generatePrismaContextUseCase.execute(projectId);
 
-      // 2. Generar ítems específicos que siempre podemos completar
+      // 3. Generar ítems específicos que siempre podemos completar
+      console.log('✍️ Paso 3/3: Generando ítems PRISMA...');
       const automaticItems = await this.generateSpecificItems(prismaContext);
 
-      // 3. Guardar ítems en el protocolo
+      // 4. Guardar ítems en el protocolo
       const protocol = await this.protocolRepository.findByProjectId(projectId);
       
       const existingPrismaCompliance = protocol.prismaCompliance || [];

@@ -467,6 +467,60 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
     }
   }
 
+  // Nueva función para manejar completado del SSE
+  const handleScreeningComplete = async (resultData?: any) => {
+    try {
+      console.log('🔄 Recargando datos después del cribado SSE...', resultData)
+      
+      // Si recibimos datos del SSE, guardarlos inmediatamente
+      if (resultData) {
+        console.log('💾 Guardando resultado del SSE:', resultData)
+        setLastScreeningResult(resultData)
+        
+        // Guardar en el protocolo también
+        try {
+          const protocol = await apiClient.getProtocol(params.id)
+          if (protocol) {
+            await apiClient.updateProtocol(params.id, {
+              ...protocol,
+              screeningResults: resultData
+            })
+            console.log('✅ Resultado guardado en el protocolo')
+          }
+        } catch (err) {
+          console.warn('No se pudo guardar en el protocolo:', err)
+        }
+      }
+      
+      // Recargar referencias
+      const refData = await apiClient.getAllReferences(params.id)
+      setReferences(refData.references || [])
+      setStats(refData.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
+      
+      // Si no obtuvimos datos del SSE, intentar cargar del protocolo
+      if (!resultData) {
+        try {
+          const protocol = await apiClient.getProtocol(params.id)
+          if (protocol && protocol.screeningResults) {
+            setLastScreeningResult(protocol.screeningResults)
+            console.log('✅ Resultado cargado desde el protocolo')
+          }
+        } catch (err) {
+          console.warn('No se pudo cargar el protocolo:', err)
+        }
+      }
+      
+      console.log('✅ Datos actualizados después del cribado')
+    } catch (error) {
+      console.error('❌ Error recargando datos:', error)
+      toast({
+        title: "Error recargando datos",
+        description: "Por favor recarga la página para ver los resultados",
+        variant: "destructive"
+      })
+    }
+  }
+
   // Manejar exportación de referencias
   const handleExport = async () => {
     setIsExporting(true)
@@ -809,6 +863,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                 pendingReferences={stats.pending}
                 projectId={params.id}
                 onRunScreening={handleRunScreening}
+                onScreeningComplete={handleScreeningComplete}
               />
               
               {lastScreeningResult && (
@@ -861,13 +916,13 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                       references={references.filter(r => r.aiReasoning || r.aiClassification || r.screeningScore !== undefined)} 
                     />
                     
-                    <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-2 border-dashed border-green-300">
+                    <div className="mt-6 p-6 border-2 border-dashed border-green-300 dark:border-green-700 rounded-lg">
                       <div className="flex items-start gap-4">
-                        <CheckCircle2 className="h-10 w-10 text-green-600 flex-shrink-0 mt-1" />
+                        <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
                         <div className="flex-1">
-                          <h4 className="font-semibold text-lg mb-2">Clasificación Automática Completada</h4>
+                          <h4 className="font-semibold text-lg mb-2 text-foreground">Clasificación Automática Completada</h4>
                           <p className="text-sm text-muted-foreground mb-4">
-                            La IA ha clasificado {lastScreeningResult.summary.processed} referencias. Las referencias candidatas están listas para revisión manual.
+                            La IA ha clasificado {lastScreeningResult.summary?.processed || lastScreeningResult.summary?.total || 'todas las'} referencias. Las referencias candidatas están listas para revisión manual.
                           </p>
                           <Button onClick={() => {
                             setFase2Unlocked(true)
@@ -973,10 +1028,10 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                     <CardContent className="space-y-4">
                       {candidatesForReview.length > 0 ? (
                         <>
-                          <Alert className="bg-blue-50 border-blue-200">
-                            <AlertCircle className="h-4 w-4 text-blue-600" />
-                            <AlertTitle className="text-blue-900">Referencias Recomendadas para Inclusión</AlertTitle>
-                            <AlertDescription className="text-blue-800 text-sm mt-2">
+                          <Alert className="border-primary/20">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle className="text-foreground">Referencias Recomendadas para Inclusión</AlertTitle>
+                            <AlertDescription className="text-muted-foreground text-sm mt-2">
                               La tabla muestra únicamente las <strong>{candidatesForReview.length} referencias que la IA recomienda incluir</strong> basándose 
                               en su similitud con los criterios del protocolo. Para cada referencia:
                               <ul className="list-disc ml-5 mt-2 space-y-1">
@@ -988,19 +1043,19 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                           </Alert>
 
                           <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                              <p className="text-sm text-green-700 mb-1 font-medium">Total de Candidatos</p>
-                              <p className="text-2xl font-bold text-green-900">
+                            <div className="border border-green-300 dark:border-green-700 rounded-lg p-4">
+                              <p className="text-sm text-green-700 dark:text-green-400 mb-1 font-medium">Total de Candidatos</p>
+                              <p className="text-2xl font-bold text-foreground">
                                 {candidatesForReview.length}
                               </p>
-                              <p className="text-xs text-green-600 mt-1">Recomendados por IA para inclusión</p>
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">Recomendados por IA para inclusión</p>
                             </div>
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                              <p className="text-sm text-blue-700 mb-1 font-medium">Pendientes de Revisión</p>
-                              <p className="text-2xl font-bold text-blue-900">
+                            <div className="border border-blue-300 dark:border-blue-700 rounded-lg p-4">
+                              <p className="text-sm text-blue-700 dark:text-blue-400 mb-1 font-medium">Pendientes de Revisión</p>
+                              <p className="text-2xl font-bold text-foreground">
                                 {candidatesForReview.filter(r => r.status === 'pending').length}
                               </p>
-                              <p className="text-xs text-blue-600 mt-1">Esperando su decisión</p>
+                              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Esperando su decisión</p>
                             </div>
                           </div>
 
@@ -1052,12 +1107,12 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                                       </Button>
                                       
                                       {expandedAnalysis.has(ref.id) && (
-                                        <Alert className="mt-3 bg-blue-50 border-blue-200">
-                                          <AlertCircle className="h-4 w-4 text-blue-600" />
-                                          <AlertTitle className="text-blue-900 text-sm font-bold mb-2">
+                                        <Alert className="mt-3 border-primary/20">
+                                          <AlertCircle className="h-4 w-4" />
+                                          <AlertTitle className="text-foreground text-sm font-bold mb-2">
                                             Justificación de Inclusión
                                           </AlertTitle>
-                                          <AlertDescription className="text-gray-800 text-xs leading-relaxed max-h-60 overflow-y-auto">
+                                          <AlertDescription className="text-muted-foreground text-xs leading-relaxed max-h-60 overflow-y-auto">
                                             {(() => {
                                               // Detectar si es solo análisis técnico de embeddings
                                               const isTechnicalOnly = ref.aiReasoning && 
@@ -1081,11 +1136,11 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                                                 }
                                                 
                                                 return (
-                                                  <div className="bg-white p-3 rounded border border-blue-100">
-                                                    <p className="text-gray-700 leading-relaxed mb-3">
+                                                  <div className="bg-muted/30 p-3 rounded border border-primary/20">
+                                                    <p className="text-foreground leading-relaxed mb-3">
                                                       Este artículo {explanation}
                                                     </p>
-                                                    <p className="text-gray-700 leading-relaxed">
+                                                    <p className="text-foreground leading-relaxed">
                                                       El sistema de inteligencia artificial, mediante análisis de similitud semántica, 
                                                       determinó que la investigación cumple con los requisitos metodológicos y temáticos 
                                                       establecidos en el protocolo. Se recomienda la revisión del texto completo para 
@@ -1093,10 +1148,10 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                                                     </p>
                                                     {ref.matchedCriteria && ref.matchedCriteria.length > 0 && (
                                                       <>
-                                                        <p className="text-gray-700 mt-3 mb-1">
+                                                        <p className="text-foreground mt-3 mb-1">
                                                           <strong>Criterios de inclusión identificados:</strong>
                                                         </p>
-                                                        <ul className="list-disc list-inside space-y-1 text-gray-700 ml-2">
+                                                        <ul className="list-disc list-inside space-y-1 text-foreground ml-2">
                                                           {ref.matchedCriteria.map((criterion, idx) => (
                                                             <li key={idx}>{criterion}</li>
                                                           ))}
@@ -1109,7 +1164,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                                               
                                               // Si hay análisis detallado, mostrarlo
                                               return (
-                                                <div className="whitespace-pre-wrap bg-white p-3 rounded border border-blue-100 text-gray-700 leading-relaxed">
+                                                <div className="whitespace-pre-wrap bg-muted/30 p-3 rounded border border-primary/20 text-foreground leading-relaxed">
                                                   {ref.aiReasoning}
                                                 </div>
                                               );
@@ -1205,7 +1260,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                                         <Button 
                                           size="sm" 
                                           onClick={() => handleStatusChange(ref.id, 'included')}
-                                          className="bg-green-600 hover:bg-green-700 flex-1 text-xs h-8"
+                                          className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 flex-1 text-xs h-8"
                                         >
                                           <CheckCircle2 className="h-3 w-3 mr-1" />
                                           Confirmar
@@ -1235,11 +1290,11 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                           </div>
 
                           {candidatesForReview.every(r => r.status !== 'pending') && (
-                            <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-dashed border-green-300">
+                            <div className="mt-6 p-6 border-2 border-dashed border-green-300 dark:border-green-700 rounded-lg">
                               <div className="flex items-start gap-4">
-                                <CheckCircle2 className="h-10 w-10 text-green-600 flex-shrink-0 mt-1" />
+                                <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
                                 <div className="flex-1">
-                                  <h4 className="font-semibold text-lg mb-2">Revisión Manual Completada</h4>
+                                  <h4 className="font-semibold text-foreground text-lg mb-2">Revisión Manual Completada</h4>
                                   <p className="text-sm text-muted-foreground mb-4">
                                     Ha completado la revisión de todas las referencias candidatas. 
                                     Puede analizar la priorización o consultar directamente los resultados finales.
@@ -1349,10 +1404,10 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
 
                 return (
                   <div className="space-y-6">
-                    <Card className="border-blue-200 bg-blue-50/50">
+                    <Card className="border-primary/20">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5 text-blue-600" />
+                          <TrendingUp className="h-5 w-5 text-primary" />
                           Análisis de Priorización: Determinación del Criterio de Corte
                         </CardTitle>
                         <CardDescription>
@@ -1361,7 +1416,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <Alert className="bg-white mb-4">
+                        <Alert className="border-primary/20 mb-4">
                           <AlertCircle className="h-4 w-4" />
                           <AlertTitle>Metodología Aplicada</AlertTitle>
                           <AlertDescription className="text-sm mt-2">
@@ -1377,16 +1432,16 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
 
                     <PriorityDistributionAnalysis references={references} />
                     
-                    <Card className="border-green-200 bg-green-50/50">
+                    <Card className="border-green-300 dark:border-green-700">
                       <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="font-semibold mb-1">Continuar con la Revisión Manual</h4>
+                            <h4 className="font-semibold text-foreground mb-1">Continuar con la Revisión Manual</h4>
                             <p className="text-sm text-muted-foreground">
                               Proceda a evaluar los candidatos identificados según el análisis de priorización
                             </p>
                           </div>
-                          <Button onClick={() => setActiveTab("revision")} size="lg" className="bg-green-600 hover:bg-green-700">
+                          <Button onClick={() => setActiveTab("revision")} size="lg" className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
                             Iniciar Revisión Manual
                           </Button>
                         </div>
@@ -1430,20 +1485,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                 return (
                   <div className="space-y-6">
                     {/* Diagrama PRISMA */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Database className="h-5 w-5 text-blue-600" />
-                          Diagrama de Flujo PRISMA 2020
-                        </CardTitle>
-                        <CardDescription>
-                          Visualización del proceso completo de selección de estudios
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <PrismaFlowDiagram stats={prismaStats} />
-                      </CardContent>
-                    </Card>
+                    <PrismaFlowDiagram stats={prismaStats} />
                     
                     {/* Detalles del Cribado Automático (si existe) */}
                     {lastScreeningResult && (

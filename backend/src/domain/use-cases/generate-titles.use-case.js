@@ -480,10 +480,16 @@ GENERA LOS 5 TÍTULOS AHORA:`;
           console.log(`✅ Título ${index + 1} tiene justificación (${justification.length} caracteres)`);
         }
         
+        // Extraer título en español y justificación en español
+        const spanishTitle = item.spanishTitle || title; // Si no hay traducción, usar el título original
+        const spanishJustification = item.spanishJustification || justification;
+        
         return {
           title: title,
+          spanishTitle: spanishTitle,
           cochraneCompliance: ['full', 'partial', 'none'].includes(compliance) ? compliance : 'partial',
           justification: justification || 'Sin justificación proporcionada',
+          spanishJustification: spanishJustification || 'Sin justificación proporcionada',
           reasoning: justification || 'Sin justificación proporcionada', // Mantener por compatibilidad
           components: {
             population: components.population || 'unspecified',
@@ -522,8 +528,10 @@ GENERA LOS 5 TÍTULOS AHORA:`;
     return [
       {
         title: 'A Systematic Literature Review: Research Topic in Study Context',
+        spanishTitle: 'Una Revisión Sistemática de Literatura: Tema de Investigación en Contexto de Estudio',
         cochraneCompliance: 'partial',
         justification: 'Título genérico de respaldo - requiere personalización con datos PICO',
+        spanishJustification: 'Título genérico de respaldo - requiere personalización con datos PICO',
         reasoning: 'Título genérico de respaldo - requiere personalización con datos PICO',
         components: {
           population: 'unspecified population',
@@ -535,8 +543,10 @@ GENERA LOS 5 TÍTULOS AHORA:`;
       },
       {
         title: 'Exploring Intervention Strategies for Target Outcomes: A Systematic Review',
+        spanishTitle: 'Explorando Estrategias de Intervención para Resultados Objetivo: Una Revisión Sistemática',
         cochraneCompliance: 'partial',
         justification: 'Título de respaldo - estructura básica correcta pero necesita especificación',
+        spanishJustification: 'Título de respaldo - estructura básica correcta pero necesita especificación',
         reasoning: 'Título de respaldo - estructura básica correcta pero necesita especificación',
         components: {
           population: 'target population',
@@ -548,8 +558,10 @@ GENERA LOS 5 TÍTULOS AHORA:`;
       },
       {
         title: 'Study Intervention and Its Impact on Primary Outcomes: A Literature Review',
+        spanishTitle: 'Intervención de Estudio y su Impacto en Resultados Primarios: Una Revisión de Literatura',
         cochraneCompliance: 'partial',
         justification: 'Título de respaldo - faltan detalles específicos de población y contexto',
+        spanishJustification: 'Título de respaldo - faltan detalles específicos de población y contexto',
         reasoning: 'Título de respaldo - faltan detalles específicos de población y contexto',
         components: {
           population: 'study participants',
@@ -561,8 +573,10 @@ GENERA LOS 5 TÍTULOS AHORA:`;
       },
       {
         title: 'A Scoping Review of Research Topic in Target Population',
+        spanishTitle: 'Una Revisión Exploratoria del Tema de Investigación en Población Objetivo',
         cochraneCompliance: 'partial',
         justification: 'Título de respaldo - requiere información específica de PICO',
+        spanishJustification: 'Título de respaldo - requiere información específica de PICO',
         reasoning: 'Título de respaldo - requiere información específica de PICO',
         components: {
           population: 'target population',
@@ -574,8 +588,10 @@ GENERA LOS 5 TÍTULOS AHORA:`;
       },
       {
         title: 'Systematic Review: Implementation Strategies for Study Context and Expected Results',
+        spanishTitle: 'Revisión Sistemática: Estrategias de Implementación para Contexto de Estudio y Resultados Esperados',
         cochraneCompliance: 'partial',
         justification: 'Título de respaldo - estructura adecuada pero requiere datos específicos',
+        spanishJustification: 'Título de respaldo - estructura adecuada pero requiere datos específicos',
         reasoning: 'Título de respaldo - estructura adecuada pero requiere datos específicos',
         components: {
           population: 'study context',
