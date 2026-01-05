@@ -6,6 +6,7 @@ const GeneratePrismaContentUseCase = require('../../domain/use-cases/generate-pr
 const ExtractFullTextDataUseCase = require('../../domain/use-cases/extract-fulltext-data.use-case');
 const GeneratePrismaContextUseCase = require('../../domain/use-cases/generate-prisma-context.use-case');
 const CompletePrismaItemsUseCase = require('../../domain/use-cases/complete-prisma-items.use-case');
+const CompletePrismaByBlocksUseCase = require('../../domain/use-cases/complete-prisma-by-blocks.use-case');
 const AIService = require('../../infrastructure/services/ai.service');
 
 /**
@@ -518,6 +519,111 @@ class PrismaController {
       res.status(500).json({
         success: false,
         message: 'Error al completar ítems PRISMA',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * POST /api/projects/:projectId/prisma/complete-by-blocks
+   * Completar ítems PRISMA por bloques académicos
+   * Body: { block: 'all' | 'methods' | 'results' | 'discussion' | 'other' }
+   */
+  async completeByBlocks(req, res) {
+    try {
+      const { projectId } = req.params;
+      const { block = 'all' } = req.body;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para completar ítems PRISMA'
+        });
+      }
+
+      // Validar bloque
+      const validBlocks = ['all', 'methods', 'results', 'discussion', 'other'];
+      if (!validBlocks.includes(block)) {
+        return res.status(400).json({
+          success: false,
+          message: `Bloque inválido. Debe ser uno de: ${validBlocks.join(', ')}`
+        });
+      }
+
+      // Crear use case
+      const generateContextUseCase = new GeneratePrismaContextUseCase({
+        protocolRepository: this.protocolRepository,
+        referenceRepository: this.referenceRepository,
+        projectRepository: this.projectRepository
+      });
+
+      const completeByBlocksUseCase = new CompletePrismaByBlocksUseCase({
+        prismaItemRepository: this.prismaItemRepository,
+        protocolRepository: this.protocolRepository,
+        aiService: this.aiService,
+        generatePrismaContextUseCase: generateContextUseCase
+      });
+
+      const result = await completeByBlocksUseCase.execute(projectId, block);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: `Bloques ${block} completados exitosamente`
+      });
+
+    } catch (error) {
+      console.error('❌ Error completando bloques PRISMA:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al completar bloques PRISMA',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/projects/:projectId/prisma/status
+   * Verificar si PRISMA está completo y listo para artículo
+   */
+  async getStatus(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para ver el estado de PRISMA'
+        });
+      }
+
+      const stats = await this.prismaItemRepository.getComplianceStats(projectId);
+      const completed = parseInt(stats.completed) || 0;
+      const isPrismaComplete = completed === 27;
+
+      res.status(200).json({
+        success: true,
+        data: {
+          completed,
+          total: 27,
+          isPrismaComplete,
+          canGenerateArticle: isPrismaComplete,
+          completionPercentage: Math.round((completed / 27) * 100),
+          message: isPrismaComplete 
+            ? 'PRISMA completo. Puede generar el artículo científico.' 
+            : `PRISMA incompleto: ${completed}/27 ítems completados.`
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Error obteniendo estado PRISMA:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener estado de PRISMA',
         error: error.message
       });
     }

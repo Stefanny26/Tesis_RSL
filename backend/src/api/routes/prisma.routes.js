@@ -154,5 +154,34 @@ router.post(
   (req, res) => prismaController.completeItems(req, res)
 );
 
+/**
+ * @route   POST /api/projects/:projectId/prisma/complete-by-blocks
+ * @desc    Completar ítems PRISMA por bloques académicos
+ * @access  Private
+ */
+router.post(
+  '/:projectId/prisma/complete-by-blocks',
+  [
+    param('projectId').isUUID().withMessage('ID de proyecto inválido'),
+    body('block').optional().isIn(['all', 'methods', 'results', 'discussion', 'other']).withMessage('Bloque inválido'),
+    validateRequest
+  ],
+  (req, res) => prismaController.completeByBlocks(req, res)
+);
+
+/**
+ * @route   GET /api/projects/:projectId/prisma/status
+ * @desc    Verificar si PRISMA está completo
+ * @access  Private
+ */
+router.get(
+  '/:projectId/prisma/status',
+  [
+    param('projectId').isUUID().withMessage('ID de proyecto inválido'),
+    validateRequest
+  ],
+  (req, res) => prismaController.getStatus(req, res)
+);
+
 module.exports = router;
 

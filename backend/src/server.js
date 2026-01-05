@@ -10,6 +10,7 @@ const authRoutes = require('./api/routes/auth.routes');
 const projectRoutes = require('./api/routes/project.routes');
 const protocolRoutes = require('./api/routes/protocol.routes');
 const prismaRoutes = require('./api/routes/prisma.routes');
+const articleRoutes = require('./api/routes/article.routes');
 const aiRoutes = require('./api/routes/ai.routes');
 const referenceRoutes = require('./api/routes/reference.routes');
 const screeningRoutes = require('./api/routes/screening.routes');
@@ -92,6 +93,7 @@ class Server {
     this.app.use('/api/projects', projectRoutes);
     this.app.use('/api/projects', protocolRoutes);
     this.app.use('/api/projects', prismaRoutes);
+    this.app.use('/api/projects', articleRoutes);
     this.app.use('/api/ai', aiRoutes);
     this.app.use('/api/references', referenceRoutes);
     this.app.use('/api/screening', screeningRoutes);
