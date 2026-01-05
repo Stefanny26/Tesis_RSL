@@ -4,23 +4,57 @@ Esta carpeta contiene documentación histórica del proceso de desarrollo del si
 
 ## 📋 Contenido
 
-### Documentación de Implementación
-- **IMPLEMENTACION-PRISMA-MEJORADA.md** - Documentación técnica de la implementación del sistema PRISMA 2020
-- **INSTALACION-PRISMA-COMPLETADA.md** - Checklist de completitud de la instalación del módulo PRISMA
-- **MEJORAS-IMPLEMENTADAS.md** - Lista de mejoras y features implementados durante el desarrollo
+### 📁 Planificación y Requerimientos (8 archivos)
+- **01-requerimientos-actualizados.md** - Especificación de requerimientos funcionales y no funcionales
+- **02-epicas-actualizadas.md** - Épicas del producto (historias de usuario de alto nivel)
+- **03-historias-usuario-actualizadas.md** - Historias de usuario detalladas (Sprint 1)
+- **04-product-backlog-actualizado.md** - Product backlog priorizado
+- **05-analisis-encuesta.md** - Análisis de encuesta a usuarios potenciales
+- **06-historias-usuario-actualizadas.md** - Historias de usuario adicionales
+- **07-proceso-evaluacion-proms.md** - Proceso de evaluación de PROMs (Patient-Reported Outcome Measures)
+- **08-credenciales-prueba.md** - Credenciales de entorno de pruebas
 
-### Análisis Arquitectónico
-- **ANALISIS-ARQUITECTURA-SDN.md** - Análisis académico del sistema desde la perspectiva de Redes Definidas por Software
-- **ESTRUCTURA-CRIBADO.md** - Documentación detallada de la estructura del sistema de cribado
+### 🔬 Análisis del Sistema de Screening (7 archivos)
+- **ANALISIS-COMPONENTES-SCREENING.md** - Análisis detallado de componentes del screening
+- **ANALISIS-CRIBADO-AUTOMATICO.md** - Análisis del sistema de cribado automático
+- **ANALISIS-IMPLEMENTACION-CRIBADO.md** - Análisis de implementación del cribado (42KB)
+- **AUDITORIA-COMPONENTES-SCREENING.md** - Auditoría de componentes de screening
+- **PROPUESTA-REORGANIZACION-SCREENING.md** - Propuesta de reorganización (29KB)
+- **RESUMEN-CAMBIOS-SCREENING.md** - Resumen de cambios en screening
+- **IMPLEMENTACION-REORGANIZACION-SCREENING.md** - Implementación de reorganización
 
-### Resolución de Problemas
+### 🛠️ Implementaciones Completadas (5 archivos)
+- **IMPLEMENTACION-CRIBADO-HIBRIDO.md** - Implementación de cribado híbrido (IA + manual)
+- **IMPLEMENTACION-PHASE3-FULLTEXT.md** - Implementación de Fase 3 (texto completo)
+- **IMPLEMENTATION-EMBEDDINGS.md** - Implementación de embeddings para screening
+- **PASO-3-MEJORAS-REVISION-IMPLEMENTADO.md** - Mejoras de revisión implementadas
+- **GUIA-FASE-3-TEXTO-COMPLETO.md** - Guía de uso de Fase 3
+
+### 🏗️ Arquitectura y Técnicas (6 archivos)
+- **ANALISIS-ARQUITECTURA-SDN.md** - Análisis académico del sistema desde perspectiva SDN
+- **ESTRUCTURA-CRIBADO.md** - Estructura detallada del sistema de cribado
+- **COMPARACION-EMBEDDINGS-VS-LLM.md** - Comparación técnica de embeddings vs LLM
+- **EMBEDDINGS-SCREENING.md** - Documentación técnica de embeddings
+- **DIFERENCIA-IMPORTACION-REFERENCIAS-VS-PDF.md** - Análisis de métodos de importación
+- **PROGRESO-TIEMPO-REAL-SSE.md** - Implementación de Server-Sent Events
+
+### 🔧 Resolución de Problemas (2 archivos)
 - **ANALISIS-BASE-DATOS-LIMPIEZA.md** - Análisis de limpieza de base de datos
-- **SOLUCION-BASE-DATOS.md** - Soluciones implementadas para problemas de base de datos
-- **ACLARACION-DOS-BOTONES.md** - Aclaración sobre funcionalidad de botones en interfaz
+- **SOLUCION-BASE-DATOS.md** - Soluciones implementadas para problemas de BD
 
-### Planificación y Flujos
-- **PLAN-IMPLEMENTACION-PRISMA-ARTICULO.md** - Plan de implementación para el módulo PRISMA por artículo
-- **FLUJO-DE-DATOS.md** - Documentación de flujos de datos del Protocol Wizard
+### 📚 Documentación y Estándares (3 archivos)
+- **ESTANDAR-DE-DOCUMENTACION-SRS.md** - Estándar IEEE 830 para SRS
+- **KIT-DE-INSTRUMENTOS-DE-VALIDACION.md** - Instrumentos para validación
+- **ACLARACION-DOS-BOTONES.md** - Aclaración UI de botones PRISMA
+
+### 🎯 Implementación PRISMA (3 archivos)
+- **IMPLEMENTACION-PRISMA-MEJORADA.md** - Documentación técnica PRISMA 2020
+- **INSTALACION-PRISMA-COMPLETADA.md** - Checklist de instalación PRISMA
+- **MEJORAS-IMPLEMENTADAS.md** - Lista de mejoras implementadas
+- **PLAN-IMPLEMENTACION-PRISMA-ARTICULO.md** - Plan de implementación por artículo
+- **FLUJO-DE-DATOS.md** - Flujos de datos del Protocol Wizard
+
+**Total: 37 documentos archivados**
 
 ## 🎯 Propósito
 
