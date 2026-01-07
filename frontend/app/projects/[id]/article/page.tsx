@@ -410,37 +410,8 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             />
           )}
 
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Main Editor */}
-            {currentVersion && (
-              <div className="lg:col-span-2">
-                <ArticleEditor 
-                  version={currentVersion} 
-                  onContentChange={handleContentChange}
-                  disabled={isGenerating}
-                />
-              </div>
-            )}
-
-            {/* Sidebar */}
-            <div className="space-y-4">
-              <AIGeneratorPanel
-                onGenerateDraft={handleGenerateDraft}
-                onGenerateFullArticle={handleGenerateFullArticle}
-                disabled={isGenerating || !status?.canGenerate}
-                isGenerating={isGenerating}
-              />
-              <VersionHistory
-                versions={versions}
-                currentVersionId={currentVersionId || ''}
-                onSelectVersion={setCurrentVersionId}
-                onRestoreVersion={handleRestoreVersion}
-              />
-            </div>
-          </div>
-
-          {/* Action Buttons - Moved to bottom */}
-          <div className="flex items-center justify-end gap-2 pt-4 border-t">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-2">
             <Button 
               variant="outline" 
               onClick={handlePreview}
@@ -470,6 +441,35 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
                 </>
               )}
             </Button>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Main Editor */}
+            {currentVersion && (
+              <div className="lg:col-span-2">
+                <ArticleEditor 
+                  version={currentVersion} 
+                  onContentChange={handleContentChange}
+                  disabled={isGenerating}
+                />
+              </div>
+            )}
+
+            {/* Sidebar */}
+            <div className="space-y-4">
+              <AIGeneratorPanel
+                onGenerateDraft={handleGenerateDraft}
+                onGenerateFullArticle={handleGenerateFullArticle}
+                disabled={isGenerating || !status?.canGenerate}
+                isGenerating={isGenerating}
+              />
+              <VersionHistory
+                versions={versions}
+                currentVersionId={currentVersionId || ''}
+                onSelectVersion={setCurrentVersionId}
+                onRestoreVersion={handleRestoreVersion}
+              />
+            </div>
           </div>
         </div>
 
