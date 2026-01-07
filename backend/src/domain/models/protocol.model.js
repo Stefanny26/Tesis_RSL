@@ -41,7 +41,7 @@ class Protocol {
     this.screeningResults = data.screening_results || data.screeningResults || null;
     
     // Fase 2 desbloqueada (Revisión Manual)
-    this.fase2Unlocked = data.fase2_unlocked || data.fase2_unlocked || false;
+    this.fase2Unlocked = data.fase2Unlocked !== undefined ? data.fase2Unlocked : (data.fase2_unlocked || false);
     
     // Metadatos
     this.completed = data.completed || false;
