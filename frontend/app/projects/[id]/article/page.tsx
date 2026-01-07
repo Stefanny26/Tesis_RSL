@@ -401,39 +401,6 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             </Alert>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handlePreview}
-              disabled={!currentVersion || isGenerating}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              Vista Previa
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleExport('pdf')}
-              disabled={!currentVersion || isGenerating}
-            >
-              <FileDown className="mr-2 h-4 w-4" />
-              Exportar
-            </Button>
-            <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Guardar Versión
-                </>
-              )}
-            </Button>
-          </div>
-
           {/* Stats */}
           {currentVersion && (
             <ArticleStats
@@ -470,6 +437,39 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
                 onRestoreVersion={handleRestoreVersion}
               />
             </div>
+          </div>
+
+          {/* Action Buttons - Moved to bottom */}
+          <div className="flex items-center justify-end gap-2 pt-4 border-t">
+            <Button 
+              variant="outline" 
+              onClick={handlePreview}
+              disabled={!currentVersion || isGenerating}
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Vista Previa
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => handleExport('pdf')}
+              disabled={!currentVersion || isGenerating}
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              Exportar
+            </Button>
+            <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Guardar Versión
+                </>
+              )}
+            </Button>
           </div>
         </div>
 
