@@ -402,23 +402,21 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
           // Guardar resultado para mostrar estadísticas
           setLastScreeningResult(result)
           
-          // Persistir resultados en el protocolo para que no se pierdan
-          try {
-            const protocol = await apiClient.getProtocol(params.id)
-            if (protocol) {
-              await apiClient.updateProtocol(params.id, {
-                ...protocol,
-                screeningResults: result
-              })
-            }
-          } catch (err) {
-            console.warn('No se pudieron guardar los resultados en el protocolo:', err)
-          }
-          
           // Recargar TODAS las referencias para obtener los resultados actualizados
           const refData = await apiClient.getAllReferences(params.id)
           setReferences(refData.references || [])
           setStats(refData.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
+          
+          // Recargar protocolo para verificar si fase2 fue desbloqueada
+          try {
+            const protocol = await apiClient.getProtocol(params.id)
+            if (protocol?.fase2Unlocked) {
+              setFase2Unlocked(true)
+              console.log('🔓 Fase 2 (PRISMA) desbloqueada por el backend')
+            }
+          } catch (err) {
+            console.warn('No se pudo verificar el estado del protocolo:', err)
+          }
           
           const { included, excluded, reviewManual, phase1, phase2 } = result.summary
           
@@ -476,20 +474,6 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
       if (resultData) {
         console.log('💾 Guardando resultado del SSE:', resultData)
         setLastScreeningResult(resultData)
-        
-        // Guardar en el protocolo también
-        try {
-          const protocol = await apiClient.getProtocol(params.id)
-          if (protocol) {
-            await apiClient.updateProtocol(params.id, {
-              ...protocol,
-              screeningResults: resultData
-            })
-            console.log('✅ Resultado guardado en el protocolo')
-          }
-        } catch (err) {
-          console.warn('No se pudo guardar en el protocolo:', err)
-        }
       }
       
       // Recargar referencias
@@ -497,17 +481,35 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
       setReferences(refData.references || [])
       setStats(refData.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
       
-      // Si no obtuvimos datos del SSE, intentar cargar del protocolo
-      if (!resultData) {
-        try {
-          const protocol = await apiClient.getProtocol(params.id)
-          if (protocol && protocol.screeningResults) {
-            setLastScreeningResult(protocol.screeningResults)
-            console.log('✅ Resultado cargado desde el protocolo')
+      // Recargar protocolo para obtener resultados actualizados y fase2Unlocked
+      try {
+        const protocol = await apiClient.getProtocol(params.id)
+        if (protocol) {
+          console.log('📋 Protocolo recargado:', protocol)
+          
+          // Actualizar screeningResults si están presentes
+          if (protocol.screeningResults) {
+            if (protocol.screeningResults.summary?.phase1 && protocol.screeningResults.summary?.phase2) {
+              setLastScreeningResult(protocol.screeningResults)
+              console.log('✅ Resultados de screening cargados desde protocolo')
+            }
           }
-        } catch (err) {
-          console.warn('No se pudo cargar el protocolo:', err)
+          
+          // Actualizar estado de fase2Unlocked
+          if (protocol.fase2Unlocked) {
+            setFase2Unlocked(true)
+            console.log('🔓 Fase 2 (PRISMA) desbloqueada')
+            
+            // Mostrar toast informativo
+            toast({
+              title: "✅ Fase 2 desbloqueada",
+              description: "Ahora puedes acceder a la sección de Priorización (PRISMA)",
+              duration: 5000
+            })
+          }
         }
+      } catch (protocolErr) {
+        console.warn('No se pudo recargar el protocolo:', protocolErr)
       }
       
       console.log('✅ Datos actualizados después del cribado')

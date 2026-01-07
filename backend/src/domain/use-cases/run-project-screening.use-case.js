@@ -402,7 +402,9 @@ ${item.llmCriteriosNoCumplidos ? `\nNo cumple: ${item.llmCriteriosNoCumplidos.jo
       console.log(`[HYBRID] Recomendadas EXCLUIR: ${totalExcluded}`);
       console.log(`[HYBRID] Requieren revisión manual: ${totalReviewManual}`);
 
-      return {
+      // FASE 4: Guardar resultados en el protocolo y desbloquear fase 2 (PRISMA)
+      console.log('\n[PHASE 4] Guardando resultados en protocolo y desbloqueando Fase 2...');
+      const screeningResults = {
         success: true,
         method: 'hybrid',
         summary: {
@@ -417,7 +419,11 @@ ${item.llmCriteriosNoCumplidos ? `\nNo cumple: ${item.llmCriteriosNoCumplidos.jo
             highConfidenceInclude: highConfidenceInclude.length,
             highConfidenceExclude: highConfidenceExclude.length,
             greyZone: greyZone.length,
-            avgSimilarity: embeddingsResult.summary.avgSimilarity
+            avgSimilarity: embeddingsResult.summary.avgSimilarity,
+            thresholds: {
+              upper: upperThreshold,
+              lower: lowerThreshold
+            }
           },
           phase2: {
             method: aiProvider,
@@ -426,8 +432,32 @@ ${item.llmCriteriosNoCumplidos ? `\nNo cumple: ${item.llmCriteriosNoCumplidos.jo
             excluded: llmResults.filter(r => r.llmDecision === 'excluida').length,
             manual: llmResults.filter(r => r.llmDecision === 'revisar_manual').length
           }
-        }
+        },
+        thresholds: {
+          embeddings: embeddingThreshold,
+          upperAdaptive: upperThreshold,
+          lowerAdaptive: lowerThreshold
+        },
+        cutoffMethod: 'adaptive-percentile',
+        timestamp: new Date().toISOString()
       };
+
+      try {
+        const ProtocolRepository = require('../../infrastructure/repositories/protocol.repository');
+        const protocolRepository = new ProtocolRepository();
+        
+        await protocolRepository.update(protocol.id, {
+          screeningResults: JSON.stringify(screeningResults),
+          fase2Unlocked: true  // Desbloquear PRISMA
+        });
+        
+        console.log('[PHASE 4] ✅ Resultados guardados en protocolo y Fase 2 desbloqueada');
+      } catch (protocolError) {
+        console.error('[PHASE 4] ⚠️  Error guardando en protocolo:', protocolError.message);
+        console.error('[PHASE 4] Referencias ya fueron actualizadas, pero el protocolo no se actualizó');
+      }
+
+      return screeningResults;
 
     } catch (error) {
       console.error('[HYBRID] Error ejecutando cribado híbrido:', error);
