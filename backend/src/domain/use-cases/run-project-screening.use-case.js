@@ -446,14 +446,21 @@ ${item.llmCriteriosNoCumplidos ? `\nNo cumple: ${item.llmCriteriosNoCumplidos.jo
         const ProtocolRepository = require('../../infrastructure/repositories/protocol.repository');
         const protocolRepository = new ProtocolRepository();
         
-        await protocolRepository.update(protocol.id, {
-          screeningResults: JSON.stringify(screeningResults),
+        console.log(`[PHASE 4] Guardando en protocolo del proyecto ${projectId}...`);
+        console.log(`[PHASE 4] Datos a guardar:`, {
+          screeningResults: screeningResults.summary,
+          fase2Unlocked: true
+        });
+        
+        await protocolRepository.update(projectId, {
+          screeningResults: screeningResults,  // Ya está en formato objeto, el repository lo convierte a JSON
           fase2Unlocked: true  // Desbloquear PRISMA
         });
         
         console.log('[PHASE 4] ✅ Resultados guardados en protocolo y Fase 2 desbloqueada');
       } catch (protocolError) {
         console.error('[PHASE 4] ⚠️  Error guardando en protocolo:', protocolError.message);
+        console.error('[PHASE 4] Stack:', protocolError.stack);
         console.error('[PHASE 4] Referencias ya fueron actualizadas, pero el protocolo no se actualizó');
       }
 
