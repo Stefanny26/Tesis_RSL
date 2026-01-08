@@ -1184,6 +1184,137 @@ const parsed = JSON.parse(cleanJson);
 
 ---
 
-**Última actualización**: Noviembre 2025  
-**Versión del sistema**: 1.0.0  
-**Modelos activos**: Gemini 2.0 Flash Exp, all-MiniLM-L6-v2
+## 📊 Dashboard de Módulos del Sistema
+
+### Tabla 1: Estado de Módulos
+
+| ID_MODULO | NOMBRE_MODULO | PROPOSITO_COGNITIVO (Objetivo) | USUARIO_FINAL | MODELO_IA | ESTADO_ACTUAL | PRIORIDAD | N° Reglas |
+|-----------|---------------|--------------------------------|---------------|-----------|---------------|-----------|-----------|
+| P01 | Generación de Títulos | Creatividad académica controlada | Estudiante | GPT-4o (Temp 0.7) | ✅ Validado | Alta | 2 |
+| P02 | Análisis PICO | Extracción semántica estructurada | Investigador | GPT-4o (Temp 0.3) | ✅ Validado | Crítica | 2 |
+| P03 | Términos Clave | Expansión de vocabulario controlado | Investigador | GPT-4o | ✅ Validado | Media | 2 |
+| P04 | Estrategias Búsqueda | Construcción lógica booleana | Investigador | GPT-4o | ✅ Validado | Alta | 2 |
+| P05 | Refinamiento Cadenas | Optimización de F1-Score | Investigador | GPT-4o | 📝 Pendiente | Baja | 0 |
+| P06 | Cribado IA | Razonamiento deductivo (Inclusión) | Revisor | Claude 3.5 Sonnet | ✅ Validado | Crítica | 3 |
+| P07 | Cribado Embeddings | Similitud semántica (Coseno) | Sistema (Backend) | MiniLM-L6-v2 | ✅ Validado | Media | 0 |
+| P08 | Análisis Estadístico | Cálculo de Elbow Point / Percentiles | Sistema (Backend) | Algoritmo Matemático | ✅ Validado | Baja | 0 |
+| P09 | PRISMA Items 1-10 | Auto-población desde protocolo | Sistema (Backend) | Lógica de Negocio | ✅ Validado | Alta | 2 |
+| P10 | PRISMA Items 11-27 | Generación asistida con IA | Investigador | Gemini 2.0 Flash | ✅ Validado | Alta | 3 |
+| P11 | Extracción RQS | Evaluación relación estudios-RQs | Sistema (Backend) | Gemini 2.0 Flash | ✅ Validado | Crítica | 4 |
+| P12 | Generación Artículos | Síntesis IMRaD estructurada | Investigador | Gemini 2.0 Flash | ✅ Validado | Crítica | 5 |
+
+---
+
+### Tabla 2: Especificaciones SRS (Software Requirements Specification)
+
+| ID_MODULO | INPUTS_VARIABLES (Entradas) | SCHEMA_JSON_OUTPUT (Salida Esperada) | HARD_CONSTRAINTS (Reglas Técnicas) | SOFT_CONSTRAINTS (Reglas Calidad) | Nombre Módulo |
+|-----------|----------------------------|--------------------------------------|-----------------------------------|-----------------------------------|---------------|
+| P01 | {question} | {"titles": ["t1", "t2", "t3"]} | Longitud 10-20 palabras; JSON Array[3] | Tono formal; Sin Clickbait | Generación de Títulos |
+| P02 | {question} | {"P":Str,"I":Str,"C":Str,"O":Str,"studyType":Str} | Keys exactas P-I-C-O; No nulls | No inventar datos; Detectar tipo estudio correcto | Análisis PICO |
+| P03 | {question}, {PICO_components} | {"population": {"main": [], "synonyms": []}, ...} | Arrays no vacíos; Mínimo 5 términos | Términos MeSH válidos; Sinónimos relevantes | Términos Clave |
+| P04 | {databases}, {keyTerms} | {"strategies": [{"db": "PubMed", "query": "..."}]} | Sintaxis válida por DB; Operadores AND/OR | Lógica booleana coherente; No redundancia | Estrategias Búsqueda |
+| P05 | {db}, {currentString} | {"refined": "...", "changes": [], "rationale": "..."} | Formato JSON estricto; Mantener términos clave | Mejora real de F1; Justificación lógica | Refinamiento Cadenas |
+| P06 | {abstract}, {criteria_list} | {"decision": "IN/EX", "reasoning": "...", "conf": 0.X} | Decision enum(IN, EX); Confianza float 0-1 | Turing: Razonamiento sólido; Cero alucinaciones | Cribado IA |
+| P07 | {PICO}, {Reference} | {"similarity": 0.XX, "decision": "...", "threshold": 0.X} | Vector dim=384; Threshold rango 0.05-0.5 | Clasificación correcta vs Humano | Cribado Embeddings |
+| P08 | {scores_list} | {"elbow": {"val": 0.X}, "percentiles": {...}} | Input lista válida; Sin NaNs | Detección correcta de punto de inflexión | Análisis Estadístico |
+| P09 | {protocol}, {projectId} | [{itemNumber, section, topic, content}] | Items 1-10; Content no null; Valid sections | Contenido coherente con protocolo | PRISMA Items 1-10 |
+| P10 | {protocol}, {references}, {prismaContext} | {content: Str, contentType: "text/markdown"} | Markdown válido; 200-1500 palabras/item | Basado en evidencia; Sin invenciones | PRISMA Items 11-27 |
+| P11 | {protocol.rq1/2/3}, {reference.abstract} | {rq1Relation:"yes/partial/no", rq2Relation, rq3Relation} | 3 relations obligatorias; Enum values | Evaluación justificada; Basada en abstract | Extracción RQS |
+| P12 | {prismaItems}, {rqsEntries}, {protocol} | {title, abstract, introduction, methods, results, discussion} | Secciones IMRaD completas; 3000-8000 palabras | Coherencia narrativa; Citas correctas | Generación Artículos |
+
+---
+
+### Tabla 3: Matriz de Reglas de Calidad
+
+| ID_REGLA | ID_MODULO | TIPO_REGLA | DESCRIPCION_REGLA | METODO_VALIDACION | RESPONSABLE | STATUS_CUMPLIMIENTO |
+|----------|-----------|------------|-------------------|-------------------|-------------|---------------------|
+| R01-P01 | P01 | HARD | Generar exactamente 3 títulos | Backend (Array Length) | Dev | ✅ OK |
+| C01-P01 | P01 | SOFT | Títulos reflejan alcance RSL | Turing Test (Experto) | Investigador | ✅ OK |
+| R01-P02 | P02 | HARD | JSON contiene llaves P, I, C, O | Backend (Schema Check) | Dev | ✅ OK |
+| C01-P02 | P02 | SOFT | No inventar info (Alucinación) | Turing Test (Item 2) | Investigador | ✅ OK |
+| R01-P03 | P03 | HARD | Mínimo 5 términos por categoría | Backend (Array Length) | Dev | ✅ OK |
+| C01-P03 | P03 | SOFT | Términos MeSH/científicos válidos | Validación cruzada con bases | Investigador | ✅ OK |
+| R01-P04 | P04 | HARD | Sintaxis válida por base de datos | Backend (Regex/Parser) | Dev | ✅ OK |
+| C01-P04 | P04 | SOFT | Lógica booleana sin redundancia | Test en BD real | Investigador | ✅ OK |
+| R01-P06 | P06 | HARD | Decision es "INCLUDE" o "EXCLUDE" | Backend (Enum Check) | Dev | ✅ OK |
+| C01-P06 | P06 | SOFT | Razonamiento usa solo el abstract | Turing Test (Item 3) | Investigador | ✅ OK |
+| C02-P06 | P06 | SOFT | Viola exclusión = EXCLUDE | Turing Test (Lógica) | Investigador | ✅ OK |
+| R01-P09 | P09 | HARD | Generar solo items 1-10 de PRISMA | Backend (Array.slice(0,10)) | Dev | ✅ OK |
+| C01-P09 | P09 | SOFT | Contenido extraído del protocolo | Verificación manual | Investigador | ✅ OK |
+| R01-P10 | P10 | HARD | Markdown válido sin errores sintaxis | Backend (Parser Check) | Dev | ✅ OK |
+| C01-P10 | P10 | SOFT | Contenido basado en referencias reales | Validación cruzada | Investigador | ✅ OK |
+| C02-P10 | P10 | SOFT | Sin invención de datos estadísticos | Turing Test | Investigador | ✅ OK |
+| R01-P11 | P11 | HARD | Incluye rq1/2/3_relation obligatorias | Backend (Field Check) | Dev | ✅ OK |
+| C01-P11 | P11 | SOFT | Evaluación coherente con abstract | Validación manual muestra | Investigador | ✅ OK |
+| C02-P11 | P11 | SOFT | Auto-reextracción si todas "no" | Test pipeline completo | Dev | ✅ OK |
+| R01-P12 | P12 | HARD | Incluye todas las secciones IMRaD | Backend (Schema Check) | Dev | ✅ OK |
+| C01-P12 | P12 | SOFT | Coherencia narrativa entre secciones | Revisión por experto | Investigador | 🟡 Rev. Pendiente |
+| C02-P12 | P12 | SOFT | Estadísticas RQS reflejan datos reales | Verificación cruzada con BD | Dev | ✅ OK |
+| C03-P12 | P12 | SOFT | Auto-población RQs si no existen | Test edge cases | Dev | ✅ OK |
+
+---
+
+### Tabla 4: Gestión de Riesgos
+
+| ID_RIESGO | ID_MODULO | DESCRIPCION_RIESGO | ESTRATEGIA_MITIGACION (Prompting) | CONTROL_VALIDACION (Test) |
+|-----------|-----------|-------------------|-----------------------------------|---------------------------|
+| RSK-01 | P06 | IA inventa datos estadísticos | Prompt: "Answer using ONLY provided text" | Ficha Turing: "¿Detectó datos inventados?" |
+| RSK-02 | P04 | Sintaxis PubMed incorrecta | Few-Shot: Dar 3 ejemplos correctos en prompt | Validar copiando query en PubMed real |
+| RSK-03 | P02 | PICO incompleto | Prompt: "If info missing, state 'Not Specified'" | Revisión manual de campos vacíos |
+| RSK-04 | P07 | Sesgo por idioma (Español/Inglés) | Normalizar texto a Inglés antes de Embedding | Test con papers en ambos idiomas |
+| RSK-05 | P10 | IA genera contenido sin referencias | Prompt: "Base ALL content on provided references" | Verificar que cada sección cite estudios |
+| RSK-06 | P11 | Evaluación RQS sin RQs definidas | Auto-generación de RQs por defecto desde PICO | Test con protocolo sin rq1/2/3 |
+| RSK-07 | P11 | Todas relaciones RQS en "no" | Auto-detección y re-extracción al generar artículo | Test pipeline: protocolo → RQS → artículo |
+| RSK-08 | P12 | Artículo genérico por RQS inválidas | Verificar RQs antes de generación + auto-corrección | Validar texto de secciones RQ con datos reales |
+| RSK-09 | P09 | Contenido PRISMA 1-10 vacío | ON CONFLICT DO UPDATE incluye content field | Test upsertBatch con datos existentes |
+| RSK-10 | P12 | Columnas BD faltantes (rq1/2/3) | Documentar migración manual ALTER TABLE | Verificar columnas existen antes de INSERT |
+
+---
+
+### 🔄 Flujo de Dependencias entre Módulos
+
+```
+P01 (Títulos) → P02 (PICO) → P03 (Términos) → P04 (Estrategias)
+                    ↓
+                Protocol DB
+                    ↓
+        ┌───────────┴───────────┐
+        ↓                       ↓
+    P09 (PRISMA 1-10)      P06/P07 (Cribado)
+        ↓                       ↓
+    P10 (PRISMA 11-27)     Referencias Incluidas
+        ↓                       ↓
+        └───────────┬───────────┘
+                    ↓
+            P11 (Extracción RQS)
+                    ↓
+         P12 (Generación Artículo)
+                    ↓
+         Versiones de Artículos
+```
+
+---
+
+### 📈 Métricas de Calidad por Módulo
+
+| Módulo | Precisión Esperada | Tiempo Promedio | Tokens Promedio | Costo Estimado |
+|--------|-------------------|-----------------|-----------------|----------------|
+| P01 | 95% (3/3 títulos válidos) | 3-5s | 500 | $0.001 |
+| P02 | 90% (PICO completo) | 5-8s | 800 | $0.002 |
+| P03 | 85% (términos relevantes) | 8-12s | 1200 | $0.003 |
+| P04 | 88% (sintaxis correcta) | 10-15s | 1500 | $0.004 |
+| P06 | 92% (decisión correcta) | 4-6s | 600 | $0.002 |
+| P07 | 87% (threshold óptimo) | 1-2s | N/A | Gratis |
+| P08 | 100% (matemático) | <1s | N/A | Gratis |
+| P09 | 100% (determinístico) | 2-3s | N/A | Gratis |
+| P10 | 88% (calidad contenido) | 15-30s | 2000 | $0.005 |
+| P11 | 85% (evaluación RQS) | 5-8s/estudio | 800 | $0.002 |
+| P12 | 82% (coherencia artículo) | 45-90s | 8000 | $0.020 |
+
+**Total estimado por proyecto completo**: $0.10 - $0.15 USD
+
+---
+
+**Última actualización**: Enero 2026  
+**Versión del sistema**: 1.2.0  
+**Modelos activos**: Gemini 2.0 Flash Exp, all-MiniLM-L6-v2, Claude 3.5 Sonnet

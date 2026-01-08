@@ -50,12 +50,15 @@ class GenerateArticleFromPrismaUseCase {
         console.log('🔄 Detectadas relaciones RQ vacías. Re-extrayendo RQS automáticamente...');
         await this.rqsEntryRepository.deleteByProject(projectId);
         
-        // Importar y ejecutar el use case de extracción
+        // Crear instancias necesarias para ExtractRQSDataUseCase
         const ExtractRQSDataUseCase = require('./extract-rqs-data.use-case');
+        const ReferenceRepository = require('../../infrastructure/repositories/reference.repository');
+        const RQSEntryRepository = require('../../infrastructure/repositories/rqs-entry.repository');
+        
         const extractUseCase = new ExtractRQSDataUseCase({
-          referenceRepository: this.rqsEntryRepository.constructor.referenceRepository,
+          referenceRepository: new ReferenceRepository(),
           protocolRepository: this.protocolRepository,
-          rqsEntryRepository: this.rqsEntryRepository,
+          rqsEntryRepository: new RQSEntryRepository(),
           aiService: this.aiService
         });
         
