@@ -37,9 +37,9 @@ class ProtocolRepository {
         population, intervention, comparison, outcomes, 
         inclusion_criteria, exclusion_criteria, 
         databases, search_string, search_queries, key_terms, temporal_range,
-        prisma_compliance, completed
+        prisma_compliance, rq1, rq2, rq3, completed
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
       RETURNING *
     `;
 
@@ -62,6 +62,9 @@ class ProtocolRepository {
       db.key_terms, 
       db.temporal_range,
       db.prisma_compliance,
+      db.rq1,
+      db.rq2,
+      db.rq3,
       db.completed
     ];
 
@@ -104,6 +107,11 @@ class ProtocolRepository {
       prismaCompliance: 'prisma_compliance',
       prismaLocked: 'prisma_locked',
       prismaCompletedAt: 'prisma_completed_at',
+      
+      // Research Questions
+      rq1: 'rq1',
+      rq2: 'rq2',
+      rq3: 'rq3',
       
       // Resultados del screening
       screeningResults: 'screening_results',

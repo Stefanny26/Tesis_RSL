@@ -122,6 +122,11 @@ CREATE TABLE IF NOT EXISTS protocols (
   prisma_compliance JSONB DEFAULT '[]'::jsonb,
   area VARCHAR(200),
   
+  -- Research Questions (RQs)
+  rq1 TEXT,
+  rq2 TEXT,
+  rq3 TEXT,
+  
   search_plan JSONB DEFAULT '{}'::jsonb,
   screening_results JSONB DEFAULT '{}'::jsonb,
   fase2_unlocked BOOLEAN DEFAULT FALSE,
