@@ -14,6 +14,7 @@ class PrismaItem {
     this.projectId = data.project_id || data.projectId;
     this.itemNumber = data.item_number || data.itemNumber;
     this.section = data.section;
+    this.topic = data.topic;
     
     // Estado y contenido
     this.completed = data.completed || false;

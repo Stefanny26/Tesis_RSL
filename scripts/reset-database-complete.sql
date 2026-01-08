@@ -202,6 +202,7 @@ CREATE TABLE IF NOT EXISTS prisma_items (
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   item_number INTEGER NOT NULL,
   section VARCHAR(100) NOT NULL,
+  topic VARCHAR(200),
   content TEXT,
   content_type VARCHAR(50) DEFAULT 'manual',
   data_source TEXT,
