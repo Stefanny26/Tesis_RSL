@@ -675,6 +675,7 @@ class PrismaController {
       projectId,
       itemNumber: item.number,
       section: item.section,
+      topic: item.topic,
       completed: false,
       content: null,
       contentType: 'pending',
