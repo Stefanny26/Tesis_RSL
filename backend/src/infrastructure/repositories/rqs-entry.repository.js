@@ -160,6 +160,18 @@ class RQSEntryRepository {
   }
 
   /**
+   * Eliminar todas las entradas RQS de un proyecto
+   */
+  async deleteByProject(projectId) {
+    const query = 'DELETE FROM rqs_entries WHERE project_id = $1';
+    
+    const pool = database.getPool();
+    const result = await pool.query(query, [projectId]);
+    
+    return result.rowCount;
+  }
+
+  /**
    * Verificar si existe entrada para una referencia
    */
   async existsForReference(referenceId) {
