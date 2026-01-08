@@ -45,6 +45,22 @@ class PrismaController {
         console.log('📝 Inicializando/actualizando 27 ítems PRISMA para proyecto:', projectId);
         await this.initializePrismaItems(projectId);
         items = await this.prismaItemRepository.findAllByProject(projectId);
+        
+        // Generar contenido automático para items 1-10 desde el protocolo
+        console.log('🤖 Generando contenido inicial automático desde protocolo...');
+        try {
+          const generateUseCase = new GeneratePrismaContentUseCase(
+            this.protocolRepository,
+            null,
+            null
+          );
+          const generatedItems = await generateUseCase.execute(projectId);
+          await this.prismaItemRepository.upsertBatch(generatedItems);
+          console.log(`✅ Contenido inicial generado para ${generatedItems.length} ítems`);
+          items = await this.prismaItemRepository.findAllByProject(projectId);
+        } catch (error) {
+          console.log('⚠️ No se pudo generar contenido inicial:', error.message);
+        }
       }
       
       const stats = await this.prismaItemRepository.getComplianceStats(projectId);
