@@ -38,6 +38,20 @@ router.get(
 );
 
 /**
+ * @route   GET /api/projects/:projectId/prisma/status
+ * @desc    Verificar si PRISMA está completo
+ * @access  Private
+ */
+router.get(
+  '/:projectId/prisma/status',
+  [
+    param('projectId').isUUID().withMessage('ID de proyecto inválido'),
+    validateRequest
+  ],
+  (req, res) => prismaController.getStatus(req, res)
+);
+
+/**
  * @route   POST /api/projects/:projectId/prisma/generate
  * @desc    Generar contenido automatizado para todos los ítems PRISMA
  * @access  Private
@@ -167,20 +181,6 @@ router.post(
     validateRequest
   ],
   (req, res) => prismaController.completeByBlocks(req, res)
-);
-
-/**
- * @route   GET /api/projects/:projectId/prisma/status
- * @desc    Verificar si PRISMA está completo
- * @access  Private
- */
-router.get(
-  '/:projectId/prisma/status',
-  [
-    param('projectId').isUUID().withMessage('ID de proyecto inválido'),
-    validateRequest
-  ],
-  (req, res) => prismaController.getStatus(req, res)
 );
 
 module.exports = router;

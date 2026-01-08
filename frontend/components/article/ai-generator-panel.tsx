@@ -12,45 +12,25 @@ import { Progress } from "@/components/ui/progress"
 interface AIGeneratorPanelProps {
   onGenerateDraft: (section: string) => void
   onGenerateFullArticle: () => void
+  disabled?: boolean
+  isGenerating?: boolean
 }
 
-export function AIGeneratorPanel({ onGenerateDraft, onGenerateFullArticle }: AIGeneratorPanelProps) {
+export function AIGeneratorPanel({ 
+  onGenerateDraft, 
+  onGenerateFullArticle, 
+  disabled = false,
+  isGenerating: externalIsGenerating = false
+}: AIGeneratorPanelProps) {
   const [selectedSection, setSelectedSection] = useState("abstract")
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const isGenerating = externalIsGenerating
 
   const handleGenerateSection = async () => {
-    setIsGenerating(true)
-    setProgress(0)
-
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsGenerating(false)
-          onGenerateDraft(selectedSection)
-          return 100
-        }
-        return prev + 10
-      })
-    }, 300)
+    onGenerateDraft(selectedSection)
   }
 
   const handleGenerateFull = async () => {
-    setIsGenerating(true)
-    setProgress(0)
-
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsGenerating(false)
-          onGenerateFullArticle()
-          return 100
-        }
-        return prev + 5
-      })
-    }, 500)
+    onGenerateFullArticle()
   }
 
   return (
@@ -89,7 +69,7 @@ export function AIGeneratorPanel({ onGenerateDraft, onGenerateFullArticle }: AIG
             </Select>
             <Button
               onClick={handleGenerateSection}
-              disabled={isGenerating}
+              disabled={isGenerating || disabled}
               className="w-full bg-transparent"
               variant="outline"
             >
@@ -109,7 +89,7 @@ export function AIGeneratorPanel({ onGenerateDraft, onGenerateFullArticle }: AIG
 
           <div className="space-y-2">
             <Label>Generar Artículo Completo</Label>
-            <Button onClick={handleGenerateFull} disabled={isGenerating} className="w-full">
+            <Button onClick={handleGenerateFull} disabled={isGenerating || disabled} className="w-full">
               <Wand2 className="mr-2 h-4 w-4" />
               Generar Borrador Completo
             </Button>
@@ -118,17 +98,15 @@ export function AIGeneratorPanel({ onGenerateDraft, onGenerateFullArticle }: AIG
           {isGenerating && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Generando contenido...</span>
-                <span className="font-medium">{progress}%</span>
+                <span className="text-muted-foreground">Generando contenido con IA...</span>
               </div>
-              <Progress value={progress} />
             </div>
           )}
         </div>
 
         <div className="pt-4 border-t space-y-2">
           <p className="text-xs font-medium">Modelo de IA</p>
-          <p className="text-xs text-muted-foreground">Gemini 1.5 Pro (vía Vercel AI Gateway)</p>
+          <p className="text-xs text-muted-foreground">ChatGPT 4 (OpenAI)</p>
         </div>
       </CardContent>
     </Card>

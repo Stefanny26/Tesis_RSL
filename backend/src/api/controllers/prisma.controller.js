@@ -38,7 +38,15 @@ class PrismaController {
         });
       }
 
-      const items = await this.prismaItemRepository.findAllByProject(projectId);
+      let items = await this.prismaItemRepository.findAllByProject(projectId);
+      
+      // Si no hay ítems o no hay exactamente 27, inicializar/actualizar los 27 ítems PRISMA
+      if (items.length !== 27) {
+        console.log('📝 Inicializando/actualizando 27 ítems PRISMA para proyecto:', projectId);
+        await this.initializePrismaItems(projectId);
+        items = await this.prismaItemRepository.findAllByProject(projectId);
+      }
+      
       const stats = await this.prismaItemRepository.getComplianceStats(projectId);
 
       res.status(200).json({
@@ -627,6 +635,59 @@ class PrismaController {
         error: error.message
       });
     }
+  }
+
+  /**
+   * Inicializar los 27 ítems PRISMA vacíos
+   */
+  async initializePrismaItems(projectId) {
+    const prismaStructure = [
+      { number: 1, section: 'Title', topic: 'Título' },
+      { number: 2, section: 'Abstract', topic: 'Resumen estructurado' },
+      { number: 3, section: 'Introduction', topic: 'Justificación' },
+      { number: 4, section: 'Introduction', topic: 'Objetivos' },
+      { number: 5, section: 'Methods', topic: 'Criterios de elegibilidad' },
+      { number: 6, section: 'Methods', topic: 'Fuentes de información' },
+      { number: 7, section: 'Methods', topic: 'Estrategia de búsqueda' },
+      { number: 8, section: 'Methods', topic: 'Proceso de selección' },
+      { number: 9, section: 'Methods', topic: 'Recolección de datos' },
+      { number: 10, section: 'Methods', topic: 'Lista de datos' },
+      { number: 11, section: 'Methods', topic: 'Riesgo de sesgo' },
+      { number: 12, section: 'Methods', topic: 'Medidas de efecto' },
+      { number: 13, section: 'Methods', topic: 'Métodos de síntesis' },
+      { number: 14, section: 'Methods', topic: 'Sesgo de reporte' },
+      { number: 15, section: 'Methods', topic: 'Evaluación de certeza' },
+      { number: 16, section: 'Results', topic: 'Selección de estudios' },
+      { number: 17, section: 'Results', topic: 'Características de estudios' },
+      { number: 18, section: 'Results', topic: 'Riesgo de sesgo en estudios' },
+      { number: 19, section: 'Results', topic: 'Resultados individuales' },
+      { number: 20, section: 'Results', topic: 'Resultados de síntesis' },
+      { number: 21, section: 'Results', topic: 'Sesgo de reporte (resultados)' },
+      { number: 22, section: 'Results', topic: 'Certeza de evidencia' },
+      { number: 23, section: 'Discussion', topic: 'Interpretación y discusión' },
+      { number: 24, section: 'Funding', topic: 'Registro y protocolo' },
+      { number: 25, section: 'Funding', topic: 'Financiamiento' },
+      { number: 26, section: 'Funding', topic: 'Conflictos de interés' },
+      { number: 27, section: 'Funding', topic: 'Disponibilidad de datos' }
+    ];
+
+    const items = prismaStructure.map(item => ({
+      projectId,
+      itemNumber: item.number,
+      section: item.section,
+      completed: false,
+      content: null,
+      contentType: 'pending',
+      dataSource: null,
+      automatedContent: null,
+      lastHumanEdit: null,
+      aiValidated: false,
+      aiSuggestions: null,
+      aiIssues: []
+    }));
+
+    await this.prismaItemRepository.upsertBatch(items);
+    console.log('✅ 27 ítems PRISMA inicializados');
   }
 }
 

@@ -8,9 +8,10 @@ import type { ArticleVersion } from "@/lib/article-types"
 interface ArticleEditorProps {
   version: ArticleVersion
   onContentChange: (section: keyof ArticleVersion["content"], content: string) => void
+  disabled?: boolean
 }
 
-export function ArticleEditor({ version, onContentChange }: ArticleEditorProps) {
+export function ArticleEditor({ version, onContentChange, disabled = false }: ArticleEditorProps) {
   const sections = [
     { key: "abstract" as const, label: "Resumen", rows: 6 },
     { key: "introduction" as const, label: "Introducción", rows: 10 },
@@ -19,6 +20,7 @@ export function ArticleEditor({ version, onContentChange }: ArticleEditorProps) 
     { key: "discussion" as const, label: "Discusión", rows: 10 },
     { key: "conclusions" as const, label: "Conclusiones", rows: 6 },
     { key: "references" as const, label: "Referencias", rows: 8 },
+    { key: "declarations" as const, label: "Declaraciones", rows: 8 },
   ]
 
   return (
@@ -42,14 +44,15 @@ export function ArticleEditor({ version, onContentChange }: ArticleEditorProps) 
                 <Label htmlFor={section.key}>{section.label}</Label>
                 <Textarea
                   id={section.key}
-                  value={version.content[section.key]}
+                  value={version.content[section.key] || ''}
                   onChange={(e) => onContentChange(section.key, e.target.value)}
                   rows={section.rows}
                   className="font-serif text-base leading-relaxed"
                   placeholder={`Escribe el contenido de ${section.label.toLowerCase()}...`}
+                  disabled={disabled}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {version.content[section.key].split(" ").filter((w) => w.length > 0).length} palabras
+                  {(version.content[section.key] || '').split(" ").filter((w) => w.length > 0).length} palabras
                 </p>
               </div>
             </TabsContent>

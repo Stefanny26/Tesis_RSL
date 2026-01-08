@@ -768,6 +768,242 @@ class ApiClient {
     })
     return data
   }
+
+  /**
+   * Completa ítems PRISMA por bloques académicos
+   */
+  async completePrismaByBlocks(projectId: string, block: 'all' | 'methods' | 'results' | 'discussion' | 'other' = 'all') {
+    const data = await this.request(`/api/projects/${projectId}/prisma/complete-by-blocks`, {
+      method: 'POST',
+      body: JSON.stringify({ block }),
+    })
+    return data
+  }
+
+  /**
+   * Obtiene el estado de PRISMA (si está completo y puede generar artículo)
+   */
+  async getPrismaStatus(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/prisma/status`, {
+      method: 'GET',
+    })
+    return data
+  }
+
+  // === ARTICLE ENDPOINTS ===
+  
+  /**
+   * Obtiene el estado del artículo (si puede ser generado)
+   */
+  async getArticleStatus(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/article/status`, {
+      method: 'GET',
+    })
+    return data
+  }
+
+  /**
+   * Genera artículo científico completo desde PRISMA cerrado
+   */
+  async generateArticle(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/article/generate`, {
+      method: 'POST',
+    })
+    return data
+  }
+
+  /**
+   * Genera una sección específica del artículo
+   */
+  async generateArticleSection(projectId: string, section: 'introduction' | 'methods' | 'results' | 'discussion' | 'conclusions') {
+    const data = await this.request(`/api/projects/${projectId}/article/generate-section`, {
+      method: 'POST',
+      body: JSON.stringify({ section }),
+    })
+    return data
+  }
+
+  /**
+   * Guarda una versión del artículo
+   */
+  async saveArticleVersion(projectId: string, versionData: {
+    title: string;
+    sections: {
+      abstract: string;
+      introduction: string;
+      methods: string;
+      results: string;
+      discussion: string;
+      conclusions: string;
+      references: string;
+      declarations?: string;
+    };
+    changeDescription?: string;
+  }) {
+    const data = await this.request(`/api/projects/${projectId}/article/versions`, {
+      method: 'POST',
+      body: JSON.stringify(versionData),
+    })
+    return data
+  }
+
+  /**
+   * Obtiene todas las versiones del artículo
+   */
+  async getArticleVersions(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/article/versions`, {
+      method: 'GET',
+    })
+    return data
+  }
+
+  /**
+   * Obtiene una versión específica del artículo
+   */
+  async getArticleVersion(projectId: string, versionId: string) {
+    const data = await this.request(`/api/projects/${projectId}/article/versions/${versionId}`, {
+      method: 'GET',
+    })
+    return data
+  }
+
+  /**
+   * Actualiza una versión del artículo
+   */
+  async updateArticleVersion(projectId: string, versionId: string, versionData: {
+    title?: string;
+    sections?: {
+      abstract?: string;
+      introduction?: string;
+      methods?: string;
+      results?: string;
+      discussion?: string;
+      conclusions?: string;
+      references?: string;
+      declarations?: string;
+    };
+  }) {
+    const data = await this.request(`/api/projects/${projectId}/article/versions/${versionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(versionData),
+    })
+    return data
+  }
+
+  // === RQS (Research Question Schema) ENDPOINTS ===
+  
+  /**
+   * Obtiene todas las entradas RQS de un proyecto
+   */
+  async getRQSEntries(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/rqs`, {
+      method: 'GET',
+    })
+    return data
+  }
+
+  /**
+   * Obtiene estadísticas RQS del proyecto
+   */
+  async getRQSStats(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/rqs/stats`, {
+      method: 'GET',
+    })
+    return data
+  }
+
+  /**
+   * Extrae datos RQS de todas las referencias incluidas (masivo)
+   */
+  async extractRQSData(projectId: string) {
+    const data = await this.request(`/api/projects/${projectId}/rqs/extract`, {
+      method: 'POST',
+    })
+    return data
+  }
+
+  /**
+   * Extrae datos RQS de una referencia específica
+   */
+  async extractSingleRQS(projectId: string, referenceId: string) {
+    const data = await this.request(`/api/projects/${projectId}/rqs/extract/${referenceId}`, {
+      method: 'POST',
+    })
+    return data
+  }
+
+  /**
+   * Actualiza una entrada RQS (validación manual)
+   */
+  async updateRQSEntry(projectId: string, rqsId: number, updates: Partial<RQSEntry>) {
+    const data = await this.request(`/api/projects/${projectId}/rqs/${rqsId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    })
+    return data
+  }
+
+  /**
+   * Elimina una entrada RQS
+   */
+  async deleteRQSEntry(projectId: string, rqsId: number) {
+    const data = await this.request(`/api/projects/${projectId}/rqs/${rqsId}`, {
+      method: 'DELETE',
+    })
+    return data
+  }
+
+  /**
+   * Exporta tabla RQS a CSV
+   */
+  getRQSExportURL(projectId: string): string {
+    return `${this.baseUrl}/api/projects/${projectId}/rqs/export/csv`
+  }
+}
+
+// Tipos para RQS
+export interface RQSEntry {
+  id: number
+  projectId: string
+  referenceId: string
+  author: string
+  year: number
+  title?: string
+  source?: string
+  studyType?: 'empirical' | 'case_study' | 'experiment' | 'simulation' | 'review' | 'other'
+  technology?: string
+  context?: 'industrial' | 'enterprise' | 'academic' | 'experimental' | 'mixed' | 'other'
+  keyEvidence?: string
+  metrics?: Record<string, any>
+  rq1Relation?: 'yes' | 'no' | 'partial'
+  rq2Relation?: 'yes' | 'no' | 'partial'
+  rq3Relation?: 'yes' | 'no' | 'partial'
+  rqNotes?: string
+  limitations?: string
+  qualityScore?: 'high' | 'medium' | 'low'
+  extractionMethod?: 'ai_assisted' | 'manual' | 'hybrid'
+  extractedBy?: string
+  extractedAt?: string
+  validated?: boolean
+  validatedBy?: string
+  validatedAt?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface RQSStats {
+  total: number
+  validated: number
+  ai_extracted: number
+  manual_extracted: number
+  empirical: number
+  case_studies: number
+  experiments: number
+  completionRate: number
+  studyTypeDistribution: Record<string, number>
+  contextDistribution: Record<string, number>
+  technologyDistribution: Array<{ technology: string; count: number }>
+  yearDistribution: Record<string, number>
 }
 
 export { ApiClient }

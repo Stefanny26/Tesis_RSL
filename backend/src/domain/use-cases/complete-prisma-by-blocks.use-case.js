@@ -5,7 +5,7 @@
  * conforme a PRISMA 2020, sin inferir datos, solo describiendo lo existente.
  * 
  * BLOQUES:
- * 1. MÉTODOS (Ítems 11-12)
+ * 1. MÉTODOS (Ítems 11-15)
  * 2. RESULTADOS (Ítems 16-20)
  * 3. DISCUSIÓN (Ítem 23)
  * 4. OTRA INFORMACIÓN (Ítems 24-27)
@@ -82,52 +82,44 @@ class CompletePrismaByBlocksUseCase {
     // Generar prompt académico
     const prompt = this.generateAcademicPrompt(blockConfig, prismaContext);
     
-    // Llamar a IA
+    // Llamar a IA (prioridad ChatGPT)
     console.log(`🤖 Consultando IA para bloque: ${blockName}`);
-    const aiResponse = await this.aiService.chatCompletion([
-      {
-        role: 'system',
-        content: this.getSystemPrompt()
-      },
-      {
-        role: 'user',
-        content: prompt
-      }
-    ], {
-      temperature: 0.3, // Bajo para consistencia académica
-      max_tokens: 2000
-    });
+    const systemPrompt = this.getSystemPrompt();
+    const userPrompt = this.generateAcademicPrompt(blockConfig, prismaContext);
+    
+    const aiResponse = await this.aiService.generateText(systemPrompt, userPrompt, 'chatgpt');
+    console.log(`✅ Respuesta recibida de IA (${aiResponse.length} caracteres)`);
 
     // Parsear respuesta
     let itemsData;
     try {
-      const jsonMatch = aiResponse.content.match(/\{[\s\S]*\}/);
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         itemsData = JSON.parse(jsonMatch[0]);
       } else {
-        itemsData = JSON.parse(aiResponse.content);
+        itemsData = JSON.parse(aiResponse);
       }
+      console.log(`✅ JSON parseado: ${itemsData.items?.length || 0} ítems`);
     } catch (error) {
-      console.error('Error parseando respuesta de IA:', error);
+      console.error('❌ Error parseando respuesta de IA:', error);
+      console.error('📄 Respuesta completa:', aiResponse.substring(0, 500));
       throw new Error('La IA no devolvió JSON válido');
     }
 
     // Guardar ítems en BD
     const savedItems = [];
     for (const itemData of itemsData.items || []) {
-      const saved = await this.prismaItemRepository.updateItemContent(
+      console.log(`💾 Guardando ítem ${itemData.itemNumber}...`);
+      const saved = await this.prismaItemRepository.updateContent(
         projectId,
         itemData.itemNumber,
-        {
-          content: itemData.content,
-          completed: true,
-          content_type: 'automated',
-          data_source: itemData.dataSource || 'prisma_context',
-          automated_content: itemData.content
-        }
+        itemData.content,
+        false // No marcar como editado manualmente
       );
       savedItems.push(saved);
     }
+    
+    console.log(`✅ Bloque ${blockName}: ${savedItems.length} ítems guardados`);
 
     return {
       success: true,
@@ -140,19 +132,31 @@ class CompletePrismaByBlocksUseCase {
    * System Prompt académico (aplicado a todos los bloques)
    */
   getSystemPrompt() {
-    return `Actúas como un experto metodológico en revisiones sistemáticas conforme a PRISMA 2020, con experiencia en ingeniería, ciencias de la computación y tecnología.
+    return `Actúas como un REVISOR METODOLÓGICO EXPERTO en revisiones sistemáticas PRISMA 2020, con estándares de excelencia académica (8-10/10).
 
-Tu tarea es redactar secciones PRISMA únicamente a partir de los datos proporcionados, sin introducir información nueva, sin inferencias no respaldadas y sin suposiciones.
+PRINCIPIO FUNDAMENTAL: PRISMA NO ANALIZA, PRISMA DOCUMENTA.
 
-REGLAS OBLIGATORIAS:
-1. No inventes datos, métricas, números ni procedimientos
-2. No asumas prácticas no explícitamente descritas
-3. Si un elemento no está disponible, indícalo de forma explícita y académica
-4. Usa redacción formal, impersonal y académica en ESPAÑOL
-5. Respeta estrictamente la estructura PRISMA 2020
-6. No repitas información ya reportada en otros ítems
-7. No realices interpretación crítica fuera de la sección DISCUSIÓN
-8. Usa pasado metodológico: "se identificaron", "se evaluaron", "se incluyeron"`;
+Tu tarea es DOCUMENTAR con máximo rigor lo que YA ocurrió en el proceso de revisión, NO ejecutar análisis nuevos.
+
+REGLAS OBLIGATORIAS (CUMPLIMIENTO ESTRICTO):
+1. ❌ NO inventes datos, métricas, números ni procedimientos que no estén en el contexto
+2. ❌ NO uses frases vagas como "evaluación cualitativa" sin definir criterios exactos aplicados
+3. ❌ NO digas "no se proporciona información" sin antes BUSCAR exhaustivamente en el contexto
+4. ❌ PRISMA NO decide, NO clasifica, NO extrae, NO interpreta - solo REPORTA lo que ya se hizo
+5. ✅ SÉ ESPECÍFICO: Usa números reales del sistema (277 registros, 48 excluidos, etc.)
+6. ✅ DOCUMENTA PROCESOS: Quién realizó, cómo, con qué herramientas, con qué criterios
+7. ✅ USA pasado metodológico: "se identificaron", "se evaluaron", "se incluyeron" (nunca futuro)
+8. ✅ EXTRAE del contexto: Años de publicación, tipos de estudio, contextos de aplicación, tecnologías
+9. ✅ Si usaste IA, documenta: "evaluación sistemática asistida por IA con validación manual"
+10. ✅ MITIGA limitaciones en lugar de admitirlas: "el riesgo fue mitigado mediante..." vs "no se pudo evaluar"
+11. ✅ CONECTA números entre secciones: Los números en #16 deben coincidir con el diagrama de flujo PRISMA
+12. ✅ JUSTIFICA niveles de confianza: "confianza moderada debido a [criterios explícitos]"
+
+NIVEL ESPERADO: Un revisor experto debe poder:
+- Reproducir el proceso con tu documentación
+- Verificar coherencia numérica entre secciones
+- Validar que NO hay inferencias injustificadas
+- Calificar el trabajo como 8-10/10 en rigor metodológico`;
   }
 
   /**
@@ -167,13 +171,31 @@ REGLAS OBLIGATORIAS:
             number: 11,
             section: 'MÉTODOS',
             topic: 'Evaluación del riesgo de sesgo',
-            guidance: 'Especificar el método utilizado para evaluar el riesgo de sesgo de los estudios incluidos. Si se usó IA asistida, declararlo explícitamente. Si no se realizó evaluación cuantitativa, declarar evaluación cualitativa.'
+            guidance: 'CRÍTICO: Describir DETALLADAMENTE el método de evaluación del riesgo de sesgo. DEBE incluir: (1) Quién realizó la evaluación (único revisor/múltiples), (2) Dimensiones evaluadas (diseño del estudio, validez interna, claridad metodológica), (3) Procedimiento seguido (lectura crítica, criterios aplicados), (4) Si se usó IA como apoyo, especificar exactamente su rol. NO usar frases genéricas como "evaluación cualitativa" sin más detalle. Ser explícito sobre criterios aplicados.'
           },
           {
             number: 12,
             section: 'MÉTODOS',
             topic: 'Medidas de efecto',
             guidance: 'Describir las métricas o variables observadas en los estudios. En ingeniería de software, pueden ser métricas de rendimiento, escalabilidad, o usabilidad. Si no hay meta-análisis, declarar síntesis narrativa.'
+          },
+          {
+            number: 13,
+            section: 'MÉTODOS',
+            topic: 'Métodos de síntesis',
+            guidance: 'Describir los métodos utilizados para sintetizar los resultados de los estudios incluidos. Especificar si se realizó síntesis narrativa, tabulación de datos, o meta-análisis. Incluir justificación metodológica de la elección.'
+          },
+          {
+            number: 14,
+            section: 'MÉTODOS',
+            topic: 'Evaluación del sesgo de reporte',
+            guidance: 'Describir métodos para evaluar sesgo de publicación o reporte selectivo. Si NO se realizó evaluación formal (funnel plot, Egger test), JUSTIFICAR METODOLÓGICAMENTE por qué (ej: número insuficiente de estudios, naturaleza tecnológica del tema). Declarar explícitamente como limitación si aplica.'
+          },
+          {
+            number: 15,
+            section: 'MÉTODOS',
+            topic: 'Evaluación de la certeza de la evidencia',
+            guidance: 'Describir evaluación de certeza/calidad de la evidencia. Si NO se usó GRADE u otro framework formal, JUSTIFICAR por qué es apropiado en este contexto (ej: estudios tecnológicos primarios, enfoque exploratorio). Explicar criterios alternativos considerados (rigor metodológico, replicabilidad, coherencia entre estudios). NO simplemente decir "no se aplicó".'
           }
         ]
       },
@@ -184,31 +206,43 @@ REGLAS OBLIGATORIAS:
             number: 16,
             section: 'RESULTADOS',
             topic: 'Selección de estudios',
-            guidance: 'Describir los resultados del proceso de búsqueda y selección, desde el número de registros identificados hasta los estudios incluidos en la revisión. Usar los números exactos del diagrama PRISMA.'
+            guidance: 'CRÍTICO: USAR NÚMEROS REALES DEL SISTEMA. Describir el proceso COMPLETO con cifras exactas: (1) Registros identificados en búsquedas, (2) Duplicados eliminados, (3) Registros evaluados en título/resumen, (4) Excluidos en cribado inicial, (5) Evaluados en texto completo, (6) Excluidos en texto completo con MOTIVOS PRINCIPALES, (7) Estudios incluidos en síntesis final. EJEMPLO: "Se identificaron 277 registros. Tras eliminar 0 duplicados, se evaluaron 277 títulos/resúmenes. Se excluyeron 48 por [motivos]. Los 229 restantes se evaluaron en texto completo, excluyéndose 3 por [motivos específicos], resultando en 226 estudios incluidos." Los números deben coincidir EXACTAMENTE con el diagrama de flujo PRISMA.'
           },
           {
             number: 17,
             section: 'RESULTADOS',
             topic: 'Características de los estudios',
-            guidance: 'Presentar características de los estudios incluidos: tecnologías evaluadas, contextos de aplicación, tipos de estudio. Basarse en datos extraídos de PDFs si existen.'
+            guidance: 'Presentar características ESPECÍFICAS extraídas del análisis de cribado: (1) DISTRIBUCIÓN TEMPORAL: Rango de años (ej: 2018-2024) con concentración en períodos específicos, (2) TIPOS DE ESTUDIO: Proporciones de estudios empíricos, casos de estudio, simulaciones, revisiones, (3) CONTEXTOS DE APLICACIÓN: Industrial, empresarial, académico/experimental con ejemplos concretos (ej: "45% en contexto industrial, principalmente manufactura y logística"), (4) TECNOLOGÍAS PREDOMINANTES: Nombrar tecnologías específicas con frecuencias (ej: "5G fue la tecnología más estudiada (67%), seguida de IoT (23%)"), (5) FUENTES: Principales journals/conferencias. Incluir tabla resumen si es apropiado. SER ESPECÍFICO CON NÚMEROS Y CATEGORÍAS.'
           },
           {
             number: 18,
             section: 'RESULTADOS',
             topic: 'Riesgo de sesgo en los estudios',
-            guidance: 'Presentar evaluación del riesgo de sesgo por estudio. Si no hay scoring cuantitativo, declarar evaluación cualitativa sin riesgos críticos evidentes.'
+            guidance: 'Presentar evaluación del riesgo de sesgo POR ESTUDIO o agregada. Incluir: (1) Proporción de estudios con bajo/medio/alto riesgo, (2) Dominios más problemáticos (diseño, validez, reporting), (3) Patrones observados. Si es evaluación cualitativa, especificar criterios aplicados y hallazgos principales. NO ser vago.'
           },
           {
             number: 19,
             section: 'RESULTADOS',
             topic: 'Resultados de estudios individuales',
-            guidance: 'Presentar resultados reportados por cada estudio incluido. No comparar entre estudios, solo reportar lo que cada uno encontró.'
+            guidance: 'CRÍTICO: DAR CONTENIDO ESPECÍFICO. Presentar resultados clave de AL MENOS 3-5 estudios representativos con: (1) Autor y año, (2) Hallazgo principal reportado (ej: "MongoDB mostró 40% mejor rendimiento en escrituras vs PostgreSQL"), (3) Contexto del hallazgo. NO decir "no se proporciona información específica". Extraer de referencias disponibles. Si no hay datos, declarar explícitamente por qué (ej: PDFs no disponibles, estudios secundarios sin datos primarios).'
           },
           {
             number: 20,
             section: 'RESULTADOS',
             topic: 'Resultados de las síntesis',
             guidance: 'Presentar síntesis narrativa de hallazgos. Identificar tendencias, consistencias o patrones observados. No realizar inferencias causales si no hay análisis estadístico.'
+          },
+          {
+            number: 21,
+            section: 'RESULTADOS',
+            topic: 'Sesgo de reporte en los resultados',
+            guidance: 'REDACCIÓN ROBUSTA REQUERIDA. NO admitir debilidad, sino explicar mitigación. USAR ESTA ESTRUCTURA: "No se realizó una evaluación formal del sesgo de publicación mediante métodos estadísticos (por ejemplo, funnel plots), dado que la revisión se basó en una síntesis narrativa. No obstante, el riesgo de sesgo de reporte fue mitigado mediante: (i) la aplicación de criterios de inclusión y exclusión explícitos, (ii) la búsqueda en múltiples bases de datos académicas reconocidas [NOMBRAR: Scopus, IEEE, etc.], y (iii) la evaluación sistemática de títulos, resúmenes y textos completos apoyada por un sistema de cribado asistido por inteligencia artificial. Estas medidas reducen la probabilidad de omisión selectiva de resultados relevantes." ADAPTAR al contexto específico pero mantener tono de mitigación, no de limitación.'
+          },
+          {
+            number: 22,
+            section: 'RESULTADOS',
+            topic: 'Certeza de la evidencia',
+            guidance: 'Evaluar certeza/calidad de la evidencia con CRITERIOS EXPLÍCITOS. Si se afirma "confianza moderada/alta/baja", JUSTIFICAR con: (1) CONSISTENCIA: Grado de concordancia entre estudios en hallazgos principales, (2) RIGOR METODOLÓGICO: Calidad del diseño, validez interna, reporting completo, (3) LIMITACIONES IDENTIFICADAS: Sesgos, tamaños de muestra, contextos limitados, (4) FACTORES MODULADORES: Replicación de resultados, heterogeneidad metodológica, disponibilidad de datos primarios. NO afirmar niveles sin justificación. Si no hay marco formal (GRADE, etc.), usar criterios narrativos pero SIEMPRE explícitos y vinculados a evidencia específica observada en los estudios.'
           }
         ]
       },
@@ -230,13 +264,13 @@ REGLAS OBLIGATORIAS:
             number: 24,
             section: 'OTRA INFORMACIÓN',
             topic: 'Registro y protocolo',
-            guidance: 'Declarar si el protocolo fue registrado previamente. Si no fue registrado, declararlo explícitamente.'
+            guidance: 'REDACCIÓN ROBUSTA REQUERIDA. NO simplemente decir "no fue registrado". USAR ESTA ESTRUCTURA: "El protocolo de esta revisión sistemática no fue registrado previamente en plataformas públicas como PROSPERO u OSF. No obstante, se desarrolló un protocolo metodológico interno que definió los objetivos de la revisión, la estrategia de búsqueda, los criterios de inclusión y exclusión, y el proceso de selección de estudios, siguiendo las directrices establecidas por PRISMA 2020." ADAPTAR mencionando elementos específicos del protocolo disponible en el contexto (PICO, criterios I/E, bases de datos). Demostrar que SÍ hubo planificación metodológica rigurosa, aunque no hubo registro público.'
           },
           {
             number: 25,
             section: 'OTRA INFORMACIÓN',
             topic: 'Financiamiento',
-            guidance: 'Declarar fuentes de financiamiento. Si no hubo financiamiento externo, declararlo explícitamente.'
+            guidance: 'REDACCIÓN ESTÁNDAR ACADÉMICA. Si no hubo financiamiento, usar tono que refuerza independencia: "Este estudio no recibió financiamiento externo. La revisión sistemática se realizó utilizando recursos académicos disponibles institucionalmente y herramientas de apoyo para el análisis de la literatura, sin la participación de entidades financiadoras públicas o privadas." Si hubo financiamiento, nombrar fuente, número de grant, y declarar rol del financiador en diseño/análisis. PRISMA exige transparencia, no financiamiento.'
           },
           {
             number: 26,
@@ -265,7 +299,22 @@ REGLAS OBLIGATORIAS:
       .map(item => `- Ítem ${item.number}: ${item.topic}\n  Guía: ${item.guidance}`)
       .join('\n\n');
 
+    // Extraer números clave del contexto para destacarlos
+    const screeningNumbers = prismaContext.screening ? `
+NÚMEROS REALES DEL SISTEMA (USAR EXACTAMENTE ESTOS):
+- Registros identificados: ${prismaContext.screening.identified}
+- Duplicados eliminados: ${prismaContext.screening.duplicatesRemoved}
+- Evaluados en título/resumen: ${prismaContext.screening.screenedTitleAbstract}
+- Excluidos en cribado inicial: ${prismaContext.screening.excludedTitleAbstract}
+- Evaluados en texto completo: ${prismaContext.screening.fullTextAssessed}
+- Excluidos en texto completo: ${prismaContext.screening.excludedFullText}
+- INCLUIDOS FINALES: ${prismaContext.screening.includedFinal}
+` : '';
+
     return `Utilizando exclusivamente la información del PRISMA Context proporcionado, completa los ítems de la sección ${blockConfig.name}.
+
+⚠️ RECORDATORIO CRÍTICO: PRISMA DOCUMENTA LO QUE YA OCURRIÓ, NO ANALIZA NI DECIDE.
+${screeningNumbers}
 
 CONTEXTO PRISMA (FUENTE ÚNICA DE VERDAD):
 ${JSON.stringify(prismaContext, null, 2)}
@@ -277,19 +326,27 @@ FORMATO DE RESPUESTA (JSON válido, sin texto adicional):
 {
   "items": [
     {
-      "itemNumber": 11,
-      "section": "MÉTODOS",
-      "content": "Texto académico formal en español aquí...",
-      "dataSource": "screening.screeningMethod, screening.aiAssisted"
+      "itemNumber": 16,
+      "section": "RESULTADOS",
+      "content": "Se identificaron 277 registros a través de las bases de datos seleccionadas (Scopus, IEEE Xplore, Web of Science). Tras eliminar 0 duplicados, se evaluaron 277 títulos y resúmenes. Se excluyeron 48 registros en esta fase por no cumplir los criterios de inclusión relacionados con [especificar motivos principales]. Los 229 registros restantes fueron evaluados en texto completo, de los cuales 3 fueron excluidos por [motivos específicos: metodología inadecuada, datos insuficientes, etc.]. Finalmente, 226 estudios cumplieron todos los criterios de inclusión y fueron incorporados en la síntesis narrativa.",
+      "dataSource": "screening.identified, screening.excludedTitleAbstract, screening.excludedFullText, screening.includedFinal"
     }
   ]
 }
 
-EJEMPLO DE REDACCIÓN ACADÉMICA CORRECTA:
-"Se identificaron un total de 20 registros a través de las bases de datos seleccionadas (Scopus, IEEE Xplore). Tras el cribado por título y resumen, se excluyó 1 referencia por no cumplir los criterios de inclusión. Posteriormente, 19 estudios fueron evaluados en texto completo, sin exclusiones adicionales. Finalmente, 19 estudios cumplieron los criterios de inclusión y fueron incorporados en la síntesis final."
+EJEMPLOS DE REDACCIÓN ACADÉMICA:
 
-EJEMPLO DE DECLARACIÓN CUANDO FALTA INFORMACIÓN:
-"No se realizó registro prospectivo del protocolo de revisión en una base de datos pública. El protocolo fue desarrollado internamente siguiendo las directrices PRISMA 2020."
+Para Ítem #16 (Selección):
+"Se identificaron ${prismaContext.screening?.identified || 'N'} registros a través de las bases de datos seleccionadas. Tras eliminar ${prismaContext.screening?.duplicatesRemoved || '0'} duplicados, se evaluaron ${prismaContext.screening?.screenedTitleAbstract || 'N'} títulos y resúmenes. Se excluyeron ${prismaContext.screening?.excludedTitleAbstract || 'N'} registros en cribado inicial por [extraer motivos de exclusionCriteria]. Los ${prismaContext.screening?.fullTextAssessed || 'N'} restantes fueron evaluados en texto completo, excluyéndose ${prismaContext.screening?.excludedFullText || 'N'} por [motivos específicos]. Finalmente, ${prismaContext.screening?.includedFinal || 'N'} estudios fueron incluidos en la síntesis."
+
+Para Ítem #21 (Sesgo de reporte):
+"No se realizó una evaluación formal del sesgo de publicación mediante métodos estadísticos (por ejemplo, funnel plots), dado que la revisión se basó en una síntesis narrativa. No obstante, el riesgo de sesgo de reporte fue mitigado mediante: (i) la aplicación de criterios de inclusión y exclusión explícitos, (ii) la búsqueda en múltiples bases de datos académicas reconocidas [EXTRAER DE protocol.databases], y (iii) la evaluación sistemática de títulos, resúmenes y textos completos apoyada por ${prismaContext.screening?.screeningMethod || 'un sistema de cribado riguroso'}. Estas medidas reducen la probabilidad de omisión selectiva de resultados relevantes."
+
+Para Ítem #24 (Registro y protocolo):
+"El protocolo de esta revisión sistemática no fue registrado previamente en plataformas públicas como PROSPERO u OSF. No obstante, se desarrolló un protocolo metodológico interno que definió los objetivos de la revisión [EXTRAER DE protocol.objective], la estrategia de búsqueda en [EXTRAER databases], los criterios de inclusión y exclusión [MENCIONAR], y el proceso de selección de estudios, siguiendo las directrices establecidas por PRISMA 2020."
+
+Para Ítem #25 (Financiamiento):
+"Este estudio no recibió financiamiento externo. La revisión sistemática se realizó utilizando recursos académicos disponibles institucionalmente y herramientas de apoyo para el análisis de la literatura, sin la participación de entidades financiadoras públicas o privadas."
 
 Genera ahora el contenido para los ${blockConfig.items.length} ítems de ${blockConfig.name}.`;
   }

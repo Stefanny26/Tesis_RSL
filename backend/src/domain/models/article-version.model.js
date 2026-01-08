@@ -17,6 +17,7 @@ class ArticleVersion {
     this.discussion = data.discussion;
     this.conclusions = data.conclusions;
     this.referencesSection = data.references_section || data.referencesSection;
+    this.declarations = data.declarations;
     
     // Metadatos de versión
     this.description = data.description;
@@ -54,7 +55,9 @@ class ArticleVersion {
     return {
       id: this.id,
       projectId: this.projectId,
+      version: this.versionNumber,
       versionNumber: this.versionNumber,
+      title: this.title,
       content: {
         title: this.title,
         abstract: this.abstract,
@@ -63,14 +66,17 @@ class ArticleVersion {
         results: this.results,
         discussion: this.discussion,
         conclusions: this.conclusions,
-        references: this.referencesSection
+        references: this.referencesSection,
+        declarations: this.declarations || ''
       },
       description: this.description,
+      changeDescription: this.description,
       isCurrent: this.isCurrent,
       wordCount: this.wordCount,
       aiGeneratedSections: this.aiGeneratedSections,
       createdBy: this.createdBy,
-      createdAt: this.createdAt
+      createdAt: this.createdAt,
+      isPublished: false
     };
   }
 
@@ -163,6 +169,34 @@ class ArticleVersion {
    */
   isAIGenerated(sectionName) {
     return this.aiGeneratedSections.includes(sectionName);
+  }
+
+  /**
+   * Crea instancia desde registro de base de datos
+   */
+  static fromDatabase(row) {
+    if (!row) return null;
+
+    return new ArticleVersion({
+      id: row.id,
+      project_id: row.project_id,
+      version_number: row.version_number,
+      title: row.title,
+      abstract: row.abstract,
+      introduction: row.introduction,
+      methods: row.methods,
+      results: row.results,
+      discussion: row.discussion,
+      conclusions: row.conclusions,
+      references_section: row.references_section,
+      declarations: row.declarations,
+      description: row.change_description,
+      is_current: row.is_current,
+      word_count: row.word_count,
+      ai_generated_sections: row.ai_generated_sections || [],
+      created_by: row.created_by,
+      created_at: row.created_at
+    });
   }
 }
 

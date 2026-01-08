@@ -16,6 +16,7 @@ const referenceRoutes = require('./api/routes/reference.routes');
 const screeningRoutes = require('./api/routes/screening.routes');
 const usageRoutes = require('./api/routes/usage.routes');
 const adminRoutes = require('./api/routes/admin.routes');
+const rqsRoutes = require('./api/routes/rqs.routes');
 
 // Importar middleware BSON
 const { bsonMiddleware } = require('./infrastructure/middlewares/bson.middleware');
@@ -94,6 +95,7 @@ class Server {
     this.app.use('/api/projects', protocolRoutes);
     this.app.use('/api/projects', prismaRoutes);
     this.app.use('/api/projects', articleRoutes);
+    this.app.use('/api/projects', rqsRoutes);
     this.app.use('/api/ai', aiRoutes);
     this.app.use('/api/references', referenceRoutes);
     this.app.use('/api/screening', screeningRoutes);

@@ -1,0 +1,320 @@
+/**
+ * Use Case: Extract RQS Data from PDFs
+ * 
+ * Extrae datos estructurados (RQS) de estudios incluidos usando IA,
+ * analizando los PDFs completos para llenar el esquema de investigación.
+ * 
+ * IMPORTANTE: Solo analiza referencias con screeningStatus='included' o 'fulltext_included'
+ */
+const RQSEntry = require('../models/rqs-entry.model');
+
+class ExtractRQSDataUseCase {
+  constructor({
+    rqsEntryRepository,
+    referenceRepository,
+    protocolRepository,
+    aiService
+  }) {
+    this.rqsEntryRepository = rqsEntryRepository;
+    this.referenceRepository = referenceRepository;
+    this.protocolRepository = protocolRepository;
+    this.aiService = aiService;
+  }
+
+  /**
+   * Extraer RQS para todas las referencias incluidas de un proyecto
+   */
+  async execute(projectId, userId) {
+    try {
+      console.log(`📊 Extrayendo datos RQS para proyecto ${projectId}`);
+
+      // 1. Obtener protocolo para RQs
+      const protocol = await this.protocolRepository.findByProjectId(projectId);
+      if (!protocol) {
+        throw new Error('Protocolo no encontrado');
+      }
+
+      const researchQuestions = protocol.researchQuestions || [];
+
+      // 2. Obtener referencias incluidas
+      const references = await this.referenceRepository.findByProject(projectId);
+      const includedReferences = references.filter(ref => 
+        ref.screeningStatus === 'included' || 
+        ref.screeningStatus === 'fulltext_included'
+      );
+
+      if (includedReferences.length === 0) {
+        return {
+          success: true,
+          message: 'No hay referencias incluidas para extraer',
+          extracted: 0
+        };
+      }
+
+      console.log(`📄 Procesando ${includedReferences.length} referencias incluidas`);
+
+      // 3. Extraer RQS para cada referencia
+      const extracted = [];
+      const errors = [];
+
+      for (const reference of includedReferences) {
+        try {
+          // Verificar si ya existe entrada RQS
+          const existing = await this.rqsEntryRepository.findByReference(reference.id);
+          if (existing) {
+            console.log(`⏭️  Saltando referencia ${reference.id} (ya tiene RQS)`);
+            continue;
+          }
+
+          console.log(`🔍 Extrayendo RQS para: ${reference.title}`);
+
+          // Extraer datos con IA
+          const rqsData = await this.extractFromReference(reference, researchQuestions);
+
+          // Crear instancia del modelo RQSEntry
+          const rqsEntry = new RQSEntry({
+            projectId: projectId,
+            referenceId: reference.id,
+            
+            author: rqsData.author || reference.authors || 'Unknown',
+            year: rqsData.year || reference.year || new Date().getFullYear(),
+            title: reference.title,
+            source: reference.journal || reference.source || '',
+            
+            studyType: rqsData.studyType,
+            technology: rqsData.technology,
+            context: rqsData.context,
+            
+            keyEvidence: rqsData.keyEvidence,
+            metrics: rqsData.metrics,
+            
+            rq1Relation: rqsData.rq1Relation,
+            rq2Relation: rqsData.rq2Relation,
+            rq3Relation: rqsData.rq3Relation,
+            rqNotes: rqsData.rqNotes,
+            
+            limitations: rqsData.limitations,
+            qualityScore: rqsData.qualityScore,
+            
+            extractionMethod: 'ai_assisted',
+            extractedBy: userId,
+            extractedAt: new Date(),
+            validated: false
+          });
+
+          // Guardar en base de datos
+          const savedEntry = await this.rqsEntryRepository.create(rqsEntry);
+          extracted.push(savedEntry);
+          console.log(`✅ RQS extraído para referencia ${reference.id}`);
+
+        } catch (error) {
+          console.error(`❌ Error extrayendo RQS para referencia ${reference.id}:`, error.message);
+          errors.push({
+            referenceId: reference.id,
+            title: reference.title,
+            error: error.message
+          });
+        }
+      }
+
+      return {
+        success: true,
+        extracted: extracted.length,
+        errors: errors.length,
+        details: {
+          processed: includedReferences.length,
+          successful: extracted.length,
+          failed: errors.length,
+          errorDetails: errors
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ Error en extracción RQS:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extraer datos RQS de una referencia usando IA
+   */
+  async extractFromReference(reference, researchQuestions) {
+    const systemPrompt = this.getSystemPrompt();
+    const userPrompt = this.getUserPrompt(reference, researchQuestions);
+
+    try {
+      const response = await this.aiService.generateText(
+        systemPrompt,
+        userPrompt,
+        'chatgpt' // Usar ChatGPT para extracción estructurada
+      );
+
+      // Parsear respuesta JSON si es string, o usar directamente si ya es objeto
+      let data;
+      if (typeof response === 'string') {
+        try {
+          data = JSON.parse(response);
+        } catch (parseError) {
+          console.error('Error parseando JSON string:', parseError);
+          console.error('Respuesta recibida:', response);
+          throw new Error('La respuesta de la IA no es JSON válido');
+        }
+      } else if (typeof response === 'object' && response !== null) {
+        data = response;
+      } else {
+        throw new Error(`Tipo de respuesta inesperado: ${typeof response}`);
+      }
+      
+      return {
+        author: data.author,
+        year: data.year,
+        studyType: data.studyType,
+        technology: data.technology,
+        context: data.context,
+        keyEvidence: data.keyEvidence,
+        metrics: data.metrics || {},
+        rq1Relation: data.rq1Relation,
+        rq2Relation: data.rq2Relation,
+        rq3Relation: data.rq3Relation,
+        rqNotes: data.rqNotes,
+        limitations: data.limitations,
+        qualityScore: data.qualityScore
+      };
+
+    } catch (error) {
+      console.error('Error parseando respuesta IA:', error);
+      throw new Error('No se pudo extraer datos estructurados del estudio');
+    }
+  }
+
+  /**
+   * System Prompt para extracción RQS
+   */
+  getSystemPrompt() {
+    return `Eres un EXTRACTOR EXPERTO de datos para revisiones sistemáticas en ingeniería/tecnología.
+
+Tu tarea es ANALIZAR el estudio proporcionado y extraer información estructurada siguiendo el esquema RQS (Research Question Schema).
+
+REGLAS OBLIGATORIAS:
+1. ❌ NO inventes datos que no estén en el abstract/title
+2. ❌ NO especules sobre tecnologías o métricas no mencionadas
+3. ✅ Extrae SOLO lo explícitamente declarado en el texto
+4. ✅ Si algo no está claro, usa "Unknown" o null
+5. ✅ Sé preciso con tecnologías (nombres exactos: "5G", "MongoDB", "SDN")
+6. ✅ Clasifica el tipo de estudio correctamente (empirical, case_study, experiment, simulation, review)
+7. ✅ Identifica el contexto de aplicación (industrial, enterprise, academic, experimental)
+8. ✅ Extrae métricas específicas reportadas (latencia, throughput, eficiencia, etc.)
+
+FORMATO DE SALIDA: JSON estricto, sin texto adicional.`;
+  }
+
+  /**
+   * User Prompt para extracción RQS
+   */
+  getUserPrompt(reference, researchQuestions) {
+    const rqList = researchQuestions.map((rq, index) => 
+      `RQ${index + 1}: ${rq}`
+    ).join('\n');
+
+    return `Extrae datos estructurados (RQS) del siguiente estudio:
+
+**TÍTULO:** ${reference.title}
+**AUTORES:** ${reference.authors || 'No disponible'}
+**AÑO:** ${reference.year || 'No disponible'}
+**FUENTE:** ${reference.journal || reference.source || 'No disponible'}
+**ABSTRACT:** ${reference.abstract || 'No disponible'}
+
+**PREGUNTAS DE INVESTIGACIÓN DEL PROYECTO:**
+${rqList || 'No definidas'}
+
+---
+
+EXTRAE los siguientes campos y responde SOLO con JSON:
+
+{
+  "author": "Apellido, Nombre et al.",
+  "year": 2024,
+  "studyType": "empirical | case_study | experiment | simulation | review | other",
+  "technology": "Tecnología principal evaluada (ej: 5G, MongoDB, Kubernetes)",
+  "context": "industrial | enterprise | academic | experimental | mixed | other",
+  "keyEvidence": "Hallazgos principales reportados (2-3 oraciones)",
+  "metrics": {
+    "latency": "X ms",
+    "throughput": "Y Gbps",
+    "efficiency": "Z%"
+  },
+  "rq1Relation": "yes | no | partial",
+  "rq2Relation": "yes | no | partial",
+  "rq3Relation": "yes | no | partial",
+  "rqNotes": "Justificación de relación con RQs",
+  "limitations": "Limitaciones declaradas por autores (si existen)",
+  "qualityScore": "high | medium | low"
+}
+
+**INSTRUCCIONES ESPECÍFICAS:**
+- **studyType**: Identifica si es empírico (datos reales), caso de estudio (aplicación específica), experimento (controlado), simulación, o revisión
+- **technology**: Extrae EXACTAMENTE el nombre de la tecnología evaluada
+- **context**: Identifica si fue aplicado en industria real, empresa, laboratorio académico, etc.
+- **keyEvidence**: Resume los resultados/hallazgos PRINCIPALES en 2-3 oraciones
+- **metrics**: Extrae SOLO métricas con valores numéricos reportados
+- **rqRelation**: Evalúa si el estudio responde cada RQ (yes=responde directamente, partial=responde indirectamente, no=no responde)
+- **limitations**: Copia textualmente si los autores declaran limitaciones
+
+Responde AHORA con el JSON:`;
+  }
+
+  /**
+   * Extraer RQS para una sola referencia (endpoint individual)
+   */
+  async extractSingle(projectId, referenceId, userId) {
+    try {
+      // Verificar si ya existe
+      const existing = await this.rqsEntryRepository.findByReference(referenceId);
+      if (existing) {
+        return {
+          success: true,
+          message: 'La referencia ya tiene datos RQS',
+          rqsEntry: existing,
+          alreadyExists: true
+        };
+      }
+
+      // Obtener protocolo y referencia
+      const protocol = await this.protocolRepository.findByProjectId(projectId);
+      const reference = await this.referenceRepository.findById(referenceId);
+
+      if (!reference) {
+        throw new Error('Referencia no encontrada');
+      }
+
+      // Extraer datos
+      const rqsData = await this.extractFromReference(
+        reference,
+        protocol?.researchQuestions || []
+      );
+
+      // Crear entrada
+      const rqsEntry = await this.rqsEntryRepository.create({
+        projectId,
+        referenceId,
+        ...rqsData,
+        extractionMethod: 'ai_assisted',
+        extractedBy: userId,
+        extractedAt: new Date(),
+        validated: false
+      });
+
+      return {
+        success: true,
+        rqsEntry,
+        alreadyExists: false
+      };
+
+    } catch (error) {
+      console.error('Error en extracción individual RQS:', error);
+      throw error;
+    }
+  }
+}
+
+module.exports = ExtractRQSDataUseCase;
