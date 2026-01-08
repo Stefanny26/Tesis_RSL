@@ -54,9 +54,12 @@ class PrismaController {
             null,
             null
           );
-          const generatedItems = await generateUseCase.execute(projectId);
-          await this.prismaItemRepository.upsertBatch(generatedItems);
-          console.log(`✅ Contenido inicial generado para ${generatedItems.length} ítems`);
+          const allGeneratedItems = await generateUseCase.execute(projectId);
+          
+          // Solo guardar los primeros 10 ítems (TITLE → DATA COLLECTION)
+          const initialItems = allGeneratedItems.slice(0, 10);
+          await this.prismaItemRepository.upsertBatch(initialItems);
+          console.log(`✅ Contenido inicial generado para ${initialItems.length} ítems (1-10)`);
           items = await this.prismaItemRepository.findAllByProject(projectId);
         } catch (error) {
           console.log('⚠️ No se pudo generar contenido inicial:', error.message);
