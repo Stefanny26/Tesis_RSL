@@ -32,11 +32,7 @@ DROP FUNCTION IF EXISTS update_rqs_updated_at() CASCADE;
 SET session_replication_role = 'origin';
 
 -- Mensaje de confirmación
-DO $$
-BEGIN
-  RAISE NOTICE '🗑️ Base de datos limpiada completamente';
-  RAISE NOTICE '🔄 Iniciando migración desde cero...';
-END $$;
+SELECT 'Base de datos limpiada completamente' AS status;
 
 -- =====================================================
 -- PARTE 2: CREAR TODO DESDE CERO
@@ -441,11 +437,4 @@ ORDER BY table_name;
 -- =====================================================
 -- MENSAJE FINAL
 -- =====================================================
-DO $$
-BEGIN
-  RAISE NOTICE '✅ Base de datos reseteada e inicializada correctamente';
-  RAISE NOTICE '📊 Tablas creadas: 11';
-  RAISE NOTICE '🔑 Índices y triggers configurados';
-  RAISE NOTICE '🚀 Sistema RSL listo para producción';
-  RAISE NOTICE '⚠️ RECORDATORIO: Todos los datos anteriores fueron eliminados';
-END $$;
+SELECT 'Base de datos reseteada e inicializada correctamente - 11 tablas creadas' AS status;
