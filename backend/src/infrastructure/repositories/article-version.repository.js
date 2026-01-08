@@ -16,9 +16,9 @@ class ArticleVersionRepository {
       INSERT INTO article_versions (
         id, project_id, version_number, title,
         abstract, introduction, methods, results,
-        discussion, conclusions, references_section, declarations,
+        discussion, conclusions, references_section,
         word_count, change_description, created_by, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *
     `;
 
@@ -34,7 +34,6 @@ class ArticleVersionRepository {
       articleVersion.sections?.discussion || articleVersion.discussion || '',
       articleVersion.sections?.conclusions || articleVersion.conclusions || '',
       articleVersion.sections?.references || articleVersion.referencesSection || '',
-      articleVersion.sections?.declarations || articleVersion.declarations || '',
       articleVersion.wordCount,
       articleVersion.changeDescription || articleVersion.description,
       articleVersion.createdBy,
