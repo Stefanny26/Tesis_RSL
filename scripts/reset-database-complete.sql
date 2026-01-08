@@ -157,7 +157,10 @@ CREATE TABLE IF NOT EXISTS "references" (
   screening_status VARCHAR(50) DEFAULT 'pending',
   notes TEXT,
   classification_method VARCHAR(50),
+  ai_classification VARCHAR(50),
   ai_reasoning TEXT,
+  ai_confidence_score DECIMAL(5,4),
+  screening_score DECIMAL(5,4),
   exclusion_reason TEXT,
   matched_criteria JSONB DEFAULT '[]'::jsonb,
   
