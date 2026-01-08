@@ -46,6 +46,7 @@ class ArticleVersionRepository {
 
   /**
    * Obtener todas las versiones de un proyecto
+   * Fixed: Using u.name instead of u.full_name
    */
   async findByProject(projectId) {
     const query = `
