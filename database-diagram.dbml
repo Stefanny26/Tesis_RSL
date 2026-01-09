@@ -1,0 +1,402 @@
+// Base de Datos RSL System - Diagrama MER Completo
+// Para usar en: https://dbdiagram.io/d
+// Última actualización: Enero 2026
+// Total: 11 tablas
+
+Project RSL_System {
+  database_type: 'PostgreSQL'
+  Note: 'Sistema de Gestión de Revisiones Sistemáticas de Literatura con IA'
+}
+
+// =====================================================
+// 1. TABLA USERS
+// =====================================================
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  email varchar(255) [unique, not null]
+  google_id varchar(255) [unique]
+  name varchar(255)
+  avatar_url text
+  role varchar(50) [default: 'user']
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz [default: `now()`]
+  
+  indexes {
+    email
+    google_id
+  }
+  
+  Note: 'Usuarios del sistema (autenticación Google OAuth)'
+}
+
+// =====================================================
+// 2. TABLA PROJECTS
+// =====================================================
+Table projects {
+  id uuid [pk, default: `gen_random_uuid()`]
+  owner_id uuid [not null, ref: > users.id]
+  title varchar(500) [not null]
+  description text
+  status varchar(50) [default: 'draft']
+  deadline timestamptz
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz [default: `now()`]
+  
+  indexes {
+    owner_id
+    status
+    created_at
+  }
+  
+  Note: 'Proyectos de revisión sistemática'
+}
+
+// =====================================================
+// 3. TABLA PROJECT_MEMBERS
+// =====================================================
+Table project_members {
+  id uuid [pk, default: `gen_random_uuid()`]
+  project_id uuid [not null, ref: > projects.id]
+  user_id uuid [not null, ref: > users.id]
+  role varchar(50) [default: 'viewer']
+  joined_at timestamptz [default: `now()`]
+  
+  indexes {
+    project_id
+    user_id
+    (project_id, user_id) [unique]
+  }
+  
+  Note: 'Miembros colaboradores de proyectos'
+}
+
+// =====================================================
+// 4. TABLA PROTOCOLS (PICO)
+// =====================================================
+Table protocols {
+  id uuid [pk, default: `gen_random_uuid()`]
+  project_id uuid [not null, unique, ref: - projects.id]
+  
+  // Fase 2: Matriz ES/NO ES
+  is_matrix jsonb [default: '[]']
+  is_not_matrix jsonb [default: '[]']
+  
+  // PICO Framework
+  population text
+  intervention text
+  comparison text
+  outcomes text
+  
+  // Criterios de elegibilidad
+  inclusion_criteria jsonb [default: '[]']
+  exclusion_criteria jsonb [default: '[]']
+  
+  // Estrategia de búsqueda
+  databases jsonb [default: '[]']
+  search_string text
+  search_queries jsonb [default: '[]']
+  
+  // Títulos y pregunta de investigación
+  proposed_title text
+  selected_title text
+  refined_question text
+  key_terms jsonb [default: '{}']
+  temporal_range jsonb [default: '{}']
+  prisma_compliance jsonb [default: '[]']
+  area varchar(200)
+  
+  // Planificación y resultados
+  search_plan jsonb [default: '{}']
+  screening_results jsonb [default: '{}']
+  fase2_unlocked boolean [default: false]
+  
+  // Control PRISMA
+  prisma_locked boolean [default: false]
+  prisma_completed_at timestamptz
+  
+  // Metadatos
+  completed boolean [default: false]
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz [default: `now()`]
+  
+  indexes {
+    project_id
+  }
+  
+  Note: 'Protocolo PICO y configuración de búsqueda'
+}
+
+// =====================================================
+// 5. TABLA REFERENCES
+// =====================================================
+Table references {
+  id uuid [pk, default: `gen_random_uuid()`]
+  project_id uuid [not null, ref: > projects.id]
+  
+  // Metadatos bibliográficos
+  title text [not null]
+  authors text
+  year integer
+  journal varchar(500)
+  source varchar(255)
+  doi varchar(255)
+  abstract text
+  keywords text
+  url text
+  
+  // Screening y clasificación
+  status varchar(50) [default: 'pending']
+  screening_status varchar(50) [default: 'pending']
+  notes text
+  classification_method varchar(50)
+  ai_reasoning text
+  exclusion_reason text
+  matched_criteria jsonb [default: '[]']
+  
+  // Priorización con embeddings
+  priority_score decimal(5,4)
+  similarity_score decimal(5,4)
+  priority_level varchar(20)
+  phase varchar(20)
+  
+  // Full text processing
+  full_text_path text
+  full_text_status varchar(50) [default: 'not_uploaded']
+  full_text_evaluation jsonb [default: '{}']
+  full_text_extracted boolean [default: false]
+  full_text_data jsonb
+  
+  // Control de duplicados
+  is_duplicate boolean [default: false]
+  duplicate_of uuid [ref: > references.id]
+  
+  // Timestamps
+  created_at timestamptz [default: `now()`]
+  imported_at timestamptz [default: `now()`]
+  updated_at timestamptz [default: `now()`]
+  reviewed_at timestamptz
+  reviewer_id uuid [ref: > users.id]
+  
+  indexes {
+    project_id
+    status
+    screening_status
+    year
+    doi
+    priority_level
+    phase
+    is_duplicate
+  }
+  
+  Note: 'Referencias bibliográficas importadas (CSV, BibTeX, Scopus, WoS)'
+}
+
+// =====================================================
+// 6. TABLA PRISMA_ITEMS (27 items PRISMA 2020)
+// =====================================================
+Table prisma_items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  project_id uuid [not null, ref: > projects.id]
+  item_number integer [not null]
+  section varchar(100) [not null]
+  content text [not null]
+  content_type varchar(50) [default: 'manual']
+  data_source text
+  automated_content text
+  last_human_edit timestamptz
+  completed boolean [default: false]
+  ai_validated boolean [default: false]
+  validation_notes text
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz [default: `now()`]
+  
+  indexes {
+    project_id
+    section
+    completed
+    (project_id, item_number) [unique]
+  }
+  
+  Note: '27 ítems del checklist PRISMA 2020 con validación IA'
+}
+
+// =====================================================
+// 7. TABLA RQS_ENTRIES (Research Question Schema)
+// =====================================================
+Table rqs_entries {
+  id serial [pk]
+  project_id uuid [not null, ref: > projects.id]
+  reference_id uuid [not null, unique, ref: - references.id]
+  
+  // Datos básicos del estudio
+  author varchar(500) [not null]
+  year integer [not null]
+  title text
+  source varchar(300)
+  
+  // Clasificación
+  study_type varchar(50)
+  technology varchar(200)
+  context varchar(100)
+  
+  // Evidencia y métricas
+  key_evidence text
+  metrics jsonb [default: '{}']
+  
+  // Relación con Research Questions
+  rq1_relation varchar(20)
+  rq2_relation varchar(20)
+  rq3_relation varchar(20)
+  rq_notes text
+  
+  // Calidad y limitaciones
+  limitations text
+  quality_score varchar(20)
+  
+  // Control de extracción
+  extraction_method varchar(50) [default: 'ai_assisted']
+  extracted_by uuid [ref: > users.id]
+  extracted_at timestamp [default: `current_timestamp`]
+  validated boolean [default: false]
+  validated_by uuid [ref: > users.id]
+  validated_at timestamp
+  
+  // Timestamps
+  created_at timestamp [default: `current_timestamp`]
+  updated_at timestamp [default: `current_timestamp`]
+  
+  indexes {
+    project_id
+    reference_id
+    year
+    study_type
+    validated
+  }
+  
+  Note: 'Extracción de datos para responder preguntas de investigación (RQs)'
+}
+
+// =====================================================
+// 8. TABLA ARTICLE_VERSIONS
+// =====================================================
+Table article_versions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  project_id uuid [not null, ref: > projects.id]
+  version_number integer [not null]
+  title text
+  abstract text
+  introduction text
+  methods text
+  results text
+  discussion text
+  conclusions text
+  references_section text
+  word_count integer [default: 0]
+  change_description text
+  created_by uuid [ref: > users.id]
+  created_at timestamptz [default: `now()`]
+  
+  indexes {
+    project_id
+    version_number
+    (project_id, version_number) [unique]
+  }
+  
+  Note: 'Versiones del artículo RSL generado (historial)'
+}
+
+// =====================================================
+// 9. TABLA ACTIVITY_LOG
+// =====================================================
+Table activity_log {
+  id uuid [pk, default: `gen_random_uuid()`]
+  project_id uuid [ref: > projects.id]
+  user_id uuid [not null, ref: > users.id]
+  action varchar(100) [not null]
+  entity_type varchar(50) [not null]
+  entity_id uuid
+  description text
+  metadata jsonb [default: '{}']
+  created_at timestamptz [default: `now()`]
+  
+  indexes {
+    project_id
+    user_id
+    created_at
+  }
+  
+  Note: 'Log de actividades y auditoría del sistema'
+}
+
+// =====================================================
+// 10. TABLA API_USAGE
+// =====================================================
+Table api_usage {
+  id uuid [pk, default: `gen_random_uuid()`]
+  project_id uuid [ref: > projects.id]
+  user_id uuid [ref: > users.id]
+  provider varchar(50) [not null]
+  model varchar(100)
+  endpoint varchar(255)
+  tokens_prompt integer [default: 0]
+  tokens_completion integer [default: 0]
+  tokens_total integer [default: 0]
+  request_count integer [default: 1]
+  success boolean [default: true]
+  error_message text
+  created_at timestamptz [default: `now()`]
+  
+  indexes {
+    project_id
+    provider
+    created_at
+  }
+  
+  Note: 'Uso de APIs de IA (OpenAI, embeddings) para costos y monitoreo'
+}
+
+// =====================================================
+// 11. TABLA SCREENING_RECORDS
+// =====================================================
+Table screening_records {
+  id uuid [pk, default: `gen_random_uuid()`]
+  project_id uuid [not null, ref: > projects.id]
+  reference_id uuid [not null, ref: > references.id]
+  reviewer_id uuid [ref: > users.id]
+  decision varchar(50) [not null]
+  confidence_score decimal(5,4)
+  reasoning text
+  screening_method varchar(50)
+  phase varchar(20)
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz [default: `now()`]
+  
+  indexes {
+    project_id
+    reference_id
+    decision
+  }
+  
+  Note: 'Historial de decisiones de screening (manual + IA)'
+}
+
+// =====================================================
+// RESUMEN DEL ESQUEMA
+// =====================================================
+// Total tablas: 11
+// Relaciones principales:
+// - users (1) ----< (N) projects (owner)
+// - users (N) ----< (N) project_members >---- (N) projects (colaboradores)
+// - projects (1) ---- (1) protocols (relación 1:1)
+// - projects (1) ----< (N) references
+// - projects (1) ----< (N) prisma_items (27 items fijos)
+// - references (1) ---- (1) rqs_entries (extracción de datos)
+// - references (1) ----< (N) screening_records (historial)
+// - projects (1) ----< (N) article_versions (historial)
+// - projects (1) ----< (N) activity_log
+// - projects (1) ----< (N) api_usage
+// 
+// Extensiones PostgreSQL requeridas:
+// - uuid-ossp (generación de UUIDs)
+// - pgcrypto (funciones criptográficas)
+// - pgvector (opcional, para embeddings vectoriales)
