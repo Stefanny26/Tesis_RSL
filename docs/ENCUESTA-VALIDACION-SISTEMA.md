@@ -62,9 +62,9 @@
 - [ ] Lo conozco bien y lo he aplicado completamente
 - [ ] Soy experto en PRISMA 2020
 
-**1.8 ¿Ha utilizado herramientas de IA para investigación académica previamente?**
+**1.8 ¿Ha utilizado herramientas de inteligencia artificial para investigación académica previamente?**
 - [ ] No, nunca
-- [ ] Sí, ChatGPT u otros LLMs para escritura
+- [ ] Sí, asistentes de escritura (como ChatGPT)
 - [ ] Sí, herramientas de análisis de literatura
 - [ ] Sí, múltiples herramientas de IA para investigación
 - [ ] Otra: ___________
@@ -73,10 +73,10 @@
 
 ## SECCIÓN 2: USABILIDAD DEL SISTEMA (SUS - System Usability Scale)
 
-**Instrucciones:** Para cada afirmación, indique su nivel de acuerdo en una escala del 1 al 5, donde:
+**Instrucciones:** Para cada afirmación, indique su nivel de acuerdo del 1 al 5:
 - 1 = Totalmente en desacuerdo
 - 2 = En desacuerdo
-- 3 = Neutral
+- 3 = Neutral (ni de acuerdo ni en desacuerdo)
 - 4 = De acuerdo
 - 5 = Totalmente de acuerdo
 
@@ -85,13 +85,12 @@
 | 2.1 | Creo que me gustaría utilizar este sistema frecuentemente | [ ] | [ ] | [ ] | [ ] | [ ] |
 | 2.2 | Encontré el sistema innecesariamente complejo | [ ] | [ ] | [ ] | [ ] | [ ] |
 | 2.3 | Pensé que el sistema era fácil de usar | [ ] | [ ] | [ ] | [ ] | [ ] |
-| 2.4 | Creo que necesitaría ayuda de una persona técnica para usar este sistema | [ ] | [ ] | [ ] | [ ] | [ ] |
+| 2.4 | Creo que necesitaría apoyo técnico o capacitación para usar este sistema | [ ] | [ ] | [ ] | [ ] | [ ] |
 | 2.5 | Encontré que las diversas funciones del sistema estaban bien integradas | [ ] | [ ] | [ ] | [ ] | [ ] |
 | 2.6 | Pensé que había demasiada inconsistencia en este sistema | [ ] | [ ] | [ ] | [ ] | [ ] |
-| 2.7 | Imagino que la mayoría de las personas aprenderían a usar este sistema rápidamente | [ ] | [ ] | [ ] | [ ] | [ ] |
+| 2.7 | Imagino que la mayoría de investigadores o docentes aprenderían a usar este sistema rápidamente | [ ] | [ ] | [ ] | [ ] | [ ] |
 | 2.8 | Encontré el sistema muy engorroso de usar | [ ] | [ ] | [ ] | [ ] | [ ] |
-| 2.9 | Me sentí muy seguro usando el sistema | [ ] | [ ] | [ ] | [ ] | [ ] |
-| 2.10 | Necesitaría aprender muchas cosas antes de poder usar este sistema | [ ] | [ ] | [ ] | [ ] | [ ] |
+| 2.9 | Necesitaría aprender muchas cosas antes de poder usar este sistema | [ ] | [ ] | [ ] | [ ] | [ ] |
 
 ---
 
@@ -133,19 +132,19 @@
 |---------------|------------------|----------|
 | Importación de referencias (CSV, BibTeX) | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
 | Detección automática de duplicados | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
-| Screening manual de referencias | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
-| Screening asistido por IA | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
-| Priorización de referencias con embeddings | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
+| Selección manual de referencias | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
+| Selección de referencias con ayuda de inteligencia artificial | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
+| Ordenamiento inteligente de referencias por relevancia | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
 | Visualización de resultados de screening | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
 
-**3.5 ¿El screening asistido por IA le ayudó a tomar mejores decisiones?**
+**3.5 ¿La ayuda de inteligencia artificial para seleccionar referencias le permitió tomar mejores decisiones?**
 - [ ] Sí, significativamente
 - [ ] Sí, moderadamente
 - [ ] Neutral / No estoy seguro
 - [ ] No, no fue útil
 - [ ] No, fue confuso o engañoso
 
-**3.6 Comentarios sobre el Módulo de Referencias:**
+**3.6 Comentarios adicionales sobre el Módulo de Gestión de Referencias:**
 ```
 [Respuesta abierta]
 ```
@@ -157,19 +156,19 @@
 | Navegación entre los 27 ítems PRISMA | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
 | Generación automática de contenido desde protocolo | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
 | Edición manual de ítems | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
-| Validación de ítems con IA Gatekeeper | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
+| Revisión automática de ítems con inteligencia artificial | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
 | Visualización de progreso de cumplimiento | 1 2 3 4 5 N/A | 1 2 3 4 5 N/A |
 
-**3.8 ¿El AI Gatekeeper (validación automática PRISMA) fue preciso?**
-- [ ] Muy preciso, confío plenamente en sus evaluaciones
-- [ ] Generalmente preciso, con algunas excepciones
-- [ ] Moderadamente preciso, requiere revisión humana
-- [ ] Poco preciso, no confío en sus evaluaciones
+**3.8 ¿La revisión automática de los ítems PRISMA fue precisa?**
+- [ ] Muy precisa, confío plenamente en sus evaluaciones
+- [ ] Generalmente precisa, con algunas excepciones
+- [ ] Moderadamente precisa, requiere revisión humana
+- [ ] Poco precisa, no confío en sus evaluaciones
 - [ ] No usé esta función
 
-**3.9 ¿Las sugerencias del AI Gatekeeper le ayudaron a mejorar su contenido PRISMA?**
+**3.9 ¿Las sugerencias de mejora automáticas le ayudaron a completar mejor los ítems PRISMA?**
 - [ ] Sí, fueron muy útiles y específicas
-- [ ] Sí, fueron útiles pero genéricas
+- [ ] Sí, fueron útiles pero generales
 - [ ] Fueron confusas o poco claras
 - [ ] No, no las tomé en cuenta
 - [ ] No usé esta función
@@ -189,8 +188,8 @@
 |---------|-------------------|
 | Generación de títulos de revisión | 1 2 3 4 5 N/A |
 | Generación de cadenas de búsqueda | 1 2 3 4 5 N/A |
-| Screening de referencias (incluir/excluir) | 1 2 3 4 5 N/A |
-| Priorización de referencias | 1 2 3 4 5 N/A |
+| Clasificación de referencias (incluir/excluir) | 1 2 3 4 5 N/A |
+| Ordenamiento de referencias por relevancia | 1 2 3 4 5 N/A |
 | Validación de ítems PRISMA | 1 2 3 4 5 N/A |
 | Generación automática de contenido PRISMA | 1 2 3 4 5 N/A |
 
@@ -206,25 +205,25 @@
 **4.3 Si encontró errores, ¿de qué tipo fueron? (puede marcar varias)**
 - [ ] Clasificación incorrecta de referencias
 - [ ] Títulos generados poco coherentes
-- [ ] Cadenas de búsqueda incompletas
-- [ ] Validación PRISMA demasiado estricta
-- [ ] Validación PRISMA demasiado permisiva
+- [ ] Términos de búsqueda incompletos
+- [ ] Revisión PRISMA demasiado estricta
+- [ ] Revisión PRISMA demasiado permisiva
 - [ ] Sugerencias irrelevantes
 - [ ] Otro: ___________
 
-**4.4 ¿El sistema fue transparente sobre cómo la IA tomaba decisiones?**
-- [ ] Muy transparente, siempre explicó el razonamiento
-- [ ] Generalmente transparente
+**4.4 ¿El sistema explicó claramente cómo llegaba a sus recomendaciones?**
+- [ ] Muy claro, siempre explicó el razonamiento
+- [ ] Generalmente claro
 - [ ] Neutral
-- [ ] Poco transparente
-- [ ] Nada transparente, no entendí cómo decidía
+- [ ] Poco claro
+- [ ] Nada claro, no entendí cómo decidía
 
-**4.5 ¿Prefiere tener control total sobre la IA o dejar que tome decisiones automáticas?**
+**4.5 ¿Prefiere tener control total sobre las recomendaciones o que el sistema tome decisiones automáticas?**
 - [ ] Control total, yo reviso y apruebo todo
-- [ ] Control mayoritario, IA sugiere pero yo decido
+- [ ] Control mayoritario, el sistema sugiere pero yo decido
 - [ ] Balance 50/50
-- [ ] IA toma decisiones, yo superviso
-- [ ] Automatización total, confío en la IA
+- [ ] El sistema decide, yo superviso
+- [ ] Automatización total, confío en las recomendaciones
 
 ---
 
@@ -241,10 +240,10 @@
 | Aspecto | Comparación |
 |---------|-------------|
 | **Velocidad:** Completar protocolo PICO | Mucho más lento [ ] - Igual [ ] - Mucho más rápido [ ] |
-| **Velocidad:** Screening de referencias | Mucho más lento [ ] - Igual [ ] - Mucho más rápido [ ] |
+| **Velocidad:** Selección de referencias | Mucho más lento [ ] - Igual [ ] - Mucho más rápido [ ] |
 | **Velocidad:** Redacción de ítems PRISMA | Mucho más lento [ ] - Igual [ ] - Mucho más rápido [ ] |
 | **Calidad:** Precisión del protocolo | Mucho peor [ ] - Igual [ ] - Mucho mejor [ ] |
-| **Calidad:** Decisiones de screening | Mucho peor [ ] - Igual [ ] - Mucho mejor [ ] |
+| **Calidad:** Decisiones de selección de estudios | Mucho peor [ ] - Igual [ ] - Mucho mejor [ ] |
 | **Calidad:** Cumplimiento PRISMA | Mucho peor [ ] - Igual [ ] - Mucho mejor [ ] |
 
 **5.3 ¿Cuánto tiempo estimado le ahorró el sistema comparado con hacerlo manualmente?**
@@ -374,7 +373,7 @@
 
 | Característica | Importancia |
 |----------------|-------------|
-| De código abierto (open source) | Nada [ ] - Poco [ ] - Moderada [ ] - Importante [ ] - Muy importante [ ] |
+| Que sea de acceso libre y modificable | Nada [ ] - Poco [ ] - Moderada [ ] - Importante [ ] - Muy importante [ ] |
 | Gratuito | Nada [ ] - Poco [ ] - Moderada [ ] - Importante [ ] - Muy importante [ ] |
 | Con almacenamiento en la nube | Nada [ ] - Poco [ ] - Moderada [ ] - Importante [ ] - Muy importante [ ] |
 | Con opciones de colaboración en equipo | Nada [ ] - Poco [ ] - Moderada [ ] - Importante [ ] - Muy importante [ ] |
