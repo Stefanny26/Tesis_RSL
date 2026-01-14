@@ -134,7 +134,9 @@ export function SearchPlanStep() {
             name: db.name,
             url: db.url,
             icon: DATABASE_ICONS[db.id] || "📚",
-            hasAPI: ['scopus', 'ieee', 'pubmed', 'springer'].includes(db.id)
+            hasAPI: ['scopus', 'ieee', 'pubmed', 'springer'].includes(db.id),
+            requiresPremium: db.requiresPremium || false,
+            premiumNote: db.premiumNote || null
           })))
           
           console.log('📊 Área detectada:', result.data.detectedArea)
@@ -426,8 +428,8 @@ export function SearchPlanStep() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="text-center space-y-3 mb-8">
-        <h2 className="text-3xl font-bold">Estrategia de Búsqueda</h2>
-        <p className="text-lg text-muted-foreground">
+        <h2 className="text-2xl font-bold">Estrategia de Búsqueda</h2>
+        <p className="text-base text-muted-foreground">
           Define las bases de datos académicas y las cadenas de búsqueda para tu revisión
         </p>
       </div>
@@ -466,7 +468,7 @@ export function SearchPlanStep() {
               {availableDatabases.map((db) => (
               <div 
                 key={db.id} 
-                className={`flex items-center space-x-3 p-3 rounded-lg border-2 transition-colors cursor-pointer ${
+                className={`flex flex-col space-y-2 p-3 rounded-lg border-2 transition-colors cursor-pointer ${
                   selectedDatabases.includes(db.id) 
                     ? 'border-primary bg-primary/5' 
                     : 'border-border hover:border-primary/50'
@@ -476,18 +478,26 @@ export function SearchPlanStep() {
                 role="button"
                 tabIndex={0}
               >
-                <Checkbox
-                  id={db.id}
-                  checked={selectedDatabases.includes(db.id)}
-                  onCheckedChange={() => toggleDatabase(db.id)}
-                />
-                <label
-                  htmlFor={db.id}
-                  className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
-                >
-                  <span>{db.icon}</span>
-                  <span>{db.name}</span>
-                </label>
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id={db.id}
+                    checked={selectedDatabases.includes(db.id)}
+                    onCheckedChange={() => toggleDatabase(db.id)}
+                  />
+                  <label
+                    htmlFor={db.id}
+                    className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
+                  >
+                    <span>{db.icon}</span>
+                    <span>{db.name}</span>
+                  </label>
+                </div>
+                {db.requiresPremium && (
+                  <div className="ml-8 text-xs text-amber-600 flex items-center gap-1">
+                    <span>🔐</span>
+                    <span>{db.premiumNote}</span>
+                  </div>
+                )}
               </div>
             ))}
             </div>
@@ -541,7 +551,7 @@ export function SearchPlanStep() {
 
           <Card className="border-2 border-primary/20 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
-              <CardTitle className="flex items-center gap-3 text-2xl">
+              <CardTitle className="flex items-center gap-3 text-xl">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Database className="h-6 w-6 text-primary" />
                 </div>
@@ -577,7 +587,7 @@ export function SearchPlanStep() {
                   <TableRow key={query.databaseId} className="hover:bg-muted/50">
                     <TableCell className="align-top">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl">
+                        <span className="text-xl">
                           {availableDatabases.find(db => db.id === query.databaseId)?.icon || DATABASE_ICONS[query.databaseId] || "📚"}
                         </span>
                         <div>
@@ -627,7 +637,7 @@ export function SearchPlanStep() {
                     <TableCell className="align-top text-center">
                       {importedCounts[query.databaseId] ? (
                         <div>
-                          <div className="text-2xl font-bold text-blue-600">
+                          <div className="text-xl font-bold text-blue-600">
                             {importedCounts[query.databaseId].toLocaleString()}
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">importadas</div>

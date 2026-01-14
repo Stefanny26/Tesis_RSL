@@ -8,7 +8,6 @@ const GeneratePrismaContextUseCase = require('../../domain/use-cases/generate-pr
 const CompletePrismaItemsUseCase = require('../../domain/use-cases/complete-prisma-items.use-case');
 const CompletePrismaByBlocksUseCase = require('../../domain/use-cases/complete-prisma-by-blocks.use-case');
 const AIService = require('../../infrastructure/services/ai.service');
-const { buildValidationPrompt, validateAIResponse } = require('../../config/prisma-validation-prompts');
 
 /**
  * Controlador de ítems PRISMA
@@ -43,28 +42,9 @@ class PrismaController {
       
       // Si no hay ítems o no hay exactamente 27, inicializar/actualizar los 27 ítems PRISMA
       if (items.length !== 27) {
-        console.log('Inicializando/actualizando 27 ítems PRISMA para proyecto:', projectId);
+        console.log('📝 Inicializando/actualizando 27 ítems PRISMA para proyecto:', projectId);
         await this.initializePrismaItems(projectId);
         items = await this.prismaItemRepository.findAllByProject(projectId);
-        
-        // Generar contenido automático para items 1-10 desde el protocolo
-        console.log('Generando contenido inicial automático desde protocolo...');
-        try {
-          const generateUseCase = new GeneratePrismaContentUseCase(
-            this.protocolRepository,
-            null,
-            null
-          );
-          const allGeneratedItems = await generateUseCase.execute(projectId);
-          
-          // Solo guardar los primeros 10 ítems (TITLE → DATA COLLECTION)
-          const initialItems = allGeneratedItems.slice(0, 10);
-          await this.prismaItemRepository.upsertBatch(initialItems);
-          console.log(`Contenido inicial generado para ${initialItems.length} ítems (1-10)`);
-          items = await this.prismaItemRepository.findAllByProject(projectId);
-        } catch (error) {
-          console.log('No se pudo generar contenido inicial:', error.message);
-        }
       }
       
       const stats = await this.prismaItemRepository.getComplianceStats(projectId);
@@ -152,7 +132,7 @@ class PrismaController {
         });
       }
 
-      console.log(`Generando contenido PRISMA automatizado para proyecto: ${projectId}`);
+      console.log(`🔄 Generando contenido PRISMA automatizado para proyecto: ${projectId}`);
 
       // Ejecutar caso de uso
       const generateUseCase = new GeneratePrismaContentUseCase(
@@ -311,7 +291,7 @@ class PrismaController {
 
   /**
    * POST /api/projects/:projectId/prisma/:itemNumber/validate
-   * Validar ítem con IA usando prompts especializados del gatekeeper
+   * Validar ítem con IA
    */
   async validateWithAI(req, res) {
     try {
@@ -339,106 +319,32 @@ class PrismaController {
       if (!item.content || item.content.trim().length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'No hay contenido para validar. Por favor completa el ítem primero.'
+          message: 'No hay contenido para validar'
         });
       }
 
-      console.log(`Validando ítem ${itemNumber} con IA Gatekeeper...`);
+      // TODO: Implementar validación con IA (Gemini/GPT-4)
+      // Por ahora, retornar validación mock
+      const aiValidation = {
+        validated: true,
+        suggestions: `Sugerencia para ítem ${itemNumber}: El contenido cumple con los requisitos básicos de PRISMA.`,
+        issues: []
+      };
 
-      try {
-        // Obtener prompt de validación específico para este ítem
-        const promptConfig = buildValidationPrompt(parseInt(itemNumber), item.content);
-        
-        // Llamar a la IA con el prompt especializado
-        const aiResponse = await this.aiService.generateText(
-          promptConfig.systemPrompt,
-          promptConfig.userPrompt,
-          'openai' // Usar OpenAI (ChatGPT)
-        );
+      const updatedItem = await this.prismaItemRepository.updateAIValidation(
+        projectId,
+        parseInt(itemNumber),
+        aiValidation
+      );
 
-        console.log('Respuesta raw de IA:', aiResponse.substring(0, 200));
-
-        // Intentar parsear respuesta JSON
-        let validation;
-        try {
-          // Limpiar respuesta (quitar markdown code blocks si existen)
-          const cleanResponse = aiResponse
-            .replace(/```json\n?/g, '')
-            .replace(/```\n?/g, '')
-            .trim();
-          
-          validation = JSON.parse(cleanResponse);
-          
-          // Validar estructura de respuesta
-          validateAIResponse(validation, parseInt(itemNumber));
-          
-        } catch (parseError) {
-          console.error('Error parseando respuesta de IA:', parseError);
-          console.error('Respuesta completa:', aiResponse);
-          
-          // Fallback: crear respuesta estructurada básica
-          validation = {
-            decision: 'NECESITA_MEJORAS',
-            score: 50,
-            reasoning: 'La IA no pudo evaluar correctamente el contenido. Revisa manualmente.',
-            issues: ['Error en el procesamiento de validación'],
-            suggestions: ['Por favor revisa el contenido manualmente'],
-            criteriaChecklist: {}
-          };
+      res.status(200).json({
+        success: true,
+        message: 'Validación con IA completada',
+        data: { 
+          item: updatedItem.toJSON(),
+          validation: aiValidation
         }
-
-        // Preparar datos para guardar
-        const aiValidation = {
-          validated: validation.decision === 'APROBADO',
-          suggestions: validation.suggestions && validation.suggestions.length > 0 
-            ? validation.suggestions.join('\n') 
-            : null,
-          issues: validation.issues || [],
-          score: validation.score,
-          decision: validation.decision,
-          reasoning: validation.reasoning,
-          criteriaChecklist: validation.criteriaChecklist
-        };
-
-        // Guardar validación en la base de datos
-        const updatedItem = await this.prismaItemRepository.updateAIValidation(
-          projectId,
-          parseInt(itemNumber),
-          aiValidation
-        );
-
-        console.log(`Validación completada: ${validation.decision} (${validation.score}%)`);
-
-        res.status(200).json({
-          success: true,
-          message: 'Validación con IA completada',
-          data: { 
-            item: updatedItem.toJSON(),
-            validation: {
-              decision: validation.decision,
-              score: validation.score,
-              reasoning: validation.reasoning,
-              issues: validation.issues,
-              suggestions: validation.suggestions,
-              criteriaChecklist: validation.criteriaChecklist
-            }
-          }
-        });
-
-      } catch (aiError) {
-        console.error('Error llamando a IA:', aiError);
-        
-        // Si falla la IA, devolver error claro
-        return res.status(500).json({
-          success: false,
-          message: `Error al validar con IA: ${aiError.message}`,
-          error: {
-            type: 'AI_ERROR',
-            details: aiError.message
-          }
-        });
-      }
-
+      });
     } catch (error) {
       console.error('Error validando ítem con IA:', error);
       res.status(500).json({
@@ -769,7 +675,6 @@ class PrismaController {
       projectId,
       itemNumber: item.number,
       section: item.section,
-      topic: item.topic,
       completed: false,
       content: null,
       contentType: 'pending',

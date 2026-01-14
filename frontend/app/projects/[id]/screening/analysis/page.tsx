@@ -10,7 +10,7 @@ export default function AnalysisPage() {
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Análisis de Distribución de Similitudes</h1>
+        <h1 className="text-xl font-bold">Análisis de Distribución de Similitudes</h1>
         <p className="text-muted-foreground mt-2">
           Análisis estadístico completo para determinar el umbral óptimo de inclusión
         </p>

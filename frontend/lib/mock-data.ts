@@ -31,7 +31,7 @@ export const mockProjects: Project[] = [
       included: 45,
       excluded: 135,
     },
-    prismaCompliance: 78,
+    // prismaCompliance: 78, // Deprecado
   },
   {
     id: "2",
@@ -54,7 +54,7 @@ export const mockProjects: Project[] = [
       included: 23,
       excluded: 66,
     },
-    prismaCompliance: 65,
+    // prismaCompliance: 65, // Deprecado
   },
   {
     id: "3",

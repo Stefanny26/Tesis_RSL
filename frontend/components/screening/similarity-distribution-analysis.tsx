@@ -206,7 +206,7 @@ export function SimilarityDistributionAnalysis({
                   <div className="grid grid-cols-2 gap-4 mt-3">
                     <div className="bg-muted/30 p-3 rounded-lg">
                       <p className="text-sm text-muted-foreground">📊 Umbral Recomendado</p>
-                      <p className="text-3xl font-bold text-green-700 dark:text-green-400 mt-1">
+                      <p className="text-xl font-bold text-green-700 dark:text-green-400 mt-1">
                         {(analysis.recommendedCutoff.threshold * 100).toFixed(2)}%
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -215,7 +215,7 @@ export function SimilarityDistributionAnalysis({
                     </div>
                     <div className="bg-muted/30 p-3 rounded-lg">
                       <p className="text-sm text-muted-foreground">📚 Artículos a Revisar</p>
-                      <p className="text-3xl font-bold text-green-700 dark:text-green-400 mt-1">
+                      <p className="text-xl font-bold text-green-700 dark:text-green-400 mt-1">
                         {analysis.recommendedCutoff.articlesToReview}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">

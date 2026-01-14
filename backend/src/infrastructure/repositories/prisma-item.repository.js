@@ -78,15 +78,14 @@ class PrismaItemRepository {
 
     const query = `
       INSERT INTO prisma_items (
-        project_id, item_number, section, topic, completed, content,
+        project_id, item_number, section, completed, content,
         content_type, data_source, automated_content, last_human_edit,
         ai_validated, ai_suggestions, ai_issues, completed_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
       ON CONFLICT (project_id, item_number)
       DO UPDATE SET
         section = EXCLUDED.section,
-        topic = EXCLUDED.topic,
         completed = EXCLUDED.completed,
         content = EXCLUDED.content,
         content_type = EXCLUDED.content_type,
@@ -105,7 +104,6 @@ class PrismaItemRepository {
       item.projectId,
       item.itemNumber,
       item.section,
-      item.topic || null,
       item.completed,
       item.content,
       item.contentType,
@@ -139,25 +137,14 @@ class PrismaItemRepository {
 
         const query = `
           INSERT INTO prisma_items (
-            project_id, item_number, section, topic, completed, content,
+            project_id, item_number, section, completed, content,
             content_type, data_source, automated_content, last_human_edit,
             ai_validated, ai_suggestions, ai_issues, completed_at, updated_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
           ON CONFLICT (project_id, item_number)
           DO UPDATE SET
             section = EXCLUDED.section,
-            topic = EXCLUDED.topic,
-            completed = EXCLUDED.completed,
-            content = EXCLUDED.content,
-            content_type = EXCLUDED.content_type,
-            data_source = EXCLUDED.data_source,
-            automated_content = EXCLUDED.automated_content,
-            last_human_edit = EXCLUDED.last_human_edit,
-            ai_validated = EXCLUDED.ai_validated,
-            ai_suggestions = EXCLUDED.ai_suggestions,
-            ai_issues = EXCLUDED.ai_issues,
-            completed_at = EXCLUDED.completed_at,
             updated_at = NOW()
         `;
 
@@ -165,7 +152,6 @@ class PrismaItemRepository {
           item.projectId,
           item.itemNumber,
           item.section,
-          item.topic || null,
           item.completed,
           item.content,
           item.contentType,

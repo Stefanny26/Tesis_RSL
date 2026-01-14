@@ -199,7 +199,7 @@ export function FullTextEvaluationForm({
         <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Puntaje Total</p>
-            <p className="text-3xl font-bold">
+            <p className="text-xl font-bold">
               {totalScore} <span className="text-lg text-muted-foreground">/ {maxScore}</span>
             </p>
           </div>

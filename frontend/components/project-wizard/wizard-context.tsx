@@ -274,20 +274,9 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
             yearStart: protocol.temporalRange?.start || 2019,
             yearEnd: protocol.temporalRange?.end || new Date().getFullYear(),
             
-            // PRISMA
-            prismaItems: (protocol.prismaCompliance || []).map((item: any) => {
-              let complies: boolean | null = null
-              if (item.complies === 'yes') complies = true
-              else if (item.complies === 'no') complies = false
-              
-              return {
-                number: item.number,
-                item: item.item,
-                complies,
-                evidence: item.evidence || "",
-                stage: "review"
-              }
-            })
+            // PRISMA - ahora se carga desde API /api/projects/:id/prisma
+            prismaItems: []
+            // prismaCompliance deprecado - usar endpoint /prisma
           }
           
           setData(prev => ({ ...prev, ...loadedData }))

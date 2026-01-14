@@ -154,7 +154,7 @@ export function ScreeningAnalysisPanel({
           <div className="grid grid-cols-4 gap-4">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Pendientes</p>
-              <p className="text-2xl font-bold">{statusCounts.pending}</p>
+              <p className="text-lg font-bold">{statusCounts.pending}</p>
             </div>
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Incluidos</p>

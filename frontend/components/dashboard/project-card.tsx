@@ -74,7 +74,7 @@ export function ProjectCard({ project, onDelete }: { readonly project: Project; 
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="space-y-1 flex-1 pr-2">
-            <CardTitle className="text-xl line-clamp-1">{project.title}</CardTitle>
+            <CardTitle className="text-base font-semibold line-clamp-1">{project.title}</CardTitle>
             <CardDescription className="line-clamp-2">{project.description}</CardDescription>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -119,14 +119,7 @@ export function ProjectCard({ project, onDelete }: { readonly project: Project; 
           </div>
         </div>
 
-        {project.prismaCompliance !== undefined && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Cumplimiento PRISMA 2020</span>
-            <span className="font-medium">
-              {Math.round((project.prismaCompliance / 100) * 27)} de 27 ítems ({project.prismaCompliance}%)
-            </span>
-          </div>
-        )}
+        {/* PRISMA compliance ahora se obtiene desde API /api/projects/:id/prisma */}
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Calendar className="h-3 w-3" />

@@ -198,8 +198,8 @@ export function CriteriaStep() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="text-center space-y-3 mb-8">
-        <h2 className="text-3xl font-bold">Criterios de Inclusión y Exclusión</h2>
-        <p className="text-lg text-muted-foreground">
+        <h2 className="text-2xl font-bold">Criterios de Inclusión y Exclusión</h2>
+        <p className="text-base text-muted-foreground">
           Define los criterios para seleccionar estudios relevantes según metodología PRISMA
         </p>
       </div>

@@ -107,7 +107,7 @@ export default function ProfilePage() {
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Mi Perfil</h1>
+          <h1 className="text-xl font-bold tracking-tight mb-2">Mi Perfil</h1>
           <p className="text-muted-foreground">
             Información de tu cuenta y uso de APIs de Inteligencia Artificial
           </p>
@@ -142,7 +142,7 @@ export default function ProfilePage() {
 
         {/* API Usage Stats */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-4">Uso de APIs de IA</h2>
+          <h2 className="text-lg font-bold mb-4">Uso de APIs de IA</h2>
           <p className="text-muted-foreground mb-6">
             Monitorea tu consumo de créditos de ChatGPT y Gemini para evitar exceder los límites gratuitos
           </p>

@@ -120,6 +120,38 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 0.875rem; /* 14px - más pequeño que el default de 16px */
+  }
+  
+  /* Tamaños de fuente globales más pequeños */
+  h1 {
+    @apply text-xl font-bold;
+  }
+  h2 {
+    @apply text-lg font-bold;
+  }
+  h3 {
+    @apply text-base font-semibold;
+  }
+  h4 {
+    @apply text-sm font-semibold;
+  }
+  p {
+    @apply text-sm;
+  }
+  
+  /* Inputs y labels más pequeños */
+  input, textarea, select {
+    font-size: 0.875rem !important; /* 14px */
+  }
+  
+  label {
+    font-size: 0.8125rem !important; /* 13px */
+  }
+  
+  /* Botones más compactos */
+  button {
+    font-size: 0.875rem !important; /* 14px */
   }
   
   /* Fix disabled textarea text visibility - base rule */

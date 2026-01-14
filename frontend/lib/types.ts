@@ -28,7 +28,8 @@ export interface Project {
     included: number
     excluded: number
   }
-  prismaCompliance?: number
+  // prismaCompliance deprecado - ahora se calcula desde API /prisma
+  // prismaCompliance?: number
 }
 
 export interface Reference {

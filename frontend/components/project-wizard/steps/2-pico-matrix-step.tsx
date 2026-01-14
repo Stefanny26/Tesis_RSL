@@ -149,8 +149,8 @@ export function PicoMatrixStep() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="text-center space-y-3 mb-8">
-        <h2 className="text-3xl font-bold">PICO + Matriz Es/No Es</h2>
-        <p className="text-lg text-muted-foreground">
+        <h2 className="text-2xl font-bold">PICO + Matriz Es/No Es</h2>
+        <p className="text-base text-muted-foreground">
           Estructura tu pregunta y delimita el alcance de tu investigación
         </p>
       </div>
@@ -285,7 +285,7 @@ export function PicoMatrixStep() {
                         <tr key={`pico-${label}-${index}`} className="border-b hover:bg-muted/30 transition-colors">
                           <td className="p-4 align-top">
                             <div className="flex items-start gap-2">
-                              <span className="font-semibold text-primary text-lg">
+                              <span className="font-semibold text-primary text-base">
                                 {icon}
                               </span>
                               <div>

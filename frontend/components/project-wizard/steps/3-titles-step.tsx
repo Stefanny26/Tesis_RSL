@@ -124,7 +124,7 @@ export function TitlesStep() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="text-center space-y-4 mb-8">
-        <h2 className="text-3xl font-bold">
+        <h2 className="text-2xl font-bold">
           Gestión de Títulos
         </h2>
         <div className="p-4 rounded-lg border border-blue-300 dark:border-blue-700">
@@ -205,7 +205,7 @@ export function TitlesStep() {
                     <div className="flex items-start gap-6">
                       {/* Número grande circular */}
                       <div className="flex-shrink-0">
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl font-bold transition-colors ${
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold transition-colors ${
                           selectedIndex === index 
                             ? 'bg-primary text-primary-foreground' 
                             : 'bg-muted text-muted-foreground'

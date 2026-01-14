@@ -450,7 +450,8 @@ class ImportReferencesUseCase {
    */
   parseRIS(content) {
     const references = [];
-    const records = content.split(/\n\s*\n/).filter(r => r.trim());
+    // Split by ER tag (end of record) - formato estándar RIS
+    const records = content.split(/ER\s*-\s*\n?/).filter(r => r.trim());
 
     for (const record of records) {
       const lines = record.split('\n');

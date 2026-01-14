@@ -40,7 +40,7 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
               </div>
               <p className="text-sm text-muted-foreground mb-4">Búsqueda en bases de datos académicas</p>
               <div className="bg-muted/50 rounded-lg p-4 inline-block">
-                <p className="text-3xl font-bold text-foreground">{stats.identified}</p>
+                <p className="text-xl font-bold text-foreground">{stats.identified}</p>
                 <p className="text-sm text-muted-foreground">Referencias identificadas</p>
               </div>
             </div>
@@ -54,12 +54,12 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
             <div className="border-2 border-primary/30 rounded-lg p-4 text-center">
               <div className="flex items-center justify-center gap-4">
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.duplicates}</p>
+                  <p className="text-lg font-bold text-foreground">{stats.duplicates}</p>
                   <p className="text-sm text-muted-foreground">Duplicados eliminados</p>
                 </div>
                 <div className="h-12 w-px bg-border" />
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.afterDedup}</p>
+                  <p className="text-lg font-bold text-foreground">{stats.afterDedup}</p>
                   <p className="text-sm text-muted-foreground">Referencias únicas</p>
                 </div>
               </div>
@@ -79,11 +79,11 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-muted/50 rounded-lg p-4 text-center border border-purple-300 dark:border-purple-700">
-                  <p className="text-2xl font-bold text-foreground">{stats.screenedTitleAbstract}</p>
+                  <p className="text-lg font-bold text-foreground">{stats.screenedTitleAbstract}</p>
                   <p className="text-sm text-muted-foreground">Evaluadas</p>
                 </div>
                 <div className="border border-red-300 dark:border-red-700 rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground">{stats.excludedTitleAbstract}</p>
+                  <p className="text-lg font-bold text-foreground">{stats.excludedTitleAbstract}</p>
                   <p className="text-sm text-red-700 dark:text-red-400">❌ Excluidas</p>
                 </div>
               </div>
@@ -103,11 +103,11 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-muted/50 rounded-lg p-4 text-center border border-orange-300 dark:border-orange-700">
-                  <p className="text-2xl font-bold text-foreground">{stats.fullTextAssessed}</p>
+                  <p className="text-lg font-bold text-foreground">{stats.fullTextAssessed}</p>
                   <p className="text-sm text-muted-foreground">Evaluadas</p>
                 </div>
                 <div className="border border-red-300 dark:border-red-700 rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground">{stats.excludedFullText}</p>
+                  <p className="text-lg font-bold text-foreground">{stats.excludedFullText}</p>
                   <p className="text-sm text-red-700 dark:text-red-400">❌ Excluidas</p>
                 </div>
               </div>

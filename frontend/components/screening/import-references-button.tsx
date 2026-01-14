@@ -77,23 +77,32 @@ export function ImportReferencesButton({
   }
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={handleClick}
-      disabled={isUploading}
-    >
-      {isUploading ? (
-        <>
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          {showLabel && "Importando..."}
-        </>
-      ) : (
-        <>
-          <Upload className="h-4 w-4 mr-2" />
-          {showLabel && "Importar Referencias"}
-        </>
-      )}
-    </Button>
+    <div className="space-y-2">
+      <Button
+        variant={variant}
+        size={size}
+        onClick={handleClick}
+        disabled={isUploading}
+        className="w-full"
+      >
+        {isUploading ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            {showLabel && "Importando..."}
+          </>
+        ) : (
+          <>
+            <Upload className="h-4 w-4 mr-2" />
+            {showLabel && "Importar Referencias"}
+          </>
+        )}
+      </Button>
+      <p className="text-xs text-muted-foreground text-center">
+        📋 Formatos: CSV, RIS, BIB
+      </p>
+      <p className="text-xs text-amber-600 dark:text-amber-400 text-center font-medium">
+        ⚠️ Debes tener una cuenta creada en la base de datos
+      </p>
+    </div>
   )
 }

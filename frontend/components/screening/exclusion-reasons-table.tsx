@@ -197,7 +197,7 @@ export function ExclusionReasonsTable({ references, onExport }: ExclusionReasons
                   {stats.fase1Embeddings > 0 && (
                     <div className="text-center">
                       <div className="bg-purple-100 rounded-lg p-4 mb-2">
-                        <p className="text-3xl font-bold text-purple-900">{stats.fase1Embeddings}</p>
+                        <p className="text-xl font-bold text-purple-900">{stats.fase1Embeddings}</p>
                       </div>
                       <p className="text-xs font-medium text-purple-700">Fase 1: Embeddings</p>
                       <p className="text-xs text-gray-500">Automático</p>
@@ -205,21 +205,21 @@ export function ExclusionReasonsTable({ references, onExport }: ExclusionReasons
                   )}
                   <div className="text-center">
                     <div className="bg-blue-100 rounded-lg p-4 mb-2">
-                      <p className="text-3xl font-bold text-blue-900">{stats.fase2ChatGPT}</p>
+                      <p className="text-xl font-bold text-blue-900">{stats.fase2ChatGPT}</p>
                     </div>
                     <p className="text-xs font-medium text-blue-700">Fase 2: ChatGPT</p>
                     <p className="text-xs text-gray-500">Automático</p>
                   </div>
                   <div className="text-center">
                     <div className="bg-orange-100 rounded-lg p-4 mb-2">
-                      <p className="text-3xl font-bold text-orange-900">{stats.fase2Manual}</p>
+                      <p className="text-xl font-bold text-orange-900">{stats.fase2Manual}</p>
                     </div>
                     <p className="text-xs font-medium text-orange-700">Fase 2: Manual</p>
                     <p className="text-xs text-gray-500">Revisión usuario</p>
                   </div>
                   <div className="text-center">
                     <div className="bg-green-100 rounded-lg p-4 mb-2">
-                      <p className="text-3xl font-bold text-green-900">{stats.fase3FullText}</p>
+                      <p className="text-xl font-bold text-green-900">{stats.fase3FullText}</p>
                     </div>
                     <p className="text-xs font-medium text-green-700">Fase 3: Completo</p>
                     <p className="text-xs text-gray-500">Evaluación manual</p>

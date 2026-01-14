@@ -16,7 +16,7 @@ export function PrismaProgress({ completedItems, totalItems }: PrismaProgressPro
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-semibold">Lista de Verificación PRISMA 2020</CardTitle>
+            <CardTitle className="text-base font-semibold">Lista de Verificación PRISMA 2020</CardTitle>
             <CardDescription className="mt-1">Estado de cumplimiento de la guía de reporte</CardDescription>
           </div>
           <FileCheck className="h-8 w-8 text-blue-600" />

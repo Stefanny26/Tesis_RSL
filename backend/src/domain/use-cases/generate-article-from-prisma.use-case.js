@@ -38,34 +38,7 @@ class GenerateArticleFromPrismaUseCase {
       const prismaItems = await this.prismaItemRepository.findAllByProject(projectId);
       const contextResult = await this.generatePrismaContextUseCase.execute(projectId);
       const prismaContext = contextResult.context;
-      
-      // 2.1 Verificar y establecer RQs por defecto si no existen
-      await this.ensureResearchQuestions(projectId, prismaContext);
-      
-      let rqsEntries = await this.rqsEntryRepository.findByProject(projectId);
-
-      // 2.2 Verificar si los RQS necesitan re-extracción (todos en 'no')
-      const needsReExtraction = this.checkIfRQSNeedsReExtraction(rqsEntries);
-      if (needsReExtraction && rqsEntries.length > 0) {
-        console.log('🔄 Detectadas relaciones RQ vacías. Re-extrayendo RQS automáticamente...');
-        await this.rqsEntryRepository.deleteByProject(projectId);
-        
-        // Crear instancias necesarias para ExtractRQSDataUseCase
-        const ExtractRQSDataUseCase = require('./extract-rqs-data.use-case');
-        const ReferenceRepository = require('../../infrastructure/repositories/reference.repository');
-        const RQSEntryRepository = require('../../infrastructure/repositories/rqs-entry.repository');
-        
-        const extractUseCase = new ExtractRQSDataUseCase({
-          referenceRepository: new ReferenceRepository(),
-          protocolRepository: this.protocolRepository,
-          rqsEntryRepository: new RQSEntryRepository(),
-          aiService: this.aiService
-        });
-        
-        await extractUseCase.execute(projectId);
-        rqsEntries = await this.rqsEntryRepository.findByProject(projectId);
-        console.log('✅ RQS re-extraídos con relaciones actualizadas');
-      }
+      const rqsEntries = await this.rqsEntryRepository.findByProject(projectId);
 
       // Validar datos RQS mínimos
       if (rqsEntries.length < 2) {
@@ -1140,58 +1113,6 @@ Una revisión sistemática de calidad es transparente sobre qué sabe, qué no s
     ].join(' ');
 
     return allText.split(/\s+/).filter(w => w.length > 0).length;
-  }
-
-  /**
-   * Asegurar que el protocolo tenga RQs definidas
-   */
-  async ensureResearchQuestions(projectId, prismaContext) {
-    const protocol = prismaContext.protocol;
-    
-    // Si ya tiene RQs, no hacer nada
-    if (protocol.rq1 && protocol.rq2 && protocol.rq3) {
-      console.log('✅ RQs ya definidas en el protocolo');
-      return;
-    }
-
-    console.log('📝 Definiendo RQs por defecto basadas en PICO...');
-    
-    // Generar RQs por defecto desde el contexto PICO
-    const population = protocol.population || 'estudios empíricos';
-    const intervention = protocol.intervention || 'tecnologías emergentes';
-    const outcomes = protocol.outcomes || 'su efectividad y metodologías';
-    
-    const defaultRQs = {
-      rq1: protocol.rq1 || `¿Cuáles son las metodologías más efectivas en la implementación de ${intervention}?`,
-      rq2: protocol.rq2 || `¿Qué impacto tienen ${intervention} en ${population}?`,
-      rq3: protocol.rq3 || `¿Cómo se ha evaluado ${outcomes} en diferentes contextos?`
-    };
-
-    // Actualizar protocolo
-    await this.protocolRepository.update(projectId, defaultRQs);
-    
-    // Actualizar el contexto para uso inmediato
-    protocol.rq1 = defaultRQs.rq1;
-    protocol.rq2 = defaultRQs.rq2;
-    protocol.rq3 = defaultRQs.rq3;
-    
-    console.log('✅ RQs por defecto establecidas');
-  }
-
-  /**
-   * Verificar si los RQS necesitan re-extracción
-   */
-  checkIfRQSNeedsReExtraction(rqsEntries) {
-    if (rqsEntries.length === 0) return false;
-    
-    // Si TODOS los entries tienen rq1/rq2/rq3 en 'no', necesitan re-extracción
-    const allNo = rqsEntries.every(entry => 
-      entry.rq1Relation === 'no' && 
-      entry.rq2Relation === 'no' && 
-      entry.rq3Relation === 'no'
-    );
-    
-    return allNo;
   }
 }
 

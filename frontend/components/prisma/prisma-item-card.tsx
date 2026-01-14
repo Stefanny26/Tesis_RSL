@@ -55,7 +55,7 @@ export function PrismaItemCard({
                   {!isCompleted && <span className="text-xs font-medium text-gray-500">{item.id}</span>}
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
                     {item.item}
                   </CardTitle>
                   <CardDescription className="text-sm mt-1">

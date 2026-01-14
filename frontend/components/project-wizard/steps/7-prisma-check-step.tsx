@@ -494,10 +494,10 @@ export function PrismaCheckStep() {
           justification: `Rango temporal definido para cubrir investigaciones recientes en ${data.researchArea || 'el área de estudio'}`
         },
         keyTerms: {
-          technology: data.protocolDefinition?.technologies || [],
-          domain: data.protocolDefinition?.applicationDomain || [],
-          studyType: data.protocolDefinition?.studyType || [],
-          themes: data.protocolDefinition?.thematicFocus || []
+          technology: (data.protocolDefinition?.technologies || []).filter((_, idx) => !data.discardedTerms?.tecnologia?.has(idx)),
+          domain: (data.protocolDefinition?.applicationDomain || []).filter((_, idx) => !data.discardedTerms?.dominio?.has(idx)),
+          studyType: (data.protocolDefinition?.studyType || []).filter((_, idx) => !data.discardedTerms?.tipoEstudio?.has(idx)),
+          themes: (data.protocolDefinition?.thematicFocus || []).filter((_, idx) => !data.discardedTerms?.focosTematicos?.has(idx))
         },
         prismaCompliance: PRISMA_WPOM_ITEMS.map(item => ({
           number: item.number,
@@ -565,8 +565,8 @@ export function PrismaCheckStep() {
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
       {/* Header consistente con otras secciones */}
       <div className="text-center space-y-3 mb-8">
-        <h2 className="text-3xl font-bold">PRISMA 2020 y Confirmación</h2>
-        <p className="text-lg text-muted-foreground">
+        <h2 className="text-2xl font-bold">PRISMA 2020 y Confirmación</h2>
+        <p className="text-base text-muted-foreground">
           Verificación de calidad PRISMA 2020 para revisión sistemática en {researchArea}
         </p>
       </div>
@@ -608,7 +608,7 @@ export function PrismaCheckStep() {
               <FileText className="h-6 w-6" />
             </div>
             <div>
-              <CardTitle className="text-2xl">Resumen Ejecutivo del Protocolo</CardTitle>
+              <CardTitle className="text-xl">Resumen Ejecutivo del Protocolo</CardTitle>
               <CardDescription className="text-primary-foreground/80 mt-1">
                 Reporte final de tu revisión sistemática
               </CardDescription>
@@ -621,32 +621,32 @@ export function PrismaCheckStep() {
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Título de la Investigación
             </div>
-            <p className="text-lg font-semibold mt-1 text-gray-900 dark:text-gray-100">{data.selectedTitle}</p>
+            <p className="text-base font-semibold mt-1 text-gray-900 dark:text-gray-100">{data.selectedTitle}</p>
           </div>
 
           {/* Estadísticas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-4 rounded-lg border-2 border-primary/20">
               <div className="text-xs font-semibold text-muted-foreground uppercase">Bases de Datos</div>
-              <div className="text-3xl font-bold text-foreground mt-2">
+              <div className="text-2xl font-bold text-foreground mt-2">
                 {data.searchPlan?.databases?.length || 0}
               </div>
             </div>
             <div className="p-4 rounded-lg border-2 border-primary/20">
               <div className="text-xs font-semibold text-muted-foreground uppercase">Criterios I/E</div>
-              <div className="text-3xl font-bold text-foreground mt-2">
+              <div className="text-2xl font-bold text-foreground mt-2">
                 {(data.inclusionCriteria?.length || 0) + (data.exclusionCriteria?.length || 0)}
               </div>
             </div>
             <div className="p-4 rounded-lg border-2 border-primary/20">
               <div className="text-xs font-semibold text-muted-foreground uppercase">Términos Clave</div>
-              <div className="text-3xl font-bold text-foreground mt-2">
+              <div className="text-2xl font-bold text-foreground mt-2">
                 {(data.protocolTerms?.tecnologia?.length || 0) + (data.protocolTerms?.dominio?.length || 0)}
               </div>
             </div>
             <div className="p-4 rounded-lg border-2 border-primary/20">
               <div className="text-xs font-semibold text-muted-foreground uppercase">Calidad PRISMA</div>
-              <div className="text-3xl font-bold text-foreground mt-2">{compliance}%</div>
+              <div className="text-2xl font-bold text-foreground mt-2">{compliance}%</div>
             </div>
           </div>
 
@@ -781,10 +781,10 @@ export function PrismaCheckStep() {
             </div>
             
             <div className="space-y-2">
-              <h3 className="text-3xl font-bold text-green-600 dark:text-green-400">
+              <h3 className="text-2xl font-bold text-green-600 dark:text-green-400">
                 ¡Protocolo Completado!
               </h3>
-              <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
+              <p className="text-base font-medium text-gray-700 dark:text-gray-300">
                 Has finalizado la definición de tu protocolo de investigación
               </p>
             </div>
@@ -793,7 +793,7 @@ export function PrismaCheckStep() {
             <div className="border-2 border-green-300 dark:border-green-700 p-6 rounded-xl max-w-2xl mx-auto">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold text-foreground">Calidad PRISMA 2020</span>
-                <Badge variant={compliance >= 80 ? "default" : "secondary"} className="text-lg px-3 py-1">
+                <Badge variant={compliance >= 80 ? "default" : "secondary"} className="text-base px-3 py-1">
                   {compliance}%
                 </Badge>
               </div>
@@ -828,7 +828,7 @@ export function PrismaCheckStep() {
               size="lg"
               onClick={handleFinishProject}
               disabled={isSaving}
-              className="w-full max-w-md h-14 text-lg font-semibold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 hover:from-green-700 hover:via-blue-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all"
+              className="w-full max-w-md h-12 text-base font-semibold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 hover:from-green-700 hover:via-blue-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all"
             >
               {isSaving ? (
                 <>

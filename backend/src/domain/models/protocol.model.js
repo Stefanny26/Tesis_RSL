@@ -37,11 +37,6 @@ class Protocol {
     this.prismaLocked = data.prisma_locked || data.prismaLocked || false;
     this.prismaCompletedAt = data.prisma_completed_at || data.prismaCompletedAt;
     
-    // Research Questions (RQs)
-    this.rq1 = data.rq1;
-    this.rq2 = data.rq2;
-    this.rq3 = data.rq3;
-    
     // Resultados de cribado (embeddings + ChatGPT)
     this.screeningResults = data.screening_results || data.screeningResults || null;
     
@@ -124,9 +119,6 @@ class Protocol {
       prisma_compliance: safeStringify(this.prismaCompliance),
       prisma_locked: this.prismaLocked,
       prisma_completed_at: this.prismaCompletedAt,
-      rq1: this.rq1,
-      rq2: this.rq2,
-      rq3: this.rq3,
       screening_results: safeStringify(this.screeningResults),
       fase2_unlocked: this.fase2Unlocked,
       completed: this.completed,

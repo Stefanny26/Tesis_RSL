@@ -25,9 +25,9 @@ export function ProposalStep() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="text-center space-y-3 mb-8">
-        <h2 className="text-3xl font-bold">Comencemos con tu proyecto</h2>
-        <p className="text-lg text-muted-foreground">
+      <div className="text-center space-y-2 mb-6">
+        <h2 className="text-2xl font-bold">Comencemos con tu proyecto</h2>
+        <p className="text-base text-muted-foreground">
           Describe brevemente tu idea de investigación. El asistente te guiará paso a paso.
         </p>
       </div>
@@ -49,7 +49,7 @@ export function ProposalStep() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="projectName" className="text-base">
+            <Label htmlFor="projectName" className="text-sm font-medium">
               Nombre del Proyecto <span className="text-destructive">*</span>
             </Label>
             <Input
@@ -57,7 +57,7 @@ export function ProposalStep() {
               placeholder="Ej: Análisis de Mongoose ODM en aplicaciones Node.js"
               value={data.projectName}
               onChange={(e) => updateData({ projectName: e.target.value })}
-              className="text-lg h-12"
+              className="h-10"
             />
             <p className="text-xs text-muted-foreground">
               Un nombre temporal está bien, lo refinaremos más adelante
@@ -65,7 +65,7 @@ export function ProposalStep() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="projectDescription" className="text-base">
+            <Label htmlFor="projectDescription" className="text-sm font-medium">
               Descripción Breve <span className="text-destructive">*</span>
             </Label>
             <Textarea
@@ -73,8 +73,8 @@ export function ProposalStep() {
               placeholder="Ej: Quiero investigar cómo el uso de Mongoose como ODM afecta el rendimiento y los patrones de diseño en aplicaciones Node.js con MongoDB..."
               value={data.projectDescription}
               onChange={(e) => updateData({ projectDescription: e.target.value })}
-              rows={6}
-              className="text-base"
+              rows={5}
+              className="text-sm"
             />
             <p className="text-xs text-muted-foreground">
               Describe tu idea en 2-3 frases. ¿Qué quieres investigar y por qué?
@@ -82,14 +82,14 @@ export function ProposalStep() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="researchArea" className="text-base">
+            <Label htmlFor="researchArea" className="text-sm font-medium">
               Área de Investigación <span className="text-destructive">*</span>
             </Label>
             <Select
               value={data.researchArea}
               onValueChange={(value) => updateData({ researchArea: value })}
             >
-              <SelectTrigger id="researchArea" className="text-base h-12">
+              <SelectTrigger id="researchArea" className="h-10">
                 <SelectValue placeholder="Selecciona el área o disciplina de tu investigación" />
               </SelectTrigger>
               <SelectContent>
@@ -106,12 +106,12 @@ export function ProposalStep() {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base">
+            <Label className="text-sm font-medium">
               Rango Temporal de Publicaciones <span className="text-destructive">*</span>
             </Label>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="yearStart" className="text-sm text-muted-foreground">
+                <Label htmlFor="yearStart" className="text-xs text-muted-foreground">
                   Año inicial
                 </Label>
                 <Input
@@ -122,11 +122,11 @@ export function ProposalStep() {
                   placeholder="Ej: 2019"
                   value={data.yearStart || ''}
                   onChange={(e) => updateData({ yearStart: parseInt(e.target.value) || undefined })}
-                  className="text-base h-12"
+                  className="h-10"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="yearEnd" className="text-sm text-muted-foreground">
+                <Label htmlFor="yearEnd" className="text-xs text-muted-foreground">
                   Año final
                 </Label>
                 <Input
@@ -137,7 +137,7 @@ export function ProposalStep() {
                   placeholder="Ej: 2025"
                   value={data.yearEnd || ''}
                   onChange={(e) => updateData({ yearEnd: parseInt(e.target.value) || undefined })}
-                  className="text-base h-12"
+                  className="h-10"
                 />
               </div>
             </div>

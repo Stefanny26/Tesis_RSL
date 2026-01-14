@@ -281,8 +281,8 @@ export function ProtocolDefinitionStep() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="text-center space-y-3 mb-8">
-        <h2 className="text-3xl font-bold">Definición de Términos del Protocolo</h2>
-        <p className="text-lg text-muted-foreground">
+        <h2 className="text-2xl font-bold">Definición de Términos del Protocolo</h2>
+        <p className="text-base text-muted-foreground">
           Rellena la parte inicial del protocolo con la definición de los términos clave
         </p>
         <div className="border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-4">

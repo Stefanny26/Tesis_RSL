@@ -16,9 +16,9 @@ class ArticleVersionRepository {
       INSERT INTO article_versions (
         id, project_id, version_number, title,
         abstract, introduction, methods, results,
-        discussion, conclusions, references_section,
+        discussion, conclusions, references_section, declarations,
         word_count, change_description, created_by, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *
     `;
 
@@ -34,6 +34,7 @@ class ArticleVersionRepository {
       articleVersion.sections?.discussion || articleVersion.discussion || '',
       articleVersion.sections?.conclusions || articleVersion.conclusions || '',
       articleVersion.sections?.references || articleVersion.referencesSection || '',
+      articleVersion.sections?.declarations || articleVersion.declarations || '',
       articleVersion.wordCount,
       articleVersion.changeDescription || articleVersion.description,
       articleVersion.createdBy,
@@ -46,13 +47,12 @@ class ArticleVersionRepository {
 
   /**
    * Obtener todas las versiones de un proyecto
-   * Fixed: Using u.name instead of u.full_name
    */
   async findByProject(projectId) {
     const query = `
       SELECT 
         av.*,
-        u.name as creator_name
+        u.full_name as creator_name
       FROM article_versions av
       LEFT JOIN users u ON u.id = av.created_by
       WHERE av.project_id = $1
@@ -77,7 +77,7 @@ class ArticleVersionRepository {
     const query = `
       SELECT 
         av.*,
-        u.name as creator_name
+        u.full_name as creator_name
       FROM article_versions av
       LEFT JOIN users u ON u.id = av.created_by
       WHERE av.project_id = $1
@@ -103,7 +103,7 @@ class ArticleVersionRepository {
     const query = `
       SELECT 
         av.*,
-        u.name as creator_name
+        u.full_name as creator_name
       FROM article_versions av
       LEFT JOIN users u ON u.id = av.created_by
       WHERE av.id = $1

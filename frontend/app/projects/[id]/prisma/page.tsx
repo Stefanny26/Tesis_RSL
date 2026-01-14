@@ -280,7 +280,7 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="flex flex-col items-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
-                <div className="text-3xl font-bold text-green-600">{stats?.completed || 0}</div>
+                <div className="text-xl font-bold text-green-600">{stats?.completed || 0}</div>
                 <div className="text-sm text-muted-foreground">Completados</div>
               </div>
               <div className="flex flex-col items-center p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg">

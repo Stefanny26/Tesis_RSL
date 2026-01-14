@@ -57,7 +57,7 @@ export default function HomePage() {
 
       {/* Features Section */}
       <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-4">Características del Sistema</h2>
+        <h2 className="text-xl font-bold text-center mb-4">Características del Sistema</h2>
         <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
           Diseñado para guiar investigadores en el cumplimiento riguroso de metodologías Cochrane y PRISMA
         </p>
@@ -127,7 +127,7 @@ export default function HomePage() {
       {/* PRISMA 2020 Section */}
       <section id="prisma" className="container mx-auto px-4 py-16 bg-muted/30">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4">Estándar PRISMA 2020</h2>
+          <h2 className="text-xl font-bold text-center mb-4">Estándar PRISMA 2020</h2>
           <p className="text-center text-muted-foreground mb-8">
             Preferred Reporting Items for Systematic Reviews and Meta-Analyses
           </p>
@@ -225,7 +225,7 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="max-w-2xl mx-auto space-y-6">
-          <h2 className="text-3xl font-bold">Comienza tu Revisión Sistemática Hoy</h2>
+          <h2 className="text-xl font-bold">Comienza tu Revisión Sistemática Hoy</h2>
           <p className="text-muted-foreground">
             Optimiza tu investigación con asistencia inteligente y garantiza el cumplimiento de los más altos estándares metodológicos
           </p>

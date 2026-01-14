@@ -37,7 +37,7 @@ export function DashboardNav() {
       <div className="container mx-auto px-4 flex h-16 items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
           <BookOpen className="h-6 w-6" />
-          <span className="text-lg">RSL Manager</span>
+          <span className="text-base font-semibold">RSL Manager</span>
         </Link>
 
         <div className="flex items-center gap-4">

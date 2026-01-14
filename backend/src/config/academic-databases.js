@@ -35,13 +35,15 @@ const ACADEMIC_DATABASES = {
         id: 'acm',
         name: 'ACM Digital Library',
         url: 'https://dl.acm.org',
-        description: 'Base de datos especializada en ciencias de la computación',
-        hasAPI: true,
+        description: 'Referencia en computación, informática y sistemas',
+        hasAPI: false,
         syntax: 'acm',
+        requiresPremium: true,
+        premiumNote: 'Requiere cuenta institucional para exportar referencias',
         operators: { and: 'AND', or: 'OR', not: 'NOT', phrase: '""' },
         fields: { title: 'Title', abstract: 'Abstract', keywords: 'Keywords' },
-        structure: '[[Title: term]] AND [[Abstract: term]]',
-        example: '[[Title: "cloud computing"]] AND [[Abstract: security]]',
+        structure: 'Title:(term1 OR term2) AND Abstract:(term3)',
+        example: 'Title:("software engineering" OR "agile development") AND Abstract:(productivity)',
         filters: ['year', 'publication_type']
       },
       {
@@ -60,15 +62,16 @@ const ACADEMIC_DATABASES = {
       {
         id: 'sciencedirect',
         name: 'ScienceDirect',
-        url: 'https://www.sciencedirect.com',
-        description: 'Gran colección de artículos científicos y técnicos',
+        url: 'https://www.sciencedirect.com/search/entry',
+        description: 'Gran colección de artículos científicos. Nota: Limita operadores OR, priorizar términos más representativos',
         hasAPI: true,
         syntax: 'sciencedirect',
         operators: { and: 'AND', or: 'OR', not: 'AND NOT', phrase: '""' },
         fields: { title: 'Title', abstract: 'Abstract', keywords: 'Keywords' },
-        structure: 'title(term1) AND abstract(term2)',
-        example: 'title("machine learning") AND abstract("neural networks")',
-        filters: ['year', 'article_type', 'topic']
+        structure: '(term1 OR term2) AND (term3 OR term4)',
+        example: '("Machine Learning" OR "Artificial Intelligence") AND ("Strawberry Cultivation" OR "Agriculture") AND ("Fruit Quality" OR "Resource Efficiency")',
+        filters: ['year', 'article_type', 'topic'],
+        optimizationTip: 'Reducir sinónimos y priorizar términos clave. Máximo 2-3 términos por bloque con OR.'
       },
       {
         id: 'springer',
@@ -84,19 +87,6 @@ const ACADEMIC_DATABASES = {
         filters: ['year', 'content_type', 'discipline']
       },
       {
-        id: 'webofscience',
-        name: 'Web of Science',
-        url: 'https://www.webofscience.com',
-        description: 'Base de datos multidisciplinaria de alto impacto',
-        hasAPI: false,
-        syntax: 'wos',
-        operators: { and: 'AND', or: 'OR', not: 'NOT', phrase: '""', wildcard: '*', proximity: 'NEAR/n' },
-        fields: { title: 'TI', abstract: 'AB', keywords: 'AK', topic: 'TS' },
-        structure: 'TS=(term1 OR term2) AND TI=(term3)',
-        example: 'TS=("artificial intelligence" OR "machine learning") AND TI=(healthcare)',
-        filters: ['year', 'document_type', 'research_area']
-      },
-      {
         id: 'wiley',
         name: 'Wiley Online Library',
         url: 'https://onlinelibrary.wiley.com',
@@ -108,6 +98,21 @@ const ACADEMIC_DATABASES = {
         structure: 'title:(term1) AND abstract:(term2)',
         example: 'title:(IoT OR "Internet of Things") AND abstract:(security)',
         filters: ['year', 'content_type']
+      },
+      {
+        id: 'webofscience',
+        name: 'Web of Science',
+        url: 'https://www.webofscience.com',
+        description: 'Plataforma multidisciplinaria con métricas de impacto',
+        hasAPI: true,
+        syntax: 'wos',
+        requiresPremium: true,
+        premiumNote: 'Requiere cuenta institucional para exportar referencias',
+        operators: { and: 'AND', or: 'OR', not: 'NOT', phrase: '""', wildcard: '*' },
+        fields: { topic: 'TS', title: 'TI', author: 'AU' },
+        structure: 'TS=(term1 OR term2) AND TI=(term3)',
+        example: 'TS=("artificial intelligence" OR "machine learning") AND TI=(web development)',
+        filters: ['year', 'document_type', 'research_area']
       }
     ]
   },
@@ -156,6 +161,8 @@ const ACADEMIC_DATABASES = {
         description: 'Base multidisciplinaria de alto impacto',
         hasAPI: false,
         syntax: 'wos',
+        requiresPremium: true,
+        premiumNote: 'Requiere cuenta institucional para exportar referencias',
         operators: { and: 'AND', or: 'OR', not: 'NOT', phrase: '""' },
         fields: { title: 'TI', abstract: 'AB', topic: 'TS' },
         structure: 'TS=(term1 OR term2) AND TI=(term3)',
@@ -243,6 +250,8 @@ const ACADEMIC_DATABASES = {
         description: 'Base multidisciplinaria de alto impacto',
         hasAPI: false,
         syntax: 'wos',
+        requiresPremium: true,
+        premiumNote: 'Requiere cuenta institucional para exportar referencias',
         operators: { and: 'AND', or: 'OR', not: 'NOT', phrase: '""' },
         fields: { title: 'TI', abstract: 'AB', topic: 'TS' },
         structure: 'TS=(term1 OR term2) AND TI=(term3)',

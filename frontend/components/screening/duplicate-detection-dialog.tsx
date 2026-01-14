@@ -136,7 +136,7 @@ export function DuplicateDetectionDialog({
             {/* Estadísticas */}
             <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{duplicateGroups.length}</div>
+                <div className="text-lg font-bold text-orange-600">{duplicateGroups.length}</div>
                 <div className="text-xs text-muted-foreground">Grupos</div>
               </div>
               <div className="text-center">
