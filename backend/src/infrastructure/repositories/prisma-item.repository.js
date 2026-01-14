@@ -145,6 +145,16 @@ class PrismaItemRepository {
           ON CONFLICT (project_id, item_number)
           DO UPDATE SET
             section = EXCLUDED.section,
+            completed = EXCLUDED.completed,
+            content = EXCLUDED.content,
+            content_type = EXCLUDED.content_type,
+            data_source = EXCLUDED.data_source,
+            automated_content = EXCLUDED.automated_content,
+            last_human_edit = EXCLUDED.last_human_edit,
+            ai_validated = EXCLUDED.ai_validated,
+            ai_suggestions = EXCLUDED.ai_suggestions,
+            ai_issues = EXCLUDED.ai_issues,
+            completed_at = EXCLUDED.completed_at,
             updated_at = NOW()
         `;
 

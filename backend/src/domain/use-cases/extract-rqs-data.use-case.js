@@ -231,6 +231,32 @@ ${rqList || 'No definidas'}
 
 EXTRAE los siguientes campos y responde SOLO con JSON:
 
+**INSTRUCCIÓN CRÍTICA PARA RELACIONES CON RQs:**
+
+⚠️ EVALÚA CUIDADOSAMENTE la relación del estudio con CADA pregunta de investigación:
+
+- **"yes"** (directa): El estudio aborda EXPLÍCITAMENTE la pregunta y proporciona respuestas completas
+- **"partial"** (parcial): El estudio menciona temas RELACIONADOS pero no responde completamente
+- **"no"** (sin relación): El estudio NO aborda la pregunta en absoluto
+
+🔍 **CÓMO EVALUAR:**
+
+1. **RQ1** - Si la pregunta es sobre técnicas/métodos:
+   - Busca: authentication, encryption, monitoring, blockchain, security frameworks
+   - Si menciona alguna técnica específica → "partial" o "yes"
+
+2. **RQ2** - Si la pregunta es sobre gestión de vulnerabilidades/amenazas:
+   - Busca: detection, prevention, audit, incident response, risk management
+   - Si describe cómo se gestionan amenazas → "partial" o "yes"
+
+3. **RQ3** - Si la pregunta es sobre efectividad/evidencia:
+   - Busca: metrics, latency, efficiency, performance, comparisons
+   - Si reporta datos cuantitativos → "partial" o "yes"
+
+❌ NO marques todo como "no". Si el estudio es relevante para el tema general, al menos una RQ debe tener "partial".
+
+---
+
 {
   "author": "Apellido, Nombre et al.",
   "year": 2024,

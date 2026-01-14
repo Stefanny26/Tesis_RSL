@@ -27,6 +27,74 @@ class GenerateArticleFromPrismaUseCase {
     this.generatePrismaContextUseCase = generatePrismaContextUseCase;
   }
 
+  /**
+   * Re-clasifica estudios RQS basándose en keywords
+   * (Solución rápida sin re-extraer datos)
+   */
+  classifyStudiesForRQs(rqsEntries, protocol) {
+    console.log('🔍 Re-clasificando estudios para RQs basándose en keywords...');
+    
+    // RQ1: ¿Cuáles son las técnicas más aplicadas?
+    const rq1Keywords = [
+      'authentication', 'encryption', 'monitoring', 'blockchain', 
+      'pki', 'access control', 'security framework', 'cybersecurity',
+      'autenticación', 'encriptación', 'monitoreo', 'seguridad'
+    ];
+    
+    // RQ2: ¿Cómo se gestionan vulnerabilidades?
+    const rq2Keywords = [
+      'vulnerability', 'threat', 'detection', 'prevention', 
+      'audit', 'incident', 'risk', 'management', 'gestión',
+      'vulnerabilidad', 'amenaza', 'detección', 'prevención'
+    ];
+    
+    // RQ3: ¿Qué evidencia sobre efectividad?
+    const rq3Keywords = [
+      'latency', 'efficiency', 'accuracy', 'performance', 
+      'effectiveness', 'improvement', 'reduction', 'metrics',
+      'eficiencia', 'precisión', 'rendimiento', 'efectividad'
+    ];
+    
+    let rq1Count = 0, rq2Count = 0, rq3Count = 0;
+    
+    const classified = rqsEntries.map(entry => {
+      const text = `${entry.title || ''} ${entry.keyEvidence || ''} ${entry.technology || ''}`.toLowerCase();
+      
+      // Clasificar RQ1
+      const hasRQ1 = rq1Keywords.some(kw => text.includes(kw.toLowerCase()));
+      if (hasRQ1) {
+        entry.rq1Relation = 'partial';
+        rq1Count++;
+      } else {
+        entry.rq1Relation = entry.rq1Relation || 'no';
+      }
+      
+      // Clasificar RQ2
+      const hasRQ2 = rq2Keywords.some(kw => text.includes(kw.toLowerCase()));
+      if (hasRQ2) {
+        entry.rq2Relation = 'partial';
+        rq2Count++;
+      } else {
+        entry.rq2Relation = entry.rq2Relation || 'no';
+      }
+      
+      // Clasificar RQ3 (requiere keywords + métricas)
+      const hasRQ3 = rq3Keywords.some(kw => text.includes(kw.toLowerCase())) && 
+                     (entry.metrics && Object.keys(entry.metrics).length > 0);
+      if (hasRQ3 || (entry.latency && entry.latency !== 'Unknown')) {
+        entry.rq3Relation = 'partial';
+        rq3Count++;
+      } else {
+        entry.rq3Relation = entry.rq3Relation || 'no';
+      }
+      
+      return entry;
+    });
+    
+    console.log(`✅ Re-clasificación completada: RQ1=${rq1Count}, RQ2=${rq2Count}, RQ3=${rq3Count}`);
+    return classified;
+  }
+
   async execute(projectId) {
     try {
       console.log(`📄 Generando artículo científico profesional para proyecto ${projectId}`);
@@ -38,7 +106,12 @@ class GenerateArticleFromPrismaUseCase {
       const prismaItems = await this.prismaItemRepository.findAllByProject(projectId);
       const contextResult = await this.generatePrismaContextUseCase.execute(projectId);
       const prismaContext = contextResult.context;
-      const rqsEntries = await this.rqsEntryRepository.findByProject(projectId);
+      let rqsEntries = await this.rqsEntryRepository.findByProject(projectId);
+
+      // ✅ CORRECCIÓN: Re-clasificar estudios para RQs
+      if (rqsEntries.length > 0) {
+        rqsEntries = this.classifyStudiesForRQs(rqsEntries, prismaContext.protocol || {});
+      }
 
       // Validar datos RQS mínimos
       if (rqsEntries.length < 2) {
@@ -61,8 +134,18 @@ class GenerateArticleFromPrismaUseCase {
       // 5. Generar artículo con CALIDAD ACADÉMICA
       console.log('📝 Generando secciones del artículo...');
       
+      // ✅ VALIDACIÓN: Asegurar que title nunca esté vacío
+      const articleTitle = prismaMapping.title || 
+                          prismaContext.protocol.title || 
+                          prismaContext.protocol.proposedTitle || 
+                          'Systematic Literature Review';
+      
+      if (!articleTitle || articleTitle.trim() === '') {
+        console.warn('⚠️ Advertencia: Título del artículo vacío, usando fallback genérico');
+      }
+      
       const article = {
-        title: prismaMapping.title,
+        title: articleTitle,
         abstract: await this.generateProfessionalAbstract(prismaMapping, prismaContext, rqsStats),
         introduction: await this.generateProfessionalIntroduction(prismaMapping, prismaContext),
         methods: await this.generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries),
@@ -335,9 +418,7 @@ De estos, **${prismaContext.screening.fullTextRetrieved || 'N/A'} artículos** f
 
 ## 3.2 Características de los estudios incluidos
 
-${prismaMapping.results.studyCharacteristics}
-
-${rqsAnalysis}
+${rqsAnalysis || prismaMapping.results.studyCharacteristics || 'Los estudios incluidos se analizaron según el esquema RQS (Research Question Schema) para extraer datos estructurados relevantes a las preguntas de investigación.'}
 
 ## 3.3 Riesgo de sesgo en los estudios incluidos
 

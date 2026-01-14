@@ -1341,7 +1341,9 @@ const detectArea = async (req, res) => {
           id: db.id,
           name: db.name,
           url: db.url,
-          syntax: db.syntax
+          syntax: db.syntax,
+          requiresPremium: db.requiresPremium || false,
+          premiumNote: db.premiumNote || null
         }))
       }
     });

@@ -112,6 +112,21 @@ router.put(
 );
 
 /**
+ * @route   POST /api/projects/:projectId/prisma/migrate
+ * @desc    Migrar ítems PRISMA desde protocolo a tabla prisma_items
+ * @access  Private
+ * @note    Reemplaza script standalone migrate-prisma-items.js
+ */
+router.post(
+  '/:projectId/prisma/migrate',
+  [
+    param('projectId').isUUID().withMessage('ID de proyecto inválido'),
+    validateRequest
+  ],
+  (req, res) => prismaController.migrateFromProtocol(req, res)
+);
+
+/**
  * @route   POST /api/projects/:projectId/prisma/:itemNumber/validate
  * @desc    Validar ítem PRISMA con IA
  * @access  Private

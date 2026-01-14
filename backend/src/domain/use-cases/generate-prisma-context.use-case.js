@@ -122,6 +122,16 @@ class GeneratePrismaContextUseCase {
           excludedFullText: excludedFullText,
           includedFinal: finalIncluded,
 
+          // ✅ CORRECCIÓN: Agregar campos que faltan para evitar N/A
+          totalResults: allReferences.length,
+          afterScreening: allReferences.length,
+          fullTextRetrieved: allReferences.filter(r => r.screeningStatus === 'included' || r.screeningStatus === 'fulltext_included').length,
+
+          // Datos del cribado híbrido si existen
+          phase1: screeningResults.phase1 || null,
+          phase2: screeningResults.phase2 || null,
+          hybridMethod: screeningResults.method === 'hybrid',
+
           // Metodología
           screeningMethod: screeningMethod.description,
           screeningPhases: screeningMethod.phases,

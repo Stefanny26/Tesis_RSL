@@ -15,7 +15,8 @@ class ProtocolRepository {
     const jsonbFields = [
       'is_matrix', 'is_not_matrix', 'research_questions', 'inclusion_criteria',
       'exclusion_criteria', 'databases', 'evaluation_initial', 'matrix_elements',
-      'key_terms', 'search_queries', 'temporal_range', 'prisma_compliance'
+      'key_terms', 'search_queries', 'temporal_range'
+      // 'prisma_compliance' deprecado - usar tabla prisma_items
     ];
     
     jsonbFields.forEach(field => {
@@ -37,9 +38,9 @@ class ProtocolRepository {
         population, intervention, comparison, outcomes, 
         inclusion_criteria, exclusion_criteria, 
         databases, search_string, search_queries, key_terms, temporal_range,
-        prisma_compliance, completed
+        completed
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *
     `;
 
@@ -61,7 +62,6 @@ class ProtocolRepository {
       db.search_queries,
       db.key_terms, 
       db.temporal_range,
-      db.prisma_compliance,
       db.completed
     ];
 
@@ -100,8 +100,8 @@ class ProtocolRepository {
       keyTerms: 'key_terms',
       temporalRange: 'temporal_range',
       
-      // Cumplimiento PRISMA
-      prismaCompliance: 'prisma_compliance',
+      // Cumplimiento PRISMA - deprecado, usar tabla prisma_items
+      // prismaCompliance: 'prisma_compliance',
       prismaLocked: 'prisma_locked',
       prismaCompletedAt: 'prisma_completed_at',
       
