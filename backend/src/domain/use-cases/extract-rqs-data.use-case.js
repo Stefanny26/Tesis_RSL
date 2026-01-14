@@ -164,13 +164,34 @@ class ExtractRQSDataUseCase {
       } else {
         throw new Error(`Tipo de respuesta inesperado: ${typeof response}`);
       }
+
+      // ✅ SANITIZAR valores de enum antes de retornar
+      const sanitizedStudyType = this.sanitizeEnumValue(
+        data.studyType, 
+        ['empirical', 'case_study', 'experiment', 'simulation', 'review', 'other'],
+        'other'
+      );
+      
+      const sanitizedContext = this.sanitizeEnumValue(
+        data.context,
+        ['industrial', 'enterprise', 'academic', 'experimental', 'mixed', 'other'],
+        'other'
+      );
+
+      // Registrar si hubo cambios
+      if (data.studyType !== sanitizedStudyType) {
+        console.log(`📝 Mapeado studyType: "${data.studyType}" → "${sanitizedStudyType}" (${reference.title?.substring(0, 50)}...)`);
+      }
+      if (data.context !== sanitizedContext) {
+        console.log(`📝 Mapeado context: "${data.context}" → "${sanitizedContext}" (${reference.title?.substring(0, 50)}...)`);
+      }
       
       return {
         author: data.author,
         year: data.year,
-        studyType: data.studyType,
+        studyType: sanitizedStudyType,
         technology: data.technology,
-        context: data.context,
+        context: sanitizedContext,
         keyEvidence: data.keyEvidence,
         metrics: data.metrics || {},
         rq1Relation: data.rq1Relation,
@@ -185,6 +206,66 @@ class ExtractRQSDataUseCase {
       console.error('Error parseando respuesta IA:', error);
       throw new Error('No se pudo extraer datos estructurados del estudio');
     }
+  }
+
+  /**
+   * Sanitiza valores de enum mapeando valores de IA a valores permitidos por BD
+   */
+  sanitizeEnumValue(value, allowedValues, defaultValue = 'other') {
+    if (!value) return defaultValue;
+    
+    const normalized = value.toLowerCase().trim().replace(/_/g, ' ');
+    
+    // 1. Coincidencia exacta (considerando que BD usa snake_case)
+    const normalizedWithUnderscore = normalized.replace(/ /g, '_');
+    if (allowedValues.includes(normalizedWithUnderscore)) {
+      return normalizedWithUnderscore;
+    }
+    
+    // 2. Coincidencia parcial (fuzzy matching)
+    for (const allowed of allowedValues) {
+      if (normalized.includes(allowed.replace(/_/g, ' ')) || 
+          allowed.replace(/_/g, ' ').includes(normalized)) {
+        return allowed;
+      }
+    }
+    
+    // 3. Mapeos específicos conocidos (basados en errores reales de logs)
+    const studyTypeMap = {
+      'case studies': 'case_study',
+      'case-study': 'case_study',
+      'empirical study': 'empirical',
+      'experimental study': 'experiment',
+      'systematic review': 'review',
+      'literature review': 'review',
+      'survey': 'review'
+    };
+    
+    const contextMap = {
+      'technological perspective': 'academic',
+      'background concepts': 'academic',
+      'core concepts': 'academic',
+      'theoretical': 'academic',
+      'theory': 'academic',
+      'research': 'academic',
+      'laboratory': 'experimental',
+      'lab': 'experimental',
+      'real-world': 'industrial',
+      'production': 'industrial',
+      'business': 'enterprise',
+      'corporate': 'enterprise',
+      'company': 'enterprise'
+    };
+    
+    // Buscar en mapeos específicos
+    const allMaps = { ...studyTypeMap, ...contextMap };
+    if (allMaps[normalized]) {
+      return allMaps[normalized];
+    }
+    
+    // 4. Default (previene violación de constraint)
+    console.warn(`⚠️ Valor enum no reconocido "${value}", usando "${defaultValue}"`);
+    return defaultValue;
   }
 
   /**
