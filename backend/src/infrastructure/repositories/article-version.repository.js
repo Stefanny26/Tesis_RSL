@@ -52,7 +52,7 @@ class ArticleVersionRepository {
     const query = `
       SELECT 
         av.*,
-        u.full_name as creator_name
+        u.name as creator_name
       FROM article_versions av
       LEFT JOIN users u ON u.id = av.created_by
       WHERE av.project_id = $1
@@ -77,7 +77,7 @@ class ArticleVersionRepository {
     const query = `
       SELECT 
         av.*,
-        u.full_name as creator_name
+        u.name as creator_name
       FROM article_versions av
       LEFT JOIN users u ON u.id = av.created_by
       WHERE av.project_id = $1
@@ -103,7 +103,7 @@ class ArticleVersionRepository {
     const query = `
       SELECT 
         av.*,
-        u.full_name as creator_name
+        u.name as creator_name
       FROM article_versions av
       LEFT JOIN users u ON u.id = av.created_by
       WHERE av.id = $1
