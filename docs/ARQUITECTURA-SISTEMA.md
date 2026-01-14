@@ -9,12 +9,7 @@ graph TB
         VERCEL[Vercel<br/>Hosting & CDN]
     end
 
-    subgraph "CAPA DE API"
-        GATEWAY[AWS API Gateway<br/>Gestión de APIs REST]
-        LAMBDA[AWS Lambda<br/>Funciones Serverless]
-    end
-
-    subgraph "CAPA DE APLICACIÓN - Backend Node.js/Express"
+    subgraph "CAPA DE APLICACIÓN - Backend Node.js/Express (Render)"
         subgraph "Controllers"
             CTRL_AUTH[Auth Controller]
             CTRL_PROJ[Project Controller]
@@ -22,12 +17,14 @@ graph TB
             CTRL_REF[Reference Controller]
             CTRL_SCREEN[Screening Controller]
             CTRL_PRISMA[PRISMA Controller]
+            CTRL_RQS[RQS Controller]
             CTRL_ARTICLE[Article Controller]
         end
 
         subgraph "Use Cases"
             UC_SCREEN[Screening Use Cases<br/>- embeddings<br/>- hybrid screening]
-            UC_PRISMA[PRISMA Use Cases<br/>- extract PDFs<br/>- generate context<br/>- complete items]
+            UC_PRISMA[PRISMA Use Cases<br/>- extract PDFs<br/>- generate context<br/>- complete items<br/>- gatekeeper validation]
+            UC_RQS[RQS Use Cases<br/>- extract data<br/>- sanitize enums<br/>- validate entries]
             UC_ARTICLE[Article Use Cases<br/>- generate draft]
         end
 
@@ -37,6 +34,7 @@ graph TB
             MODEL_PROT[Protocol]
             MODEL_REF[Reference]
             MODEL_PRISMA[PRISMA Item]
+            MODEL_RQS[RQS Entry]
         end
 
         subgraph "Repositories"
@@ -66,19 +64,19 @@ graph TB
 
     %% Flujo Frontend → Backend
     FE -->|HTTPS Request| VERCEL
-    VERCEL -->|Route| GATEWAY
-    GATEWAY -->|Invoke| LAMBDA
-    LAMBDA -->|Execute| CTRL_AUTH
-    LAMBDA -->|Execute| CTRL_PROJ
-    LAMBDA -->|Execute| CTRL_PROT
-    LAMBDA -->|Execute| CTRL_REF
-    LAMBDA -->|Execute| CTRL_SCREEN
-    LAMBDA -->|Execute| CTRL_PRISMA
-    LAMBDA -->|Execute| CTRL_ARTICLE
+    VERCEL -->|API Call| CTRL_AUTH
+    VERCEL -->|API Call| CTRL_PROJ
+    VERCEL -->|API Call| CTRL_PROT
+    VERCEL -->|API Call| CTRL_REF
+    VERCEL -->|API Call| CTRL_SCREEN
+    VERCEL -->|API Call| CTRL_PRISMA
+    VERCEL -->|API Call| CTRL_RQS
+    VERCEL -->|API Call| CTRL_ARTICLE
 
     %% Flujo Controllers → Use Cases
     CTRL_SCREEN -->|Call| UC_SCREEN
     CTRL_PRISMA -->|Call| UC_PRISMA
+    CTRL_RQS -->|Call| UC_RQS
     CTRL_ARTICLE -->|Call| UC_ARTICLE
 
     %% Flujo Use Cases → Repositories
@@ -86,6 +84,8 @@ graph TB
     UC_SCREEN -->|Access| REPO_PROT
     UC_PRISMA -->|Access| REPO_REF
     UC_PRISMA -->|Access| REPO_PROT
+    UC_RQS -->|Access| REPO_REF
+    UC_RQS -->|Access| REPO_PROT
     UC_ARTICLE -->|Access| REPO_PROT
 
     %% Flujo Repositories → Database
@@ -99,6 +99,8 @@ graph TB
     UC_SCREEN -.->|API Call| GEMINI
     UC_PRISMA -.->|API Call| OPENAI
     UC_PRISMA -.->|API Call| GEMINI
+    UC_RQS -.->|API Call| OPENAI
+    UC_RQS -.->|API Call| GEMINI
     CTRL_REF -.->|API Call| SCOPUS
     CTRL_REF -.->|API Call| IEEE
     CTRL_REF -.->|API Call| PUBMED
@@ -108,13 +110,11 @@ graph TB
     classDef backend fill:#34d399,stroke:#059669,stroke-width:2px,color:#fff
     classDef database fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
     classDef external fill:#f87171,stroke:#dc2626,stroke-width:2px,color:#fff
-    classDef gateway fill:#a78bfa,stroke:#7c3aed,stroke-width:2px,color:#fff
 
     class FE,VERCEL frontend
-    class GATEWAY,LAMBDA gateway
-    class CTRL_AUTH,CTRL_PROJ,CTRL_PROT,CTRL_REF,CTRL_SCREEN,CTRL_PRISMA,CTRL_ARTICLE backend
-    class UC_SCREEN,UC_PRISMA,UC_ARTICLE backend
-    class MODEL_USER,MODEL_PROJ,MODEL_PROT,MODEL_REF,MODEL_PRISMA backend
+    class CTRL_AUTH,CTRL_PROJ,CTRL_PROT,CTRL_REF,CTRL_SCREEN,CTRL_PRISMA,CTRL_RQS,CTRL_ARTICLE backend
+    class UC_SCREEN,UC_PRISMA,UC_RQS,UC_ARTICLE backend
+    class MODEL_USER,MODEL_PROJ,MODEL_PROT,MODEL_REF,MODEL_PRISMA,MODEL_RQS backend
     class REPO_USER,REPO_PROJ,REPO_PROT,REPO_REF backend
     class DB database
     class OPENAI,GEMINI,SCOPUS,IEEE,PUBMED external
@@ -214,6 +214,9 @@ sequenceDiagram
         BE->>DB: Obtener protocolo + screening + PDFs
         DB-->>BE: PRISMAContext completo
         
+        BE->>AI: Validar con Gatekeeper (27 prompts)
+        AI-->>BE: Validaciones pasadas
+        
         BE->>AI: Generar ítems 16,17,23,24,26,27
         AI-->>BE: Texto académico generado
         
@@ -223,6 +226,35 @@ sequenceDiagram
         BE-->>API: 6 ítems generados
         API-->>FE: PRISMA completado
         FE-->>User: 🎉 PRISMA bloqueado (27/27)
+    end
+
+    %% FASE 3.5: RQS EXTRACTION
+    rect rgb(245, 255, 250)
+        Note over User,ACM: FASE 3.5: EXTRACCIÓN RQS
+        User->>FE: Extraer datos RQS
+        FE->>API: POST /api/projects/:id/rqs/extract
+        API->>BE: Extraer RQS de incluidas
+        
+        loop Por cada referencia incluida (33)
+            BE->>AI: Extraer RQS (studyType, context, etc.)
+            AI-->>BE: Datos estructurados JSON
+            BE->>BE: Sanitizar enums (prevenir constraints)
+            BE->>DB: Guardar rqs_entry
+        end
+        
+        DB-->>BE: 33 entradas RQS guardadas
+        BE-->>API: Extracción completada
+        API-->>FE: RQS listo
+        FE-->>User: Datos RQS disponibles
+        
+        User->>FE: Ver estadísticas RQS
+        FE->>API: GET /api/projects/:id/rqs/stats
+        API->>BE: Calcular estadísticas
+        BE->>DB: Agrupar por studyType, context, etc.
+        DB-->>BE: Estadísticas agregadas
+        BE-->>API: Estadísticas calculadas
+        API-->>FE: Datos analíticos
+        FE-->>User: Visualizaciones RQS
     end
 
     %% FASE 4: ARTÍCULO
@@ -269,22 +301,6 @@ sequenceDiagram
 
 ---
 
-### 🔌 CAPA DE API
-
-#### **AWS API Gateway**
-- Gestión centralizada de endpoints REST
-- Rate limiting y throttling
-- Autenticación JWT
-- CORS configurado
-- Logging de requests
-
-#### **AWS Lambda**
-- Funciones serverless
-- Auto-scaling automático
-- Cold start < 500ms
-- Runtime: Node.js 18
-- Timeout: 30 segundos (PDFs: 5 minutos)
-
 ---
 
 ### ⚙️ CAPA DE APLICACIÓN (Backend)
@@ -292,10 +308,12 @@ sequenceDiagram
 #### **Stack Tecnológico**
 - **Runtime**: Node.js 18
 - **Framework**: Express.js
+- **Hosting**: Render.com (production) / Local (development)
 - **Arquitectura**: Clean Architecture / DDD
 - **Autenticación**: JWT + Passport.js
 - **Validación**: express-validator
 - **ORM**: Consultas SQL nativas (sin ORM)
+- **Deployment**: Auto-deploy desde GitHub (main branch)
 
 #### **Estructura por Capas**
 
@@ -383,6 +401,25 @@ sequenceDiagram
 - `stage` (VARCHAR) - title_abstract / fulltext
 - `scores` (JSONB) - Puntajes de criterios
 - `decision` (VARCHAR) - include/exclude
+
+**rqs_entries** ✨ (Research Question Schema)
+- `id` (SERIAL, PK)
+- `project_id` (UUID, FK)
+- `reference_id` (UUID, FK)
+- `author`, `year`, `title`, `source` (VARCHAR/TEXT)
+- `study_type` (VARCHAR) - empirical/case_study/experiment/simulation/review/other
+- `technology` (VARCHAR) - Tecnología evaluada
+- `context` (VARCHAR) - industrial/enterprise/academic/experimental/mixed/other
+- `key_evidence` (TEXT) - Hallazgos principales
+- `metrics` (JSONB) - Métricas reportadas
+- `rq1_relation`, `rq2_relation`, `rq3_relation` (VARCHAR) - yes/no/partial
+- `rq_notes` (TEXT) - Justificación de relaciones con RQs
+- `limitations` (TEXT)
+- `quality_score` (VARCHAR) - high/medium/low
+- `extraction_method` (VARCHAR) - ai_assisted/manual/hybrid
+- `extracted_by`, `validated_by` (UUID, FK)
+- `extracted_at`, `validated_at` (TIMESTAMP)
+- `validated` (BOOLEAN)
 
 ---
 
@@ -485,7 +522,23 @@ full_text_data guardado
 - Hallazgos principales
 - Limitaciones
 
-#### **3.2 Generación de PRISMA**
+#### **3.2 Gatekeeper PRISMA** ✨
+
+```
+27 prompts de validación →
+Verificar cada ítem PRISMA →
+IA evalúa criterios →
+Aprobación/rechazo automático
+```
+
+**Archivo**: `backend/src/config/prisma-validation-prompts.js`
+- 1,701 líneas de configuración
+- 27 prompts de validación (1 por ítem PRISMA)
+- Criterios específicos por ítem
+- Ejemplos de aprobación/rechazo
+- Integración con `prisma.controller.js`
+
+#### **3.3 Generación de PRISMA**
 
 ```
 PRISMAContext (protocolo + cribado + PDFs) → 
@@ -501,6 +554,45 @@ prismaCompliance actualizado →
 - **24**: Registro (declaración)
 - **26**: Conflictos de interés
 - **27**: Uso de IA y disponibilidad de datos
+
+---
+
+### 📊 FASE 3.5: RQS (Research Question Schema) ✨
+
+```
+33 referencias incluidas → 
+IA extrae RQS por estudio →
+Sanitización de enums →
+rqs_entries guardado
+```
+
+**Datos extraídos por referencia**:
+- **author**: Autores principales
+- **year**: Año de publicación
+- **studyType**: empirical/case_study/experiment/simulation/review/other
+- **technology**: Tecnología evaluada (ej: "5G", "Blockchain", "SDN")
+- **context**: industrial/enterprise/academic/experimental/mixed/other
+- **keyEvidence**: Hallazgos principales (texto narrativo)
+- **metrics**: Métricas reportadas (JSONB: latency, throughput, efficiency)
+- **rq1Relation/rq2Relation/rq3Relation**: yes/no/partial (relación con RQs)
+- **rqNotes**: Justificación de relaciones
+- **limitations**: Limitaciones declaradas
+- **qualityScore**: high/medium/low
+
+**Funcionalidad de sanitización** (hotfix aplicado):
+- Mapea valores de IA → enums permitidos
+- Previene violaciones de CHECK constraints
+- Fuzzy matching para valores similares
+- Fallback a 'other' si no matchea
+- Logging de transformaciones
+
+**Endpoints disponibles**:
+- `POST /api/projects/:id/rqs/extract` - Extracción masiva
+- `POST /api/projects/:id/rqs/extract/:refId` - Extracción individual
+- `GET /api/projects/:id/rqs` - Listar entradas RQS
+- `GET /api/projects/:id/rqs/stats` - Estadísticas agregadas
+- `PUT /api/projects/:id/rqs/:rqsId` - Validación manual
+- `GET /api/projects/:id/rqs/export/csv` - Exportar a CSV
 
 ---
 
@@ -528,15 +620,15 @@ Artículo guardado
 | Capa | Tecnologías |
 |------|-------------|
 | **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS, shadcn/ui |
-| **API Gateway** | AWS API Gateway, REST, CORS, JWT |
-| **Serverless** | AWS Lambda, Node.js 18 |
-| **Backend** | Express.js, Passport.js, express-validator |
+| **Backend** | Express.js, Node.js 18, Passport.js, express-validator |
+| **Hosting Backend** | Render.com (PostgreSQL + Node.js) |
+| **Hosting Frontend** | Vercel (CDN global) |
 | **Base de Datos** | PostgreSQL 14+, pg (node-postgres), JSONB |
 | **IA** | OpenAI API (Embeddings + GPT-4), Google Gemini |
 | **APIs Académicas** | Scopus API, IEEE Xplore API, PubMed API |
 | **Storage** | Sistema de archivos (PDFs en uploads/) |
 | **Auth** | JWT, Google OAuth 2.0, bcrypt |
-| **Deployment** | Vercel (Frontend), Render/AWS (Backend) |
+| **Deployment** | Auto-deploy desde GitHub (main branch) |
 
 ---
 
@@ -615,8 +707,8 @@ Artículo guardado
 - Procesamiento secuencial de PDFs (1 por segundo)
 - Límite de 6000 caracteres por PDF enviado a IA
 - Rate limits de APIs externas
-- Cold start de Lambda (primera invocación lenta)
 - Sin procesamiento en paralelo de múltiples proyectos
+- Sanitización de enums RQS (puede perder precisión en clasificaciones)
 
 ### 🔮 Futuras Mejoras
 - [ ] Queue system para procesamiento asíncrono (Redis/SQS)
@@ -627,6 +719,8 @@ Artículo guardado
 - [ ] Sistema de templates de artículos por revista
 - [ ] Collaborative editing (múltiples revisores)
 - [ ] Integración con Zotero/Mendeley
+- [ ] Dashboard analítico de RQS con visualizaciones avanzadas
+- [ ] Validación manual de RQS con interfaz gráfica
 
 ---
 
@@ -637,12 +731,14 @@ Artículo guardado
 | **OpenAI Embeddings** | 42 refs × 500 tokens | $0.02/1M tokens | $0.0004 |
 | **ChatGPT-4** | 33 refs × 2000 tokens | $0.01/1K tokens | $0.66 |
 | **Extracción PDFs** | 33 PDFs × 6K tokens | $0.01/1K tokens | $1.98 |
+| **RQS Extraction** | 33 refs × 1K tokens | $0.01/1K tokens | $0.33 |
 | **PRISMA Generation** | 6 ítems × 1K tokens | $0.01/1K tokens | $0.06 |
+| **Gatekeeper Validation** | 27 validaciones × 500 tokens | $0.01/1K tokens | $0.14 |
 | **Vercel** | Hobby plan | Gratis | $0.00 |
 | **Render** | Starter plan | $7/mes | $7.00 |
 | **PostgreSQL** | Render incluido | Incluido | $0.00 |
-| **Total por proyecto** | | | **~$2.70** |
-| **Total mensual** | 10 proyectos | | **~$27** |
+| **Total por proyecto** | | | **~$3.17** |
+| **Total mensual** | 10 proyectos | | **~$31.70** |
 
 ---
 
@@ -658,12 +754,6 @@ graph LR
         VERCEL_BUILD[Build Process<br/>Next.js]
         VERCEL_CDN[Edge CDN<br/>Global Distribution]
         VERCEL_PROD[Production<br/>thesis-rsl.vercel.app]
-    end
-
-    subgraph "AWS Cloud"
-        API_GW[API Gateway<br/>REST Endpoints]
-        LAMBDA_FN[Lambda Functions<br/>Node.js 18]
-        CLOUDWATCH[CloudWatch<br/>Logs & Metrics]
     end
 
     subgraph "Render Cloud"
@@ -684,25 +774,16 @@ graph LR
     RENDER_APP -->|Connect| RENDER_DB
     RENDER_APP -->|Logs| RENDER_LOGS
 
-    %% Flujo de deployment Lambda
-    REPO -.->|Manual deploy| LAMBDA_FN
-    LAMBDA_FN -.->|Connect| API_GW
-    LAMBDA_FN -.->|Logs| CLOUDWATCH
-
     %% Flujo runtime
-    VERCEL_PROD -->|HTTPS| API_GW
-    API_GW -->|Invoke| LAMBDA_FN
-    LAMBDA_FN -->|Execute| RENDER_APP
+    VERCEL_PROD -->|HTTPS API Calls| RENDER_APP
     RENDER_APP -->|Query| RENDER_DB
 
     classDef github fill:#24292e,stroke:#fff,stroke-width:2px,color:#fff
     classDef vercel fill:#000,stroke:#fff,stroke-width:2px,color:#fff
-    classDef aws fill:#ff9900,stroke:#232f3e,stroke-width:2px,color:#000
     classDef render fill:#46e3b7,stroke:#0e1e27,stroke-width:2px,color:#000
 
     class REPO github
     class VERCEL_BUILD,VERCEL_CDN,VERCEL_PROD vercel
-    class API_GW,LAMBDA_FN,CLOUDWATCH aws
     class RENDER_BUILD,RENDER_DB,RENDER_APP,RENDER_LOGS render
 ```
 
@@ -745,16 +826,19 @@ NODE_ENV=production
 
 Esta arquitectura implementa un sistema completo de **Revisión Sistemática de Literatura** siguiendo los estándares **PRISMA 2020**, con las siguientes características clave:
 
-✅ **Separación clara de responsabilidades** (Frontend, API Gateway, Backend, Database)  
-✅ **PostgreSQL integrado en el backend** (no servicio externo)  
+✅ **Separación clara de responsabilidades** (Frontend Vercel, Backend Render, Database PostgreSQL)  
+✅ **PostgreSQL integrado en el backend** (hosting unificado en Render)  
 ✅ **Servicios externos limitados a IA y APIs académicas**  
 ✅ **Arquitectura limpia** (Controllers → Use Cases → Repositories)  
-✅ **Flujo metodológico completo** (Protocolo → Cribado → PRISMA → Artículo)  
+✅ **Flujo metodológico completo** (Protocolo → Cribado → PRISMA → RQS → Artículo)  
+✅ **Gatekeeper PRISMA** con 27 prompts de validación automática  
+✅ **Extracción RQS** con sanitización de enums y prevención de errores  
 ✅ **Trazabilidad y bloqueo** para preservar integridad académica  
-✅ **Escalable y económica** (~$27/mes para 10 proyectos)  
+✅ **Escalable y económica** (~$31.70/mes para 10 proyectos)  
+✅ **Auto-deployment** desde GitHub (CI/CD automático)  
 
 ---
 
-**Versión**: 1.0  
-**Fecha**: Diciembre 2024  
+**Versión**: 2.0  
+**Última actualización**: Enero 2026  
 **Autores**: Sistema RSL - Tesis de Grado
