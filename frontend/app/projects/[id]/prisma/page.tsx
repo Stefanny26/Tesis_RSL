@@ -321,30 +321,8 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
         {/* Items List */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Ítems PRISMA</CardTitle>
-                <CardDescription>Revise y edite cada ítem según sea necesario</CardDescription>
-              </div>
-              <Button
-                onClick={() => handleCompleteBlock('all')}
-                disabled={isCompleting}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                size="lg"
-              >
-                {isCompleting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Completando...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Completar Todos
-                  </>
-                )}
-              </Button>
-            </div>
+            <CardTitle>Ítems PRISMA</CardTitle>
+            <CardDescription>Revise y edite cada ítem según sea necesario</CardDescription>
           </CardHeader>
           <CardContent>
             {/* Section Filter */}

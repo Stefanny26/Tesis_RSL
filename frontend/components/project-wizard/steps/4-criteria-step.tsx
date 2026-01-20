@@ -84,12 +84,12 @@ export function CriteriaStep() {
       })
 
       toast({
-        title: "✅ Términos normalizados",
+        title: "Términos normalizados",
         description: `Se eliminaron duplicados y se validaron ${result.normalizedTerms?.tecnologia?.length || 0} términos tecnológicos`
       })
 
       toast({
-        title: "✅ Criterios generados",
+        title: "Criterios generados",
         description: "Criterios de inclusión y exclusión creados basándose en tu proyecto"
       })
     } catch (error: any) {
@@ -177,7 +177,7 @@ export function CriteriaStep() {
       }
 
       toast({
-        title: "✅ Criterio regenerado",
+        title: "Criterio regenerado",
         description: `${categoryName} actualizado exitosamente`
       })
 

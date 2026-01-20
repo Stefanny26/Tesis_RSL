@@ -51,8 +51,8 @@ export function TitlesStep() {
         data.aiProvider
       )
 
-      console.log('📥 Respuesta del backend:', result)
-      console.log('📝 Títulos recibidos:', result?.titles)
+      console.log('Respuesta del backend:', result)
+      console.log('Títulos recibidos:', result?.titles)
 
       if (result && result.titles) {
         // Procesar títulos con traducción automática
@@ -75,12 +75,12 @@ export function TitlesStep() {
           }
         })
 
-        console.log('✅ Títulos procesados:', processedTitles)
+        console.log('Títulos procesados:', processedTitles)
 
         updateData({ generatedTitles: processedTitles })
 
         toast({
-          title: "✅ Títulos generados",
+          title: "Títulos generados",
           description: `${processedTitles.length} opciones bilingües creadas.`
         })
       }
@@ -129,7 +129,7 @@ export function TitlesStep() {
         </h2>
         <div className="p-4 rounded-lg border border-blue-300 dark:border-blue-700">
           <p className="text-sm leading-relaxed">
-            💡 La IA ha generado 5 títulos académicos bilingües con sus justificaciones siguiendo los criterios de Cochrane Review. 
+            La IA ha generado 5 títulos académicos bilingües con sus justificaciones siguiendo los criterios de Cochrane Review. 
             Revisa las opciones y <strong>selecciona el que más te convenza</strong>, o bien, 
             <strong> edita cualquiera</strong> usando el botón de edición para adaptarlo a tus necesidades específicas.
           </p>
@@ -267,7 +267,7 @@ export function TitlesStep() {
                         <div className="pt-3 border-t border-border">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge variant="outline" className="text-xs font-semibold">
-                              💡 Justificación
+                              Justificación
                             </Badge>
                           </div>
                           {titleData.justification ? (

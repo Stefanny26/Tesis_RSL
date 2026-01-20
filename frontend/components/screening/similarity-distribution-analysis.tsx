@@ -128,9 +128,9 @@ export function SimilarityDistributionAnalysis({
             {/* Estadísticas Descriptivas */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">📊 Estadísticas de Similitud</h3>
+                <h3 className="font-semibold">Estadísticas de Similitud</h3>
                 <Badge variant="outline" className="text-xs">
-                  {analysis.totalReferences} referencias analizadas
+                  {analysis.totalReferences} referencias analizadas • Método Elbow aplicado
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
@@ -162,7 +162,7 @@ export function SimilarityDistributionAnalysis({
 
             {/* Percentiles */}
             <div>
-              <h3 className="font-semibold mb-3">📈 Distribución por Percentiles</h3>
+              <h3 className="font-semibold mb-3">Distribución por Percentiles</h3>
               <p className="text-xs text-muted-foreground mb-3">
                 Los percentiles te ayudan a entender cómo se distribuyen las similitudes:
               </p>
@@ -198,14 +198,14 @@ export function SimilarityDistributionAnalysis({
               <AlertDescription className="text-foreground">
                 <div className="space-y-3">
                   <div>
-                    <p className="font-semibold text-base">🎯 Umbral Óptimo Encontrado (Elbow Point)</p>
+                    <p className="font-semibold text-base">Umbral Óptimo Encontrado (Elbow Point)</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Este es el punto de inflexión donde la relación calidad/cantidad es óptima
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-3">
                     <div className="bg-muted/30 p-3 rounded-lg">
-                      <p className="text-sm text-muted-foreground">📊 Umbral Recomendado</p>
+                      <p className="text-sm text-muted-foreground">Umbral Recomendado</p>
                       <p className="text-xl font-bold text-green-700 dark:text-green-400 mt-1">
                         {(analysis.recommendedCutoff.threshold * 100).toFixed(2)}%
                       </p>
@@ -214,7 +214,7 @@ export function SimilarityDistributionAnalysis({
                       </p>
                     </div>
                     <div className="bg-muted/30 p-3 rounded-lg">
-                      <p className="text-sm text-muted-foreground">📚 Artículos a Revisar</p>
+                      <p className="text-sm text-muted-foreground">Artículos a Revisar</p>
                       <p className="text-xl font-bold text-green-700 dark:text-green-400 mt-1">
                         {analysis.recommendedCutoff.articlesToReview}
                       </p>
@@ -225,7 +225,7 @@ export function SimilarityDistributionAnalysis({
                   </div>
                   <div className="bg-muted/30 p-3 rounded-lg border border-primary/20 mt-3">
                     <p className="text-xs text-foreground">
-                      <strong>💡 ¿Cómo se calculó?</strong> El algoritmo analizó la curva de similitudes 
+                      <strong>¿Cómo se calculó?</strong> El algoritmo analizó la curva de similitudes 
                       y encontró el punto donde la "ganancia" de incluir más artículos disminuye significativamente. 
                       Este es el balance ideal entre <strong>exhaustividad</strong> (no perder artículos relevantes) 
                       y <strong>precisión</strong> (no incluir artículos irrelevantes).
@@ -237,7 +237,7 @@ export function SimilarityDistributionAnalysis({
 
             {/* Análisis de Umbrales */}
             <div>
-              <h3 className="font-semibold mb-3">🔍 Simulación de Diferentes Umbrales</h3>
+              <h3 className="font-semibold mb-3">Simulación de Diferentes Umbrales</h3>
               <p className="text-sm text-muted-foreground mb-3">
                 <strong>Compara qué pasaría</strong> si usaras diferentes umbrales de similitud. 
                 El marcado en verde es el recomendado por el análisis Elbow:
@@ -262,10 +262,10 @@ export function SimilarityDistributionAnalysis({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <p className="font-semibold mb-2">💡 Cómo Usar Este Análisis:</p>
+                <p className="font-semibold mb-2">Cómo Usar Este Análisis:</p>
                 <div className="space-y-3 text-sm">
                   <div className="border border-green-300 dark:border-green-700 p-3 rounded">
-                    <p className="font-semibold text-green-800 dark:text-green-400">✅ Zona Verde (Alta Confianza)</p>
+                    <p className="font-semibold text-green-800 dark:text-green-400">Zona Verde (Alta Confianza)</p>
                     <p className="text-foreground mt-1">
                       <strong>Similitud {'>'} {(analysis.statistics.percentile90 * 100).toFixed(0)}% (Top 10%)</strong>
                       <br />
@@ -276,7 +276,7 @@ export function SimilarityDistributionAnalysis({
                   </div>
                   
                   <div className="border border-yellow-300 dark:border-yellow-700 p-3 rounded">
-                    <p className="font-semibold text-yellow-800 dark:text-yellow-400">⚠️ Zona Gris (Revisar Manualmente)</p>
+                    <p className="font-semibold text-yellow-800 dark:text-yellow-400">Zona Gris (Revisar Manualmente)</p>
                     <p className="text-foreground mt-1">
                       <strong>Similitud entre {(analysis.statistics.percentile25 * 100).toFixed(0)}% 
                       y {(analysis.recommendedCutoff.threshold * 100).toFixed(0)}%</strong>
@@ -288,7 +288,7 @@ export function SimilarityDistributionAnalysis({
                   </div>
                   
                   <div className="border border-red-300 dark:border-red-700 p-3 rounded">
-                    <p className="font-semibold text-red-800 dark:text-red-400">❌ Zona Roja (Baja Confianza)</p>
+                    <p className="font-semibold text-red-800 dark:text-red-400">Zona Roja (Baja Confianza)</p>
                     <p className="text-foreground mt-1">
                       <strong>Similitud {'<'} {(analysis.recommendedCutoff.threshold * 100).toFixed(0)}%</strong>
                       <br />
@@ -300,7 +300,7 @@ export function SimilarityDistributionAnalysis({
 
                   <div className="border border-primary/30 p-3 rounded mt-3">
                     <p className="text-xs text-foreground">
-                      <strong>🎯 Paso siguiente:</strong> Aplica el umbral recomendado de{' '}
+                      <strong>Paso siguiente:</strong> Aplica el umbral recomendado de{' '}
                       <strong>{(analysis.recommendedCutoff.threshold * 100).toFixed(2)}%</strong> en 
                       el panel de "Cribado Automatico con IA" para clasificar tus {analysis.totalReferences} referencias 
                       automáticamente. Esto filtrará aproximadamente {analysis.recommendedCutoff.articlesToReview} artículos 

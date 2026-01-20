@@ -15,7 +15,8 @@ class ProtocolRepository {
     const jsonbFields = [
       'is_matrix', 'is_not_matrix', 'research_questions', 'inclusion_criteria',
       'exclusion_criteria', 'databases', 'evaluation_initial', 'matrix_elements',
-      'key_terms', 'search_queries', 'temporal_range'
+      'key_terms', 'search_queries', 'temporal_range', 'screening_results',
+      'selected_for_full_text'
       // 'prisma_compliance' deprecado - usar tabla prisma_items
     ];
     
@@ -110,6 +111,15 @@ class ProtocolRepository {
       
       // Fase 2
       fase2Unlocked: 'fase2_unlocked',
+      
+      // Referencias seleccionadas para full-text
+      selectedForFullText: 'selected_for_full_text',
+      
+      // Screening finalizado
+      screeningFinalized: 'screening_finalized',
+      
+      // PRISMA desbloqueado
+      prismaUnlocked: 'prisma_unlocked',
       
       // Estado
       completed: 'completed'

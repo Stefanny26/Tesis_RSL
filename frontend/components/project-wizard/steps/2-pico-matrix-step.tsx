@@ -4,36 +4,24 @@ import { useState } from "react"
 import { useWizard } from "../wizard-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Sparkles, Loader2, Info, Brain, Zap } from "lucide-react"
+import { Sparkles, Loader2, Info } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 
 // Helper function para obtener icono y label del componente PICO
 const getPicoComponent = (pregunta: string) => {
-  if (pregunta.includes('Población')) return { icon: '👥', label: 'Población' }
-  if (pregunta.includes('Intervención')) return { icon: '🔧', label: 'Intervención' }
-  if (pregunta.includes('Comparación')) return { icon: '⚖️', label: 'Comparador' }
-  if (pregunta.includes('Resultado') || pregunta.includes('Outcome')) return { icon: '🎯', label: 'Outcomes' }
-  return { icon: '❓', label: pregunta }
-}
-
-// Helper function para obtener nombre del proveedor de IA
-const getProviderName = (provider: 'chatgpt' | 'gemini') => {
-  const names = {
-    chatgpt: 'ChatGPT',
-    gemini: 'Gemini'
-  }
-  return names[provider]
+  if (pregunta.includes('Población')) return { icon: 'P', label: 'Población' }
+  if (pregunta.includes('Intervención')) return { icon: 'I', label: 'Intervención' }
+  if (pregunta.includes('Comparación')) return { icon: 'C', label: 'Comparador' }
+  if (pregunta.includes('Resultado') || pregunta.includes('Outcome')) return { icon: 'O', label: 'Outcomes' }
+  return { icon: '?', label: pregunta }
 }
 
 export function PicoMatrixStep() {
   const { data, updateData } = useWizard()
   const { toast } = useToast()
   const [isGenerating, setIsGenerating] = useState(false)
-  const [selectedAI, setSelectedAI] = useState<'chatgpt' | 'gemini'>(data.aiProvider || 'chatgpt')
 
   const handleGenerateWithAI = async () => {
     if (!data.projectName || !data.projectDescription) {
@@ -49,7 +37,7 @@ export function PicoMatrixStep() {
     try {
       toast({
         title: "Generando análisis...",
-        description: `Usando ${getProviderName(selectedAI)}. Esto puede tomar 20-30 segundos...`
+        description: "Esto puede tomar 20-30 segundos..."
       })
 
       // Obtener área legible desde el valor del select
@@ -70,7 +58,7 @@ export function PicoMatrixStep() {
       const result = await apiClient.generateProtocolAnalysis(
         data.projectName,
         data.projectDescription,
-        selectedAI,
+        'chatgpt', // Siempre usar ChatGPT
         areaTexto,
         data.yearStart,
         data.yearEnd
@@ -126,7 +114,7 @@ export function PicoMatrixStep() {
           is: matrizData.es || [],
           isNot: matrizData.no_es || []
         },
-        aiProvider: selectedAI
+        aiProvider: 'chatgpt'
       })
 
       console.log('✅ DEBUG - Datos actualizados en wizard con tabla unificada');
@@ -159,7 +147,7 @@ export function PicoMatrixStep() {
       <Alert className="border-blue-300 dark:border-blue-700">
         <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         <AlertDescription className="text-sm text-foreground leading-relaxed">
-          <p className="font-semibold mb-2">📊 Análisis Preliminar Integrado</p>
+          <p className="font-semibold mb-2">Análisis Preliminar Integrado</p>
           <p>
             En esta sección se genera el <strong>análisis preliminar del tema</strong> mediante la integración del{' '}
             <strong>Marco PICO</strong> y la <strong>Matriz Es/No Es</strong>, con el objetivo de clarificar la población,
@@ -185,52 +173,6 @@ export function PicoMatrixStep() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <Label className="text-base font-semibold text-foreground">Selecciona el modelo de IA:</Label>
-            <RadioGroup
-              value={selectedAI}
-              onValueChange={(value) => setSelectedAI(value as 'chatgpt' | 'gemini')}
-              className="flex flex-col space-y-3"
-              disabled={isGenerating}
-            >
-              <div className={`flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
-                selectedAI === 'chatgpt' 
-                  ? 'border-blue-500 dark:border-blue-500 bg-muted shadow-sm' 
-                  : 'border-border hover:bg-muted/50'
-              }`}>
-                <RadioGroupItem value="chatgpt" id="chatgpt" />
-                <Label 
-                  htmlFor="chatgpt" 
-                  className="flex items-center gap-2 cursor-pointer flex-1"
-                >
-                  <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  <span className="font-medium text-foreground">ChatGPT (GPT-4o-mini)</span>
-                  <span className="ml-auto px-2 py-1 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs rounded font-medium">
-                    Por defecto
-                  </span>
-                </Label>
-              </div>
-              
-              <div className={`flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
-                selectedAI === 'gemini' 
-                  ? 'border-green-500 dark:border-green-500 bg-muted shadow-sm' 
-                  : 'border-border hover:bg-muted/50'
-              }`}>
-                <RadioGroupItem value="gemini" id="gemini" />
-                <Label 
-                  htmlFor="gemini" 
-                  className="flex items-center gap-2 cursor-pointer flex-1"
-                >
-                  <Zap className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  <span className="font-medium text-foreground">Gemini (gemini-2.0-flash-exp)</span>
-                  <span className="ml-auto px-2 py-1 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 text-xs rounded font-medium">
-                    Rápido
-                  </span>
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
           <Button
             onClick={handleGenerateWithAI}
             disabled={isGenerating}
@@ -304,17 +246,17 @@ export function PicoMatrixStep() {
                           <div className="flex items-start gap-2">
                             {elemento.presente === 'si' && (
                               <span className="text-green-600 dark:text-green-400 font-bold flex-shrink-0 mt-0.5">
-                                ✅ ES:
+                                ES:
                               </span>
                             )}
                             {elemento.presente === 'no' && (
                               <span className="text-red-600 dark:text-red-400 font-bold flex-shrink-0 mt-0.5">
-                                ❌ NO ES:
+                                NO ES:
                               </span>
                             )}
                             {elemento.presente === 'parcial' && (
                               <span className="text-amber-600 dark:text-amber-400 font-bold flex-shrink-0 mt-0.5">
-                                ⚠️ PARCIAL:
+                                PARCIAL:
                               </span>
                             )}
                             <span className="text-sm text-muted-foreground leading-relaxed">
@@ -332,7 +274,7 @@ export function PicoMatrixStep() {
               <Alert className="border-amber-300 dark:border-amber-700">
                 <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 <AlertDescription className="text-sm text-foreground">
-                  <p className="font-semibold mb-1">⭐ Nota Metodológica:</p>
+                  <p className="font-semibold mb-1">Nota Metodológica:</p>
                   <p>
                     El marco PICO se realizó integrando la matriz Es/No Es con otros marcos metodológicos, 
                     no solo PICO, para mejorar y validar el planteamiento de la pregunta de investigación según 

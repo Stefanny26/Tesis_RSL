@@ -9,6 +9,16 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 import { 
   Sparkles, 
@@ -19,7 +29,10 @@ import {
   CheckCircle2,
   Database,
   Upload,
-  Save
+  Save,
+  Edit,
+  Check,
+  X
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
@@ -85,6 +98,9 @@ export function SearchPlanStep() {
   const [loadingDatabases, setLoadingDatabases] = useState(false)
   const [detectedArea, setDetectedArea] = useState<string>("")
   const [importedCounts, setImportedCounts] = useState<Record<string, number>>({})
+  const [editedQueries, setEditedQueries] = useState<Set<string>>(new Set())
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false)
+  const [editingQueries, setEditingQueries] = useState<Set<string>>(new Set())
 
   // 🔍 LOG INICIAL
   console.log('📊 SearchPlanStep - Estado inicial:', {
@@ -425,6 +441,75 @@ export function SearchPlanStep() {
     })
   }
 
+  const enableEditMode = (databaseId: string) => {
+    setEditingQueries(prev => new Set(prev).add(databaseId))
+  }
+
+  const cancelEditMode = (databaseId: string) => {
+    setEditingQueries(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(databaseId)
+      return newSet
+    })
+    // Recargar el query original si no se guardó
+    const originalQuery = data.searchPlan?.searchQueries?.find(q => q.databaseId === databaseId)
+    if (originalQuery) {
+      setQueries(prev => prev.map(q => 
+        q.databaseId === databaseId ? originalQuery : q
+      ))
+    }
+  }
+
+  const saveEditedQuery = (databaseId: string) => {
+    const currentQuery = queries.find(q => q.databaseId === databaseId)
+    if (currentQuery) {
+      // Marcar como editado
+      setEditedQueries(prev => new Set(prev).add(databaseId))
+      
+      // Guardar en el context
+      updateData({
+        searchPlan: {
+          ...data.searchPlan,
+          searchQueries: queries
+        }
+      })
+      
+      toast({
+        title: "✅ Cambios guardados",
+        description: `Cadena de ${currentQuery.databaseName} actualizada`
+      })
+    }
+    
+    // Salir del modo edición
+    setEditingQueries(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(databaseId)
+      return newSet
+    })
+  }
+
+  const handleQueryEdit = (databaseId: string, newQuery: string) => {
+    // Actualizar el query en el estado local (temporal hasta que se guarde)
+    const updatedQueries = queries.map(q => 
+      q.databaseId === databaseId ? { ...q, query: newQuery } : q
+    )
+    setQueries(updatedQueries)
+  }
+
+  const handleRegenerateConfirmation = () => {
+    if (queries.length > 0 && editedQueries.size > 0) {
+      setShowRegenerateDialog(true)
+    } else {
+      handleGenerateQueries()
+    }
+  }
+
+  const handleConfirmedRegenerate = () => {
+    setShowRegenerateDialog(false)
+    setEditedQueries(new Set()) // Limpiar ediciones
+    handleGenerateQueries()
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="text-center space-y-3 mb-8">
@@ -506,7 +591,7 @@ export function SearchPlanStep() {
           {selectedDatabases.length > 0 && (
             <div className="mt-6">
               <Button
-                onClick={handleGenerateQueries}
+                onClick={handleRegenerateConfirmation}
                 disabled={isGenerating}
                 size="lg"
                 className="w-full"
@@ -519,7 +604,7 @@ export function SearchPlanStep() {
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-5 w-5" />
-                    Generar Cadenas de Búsqueda ({selectedDatabases.length})
+                    {queries.length > 0 ? 'Regenerar Cadenas de Búsqueda' : 'Generar Cadenas de Búsqueda'} ({selectedDatabases.length})
                   </>
                 )}
               </Button>
@@ -608,13 +693,68 @@ export function SearchPlanStep() {
                             <Copy className="h-3 w-3 mr-1" />
                             <span className="text-xs">Copiar</span>
                           </Button>
+                          
+                          {!editingQueries.has(query.databaseId) ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2"
+                              onClick={() => enableEditMode(query.databaseId)}
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              <span className="text-xs">Editar</span>
+                            </Button>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-green-600 hover:text-green-700"
+                                onClick={() => saveEditedQuery(query.databaseId)}
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                <span className="text-xs">Guardar</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-red-600 hover:text-red-700"
+                                onClick={() => cancelEditMode(query.databaseId)}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                <span className="text-xs">Cancelar</span>
+                              </Button>
+                            </>
+                          )}
+                          
+                          {editedQueries.has(query.databaseId) && !editingQueries.has(query.databaseId) && (
+                            <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-700">
+                              ✏️ Editada
+                            </Badge>
+                          )}
                         </div>
                         <Textarea
                           value={query.query}
-                          readOnly
+                          onChange={(e) => handleQueryEdit(query.databaseId, e.target.value)}
+                          readOnly={!editingQueries.has(query.databaseId)}
                           rows={4}
-                          className="text-xs font-mono resize-none bg-muted/50 border-muted-foreground/20"
+                          className={`text-xs font-mono resize-none ${
+                            editingQueries.has(query.databaseId)
+                              ? 'bg-background border-primary focus:border-primary ring-2 ring-primary/20'
+                              : 'bg-muted/50 border-muted-foreground/20 cursor-default'
+                          }`}
+                          placeholder="Edita la cadena de búsqueda aquí..."
                         />
+                        {editingQueries.has(query.databaseId) ? (
+                          <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Modo edición: modifica el texto y haz clic en "Guardar"
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">
+                            💡 Haz clic en "Editar" para modificar esta cadena
+                          </p>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="align-top text-center">
@@ -749,6 +889,53 @@ export function SearchPlanStep() {
         </Card>
         </>
       )}
+
+      {/* DIÁLOGO DE CONFIRMACIÓN PARA REGENERAR */}
+      <AlertDialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              ¿Regenerar cadenas de búsqueda?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Has editado manualmente <strong>{editedQueries.size}</strong> cadena{editedQueries.size > 1 ? 's' : ''} de búsqueda.
+              </p>
+              <p className="text-foreground font-medium">
+                ¿Qué deseas hacer?
+              </p>
+              <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-green-600">✓</span>
+                  <div>
+                    <strong>Mantener:</strong> Conservar tus ediciones actuales (recomendado si ya ajustaste las cadenas)
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-600">⚠️</span>
+                  <div>
+                    <strong>Regenerar:</strong> Crear nuevas cadenas desde cero (perderás todos los cambios manuales)
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Mantener mis ediciones
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmedRegenerate}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Regenerar todo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   )

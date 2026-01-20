@@ -134,7 +134,7 @@ export function ProtocolDefinitionStep() {
       })
 
       toast({
-        title: "✅ Definiciones generadas",
+        title: "Definiciones generadas",
         description: `Términos específicos de "${data.projectName}" extraídos exitosamente`
       })
     } catch (error: any) {
@@ -261,7 +261,7 @@ export function ProtocolDefinitionStep() {
       setEditingTerms(prev => ({ ...prev, [regenerateSection]: new Set() }))
 
       toast({
-        title: "✅ Sección regenerada",
+        title: "Sección regenerada",
         description: "Los términos se han actualizado con tu enfoque personalizado"
       })
 

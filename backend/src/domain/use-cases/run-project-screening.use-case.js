@@ -34,6 +34,43 @@ class RunProjectScreeningUseCase {
   }
 
   /**
+   * Encuentra el punto de inflexión (elbow point) en la distribución
+   * Usa el método de la segunda derivada
+   */
+  findElbowPoint(sortedScoresDesc) {
+    if (sortedScoresDesc.length < 10) {
+      // Para datasets pequeños, usar percentil 75
+      const threshold = this.calculatePercentile(sortedScoresDesc, 75);
+      const elbowIndex = sortedScoresDesc.findIndex(s => s <= threshold);
+      
+      return {
+        threshold: parseFloat(threshold.toFixed(4)),
+        position: elbowIndex,
+        percentageOfTotal: parseFloat(((elbowIndex / sortedScoresDesc.length) * 100).toFixed(1)),
+        articlesToReview: elbowIndex + 1
+      };
+    }
+
+    // Calcular la segunda derivada (aceleración de la caída)
+    const derivatives = [];
+    for (let i = 1; i < sortedScoresDesc.length - 1; i++) {
+      const secondDerivative = sortedScoresDesc[i - 1] - 2 * sortedScoresDesc[i] + sortedScoresDesc[i + 1];
+      derivatives.push({ index: i, value: secondDerivative });
+    }
+
+    // Encontrar el punto con mayor aceleración (mayor segunda derivada)
+    derivatives.sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+    const elbowIndex = derivatives[0]?.index || Math.floor(sortedScoresDesc.length * 0.25);
+
+    return {
+      threshold: parseFloat(sortedScoresDesc[elbowIndex].toFixed(4)),
+      position: elbowIndex,
+      percentageOfTotal: parseFloat(((elbowIndex / sortedScoresDesc.length) * 100).toFixed(1)),
+      articlesToReview: elbowIndex + 1
+    };
+  }
+
+  /**
    * Ejecuta cribado con embeddings para todo el proyecto
    */
   async executeEmbeddings({ projectId, protocol, threshold = 0.7 }) {
@@ -402,6 +439,40 @@ ${item.llmCriteriosNoCumplidos ? `\nNo cumple: ${item.llmCriteriosNoCumplidos.jo
       console.log(`[HYBRID] Recomendadas EXCLUIR: ${totalExcluded}`);
       console.log(`[HYBRID] Requieren revisión manual: ${totalReviewManual}`);
 
+      // Calcular estadísticas del análisis Elbow
+      console.log('\n[STATS] Calculando estadísticas de distribución...');
+      const sortedSimilarities = similarities.sort((a, b) => a - b);
+      const sum = sortedSimilarities.reduce((acc, val) => acc + val, 0);
+      
+      const statistics = {
+        min: parseFloat(sortedSimilarities[0].toFixed(4)),
+        max: parseFloat(sortedSimilarities[sortedSimilarities.length - 1].toFixed(4)),
+        mean: parseFloat((sum / sortedSimilarities.length).toFixed(4)),
+        median: this.calculatePercentile(sortedSimilarities, 50),
+        percentile25: this.calculatePercentile(sortedSimilarities, 25),
+        percentile50: this.calculatePercentile(sortedSimilarities, 50),
+        percentile75: this.calculatePercentile(sortedSimilarities, 75),
+        percentile90: this.calculatePercentile(sortedSimilarities, 90),
+        percentile95: this.calculatePercentile(sortedSimilarities, 95)
+      };
+
+      // Calcular punto de inflexión (Elbow Point)
+      const sortedDescending = [...sortedSimilarities].sort((a, b) => b - a);
+      const elbowPoint = this.findElbowPoint(sortedDescending);
+      
+      const recommendedCutoff = {
+        threshold: parseFloat(elbowPoint.threshold.toFixed(4)),
+        articlesToReview: elbowPoint.articlesToReview,
+        percentageOfTotal: elbowPoint.percentageOfTotal.toFixed(1)
+      };
+
+      console.log(`[STATS] Estadísticas calculadas:`, {
+        min: `${(statistics.min * 100).toFixed(2)}%`,
+        max: `${(statistics.max * 100).toFixed(2)}%`,
+        mean: `${(statistics.mean * 100).toFixed(2)}%`,
+        elbowThreshold: `${(recommendedCutoff.threshold * 100).toFixed(2)}%`
+      });
+
       // FASE 4: Guardar resultados en el protocolo y desbloquear fase 2 (PRISMA)
       console.log('\n[PHASE 4] Guardando resultados en protocolo y desbloqueando Fase 2...');
       const screeningResults = {
@@ -433,6 +504,8 @@ ${item.llmCriteriosNoCumplidos ? `\nNo cumple: ${item.llmCriteriosNoCumplidos.jo
             manual: llmResults.filter(r => r.llmDecision === 'revisar_manual').length
           }
         },
+        statistics,
+        recommendedCutoff,
         thresholds: {
           embeddings: embeddingThreshold,
           upperAdaptive: upperThreshold,

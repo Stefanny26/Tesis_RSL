@@ -43,6 +43,15 @@ class Protocol {
     // Fase 2 desbloqueada (Revisión Manual)
     this.fase2Unlocked = data.fase2Unlocked !== undefined ? data.fase2Unlocked : (data.fase2_unlocked || false);
     
+    // Referencias seleccionadas para full-text
+    this.selectedForFullText = data.selected_for_full_text || data.selectedForFullText || [];
+    
+    // Screening finalizado
+    this.screeningFinalized = data.screening_finalized || data.screeningFinalized || false;
+    
+    // PRISMA desbloqueado
+    this.prismaUnlocked = data.prisma_unlocked || data.prismaUnlocked || false;
+    
     // Metadatos
     this.completed = data.completed || false;
     this.createdAt = data.created_at || data.createdAt;
@@ -79,7 +88,10 @@ class Protocol {
       prismaLocked: this.prismaLocked,
       prismaCompletedAt: this.prismaCompletedAt,
       screeningResults: this.screeningResults,
-      fase2_unlocked: this.fase2Unlocked,
+      fase2Unlocked: this.fase2Unlocked,
+      selectedForFullText: this.selectedForFullText,
+      screeningFinalized: this.screeningFinalized,
+      prismaUnlocked: this.prismaUnlocked,
       completed: this.completed,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
@@ -121,6 +133,9 @@ class Protocol {
       prisma_completed_at: this.prismaCompletedAt,
       screening_results: safeStringify(this.screeningResults),
       fase2_unlocked: this.fase2Unlocked,
+      selected_for_full_text: safeStringify(this.selectedForFullText),
+      screening_finalized: this.screeningFinalized,
+      prisma_unlocked: this.prismaUnlocked,
       completed: this.completed,
       created_at: this.createdAt,
       updated_at: this.updatedAt

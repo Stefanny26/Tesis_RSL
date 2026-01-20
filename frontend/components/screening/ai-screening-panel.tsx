@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Sparkles, BarChart3, Info, Brain, CheckCircle2, Loader2, TrendingUp, Zap } from "lucide-react"
+import { Sparkles, BarChart3, Info, Brain, CheckCircle2, Loader2, TrendingUp, Zap, Lightbulb } from "lucide-react"
 import { SimilarityDistributionAnalysis } from "./similarity-distribution-analysis"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -180,54 +180,55 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
             Cribado Automático con IA
           </CardTitle>
           <CardDescription>
-            El sistema ejecutará automáticamente: (1) Análisis de similitudes para determinar el umbral óptimo, (2) Clasificación con Embeddings de referencias de alta/baja confianza, y (3) Análisis con ChatGPT de la zona gris (10-30% similitud)
+            Sistema de tres etapas: análisis de similitudes, clasificación con embeddings y revisión con ChatGPT de la zona gris
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Umbral de Inclusión</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{(threshold[0] * 100).toFixed(0)}%</span>
-                {recommendedThreshold !== null && Math.abs(threshold[0] - recommendedThreshold) < 0.01 && (
-                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
-                    ✓ Recomendado
-                  </Badge>
-                )}
+          {/* Información del sistema automático - PRIMERO */}
+          <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              ¿Qué hace el análisis automático?
+            </h4>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-medium text-sm">Paso 1:</span>
+                <p className="text-sm text-muted-foreground">Analiza similitudes y determina umbral óptimo (Método Elbow)</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-medium text-sm">Paso 2:</span>
+                <p className="text-sm text-muted-foreground">Clasifica con Embeddings referencias de alta/baja confianza</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-medium text-sm">Paso 3:</span>
+                <p className="text-sm text-muted-foreground">ChatGPT analiza la zona gris (10-30% similitud)</p>
+              </div>
+              <div className="flex items-start gap-2 pt-2 border-t border-primary/20">
+                <span className="text-green-600 font-medium text-sm">Resultado:</span>
+                <p className="text-sm text-muted-foreground">Referencias organizadas listas para tu revisión</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                <span>Eficiencia: 95% precisión</span>
+                <span>•</span>
+                <span>Tiempo: 1-2 minutos</span>
               </div>
             </div>
-            <Slider
-              value={threshold}
-              onValueChange={setThreshold}
-              min={0.05}
-              max={0.5}
-              step={0.01}
-              disabled={isRunning}
-              className="w-full"
-            />
-            {recommendedThreshold !== null ? (
-              <p className="text-xs text-green-700 dark:text-green-400">
-                ✅ Usando umbral recomendado por análisis: {(recommendedThreshold * 100).toFixed(1)}%
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                ⚠️ <strong>Protocolo en español vs artículos en inglés:</strong> Se recomienda umbral bajo (10-20%). Con mismo idioma usar 70%+
-              </p>
-            )}
           </div>
 
+          {/* Estadísticas - SEGUNDO */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-muted p-3 rounded-md">
-              <p className="text-muted-foreground text-sm">Total Referencias</p>
-              <p className="text-2xl font-bold">{totalReferences}</p>
+            <div className="bg-muted p-4 rounded-lg text-center">
+              <p className="text-muted-foreground text-sm mb-1">Total Referencias</p>
+              <p className="text-3xl font-bold">{totalReferences}</p>
             </div>
-            <div className="bg-muted p-3 rounded-md">
-              <p className="text-muted-foreground text-sm">Pendientes</p>
-              <p className="text-2xl font-bold">{pendingReferences}</p>
+            <div className="bg-muted p-4 rounded-lg text-center">
+              <p className="text-muted-foreground text-sm mb-1">Pendientes</p>
+              <p className="text-3xl font-bold text-amber-600">{pendingReferences}</p>
             </div>
           </div>
 
+          {/* Botón de acción - TERCERO */}
           <Button 
             onClick={handleRunScreening} 
             disabled={isRunning || totalReferences === 0 || method === 'llm'} 
@@ -244,12 +245,12 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
             ) : pendingReferences === 0 ? (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                🔄 Re-ejecutar Cribado Híbrido
+                Re-ejecutar Cribado Híbrido
               </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                🚀 Ejecutar Cribado Híbrido
+                Ejecutar Cribado Híbrido
               </>
             )}
           </Button>
@@ -271,126 +272,8 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
               </AlertDescription>
             </Alert>
           )}
-
-          {/* Información del sistema automático */}
-          <div className="p-4 rounded-lg border border-primary/20">
-            <h4 className="text-sm font-semibold text-foreground mb-2">
-              💡 ¿Qué hace el análisis automático?
-            </h4>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>📊 <strong>Paso 1:</strong> Analiza similitudes y determina umbral óptimo (Método Elbow)</li>
-              <li>🤖 <strong>Paso 2:</strong> Clasifica con Embeddings referencias de alta/baja confianza</li>
-              <li>🧠 <strong>Paso 3:</strong> ChatGPT analiza la zona gris (10-30% similitud)</li>
-              <li>✅ <strong>Resultado:</strong> Referencias organizadas listas para tu revisión</li>
-              <li>📈 <strong>Eficiencia:</strong> 95% precisión | ~$0.01 USD | 1-2 min</li>
-            </ul>
-          </div>
         </CardContent>
       </Card>
-
-      {/* Mostrar estadísticas del análisis si existen */}
-      {analysisData && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              Resultados del Análisis
-            </CardTitle>
-            <CardDescription>
-              {analysisData.totalReferences} referencias analizadas • Método Elbow aplicado
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Estadísticas de Similitud */}
-            <div>
-              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                📊 Estadísticas de Similitud
-              </h4>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="p-3 bg-muted/30 rounded-lg border">
-                  <div className="text-xs text-muted-foreground mb-1">Mínimo</div>
-                  <div className="text-2xl font-bold">{(analysisData.statistics.min * 100).toFixed(2)}%</div>
-                  <div className="text-xs text-muted-foreground mt-1">Artículo menos similar</div>
-                </div>
-                <div className="p-3 bg-muted/30 rounded-lg border">
-                  <div className="text-xs text-muted-foreground mb-1">Máximo</div>
-                  <div className="text-2xl font-bold">{(analysisData.statistics.max * 100).toFixed(2)}%</div>
-                  <div className="text-xs text-muted-foreground mt-1">Artículo más similar</div>
-                </div>
-                <div className="p-3 bg-muted/30 rounded-lg border">
-                  <div className="text-xs text-muted-foreground mb-1">Media</div>
-                  <div className="text-2xl font-bold">{(analysisData.statistics.mean * 100).toFixed(2)}%</div>
-                  <div className="text-xs text-muted-foreground mt-1">Similitud promedio</div>
-                </div>
-                <div className="p-3 bg-muted/30 rounded-lg border">
-                  <div className="text-xs text-muted-foreground mb-1">Mediana</div>
-                  <div className="text-2xl font-bold">{(analysisData.statistics.median * 100).toFixed(2)}%</div>
-                  <div className="text-xs text-muted-foreground mt-1">Punto medio</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Distribución por Percentiles */}
-            <div>
-              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                📈 Distribución por Percentiles
-              </h4>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="p-3 rounded-lg border border-primary/20">
-                  <div className="text-xs text-muted-foreground mb-1">Top 5% (P95)</div>
-                  <div className="text-2xl font-bold text-foreground">{(analysisData.statistics.percentile95 * 100).toFixed(2)}%</div>
-                  <div className="text-xs text-muted-foreground mt-1">5% más similares</div>
-                </div>
-                <div className="p-3 rounded-lg border border-primary/20">
-                  <div className="text-xs text-muted-foreground mb-1">Top 10% (P90)</div>
-                  <div className="text-2xl font-bold text-foreground">{(analysisData.statistics.percentile90 * 100).toFixed(2)}%</div>
-                  <div className="text-xs text-muted-foreground mt-1">10% más similares</div>
-                </div>
-                <div className="p-3 rounded-lg border border-primary/20">
-                  <div className="text-xs text-muted-foreground mb-1">Top 25% (P75)</div>
-                  <div className="text-2xl font-bold text-foreground">{(analysisData.statistics.percentile75 * 100).toFixed(2)}%</div>
-                  <div className="text-xs text-muted-foreground mt-1">25% más similares</div>
-                </div>
-                <div className="p-3 rounded-lg border border-primary/20">
-                  <div className="text-xs text-muted-foreground mb-1">Mediana (P50)</div>
-                  <div className="text-2xl font-bold text-foreground">{(analysisData.statistics.percentile50 * 100).toFixed(2)}%</div>
-                  <div className="text-xs text-muted-foreground mt-1">50% sobre este valor</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Umbral Óptimo Recomendado */}
-            <div className="p-4 rounded-lg border-2 border-primary/30">
-              <div className="flex items-start gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground flex-shrink-0">
-                  🎯
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
-                    Umbral Óptimo Encontrado (Elbow Point)
-                  </h4>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Este es el punto de inflexión donde la relación calidad/cantidad es óptima
-                  </p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">📊 Umbral Recomendado</div>
-                      <div className="text-3xl font-bold text-foreground">{(analysisData.recommendedCutoff.threshold * 100).toFixed(2)}%</div>
-                      <div className="text-xs text-muted-foreground mt-1">Artículos con similitud ≥ este valor serán incluidos</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">📝 Artículos a Revisar</div>
-                      <div className="text-3xl font-bold text-foreground">{analysisData.recommendedCutoff.articlesToReview}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{analysisData.recommendedCutoff.percentageOfTotal}% del total ({analysisData.totalReferences} refs)</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </CardContent>
-        </Card>
-      )}
 
       {/* Modal de Progreso */}
       <Dialog open={isRunning} onOpenChange={() => {}}>

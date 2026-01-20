@@ -39,19 +39,19 @@ class PrismaController {
       }
 
       let items = await this.prismaItemRepository.findAllByProject(projectId);
-      
+
       // Si no hay ítems o no hay exactamente 27, inicializar los 27 ítems PRISMA vacíos
       if (items.length !== 27) {
         console.log('📝 Inicializando 27 ítems PRISMA para proyecto:', projectId);
         await this.initializePrismaItems(projectId);
         items = await this.prismaItemRepository.findAllByProject(projectId);
       }
-      
+
       // Si los ítems 1-10 están vacíos, migrar automáticamente desde protocolo (primera vez)
       const item1 = items.find(item => item.itemNumber === 1);
       if (item1 && (!item1.content || item1.content.trim() === '' || item1.content === 'null')) {
         console.log('🔄 Primera vez en PRISMA - migrando ítems 1-10 desde protocolo...');
-        
+
         try {
           const protocol = await this.protocolRepository.findByProjectId(projectId);
           if (protocol) {
@@ -67,7 +67,7 @@ class PrismaController {
           // Continuar sin fallar - los ítems quedan vacíos
         }
       }
-      
+
       const stats = await this.prismaItemRepository.getComplianceStats(projectId);
 
       res.status(200).json({
@@ -82,8 +82,8 @@ class PrismaController {
             human: parseInt(stats.human) || 0,
             hybrid: parseInt(stats.hybrid) || 0,
             aiValidated: parseInt(stats.ai_validated) || 0,
-            completionPercentage: stats.total > 0 
-              ? Math.round((parseInt(stats.completed) / 27) * 100) 
+            completionPercentage: stats.total > 0
+              ? Math.round((parseInt(stats.completed) / 27) * 100)
               : 0
           }
         }
@@ -115,7 +115,7 @@ class PrismaController {
       }
 
       const item = await this.prismaItemRepository.findByProjectAndNumber(projectId, parseInt(itemNumber));
-      
+
       if (!item) {
         return res.status(404).json({
           success: false,
@@ -218,8 +218,8 @@ class PrismaController {
       if (content !== undefined) {
         // Actualizar contenido (marca como editado por humano)
         updatedItem = await this.prismaItemRepository.updateContent(
-          projectId, 
-          parseInt(itemNumber), 
+          projectId,
+          parseInt(itemNumber),
           content,
           true // markAsHumanEdited
         );
@@ -327,43 +327,20 @@ class PrismaController {
         });
       }
 
-      // Obtener el ítem
-      const item = await this.prismaItemRepository.findByProjectAndNumber(projectId, parseInt(itemNumber));
-      
-      if (!item) {
-        return res.status(404).json({
-          success: false,
-          message: `Ítem PRISMA ${itemNumber} no encontrado`
-        });
-      }
+      const ValidatePrismaItemUseCase = require('../../domain/use-cases/validate-prisma-item.use-case');
 
-      if (!item.content || item.content.trim().length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'No hay contenido para validar'
-        });
-      }
+      const validateUseCase = new ValidatePrismaItemUseCase({
+        prismaItemRepository: this.prismaItemRepository,
+        aiService: this.aiService
+      });
 
-      // TODO: Implementar validación con IA (Gemini/GPT-4)
-      // Por ahora, retornar validación mock
-      const aiValidation = {
-        validated: true,
-        suggestions: `Sugerencia para ítem ${itemNumber}: El contenido cumple con los requisitos básicos de PRISMA.`,
-        issues: []
-      };
-
-      const updatedItem = await this.prismaItemRepository.updateAIValidation(
-        projectId,
-        parseInt(itemNumber),
-        aiValidation
-      );
+      const result = await validateUseCase.execute(projectId, parseInt(itemNumber));
 
       res.status(200).json({
         success: true,
         message: 'Validación con IA completada',
-        data: { 
-          item: updatedItem.toJSON(),
-          validation: aiValidation
+        data: {
+          validation: result.validation
         }
       });
     } catch (error) {
@@ -404,8 +381,8 @@ class PrismaController {
           human: parseInt(stats.human) || 0,
           hybrid: parseInt(stats.hybrid) || 0,
           aiValidated: parseInt(stats.ai_validated) || 0,
-          completionPercentage: stats.total > 0 
-            ? Math.round((parseInt(stats.completed) / 27) * 100) 
+          completionPercentage: stats.total > 0
+            ? Math.round((parseInt(stats.completed) / 27) * 100)
             : 0
         }
       });
@@ -642,8 +619,8 @@ class PrismaController {
           isPrismaComplete,
           canGenerateArticle: isPrismaComplete,
           completionPercentage: Math.round((completed / 27) * 100),
-          message: isPrismaComplete 
-            ? 'PRISMA completo. Puede generar el artículo científico.' 
+          message: isPrismaComplete
+            ? 'PRISMA completo. Puede generar el artículo científico.'
             : `PRISMA incompleto: ${completed}/27 ítems completados.`
         }
       });
@@ -800,8 +777,8 @@ class PrismaController {
     });
 
     // Ítem 5: Criterios de elegibilidad
-    const inclusionCriteria = Array.isArray(protocol.inclusionCriteria) 
-      ? protocol.inclusionCriteria.join('\n') 
+    const inclusionCriteria = Array.isArray(protocol.inclusionCriteria)
+      ? protocol.inclusionCriteria.join('\n')
       : 'Criterios de inclusión definidos';
     const exclusionCriteria = Array.isArray(protocol.exclusionCriteria)
       ? protocol.exclusionCriteria.join('\n')

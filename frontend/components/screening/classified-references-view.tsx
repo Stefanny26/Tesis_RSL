@@ -90,14 +90,14 @@ export function ClassifiedReferencesView({ references, onViewDetails }: Classifi
             <div className="flex items-center gap-2 mt-2">
               {showMethod && (
                 <Badge variant="outline" className="text-[10px]">
-                  {reference.aiReasoning?.includes('🧠 CHATGPT') ? '🔀 Híbrido' : '🤖 Embeddings'}
+                  {reference.aiReasoning?.includes('CHATGPT') ? 'Híbrido' : 'Embeddings'}
                 </Badge>
               )}
               <Badge variant={reference.aiClassification === 'include' ? 'default' : 'destructive'} className="text-[10px]">
-                {reference.aiClassification === 'include' ? '✅ Incluir' : '❌ Excluir'}
+                {reference.aiClassification === 'include' ? 'Incluir' : 'Excluir'}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                {reference.aiReasoning?.includes('🧠 CHATGPT') ? `${confidence}% confianza` : `${similarity}% similitud`}
+                {reference.aiReasoning?.includes('CHATGPT') ? `${confidence}% confianza` : `${similarity}% similitud`}
               </span>
             </div>
           </div>
@@ -172,7 +172,7 @@ export function ClassifiedReferencesView({ references, onViewDetails }: Classifi
         {/* Grupo 1: Alta Confianza con Embeddings (Incluir) */}
         <SectionCard
           sectionId="embeddings-include"
-          title="🤖 Alta Confianza - INCLUIR (Embeddings)"
+          title="Alta Confianza - INCLUIR (Embeddings)"
           icon={CheckCircle}
           count={embeddingsGroups.included.length}
           color="border-green-300 dark:border-green-700"
@@ -183,7 +183,7 @@ export function ClassifiedReferencesView({ references, onViewDetails }: Classifi
         {/* Grupo 2: Alta Confianza con Embeddings (Excluir) */}
         <SectionCard
           sectionId="embeddings-exclude"
-          title="🤖 Alta Confianza - EXCLUIR (Embeddings)"
+          title="Alta Confianza - EXCLUIR (Embeddings)"
           icon={XCircle}
           count={embeddingsGroups.excluded.length}
           color="border-red-300 dark:border-red-700"
@@ -196,7 +196,7 @@ export function ClassifiedReferencesView({ references, onViewDetails }: Classifi
           <>
             <SectionCard
               sectionId="hybrid-include"
-              title="🔀 Zona Gris - INCLUIR (Embeddings + ChatGPT)"
+              title="Zona Gris - INCLUIR (Embeddings + ChatGPT)"
               icon={CheckCircle}
               count={hybridGroups.included.length}
               color="border-blue-300 dark:border-blue-700"
@@ -206,7 +206,7 @@ export function ClassifiedReferencesView({ references, onViewDetails }: Classifi
 
             <SectionCard
               sectionId="hybrid-exclude"
-              title="🔀 Zona Gris - EXCLUIR (Embeddings + ChatGPT)"
+              title="Zona Gris - EXCLUIR (Embeddings + ChatGPT)"
               icon={XCircle}
               count={hybridGroups.excluded.length}
               color="border-orange-300 dark:border-orange-700"

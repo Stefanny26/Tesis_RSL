@@ -1,9 +1,10 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, ArrowRight, Loader2 } from "lucide-react"
 
 interface PriorityDistributionAnalysisProps {
   readonly references: ReadonlyArray<{
@@ -13,9 +14,13 @@ interface PriorityDistributionAnalysisProps {
     readonly screeningScore?: number | null
     readonly ai_classification?: string
   }>
+  readonly onSelectForFullText?: (referenceIds: string[], count: number, phase: string) => Promise<void>
+  readonly disabled?: boolean
 }
 
-export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDistributionAnalysisProps>) {
+export function PriorityDistributionAnalysis({ references, onSelectForFullText, disabled = false }: Readonly<PriorityDistributionAnalysisProps>) {
+  const [loadingPhase, setLoadingPhase] = useState<string | null>(null)
+
   const analysis = useMemo(() => {
     // Filtrar referencias con puntaje válido (buscar en similarity_score o screeningScore)
     const scoredRefs = references
@@ -99,6 +104,7 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
         elbow: elbowIndex
       },
       elbowScore,
+      scoredRefs,
       recommendations: {
         highConfidence: scoredRefs.slice(0, top10Index),
         recommended: scoredRefs.slice(0, top25Index),
@@ -106,6 +112,21 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
       }
     }
   }, [references])
+
+  const handleSelectPhase = async (phase: string, count: number) => {
+    if (!onSelectForFullText || !analysis) return
+    
+    setLoadingPhase(phase)
+    try {
+      // Obtener los IDs de los top N artículos
+      const topReferences = analysis.scoredRefs.slice(0, count)
+      const referenceIds = topReferences.map(ref => ref.id)
+      
+      await onSelectForFullText(referenceIds, count, phase)
+    } finally {
+      setLoadingPhase(null)
+    }
+  }
 
   if (!analysis) {
     return (
@@ -249,75 +270,133 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
           </div>
 
           <p className="text-xs text-muted-foreground mt-4">
-            📊 <strong>Interpretación:</strong> La línea azul muestra la distribución de puntajes.
+            <strong>Interpretación:</strong> La línea azul muestra la distribución de puntajes.
             El "codo" (línea púrpura vertical) marca el punto de inflexión donde la relevancia cae bruscamente.
           </p>
         </CardContent>
       </Card>
 
-      {/* Recomendaciones de Corte */}
-      <Card>
+      {/* Recomendaciones de Corte - Unificado */}
+      <Card className="border-green-300 dark:border-green-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-600" />
             Criterio de Corte Recomendado (Método Híbrido)
           </CardTitle>
+          <CardDescription className="space-y-2">
+            <p className="font-semibold text-foreground">
+              Selecciona con cuántos artículos (Top) deseas continuar al Full Text:
+            </p>
+            <p>
+              Haz clic en cualquier fase para seleccionar automáticamente esos artículos para revisión de texto completo. 
+              Cada fase representa un nivel de confianza diferente basado en el análisis estadístico.
+            </p>
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="p-4 border-2 border-green-300 dark:border-green-700 rounded-lg">
-            <div className="flex items-start gap-3">
-              <Badge className="bg-green-600 dark:bg-green-700">Fase 1: Alta Confianza</Badge>
+          {/* Fase 1: Alta Confianza */}
+          <button
+            onClick={() => handleSelectPhase('fase1', indices.top10)}
+            disabled={!onSelectForFullText || loadingPhase !== null || disabled}
+            className="w-full p-4 border-2 border-green-300 dark:border-green-700 rounded-lg hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
+          >
+            <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground mb-1">
-                  Revisa los primeros {indices.top10} artículos
-                </p>
-                <p className="text-xs text-green-700 dark:text-green-400">
-                  Puntaje &gt; {(stats.p90 * 100).toFixed(1)}% (Top 10%)
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-green-600 dark:bg-green-700">Fase 1: Alta Confianza</Badge>
+                  <span className="text-xs text-green-700 dark:text-green-400">
+                    Puntaje &gt; {(stats.p90 * 100).toFixed(1)}%
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  ✅ Estos artículos son <strong>casi con seguridad relevantes</strong>. 
+                  Estos artículos son <strong>casi con seguridad relevantes</strong>. 
                   Empieza tu revisión manual con estos.
                 </p>
               </div>
+              <div className="flex items-center gap-2">
+                {loadingPhase === 'fase1' ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                ) : (
+                  <>
+                    <Badge variant="outline" className="text-base font-bold">
+                      {indices.top10} artículos
+                    </Badge>
+                    <ArrowRight className="h-5 w-5 text-green-600" />
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          </button>
 
-          <div className="p-4 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
-            <div className="flex items-start gap-3">
-              <Badge className="bg-blue-600 dark:bg-blue-700">Fase 2: Recomendado</Badge>
+          {/* Fase 2: Recomendado */}
+          <button
+            onClick={() => handleSelectPhase('fase2', indices.top25)}
+            disabled={!onSelectForFullText || loadingPhase !== null || disabled}
+            className="w-full p-4 border-2 border-blue-300 dark:border-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
+          >
+            <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground mb-1">
-                  Continúa hasta el artículo {indices.top25}
-                </p>
-                <p className="text-xs text-blue-700 dark:text-blue-400">
-                  Puntaje &gt; {(stats.p75 * 100).toFixed(1)}% (Top 25%)
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-blue-600 dark:bg-blue-700">Fase 2: Recomendado</Badge>
+                  <span className="text-xs text-blue-700 dark:text-blue-400">
+                    Puntaje &gt; {(stats.p75 * 100).toFixed(1)}%
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  ⚠️ Estos artículos tienen <strong>alta probabilidad de relevancia</strong>. 
+                  Estos artículos tienen <strong>alta probabilidad de relevancia</strong>. 
                   Incluye estos en tu revisión de texto completo.
                 </p>
               </div>
+              <div className="flex items-center gap-2">
+                {loadingPhase === 'fase2' ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                ) : (
+                  <>
+                    <Badge variant="outline" className="text-base font-bold">
+                      {indices.top25} artículos
+                    </Badge>
+                    <ArrowRight className="h-5 w-5 text-blue-600" />
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          </button>
 
-          <div className="p-4 border-2 border-purple-300 dark:border-purple-700 rounded-lg">
-            <div className="flex items-start gap-3">
-              <Badge className="bg-purple-600 dark:bg-purple-700">Fase 3: Punto de Corte (Codo)</Badge>
+          {/* Fase 3: Punto de Corte (Codo) */}
+          <button
+            onClick={() => handleSelectPhase('fase3', indices.elbow)}
+            disabled={!onSelectForFullText || loadingPhase !== null || disabled}
+            className="w-full p-4 border-2 border-purple-300 dark:border-purple-700 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
+          >
+            <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground mb-1">
-                  Extiende hasta el artículo {indices.elbow}
-                </p>
-                <p className="text-xs text-purple-700 dark:text-purple-400">
-                  Puntaje &gt; {(elbowScore * 100).toFixed(1)}% (Punto de inflexión detectado)
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-purple-600 dark:bg-purple-700">Fase 3: Punto de Corte (Codo)</Badge>
+                  <span className="text-xs text-purple-700 dark:text-purple-400">
+                    Puntaje &gt; {(elbowScore * 100).toFixed(1)}%
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  📐 Este es el <strong>"codo" del gráfico</strong>. 
+                  Este es el <strong>"codo" del gráfico</strong>. 
                   Después de este punto, la relevancia cae significativamente.
                 </p>
               </div>
+              <div className="flex items-center gap-2">
+                {loadingPhase === 'fase3' ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                ) : (
+                  <>
+                    <Badge variant="outline" className="text-base font-bold">
+                      {indices.elbow} artículos
+                    </Badge>
+                    <ArrowRight className="h-5 w-5 text-purple-600" />
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          </button>
 
+          {/* Criterio de Detención */}
           <div className="p-4 border border-orange-300 dark:border-orange-700 rounded-lg">
             <div className="flex items-start gap-3">
               <TrendingDown className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
@@ -334,37 +413,11 @@ export function PriorityDistributionAnalysis({ references }: Readonly<PriorityDi
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Resumen Numérico */}
-      <Card>
-        <CardHeader>
-          <CardTitle>📊 Resumen de Artículos para Full Text Screening</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center p-2 border border-green-300 dark:border-green-700 rounded">
-              <span className="text-sm font-semibold text-foreground">Mínimo recomendado (Top 10%):</span>
-              <Badge className="bg-green-600 dark:bg-green-700">{indices.top10} artículos</Badge>
-            </div>
-            <div className="flex justify-between items-center p-2 border border-blue-300 dark:border-blue-700 rounded">
-              <span className="text-sm font-semibold text-foreground">Recomendado estándar (Top 25%):</span>
-              <Badge className="bg-blue-600 dark:bg-blue-700">{indices.top25} artículos</Badge>
-            </div>
-            <div className="flex justify-between items-center p-2 border border-purple-300 dark:border-purple-700 rounded">
-              <span className="text-sm font-semibold text-foreground">Punto de corte óptimo (Codo):</span>
-              <Badge className="bg-purple-600 dark:bg-purple-700">{indices.elbow} artículos</Badge>
-            </div>
-            <div className="flex justify-between items-center p-2 border border-orange-300 dark:border-orange-700 rounded">
-              <span className="text-sm font-semibold text-foreground">Máximo razonable (Mediana):</span>
-              <Badge className="bg-orange-600 dark:bg-orange-700">{indices.top50} artículos</Badge>
-            </div>
-          </div>
-
-          <div className="mt-4 p-4 border border-primary/30 rounded-lg">
+          {/* Recomendación Final */}
+          <div className="mt-4 p-4 border-2 border-primary/30 rounded-lg bg-primary/5">
             <p className="text-sm font-semibold text-foreground mb-2">
-              ✅ Recomendación Final:
+              Recomendación Final:
             </p>
             <p className="text-sm text-foreground">
               Para tu revisión de texto completo, enfócate en los primeros <strong>{indices.top25} artículos</strong>
