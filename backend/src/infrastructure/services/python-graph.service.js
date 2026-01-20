@@ -1,0 +1,85 @@
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+class PythonGraphService {
+    constructor() {
+        this.scriptPath = path.join(__dirname, '../../../scripts/generate_charts.py');
+        this.outputDir = path.join(__dirname, '../../../uploads/charts');
+
+        // Ensure output directory exists
+        if (!fs.existsSync(this.outputDir)) {
+            fs.mkdirSync(this.outputDir, { recursive: true });
+        }
+    }
+
+    /**
+     * Genera gráficos PRISMA y Scree Plot usando Python
+     * @param {Object} prismaData - Datos de cribado PRISMA
+     * @param {Array<number>} screeScores - Lista de puntajes de cribado
+     * @returns {Promise<Object>} Rutas de las imágenes generadas
+     */
+    async generateCharts(prismaData, screeScores) {
+        return new Promise((resolve, reject) => {
+            const inputData = {
+                prisma: {
+                    identified: prismaData.identified || 0,
+                    duplicates: prismaData.duplicatesRemoved || 0,
+                    screened: prismaData.screenedTitleAbstract || 0,
+                    excluded: prismaData.excludedTitleAbstract || 0,
+                    retrieved: prismaData.fullTextRetrieved || ((prismaData.screenedTitleAbstract || 0) - (prismaData.excludedTitleAbstract || 0)),
+                    not_retrieved: 0, // Ajustar si tienes datos reales
+                    assessed: prismaData.fullTextAssessed || 0,
+                    excluded_reasons: prismaData.exclusionReasons || {}, // Necesitas agregar esto al PRISMA context si no está
+                    included: prismaData.includedFinal || 0
+                },
+                scree: {
+                    scores: screeScores || []
+                }
+            };
+
+            console.log('📊 Generando gráficos con Python...');
+
+            const pythonProcess = spawn('python', [this.scriptPath, '--output-dir', this.outputDir]);
+
+            let stdout = '';
+            let stderr = '';
+
+            pythonProcess.stdout.on('data', (data) => {
+                stdout += data.toString();
+            });
+
+            pythonProcess.stderr.on('data', (data) => {
+                stderr += data.toString();
+            });
+
+            pythonProcess.on('close', (code) => {
+                if (code !== 0) {
+                    console.error('❌ Error generando gráficos:', stderr);
+                    // No fallar drásticamente, retornar vacío para no romper generación de artículo
+                    resolve({});
+                    return;
+                }
+
+                try {
+                    const results = JSON.parse(stdout);
+                    // Convertir a URLs relativas para servir
+                    const urls = {};
+                    if (results.prisma) urls.prisma = `/uploads/charts/${results.prisma}`;
+                    if (results.scree) urls.scree = `/uploads/charts/${results.scree}`;
+
+                    console.log('✅ Gráficos generados:', urls);
+                    resolve(urls);
+                } catch (e) {
+                    console.error('❌ Error parseando output de Python:', e);
+                    resolve({});
+                }
+            });
+
+            pythonProcess.stdin.write(JSON.stringify(inputData));
+            pythonProcess.stdin.end();
+        });
+    }
+}
+
+module.exports = PythonGraphService;

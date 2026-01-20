@@ -46,15 +46,15 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
   async function loadData() {
     try {
       setIsLoading(true)
-      
+
       // Cargar proyecto
       const projectData = await apiClient.getProject(params.id)
       setProject(projectData)
-      
+
       // Cargar estado del artículo
       const statusData = await apiClient.getArticleStatus(params.id)
       setStatus(statusData.data || statusData)
-      
+
       // Cargar versiones guardadas del artículo
       try {
         const versionsData = await apiClient.getArticleVersions(params.id)
@@ -84,7 +84,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             changeDescription: 'Versión inicial',
             isPublished: false
           }
-          
+
           setVersions([initialVersion])
           setCurrentVersionId('v1-temp')
         }
@@ -112,11 +112,11 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
           changeDescription: 'Versión inicial',
           isPublished: false
         }
-        
+
         setVersions([initialVersion])
         setCurrentVersionId('v1-temp')
       }
-      
+
     } catch (error: any) {
       console.error('Error cargando datos del artículo:', error)
       toast({
@@ -136,13 +136,13 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
       prev.map((v) =>
         v.id === currentVersionId
           ? {
-              ...v,
-              content: { ...v.content, [section]: content },
-              wordCount: Object.values({ ...v.content, [section]: content })
-                .join(" ")
-                .split(" ")
-                .filter((w) => w.length > 0).length,
-            }
+            ...v,
+            content: { ...v.content, [section]: content },
+            wordCount: Object.values({ ...v.content, [section]: content })
+              .join(" ")
+              .split(" ")
+              .filter((w) => w.length > 0).length,
+          }
           : v,
       ),
     )
@@ -189,10 +189,10 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
       prev.map((v) =>
         v.id === currentVersionId
           ? {
-              ...v,
-              content: versionToRestore.content,
-              wordCount: versionToRestore.wordCount,
-            }
+            ...v,
+            content: versionToRestore.content,
+            wordCount: versionToRestore.wordCount,
+          }
           : v,
       ),
     )
@@ -207,27 +207,27 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
   const handleGenerateDraft = async (section: string) => {
     try {
       setIsGenerating(true)
-      
+
       toast({
         title: "Generando sección",
         description: `Generando contenido para ${section}...`,
       })
-      
+
       const response = await apiClient.generateArticleSection(
-        params.id, 
+        params.id,
         section as any
       )
-      
+
       if (response.success && response.data) {
         // Actualizar la sección correspondiente
         handleContentChange(section as keyof ArticleVersion["content"], response.data.content)
-        
+
         toast({
           title: "✅ Sección generada",
           description: `Se ha generado contenido para ${section}`,
         })
       }
-      
+
     } catch (error: any) {
       console.error('Error generando sección:', error)
       toast({
@@ -249,24 +249,24 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
       })
       return
     }
-    
+
     try {
       setIsGenerating(true)
-      
+
       toast({
         title: "Generando artículo",
         description: "Extrayendo datos y generando contenido...",
       })
-      
+
       // Extraer RQS automáticamente antes de generar el artículo (proceso interno)
       try {
         await apiClient.extractRQSData(params.id)
       } catch (error) {
         console.log('RQS ya extraído o no necesario:', error)
       }
-      
+
       const response = await apiClient.generateArticle(params.id)
-      
+
       if (response.success && response.data) {
         // Guardar la versión generada en la base de datos
         const saveResponse = await apiClient.saveArticleVersion(params.id, {
@@ -285,7 +285,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
           await loadData()
         }
       }
-      
+
     } catch (error: any) {
       console.error('Error generando artículo:', error)
       toast({
@@ -410,45 +410,12 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             />
           )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handlePreview}
-              disabled={!currentVersion || isGenerating}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              Vista Previa
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleExport('pdf')}
-              disabled={!currentVersion || isGenerating}
-            >
-              <FileDown className="mr-2 h-4 w-4" />
-              Exportar
-            </Button>
-            <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Guardar Versión
-                </>
-              )}
-            </Button>
-          </div>
-
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Main Editor */}
             {currentVersion && (
               <div className="lg:col-span-2">
-                <ArticleEditor 
-                  version={currentVersion} 
+                <ArticleEditor
+                  version={currentVersion}
                   onContentChange={handleContentChange}
                   disabled={isGenerating}
                 />
@@ -469,6 +436,43 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
                 onSelectVersion={setCurrentVersionId}
                 onRestoreVersion={handleRestoreVersion}
               />
+
+              {/* Action Buttons - Moved to bottom of sidebar */}
+              <div className="flex flex-col gap-2 pt-4 border-t">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handlePreview}
+                    disabled={!currentVersion || isGenerating}
+                    className="flex-1"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Vista Previa
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleExport('pdf')}
+                    disabled={!currentVersion || isGenerating}
+                    className="flex-1"
+                  >
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Exportar
+                  </Button>
+                </div>
+                <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving} className="w-full">
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Guardar Versión
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

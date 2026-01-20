@@ -13,17 +13,21 @@
  */
 
 class GenerateArticleFromPrismaUseCase {
-  constructor({ 
+  constructor({
     prismaItemRepository,
     protocolRepository,
     rqsEntryRepository,
+    screeningRecordRepository,
     aiService,
+    pythonGraphService,
     generatePrismaContextUseCase
   }) {
     this.prismaItemRepository = prismaItemRepository;
     this.protocolRepository = protocolRepository;
     this.rqsEntryRepository = rqsEntryRepository;
+    this.screeningRecordRepository = screeningRecordRepository;
     this.aiService = aiService;
+    this.pythonGraphService = pythonGraphService;
     this.generatePrismaContextUseCase = generatePrismaContextUseCase;
   }
 
@@ -33,33 +37,33 @@ class GenerateArticleFromPrismaUseCase {
    */
   classifyStudiesForRQs(rqsEntries, protocol) {
     console.log('🔍 Re-clasificando estudios para RQs basándose en keywords...');
-    
+
     // RQ1: ¿Cuáles son las técnicas más aplicadas?
     const rq1Keywords = [
-      'authentication', 'encryption', 'monitoring', 'blockchain', 
+      'authentication', 'encryption', 'monitoring', 'blockchain',
       'pki', 'access control', 'security framework', 'cybersecurity',
       'autenticación', 'encriptación', 'monitoreo', 'seguridad'
     ];
-    
+
     // RQ2: ¿Cómo se gestionan vulnerabilidades?
     const rq2Keywords = [
-      'vulnerability', 'threat', 'detection', 'prevention', 
+      'vulnerability', 'threat', 'detection', 'prevention',
       'audit', 'incident', 'risk', 'management', 'gestión',
       'vulnerabilidad', 'amenaza', 'detección', 'prevención'
     ];
-    
+
     // RQ3: ¿Qué evidencia sobre efectividad?
     const rq3Keywords = [
-      'latency', 'efficiency', 'accuracy', 'performance', 
+      'latency', 'efficiency', 'accuracy', 'performance',
       'effectiveness', 'improvement', 'reduction', 'metrics',
       'eficiencia', 'precisión', 'rendimiento', 'efectividad'
     ];
-    
+
     let rq1Count = 0, rq2Count = 0, rq3Count = 0;
-    
+
     const classified = rqsEntries.map(entry => {
       const text = `${entry.title || ''} ${entry.keyEvidence || ''} ${entry.technology || ''}`.toLowerCase();
-      
+
       // Clasificar RQ1
       const hasRQ1 = rq1Keywords.some(kw => text.includes(kw.toLowerCase()));
       if (hasRQ1) {
@@ -68,7 +72,7 @@ class GenerateArticleFromPrismaUseCase {
       } else {
         entry.rq1Relation = entry.rq1Relation || 'no';
       }
-      
+
       // Clasificar RQ2
       const hasRQ2 = rq2Keywords.some(kw => text.includes(kw.toLowerCase()));
       if (hasRQ2) {
@@ -77,20 +81,20 @@ class GenerateArticleFromPrismaUseCase {
       } else {
         entry.rq2Relation = entry.rq2Relation || 'no';
       }
-      
+
       // Clasificar RQ3 (requiere keywords + métricas)
-      const hasRQ3 = rq3Keywords.some(kw => text.includes(kw.toLowerCase())) && 
-                     (entry.metrics && Object.keys(entry.metrics).length > 0);
+      const hasRQ3 = rq3Keywords.some(kw => text.includes(kw.toLowerCase())) &&
+        (entry.metrics && Object.keys(entry.metrics).length > 0);
       if (hasRQ3 || (entry.latency && entry.latency !== 'Unknown')) {
         entry.rq3Relation = 'partial';
         rq3Count++;
       } else {
         entry.rq3Relation = entry.rq3Relation || 'no';
       }
-      
+
       return entry;
     });
-    
+
     console.log(`✅ Re-clasificación completada: RQ1=${rq1Count}, RQ2=${rq2Count}, RQ3=${rq3Count}`);
     return classified;
   }
@@ -128,29 +132,40 @@ class GenerateArticleFromPrismaUseCase {
         años: `${rqsStats.yearRange.min}-${rqsStats.yearRange.max}`
       });
 
-      // 4. Mapear PRISMA
+      // 4. Generar Gráficos con Python
+      let chartPaths = {};
+      try {
+        if (this.pythonGraphService && this.screeningRecordRepository) {
+          const scores = await this.screeningRecordRepository.getAllScores(projectId);
+          chartPaths = await this.pythonGraphService.generateCharts(prismaContext.screening, scores);
+        }
+      } catch (err) {
+        console.error('⚠️ Error generando gráficos:', err);
+      }
+
+      // 5. Mapear PRISMA
       const prismaMapping = this.mapPrismaToIMRaD(prismaItems);
 
-      // 5. Generar artículo con CALIDAD ACADÉMICA
+      // 6. Generar artículo con CALIDAD ACADÉMICA
       console.log('📝 Generando secciones del artículo...');
-      
+
       // ✅ VALIDACIÓN: Asegurar que title nunca esté vacío
-      const articleTitle = prismaMapping.title || 
-                          prismaContext.protocol.title || 
-                          prismaContext.protocol.proposedTitle || 
-                          'Systematic Literature Review';
-      
+      const articleTitle = prismaMapping.title ||
+        prismaContext.protocol.title ||
+        prismaContext.protocol.proposedTitle ||
+        'Systematic Literature Review';
+
       if (!articleTitle || articleTitle.trim() === '') {
         console.warn('⚠️ Advertencia: Título del artículo vacío, usando fallback genérico');
       }
-      
+
       const article = {
         title: articleTitle,
         abstract: await this.generateProfessionalAbstract(prismaMapping, prismaContext, rqsStats),
-        introduction: await this.generateProfessionalIntroduction(prismaMapping, prismaContext),
-        methods: await this.generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries),
-        results: await this.generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats),
-        discussion: await this.generateProfessionalDiscussion(prismaMapping, prismaContext, rqsStats),
+        introduction: await this.generateProfessionalIntroduction(prismaMapping, prismaContext, rqsEntries),
+        methods: await this.generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries, chartPaths),
+        results: await this.generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats, chartPaths),
+        discussion: await this.generateProfessionalDiscussion(prismaMapping, prismaContext, rqsStats, rqsEntries),
         conclusions: await this.generateProfessionalConclusions(prismaMapping, prismaContext, rqsStats),
         references: this.generateProfessionalReferences(prismaContext, rqsEntries),
         declarations: this.generateDeclarations(prismaContext),
@@ -242,7 +257,9 @@ Genera SOLO el texto del abstract sin encabezados de sección:`;
   /**
    * INTRODUCCIÓN PROFESIONAL con revisión de literatura
    */
-  async generateProfessionalIntroduction(prismaMapping, prismaContext) {
+  async generateProfessionalIntroduction(prismaMapping, prismaContext, rqsEntries) {
+    const referencesList = rqsEntries.map((e, i) => `[${i + 1}] ${e.author} (${e.year}): ${e.title}`).join('\n');
+
     const prompt = `Redacta una introducción académica profesional para una revisión sistemática en revista científica.
 
 **CONTENIDO PRISMA DISPONIBLE:**
@@ -260,28 +277,23 @@ Protocolo PICO:
 - Outcome: ${prismaContext.protocol.pico.outcome}
 
 Preguntas de Investigación:
-${prismaContext.protocol.researchQuestions.map((rq, i) => `RQ${i+1}: ${rq}`).join('\n')}
+${prismaContext.protocol.researchQuestions.map((rq, i) => `RQ${i + 1}: ${rq}`).join('\n')}
+
+**ESTUDIOS INCLUIDOS (USAR PARA CITAS):**
+${referencesList}
 
 **ESTRUCTURA REQUERIDA (800-1000 palabras):**
 
-1. **Párrafo 1-2 (Contexto)**: Establece el estado actual del campo, tendencias recientes, y relevancia del tema. Cita conceptos generales sin inventar estudios específicos.
-
-2. **Párrafo 3-4 (Gap de investigación)**: Identifica claramente qué falta en la literatura actual, por qué es problemático, y qué consecuencias tiene este vacío de conocimiento.
-
-3. **Párrafo 5 (Objetivos)**: Declara explícitamente el objetivo de esta revisión sistemática y las preguntas de investigación que guiarán el estudio.
-
-4. **Párrafo 6 (Contribución esperada)**: Explica qué aportará esta revisión a la literatura y cómo ayudará a cerrar el gap identificado.
+1. **Párrafo 1-2 (Contexto)**: Establece el estado actual del campo.
+2. **Párrafo 3-4 (Gap y Literatura)**: Cita los estudios incluidos usando SU NÚMERO entre corchetes [X] cuando sea relevante para mostrar qué se ha hecho (y qué falta).
+3. **Párrafo 5 (Objetivos)**: Declara el objetivo de esta revisión.
+4. **Párrafo 6 (Contribución)**: Explica el aporte.
 
 **ESTILO DE REDACCIÓN:**
 - Tercera persona impersonal
-- Tiempos verbales en pasado/presente según corresponda
-- Transiciones suaves entre párrafos
-- Sin bullet points, todo en prosa continua
-- Lenguaje académico formal pero claro
-- NO cites estudios no incluidos en PRISMA
-- NO inventes datos o autores
-
-**TONO:** Profesional, objetivo, argumentativo pero no especulativo.
+- ESTRICTO: Usa formato de citas numerado [1], [2] correspondiente a la lista provista.
+- NO inventes citas ni autores.
+- Lenguaje académico formal en español.
 
 Genera SOLO el texto de la introducción en español:`;
 
@@ -297,11 +309,26 @@ Genera SOLO el texto de la introducción en español:`;
   /**
    * MÉTODOS PROFESIONALES con detalles reproducibles completos
    */
-  async generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries) {
+  async generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries, charts = {}) {
     const databases = prismaContext.protocol.databases || [];
     const dbNames = databases.map(db => db.name).join(', ') || 'bases de datos electrónicas';
     const searchString = databases[0]?.searchString || 'Ver anexo para estrategias completas';
     const dbName = databases[0]?.name || 'Base de datos principal';
+
+    let screePlot = '';
+    if (charts.scree) {
+      screePlot = `
+![Priority Screening Score Distribution](${charts.scree})
+*Figura: Distribución de puntajes de relevancia semántica (Scree Plot).*
+`;
+    }
+
+    const screeSection = screePlot ? `
+## 2.X Priorización mediante Inteligencia Artificial
+
+Se utilizó un enfoque híbrido de cribado asistido por IA. Las referencias descargadas fueron analizadas semánticamente para generar un puntaje de relevancia (0-1). La Figura anterior muestra la distribución de estos puntajes, permitiendo identificar el punto de corte óptimo para maximizar la recuperación de estudios relevantes minimizando el esfuerzo de revisión manual.
+${screePlot}
+` : '';
 
     return `## 2.1 Diseño de la revisión
 
@@ -330,6 +357,8 @@ ${searchString}
 \`\`\`
 
 Las estrategias completas para todas las bases de datos se encuentran disponibles en el material suplementario.
+
+${screeSection}
 
 ## 2.4 Proceso de selección
 
@@ -398,7 +427,7 @@ La síntesis se organizó en torno a las tres preguntas de investigación, integ
   /**
    * RESULTADOS PROFESIONALES con análisis estadístico real y síntesis por RQ
    */
-  async generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats) {
+  async generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats, charts = {}) {
     // Generar análisis RQS detallado
     const rqsAnalysis = await this.generateDetailedRQSAnalysis(rqsEntries, rqsStats, prismaContext);
 
@@ -414,7 +443,12 @@ La Figura 1 presenta el diagrama de flujo PRISMA completo del proceso de selecci
 
 De estos, **${prismaContext.screening.fullTextRetrieved || 'N/A'} artículos** fueron recuperados para evaluación de texto completo. Finalmente, **${rqsStats.total} estudios** cumplieron todos los criterios de inclusión y fueron incluidos en la síntesis cualitativa.
 
-**[FIGURA 1: Diagrama de flujo PRISMA 2020 - Ver documento suplementario]**
+La Figura 1 presenta el diagrama de flujo PRISMA completo del proceso de selección. La búsqueda inicial identificó **${prismaContext.screening.totalResults || 'N/A'} registros** a través de las bases de datos consultadas. Tras la eliminación de duplicados (n=${prismaContext.screening.duplicatesRemoved || 'N/A'}), se cribaron **${prismaContext.screening.afterScreening || 'N/A'} registros únicos** por título y resumen.
+
+De estos, **${prismaContext.screening.fullTextRetrieved || 'N/A'} artículos** fueron recuperados para evaluación de texto completo. Finalmente, **${rqsStats.total} estudios** cumplieron todos los criterios de inclusión y fueron incluidos en la síntesis cualitativa.
+
+${charts.prisma ? `![PRISMA 2020 Flow Diagram](${charts.prisma})` : '**[FIGURA 1: Diagrama de flujo PRISMA 2020]**'}
+*Figura 1. Diagrama de flujo PRISMA 2020 del proceso de selección de estudios.*
 
 ## 3.2 Características de los estudios incluidos
 
@@ -458,22 +492,22 @@ ${rq3Synthesis}`;
 **DATOS ESTADÍSTICOS REALES (NO INVENTES NADA):**
 
 Distribución por tipo de estudio:
-${Object.entries(rqsStats.studyTypes).map(([type, count]) => `- ${type}: n=${count} (${((count/rqsStats.total)*100).toFixed(1)}%)`).join('\n')}
+${Object.entries(rqsStats.studyTypes).map(([type, count]) => `- ${type}: n=${count} (${((count / rqsStats.total) * 100).toFixed(1)}%)`).join('\n')}
 
 Distribución por contexto de aplicación:
-${Object.entries(rqsStats.contexts).map(([context, count]) => `- ${context}: n=${count} (${((count/rqsStats.total)*100).toFixed(1)}%)`).join('\n')}
+${Object.entries(rqsStats.contexts).map(([context, count]) => `- ${context}: n=${count} (${((count / rqsStats.total) * 100).toFixed(1)}%)`).join('\n')}
 
 Distribución temporal:
 - Rango: ${rqsStats.yearRange.min}-${rqsStats.yearRange.max}
 - Por año: ${JSON.stringify(rqsStats.yearDistribution)}
 
 Tecnologías más estudiadas (top 5):
-${rqsStats.technologies.slice(0, 5).map((t, i) => `${i+1}. ${t.technology}: n=${t.count} (${((t.count/rqsStats.total)*100).toFixed(1)}%)`).join('\n')}
+${rqsStats.technologies.slice(0, 5).map((t, i) => `${i + 1}. ${t.technology}: n=${t.count} (${((t.count / rqsStats.total) * 100).toFixed(1)}%)`).join('\n')}
 
 Cobertura de preguntas de investigación:
-- RQ1: ${rqsStats.rqRelations.rq1.yes} directos (${((rqsStats.rqRelations.rq1.yes/rqsStats.total)*100).toFixed(1)}%), ${rqsStats.rqRelations.rq1.partial} parciales (${((rqsStats.rqRelations.rq1.partial/rqsStats.total)*100).toFixed(1)}%)
-- RQ2: ${rqsStats.rqRelations.rq2.yes} directos (${((rqsStats.rqRelations.rq2.yes/rqsStats.total)*100).toFixed(1)}%), ${rqsStats.rqRelations.rq2.partial} parciales (${((rqsStats.rqRelations.rq2.partial/rqsStats.total)*100).toFixed(1)}%)
-- RQ3: ${rqsStats.rqRelations.rq3.yes} directos (${((rqsStats.rqRelations.rq3.yes/rqsStats.total)*100).toFixed(1)}%), ${rqsStats.rqRelations.rq3.partial} parciales (${((rqsStats.rqRelations.rq3.partial/rqsStats.total)*100).toFixed(1)}%)
+- RQ1: ${rqsStats.rqRelations.rq1.yes} directos (${((rqsStats.rqRelations.rq1.yes / rqsStats.total) * 100).toFixed(1)}%), ${rqsStats.rqRelations.rq1.partial} parciales (${((rqsStats.rqRelations.rq1.partial / rqsStats.total) * 100).toFixed(1)}%)
+- RQ2: ${rqsStats.rqRelations.rq2.yes} directos (${((rqsStats.rqRelations.rq2.yes / rqsStats.total) * 100).toFixed(1)}%), ${rqsStats.rqRelations.rq2.partial} parciales (${((rqsStats.rqRelations.rq2.partial / rqsStats.total) * 100).toFixed(1)}%)
+- RQ3: ${rqsStats.rqRelations.rq3.yes} directos (${((rqsStats.rqRelations.rq3.yes / rqsStats.total) * 100).toFixed(1)}%), ${rqsStats.rqRelations.rq3.partial} parciales (${((rqsStats.rqRelations.rq3.partial / rqsStats.total) * 100).toFixed(1)}%)
 
 **INSTRUCCIONES DE REDACCIÓN:**
 
@@ -515,7 +549,7 @@ ${this.generateTable2Professional(rqsEntries)}`;
    */
   async synthesizeRQ1Findings(rqsEntries, prismaContext) {
     const relevantStudies = rqsEntries.filter(e => e.rq1Relation === 'yes' || e.rq1Relation === 'partial');
-    
+
     if (relevantStudies.length === 0) {
       return "No se identificaron estudios que abordaran directamente esta pregunta de investigación.";
     }
@@ -524,7 +558,7 @@ ${this.generateTable2Professional(rqsEntries)}`;
 
 **EVIDENCIA EXTRAÍDA DE LOS ESTUDIOS:**
 ${relevantStudies.map((study, i) => `
-Estudio S${i+1} (${study.author}, ${study.year}):
+Estudio S${i + 1} (${study.author}, ${study.year}):
 - Tecnología: ${study.technology}
 - Evidencia clave: ${study.keyEvidence}
 - Métricas: ${JSON.stringify(study.metrics || {})}
@@ -555,7 +589,7 @@ Tercera persona, español académico, solo texto:`;
    */
   async synthesizeRQ2Findings(rqsEntries, prismaContext) {
     const relevantStudies = rqsEntries.filter(e => e.rq2Relation === 'yes' || e.rq2Relation === 'partial');
-    
+
     if (relevantStudies.length === 0) {
       return "No se identificaron estudios que abordaran directamente esta pregunta de investigación.";
     }
@@ -564,7 +598,7 @@ Tercera persona, español académico, solo texto:`;
 
 **EVIDENCIA:**
 ${relevantStudies.map((study, i) => `
-S${i+1} (${study.author}, ${study.year}): ${study.keyEvidence}
+S${i + 1} (${study.author}, ${study.year}): ${study.keyEvidence}
 Tecnología: ${study.technology} | Contexto: ${study.context}
 `).join('\n')}
 
@@ -584,7 +618,7 @@ Genera 2 párrafos (300-400 palabras), tercera persona, español:`;
    */
   async synthesizeRQ3Findings(rqsEntries, prismaContext) {
     const relevantStudies = rqsEntries.filter(e => e.rq3Relation === 'yes' || e.rq3Relation === 'partial');
-    
+
     if (relevantStudies.length === 0) {
       return "No se identificaron estudios que abordaran directamente esta pregunta de investigación.";
     }
@@ -593,7 +627,7 @@ Genera 2 párrafos (300-400 palabras), tercera persona, español:`;
 
 **EVIDENCIA:**
 ${relevantStudies.map((study, i) => `
-S${i+1} (${study.author}, ${study.year}): ${study.keyEvidence}
+S${i + 1} (${study.author}, ${study.year}): ${study.keyEvidence}
 Limitaciones: ${study.limitations}
 `).join('\n')}
 
@@ -618,14 +652,14 @@ Genera 2 párrafos (300-400 palabras), tercera persona, español:`;
 | ID | Autor (Año) | Tipo de estudio | Contexto | Tecnología principal | Publicación |
 |----|-------------|-----------------|----------|---------------------|-------------|
 ${rqsEntries.map((entry, i) => {
-  const id = `S${i + 1}`;
-  const author = `${entry.author} (${entry.year})`;
-  const type = this.translateStudyType(entry.studyType);
-  const context = this.translateContext(entry.context);
-  const tech = (entry.technology || 'No especificado').substring(0, 40);
-  const source = entry.title ? entry.title.substring(0, 30) + '...' : 'N/A';
-  return `| ${id} | ${author} | ${type} | ${context} | ${tech} | ${source} |`;
-}).join('\n')}
+      const id = `S${i + 1}`;
+      const author = `${entry.author} (${entry.year})`;
+      const type = this.translateStudyType(entry.studyType);
+      const context = this.translateContext(entry.context);
+      const tech = (entry.technology || 'No especificado').substring(0, 40);
+      const source = entry.title ? entry.title.substring(0, 30) + '...' : 'N/A';
+      return `| ${id} | ${author} | ${type} | ${context} | ${tech} | ${source} |`;
+    }).join('\n')}
 
 *Nota: Los estudios se identifican como S1-S${rqsEntries.length} para facilitar su referencia en el análisis.*
 `;
@@ -638,28 +672,28 @@ ${rqsEntries.map((entry, i) => {
 | ID | Evidencia clave | Métricas principales | RQ1 | RQ2 | RQ3 | Calidad |
 |----|----------------|---------------------|-----|-----|-----|---------|
 ${rqsEntries.map((entry, i) => {
-  const id = `S${i + 1}`;
-  const evidence = (entry.keyEvidence || 'No reportado').substring(0, 60) + '...';
-  
-  // Métricas
-  let metrics = 'No reportadas';
-  if (entry.metrics && Object.keys(entry.metrics).length > 0) {
-    const metricsList = Object.entries(entry.metrics)
-      .slice(0, 2)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join('; ');
-    metrics = metricsList.substring(0, 40);
-  }
-  
-  // RQ relations con símbolos
-  const rq1 = entry.rq1Relation === 'yes' ? '✓' : entry.rq1Relation === 'partial' ? '◐' : '✗';
-  const rq2 = entry.rq2Relation === 'yes' ? '✓' : entry.rq2Relation === 'partial' ? '◐' : '✗';
-  const rq3 = entry.rq3Relation === 'yes' ? '✓' : entry.rq3Relation === 'partial' ? '◐' : '✗';
-  
-  const quality = this.translateQuality(entry.qualityScore);
-  
-  return `| ${id} | ${evidence} | ${metrics} | ${rq1} | ${rq2} | ${rq3} | ${quality} |`;
-}).join('\n')}
+      const id = `S${i + 1}`;
+      const evidence = (entry.keyEvidence || 'No reportado').substring(0, 60) + '...';
+
+      // Métricas
+      let metrics = 'No reportadas';
+      if (entry.metrics && Object.keys(entry.metrics).length > 0) {
+        const metricsList = Object.entries(entry.metrics)
+          .slice(0, 2)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join('; ');
+        metrics = metricsList.substring(0, 40);
+      }
+
+      // RQ relations con símbolos
+      const rq1 = entry.rq1Relation === 'yes' ? '✓' : entry.rq1Relation === 'partial' ? '◐' : '✗';
+      const rq2 = entry.rq2Relation === 'yes' ? '✓' : entry.rq2Relation === 'partial' ? '◐' : '✗';
+      const rq3 = entry.rq3Relation === 'yes' ? '✓' : entry.rq3Relation === 'partial' ? '◐' : '✗';
+
+      const quality = this.translateQuality(entry.qualityScore);
+
+      return `| ${id} | ${evidence} | ${metrics} | ${rq1} | ${rq2} | ${rq3} | ${quality} |`;
+    }).join('\n')}
 
 *Leyenda: ✓ = Relación directa, ◐ = Relación parcial, ✗ = Sin relación directa*
 *Calidad: Evaluación cualitativa basada en transparencia metodológica y reporte de limitaciones*
@@ -673,29 +707,29 @@ ${rqsEntries.map((entry, i) => {
 | ID | Diseño adecuado | Datos suficientes | Limitaciones reportadas | Transparencia | Riesgo global |
 |----|----------------|-------------------|------------------------|---------------|---------------|
 ${rqsEntries.map((entry, i) => {
-  const id = `S${i + 1}`;
-  
-  // Evaluación basada en RQS
-  const hasLimitations = entry.limitations && entry.limitations.length > 20;
-  const hasMetrics = entry.metrics && Object.keys(entry.metrics).length > 0;
-  const hasEvidence = entry.keyEvidence && entry.keyEvidence.length > 50;
-  
-  const design = entry.studyType !== 'review' ? 'Adecuado' : 'Parcial';
-  const dataQuality = (hasMetrics && hasEvidence) ? 'Suficientes' : hasEvidence ? 'Parciales' : 'Insuficientes';
-  const limitationsReported = hasLimitations ? 'Sí' : 'No';
-  const transparency = (hasLimitations && hasMetrics) ? 'Alta' : hasEvidence ? 'Media' : 'Baja';
-  
-  // Calcular riesgo global
-  let riskScore = 0;
-  if (design === 'Adecuado') riskScore++;
-  if (dataQuality === 'Suficientes') riskScore++;
-  if (hasLimitations) riskScore++;
-  if (hasMetrics) riskScore++;
-  
-  const globalRisk = riskScore >= 3 ? 'Bajo' : riskScore === 2 ? 'Moderado' : 'Alto';
-  
-  return `| ${id} | ${design} | ${dataQuality} | ${limitationsReported} | ${transparency} | ${globalRisk} |`;
-}).join('\n')}
+      const id = `S${i + 1}`;
+
+      // Evaluación basada en RQS
+      const hasLimitations = entry.limitations && entry.limitations.length > 20;
+      const hasMetrics = entry.metrics && Object.keys(entry.metrics).length > 0;
+      const hasEvidence = entry.keyEvidence && entry.keyEvidence.length > 50;
+
+      const design = entry.studyType !== 'review' ? 'Adecuado' : 'Parcial';
+      const dataQuality = (hasMetrics && hasEvidence) ? 'Suficientes' : hasEvidence ? 'Parciales' : 'Insuficientes';
+      const limitationsReported = hasLimitations ? 'Sí' : 'No';
+      const transparency = (hasLimitations && hasMetrics) ? 'Alta' : hasEvidence ? 'Media' : 'Baja';
+
+      // Calcular riesgo global
+      let riskScore = 0;
+      if (design === 'Adecuado') riskScore++;
+      if (dataQuality === 'Suficientes') riskScore++;
+      if (hasLimitations) riskScore++;
+      if (hasMetrics) riskScore++;
+
+      const globalRisk = riskScore >= 3 ? 'Bajo' : riskScore === 2 ? 'Moderado' : 'Alto';
+
+      return `| ${id} | ${design} | ${dataQuality} | ${limitationsReported} | ${transparency} | ${globalRisk} |`;
+    }).join('\n')}
 
 *Nota: La evaluación se realizó considerando la adecuación del diseño de investigación, suficiencia de datos para responder las RQs, reconocimiento explícito de limitaciones, y transparencia en el reporte metodológico.*
 `;
@@ -704,8 +738,13 @@ ${rqsEntries.map((entry, i) => {
   /**
    * DISCUSIÓN PROFESIONAL con interpretación crítica
    */
-  async generateProfessionalDiscussion(prismaMapping, prismaContext, rqsStats) {
+  async generateProfessionalDiscussion(prismaMapping, prismaContext, rqsStats, rqsEntries) {
+    const referencesList = rqsEntries.map((e, i) => `[${i + 1}] ${e.author} (${e.year})`).join('\n');
+
     const prompt = `Redacta una sección de DISCUSIÓN académica profesional integrando los hallazgos de esta revisión sistemática.
+
+**ESTUDIOS CONSULTADOS (Referenciar usando [N]):**
+${referencesList}
 
 **HALLAZGOS PRINCIPALES PARA DISCUTIR:**
 
@@ -717,15 +756,9 @@ Datos generales:
 - Tecnologías dominantes: ${rqsStats.technologies.slice(0, 3).map(t => t.technology).join(', ')}
 
 Cobertura de RQs:
-- RQ1: ${rqsStats.rqRelations.rq1.yes + rqsStats.rqRelations.rq1.partial} estudios (${((rqsStats.rqRelations.rq1.yes + rqsStats.rqRelations.rq1.partial)/rqsStats.total*100).toFixed(1)}%)
-- RQ2: ${rqsStats.rqRelations.rq2.yes + rqsStats.rqRelations.rq2.partial} estudios (${((rqsStats.rqRelations.rq2.yes + rqsStats.rqRelations.rq2.partial)/rqsStats.total*100).toFixed(1)}%)
-- RQ3: ${rqsStats.rqRelations.rq3.yes + rqsStats.rqRelations.rq3.partial} estudios (${((rqsStats.rqRelations.rq3.yes + rqsStats.rqRelations.rq3.partial)/rqsStats.total*100).toFixed(1)}%)
-
-Distribución de calidad:
-${JSON.stringify(rqsStats.qualityDistribution || {high: 0, medium: rqsStats.total, low: 0})}
-
-Objetivo original de la revisión:
-${prismaContext.protocol.objective}
+- RQ1: ${rqsStats.rqRelations.rq1.yes + rqsStats.rqRelations.rq1.partial} estudios
+- RQ2: ${rqsStats.rqRelations.rq2.yes + rqsStats.rqRelations.rq2.partial} estudios
+- RQ3: ${rqsStats.rqRelations.rq3.yes + rqsStats.rqRelations.rq3.partial} estudios
 
 Interpretación PRISMA base:
 ${prismaMapping.discussion.interpretation}
@@ -794,7 +827,7 @@ Objetivo cumplido:
 ${prismaContext.protocol.objective}
 
 Preguntas de investigación respondidas:
-${prismaContext.protocol.researchQuestions.map((rq, i) => `RQ${i+1}: ${rq}`).join('\n')}
+${prismaContext.protocol.researchQuestions.map((rq, i) => `RQ${i + 1}: ${rq}`).join('\n')}
 
 Datos clave de la revisión:
 - Estudios incluidos: ${rqsStats.total}
@@ -854,10 +887,10 @@ Esta revisión sistemática sintetizó evidencia de **${rqsEntries.length} estud
 ### Estudios incluidos en la síntesis
 
 ${rqsEntries.map((entry, i) => {
-  const id = i + 1;
-  const citation = this.formatCitation(entry);
-  return `[${id}] ${citation}`;
-}).join('\n\n')}
+      const id = i + 1;
+      const citation = this.formatCitation(entry);
+      return `[${id}] ${citation}`;
+    }).join('\n\n')}
 
 ### Disponibilidad de datos y materiales
 
@@ -877,21 +910,21 @@ Los autores declaran que se han seguido estrictamente las directrices PRISMA 202
    */
   formatCitation(entry) {
     let citation = `${entry.author} (${entry.year}).`;
-    
+
     if (entry.title) {
       citation += ` ${entry.title}.`;
     }
-    
+
     if (entry.source) {
       citation += ` *${entry.source}*.`;
     }
-    
+
     if (entry.doi) {
       citation += ` doi: ${entry.doi}`;
     } else if (entry.url) {
       citation += ` Disponible en: ${entry.url}`;
     }
-    
+
     return citation;
   }
 

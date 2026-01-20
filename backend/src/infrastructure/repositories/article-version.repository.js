@@ -52,7 +52,7 @@ class ArticleVersionRepository {
     const query = `
       SELECT 
         av.*,
-        u.name as creator_name
+        u.full_name as creator_name
       FROM article_versions av
       LEFT JOIN users u ON u.id = av.created_by
       WHERE av.project_id = $1
@@ -77,7 +77,7 @@ class ArticleVersionRepository {
     const query = `
       SELECT 
         av.*,
-        u.name as creator_name
+        u.full_name as creator_name
       FROM article_versions av
       LEFT JOIN users u ON u.id = av.created_by
       WHERE av.project_id = $1
@@ -87,7 +87,7 @@ class ArticleVersionRepository {
 
     const result = await this.db.query(query, [projectId]);
     if (result.rows.length === 0) return null;
-    
+
     const version = ArticleVersion.fromDatabase(result.rows[0]);
     // Sobrescribir createdBy con el nombre completo si está disponible
     if (result.rows[0].creator_name) {
@@ -103,15 +103,15 @@ class ArticleVersionRepository {
     const query = `
       SELECT 
         av.*,
-        u.name as creator_name
+        u.full_name as creator_name
       FROM article_versions av
       LEFT JOIN users u ON u.id = av.created_by
       WHERE av.id = $1
     `;
-    
+
     const result = await this.db.query(query, [id]);
     if (result.rows.length === 0) return null;
-    
+
     const version = ArticleVersion.fromDatabase(result.rows[0]);
     // Sobrescribir createdBy con el nombre completo si está disponible
     if (result.rows[0].creator_name) {

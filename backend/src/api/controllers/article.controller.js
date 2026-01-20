@@ -4,6 +4,8 @@ const ProtocolRepository = require('../../infrastructure/repositories/protocol.r
 const ReferenceRepository = require('../../infrastructure/repositories/reference.repository');
 const RQSEntryRepository = require('../../infrastructure/repositories/rqs-entry.repository');
 const ArticleVersionRepository = require('../../infrastructure/repositories/article-version.repository');
+const ScreeningRecordRepository = require('../../infrastructure/repositories/screening-record.repository');
+const PythonGraphService = require('../../infrastructure/services/python-graph.service');
 const GenerateArticleFromPrismaUseCase = require('../../domain/use-cases/generate-article-from-prisma.use-case');
 const GeneratePrismaContextUseCase = require('../../domain/use-cases/generate-prisma-context.use-case');
 const AIService = require('../../infrastructure/services/ai.service');
@@ -22,6 +24,8 @@ class ArticleController {
     this.referenceRepository = new ReferenceRepository();
     this.rqsEntryRepository = new RQSEntryRepository();
     this.articleVersionRepository = new ArticleVersionRepository(database);
+    this.screeningRecordRepository = new ScreeningRecordRepository();
+    this.pythonGraphService = new PythonGraphService();
     this.aiService = new AIService();
   }
 
@@ -100,7 +104,9 @@ class ArticleController {
         prismaItemRepository: this.prismaItemRepository,
         protocolRepository: this.protocolRepository,
         rqsEntryRepository: this.rqsEntryRepository,
+        screeningRecordRepository: this.screeningRecordRepository,
         aiService: this.aiService,
+        pythonGraphService: this.pythonGraphService,
         generatePrismaContextUseCase: generateContextUseCase
       });
 
@@ -132,7 +138,7 @@ class ArticleController {
 
     } catch (error) {
       console.error('❌ Error generando artículo:', error);
-      
+
       // Error específico si PRISMA incompleto
       if (error.message.includes('PRISMA incompleto')) {
         return res.status(400).json({
@@ -189,7 +195,9 @@ class ArticleController {
         prismaItemRepository: this.prismaItemRepository,
         protocolRepository: this.protocolRepository,
         rqsEntryRepository: this.rqsEntryRepository,
+        screeningRecordRepository: this.screeningRecordRepository,
         aiService: this.aiService,
+        pythonGraphService: this.pythonGraphService,
         generatePrismaContextUseCase: generateContextUseCase
       });
 
@@ -233,7 +241,7 @@ class ArticleController {
 
     } catch (error) {
       console.error(`❌ Error generando sección ${req.body.section}:`, error);
-      
+
       if (error.message.includes('PRISMA incompleto')) {
         return res.status(400).json({
           success: false,

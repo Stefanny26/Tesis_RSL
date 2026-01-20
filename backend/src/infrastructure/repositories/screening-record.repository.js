@@ -11,7 +11,7 @@ class ScreeningRecordRepository {
   async create(recordData) {
     const record = new ScreeningRecord(recordData);
     record.validate();
-    
+
     const query = `
       INSERT INTO screening_records (
         reference_id, project_id, user_id, stage, scores, 
@@ -20,7 +20,7 @@ class ScreeningRecordRepository {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
       RETURNING *
     `;
-    
+
     const values = [
       record.referenceId,
       record.projectId,
@@ -34,7 +34,7 @@ class ScreeningRecordRepository {
       record.comment,
       record.reviewedAt
     ];
-    
+
     const result = await database.query(query, values);
     return new ScreeningRecord(result.rows[0]);
   }
@@ -78,7 +78,7 @@ class ScreeningRecordRepository {
       WHERE reference_id = $1 
       ORDER BY reviewed_at DESC
     `;
-    
+
     const result = await database.query(query, [referenceId]);
     return result.rows.map(row => new ScreeningRecord(row));
   }
@@ -93,7 +93,7 @@ class ScreeningRecordRepository {
       ORDER BY reviewed_at DESC 
       LIMIT 1
     `;
-    
+
     const result = await database.query(query, [referenceId]);
     return result.rows[0] ? new ScreeningRecord(result.rows[0]) : null;
   }
@@ -212,7 +212,7 @@ class ScreeningRecordRepository {
       FROM screening_records
       WHERE project_id = $1 AND stage = $2
     `;
-    
+
     const result = await database.query(query, [projectId, stage]);
     return result.rows[0];
   }
@@ -229,27 +229,41 @@ class ScreeningRecordRepository {
         AND decision = 'exclude'
         AND exclusion_reasons IS NOT NULL
     `;
-    
+
     const result = await database.query(query, [projectId, stage]);
-    
+
     // Agrupar y contar motivos
     const reasonCounts = {};
     result.rows.forEach(row => {
-      const reasons = typeof row.exclusion_reasons === 'string' 
-        ? JSON.parse(row.exclusion_reasons) 
+      const reasons = typeof row.exclusion_reasons === 'string'
+        ? JSON.parse(row.exclusion_reasons)
         : row.exclusion_reasons;
-      
+
       if (Array.isArray(reasons)) {
         reasons.forEach(reason => {
           reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
         });
       }
     });
-    
+
     // Convertir a array y ordenar por frecuencia
     return Object.entries(reasonCounts)
       .map(([reason, count]) => ({ reason, count }))
       .sort((a, b) => b.count - a.count);
+  }
+
+  /**
+   * Obtiene todos los puntajes individuales ordenados descendientemente
+   */
+  async getAllScores(projectId, stage = 'fulltext') {
+    const query = `
+      SELECT total_score 
+      FROM screening_records 
+      WHERE project_id = $1 AND stage = $2
+      ORDER BY total_score DESC
+    `;
+    const result = await database.query(query, [projectId, stage]);
+    return result.rows.map(r => parseFloat(r.total_score));
   }
 }
 
