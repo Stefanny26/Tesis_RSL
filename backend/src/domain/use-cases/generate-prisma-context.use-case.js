@@ -8,10 +8,10 @@
  * ⚠️ IMPORTANTE: Este objeto congela datos ya decididos, no toma decisiones nuevas.
  */
 class GeneratePrismaContextUseCase {
-  constructor({ 
-    protocolRepository, 
+  constructor({
+    protocolRepository,
     referenceRepository,
-    projectRepository 
+    projectRepository
   }) {
     this.protocolRepository = protocolRepository;
     this.referenceRepository = referenceRepository;
@@ -42,30 +42,30 @@ class GeneratePrismaContextUseCase {
 
       // 4. Analizar screening results del protocolo
       const screeningResults = protocol.screeningResults || {};
-      
+
       // 5. Contar referencias por estado
       const identified = allReferences.length;
       const duplicates = 0; // Tu sistema ya maneja duplicados antes
-      
+
       // Referencias excluidas en cribado inicial (título/resumen)
-      const excludedTitleAbstract = allReferences.filter(ref => 
+      const excludedTitleAbstract = allReferences.filter(ref =>
         ref.screeningStatus === 'excluded'
       ).length;
-      
+
       // Referencias incluidas después del cribado inicial
-      const includedAfterScreening = allReferences.filter(ref => 
-        ref.screeningStatus === 'included' || 
+      const includedAfterScreening = allReferences.filter(ref =>
+        ref.screeningStatus === 'included' ||
         ref.screeningStatus === 'fulltext_included'
       ).length;
-      
+
       // Referencias excluidas en texto completo (si aplica)
-      const excludedFullText = allReferences.filter(ref => 
+      const excludedFullText = allReferences.filter(ref =>
         ref.screeningStatus === 'fulltext_excluded'
       ).length;
-      
+
       // Referencias finales incluidas
-      const finalIncluded = allReferences.filter(ref => 
-        ref.screeningStatus === 'included' || 
+      const finalIncluded = allReferences.filter(ref =>
+        ref.screeningStatus === 'included' ||
         ref.screeningStatus === 'fulltext_included'
       ).length;
 
@@ -87,7 +87,7 @@ class GeneratePrismaContextUseCase {
         protocol: {
           title: protocol.proposedTitle || protocol.selectedTitle || 'Sin título',
           objective: protocol.justification || protocol.refinedQuestion || '',
-          
+
           pico: {
             population: protocol.population || '',
             intervention: protocol.intervention || '',
@@ -100,15 +100,15 @@ class GeneratePrismaContextUseCase {
           inclusionCriteria: protocol.inclusionCriteria || [],
           exclusionCriteria: protocol.exclusionCriteria || [],
 
-          databases: this.formatDatabases(protocol.databases || []),
-          
+          databases: this.formatDatabases(protocol.databases || [], allReferences),
+
           temporalRange: {
             start: protocol.temporalRange?.start || protocol.dateRangeStart || null,
             end: protocol.temporalRange?.end || protocol.dateRangeEnd || null
           },
 
           searchQueries: protocol.searchQueries || [],
-          
+
           keyTerms: protocol.keyTerms || {}
         },
 
@@ -139,11 +139,11 @@ class GeneratePrismaContextUseCase {
           // Detalles técnicos (si aplican)
           similarityThresholds: screeningResults.thresholds || null,
           cutoffMethod: screeningResults.cutoffMethod || null,
-          
+
           // IA usage
           aiAssisted: screeningMethod.aiAssisted,
           aiRole: screeningMethod.aiRole,
-          
+
           // Revisión manual
           manualReview: screeningMethod.manualReview,
           dualReview: false // Actualizar si implementas dual review
@@ -182,11 +182,11 @@ class GeneratePrismaContextUseCase {
    */
   determineScreeningMethod(screeningResults) {
     // Analizar si se usó IA
-    const usedEmbeddings = screeningResults.method?.includes('embedding') || 
-                          screeningResults.method?.includes('Embedding');
-    
-    const usedChatGPT = screeningResults.method?.includes('ChatGPT') || 
-                       screeningResults.method?.includes('GPT');
+    const usedEmbeddings = screeningResults.method?.includes('embedding') ||
+      screeningResults.method?.includes('Embedding');
+
+    const usedChatGPT = screeningResults.method?.includes('ChatGPT') ||
+      screeningResults.method?.includes('GPT');
 
     let description = 'Cribado manual';
     let phases = ['Manual review of titles and abstracts'];
@@ -229,14 +229,45 @@ class GeneratePrismaContextUseCase {
   /**
    * Formatea bases de datos para PRISMA Context
    */
-  formatDatabases(databases) {
+  formatDatabases(databases, allReferences = []) {
+    // Calcular hits por source
+    const hitsBySource = allReferences.reduce((acc, ref) => {
+      // Normalizar source para coincidir con nombres de DB
+      const source = (ref.source || 'Unknown').trim();
+      acc[source] = (acc[source] || 0) + 1;
+      return acc;
+    }, {});
+
     return databases.map(db => {
+      let name = 'Unknown';
+      let searchString = null;
+
       if (typeof db === 'string') {
-        return { name: db };
+        name = db;
+      } else {
+        name = db.name || db.database || 'Unknown';
+        searchString = db.searchString || db.query || null;
       }
+
+      // Intentar coincidir source con nombre de DB (case insensitive partial match)
+      // O simplemente usar el nombre exacto si coincide
+      let hits = hitsBySource[name] || 0;
+
+      // Si no hay match exacto, buscar keys que contengan el nombre o viceversa
+      if (hits === 0) {
+        const matchingKey = Object.keys(hitsBySource).find(key =>
+          key.toLowerCase().includes(name.toLowerCase()) ||
+          name.toLowerCase().includes(key.toLowerCase())
+        );
+        if (matchingKey) {
+          hits = hitsBySource[matchingKey];
+        }
+      }
+
       return {
-        name: db.name || db.database || 'Unknown',
-        searchString: db.searchString || db.query || null
+        name,
+        searchString,
+        hits
       };
     });
   }
@@ -245,7 +276,7 @@ class GeneratePrismaContextUseCase {
    * Analiza datos extraídos de PDFs
    */
   async analyzeFullTextData(references) {
-    const referencesWithData = references.filter(ref => 
+    const referencesWithData = references.filter(ref =>
       ref.fullTextExtracted && ref.fullTextData
     );
 
@@ -263,8 +294,8 @@ class GeneratePrismaContextUseCase {
 
     referencesWithData.forEach(ref => {
       try {
-        const data = typeof ref.fullTextData === 'string' 
-          ? JSON.parse(ref.fullTextData) 
+        const data = typeof ref.fullTextData === 'string'
+          ? JSON.parse(ref.fullTextData)
           : ref.fullTextData;
 
         if (data.study_type) {

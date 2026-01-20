@@ -166,6 +166,75 @@ def draw_scree(data, output_path):
     plt.savefig(output_path, dpi=300)
     plt.close()
 
+def draw_search_table(data, output_path):
+    # Data structure: list of {name, hits, searchString}
+    if not data:
+        return
+
+    # Prepare data for table
+    table_data = []
+    # Columns: Source, Hits, Search String
+    col_labels = ['Source', 'Hits', 'Search String']
+    
+    import textwrap
+    
+    for item in data:
+        name = item.get('name', 'Unknown')
+        hits = item.get('hits', 0)
+        query = item.get('searchString', '') or 'N/A'
+        
+        # Wrap query text
+        wrapped_query = textwrap.fill(query, width=60)
+        
+        table_data.append([name, hits, wrapped_query])
+    
+    if not table_data:
+        return
+
+    # Create figure
+    # Dynamic height based on number of rows and text lines
+    # Estimate height:
+    total_lines = sum([str(row[2]).count('\n') + 1 for row in table_data])
+    row_height = 0.6 # base height per row unit
+    fig_height = max(4, len(table_data) * 1.5 + 2) # approximate
+    
+    fig, ax = plt.subplots(figsize=(12, fig_height))
+    ax.axis('off')
+    ax.axis('tight')
+    
+    # Add title
+    ax.set_title("Chart 1: Data sources and search strategy results", fontsize=14, fontweight='bold', pad=20)
+    
+    # Create table
+    table = ax.table(cellText=table_data, colLabels=col_labels, loc='center', cellLoc='left', colLoc='left')
+    
+    # Styling
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1, 1.5) # Scale height
+    
+    # Adjust column widths
+    # Source (small), Hits (small), Query (large)
+    # Cells are accessed by (row, col)
+    # Columns are 0, 1, 2
+    
+    # Iterate over cells to set column widths manually if needed, or rely on auto
+    # Let's set column widths explicitly
+    col_widths = [0.15, 0.1, 0.75]
+    for key, cell in table.get_celld().items():
+        row, col = key
+        if col >= 0:
+            cell.set_width(col_widths[col])
+            
+        # Header formatting
+        if row == 0:
+            cell.set_text_props(weight='bold')
+            cell.set_facecolor('#f0f0f0')
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output-dir', required=True, help='Directory to save charts')
@@ -191,6 +260,11 @@ def main():
         scree_path = os.path.join(args.output_dir, 'scree_plot.png')
         draw_scree(input_data['scree'], scree_path)
         results['scree'] = 'scree_plot.png'
+
+    if 'search_strategy' in input_data:
+        chart1_path = os.path.join(args.output_dir, 'chart1_search.png')
+        draw_search_table(input_data['search_strategy'], chart1_path)
+        results['chart1'] = 'chart1_search.png'
 
     print(json.dumps(results))
 

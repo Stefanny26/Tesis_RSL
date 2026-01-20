@@ -16,7 +16,12 @@ const data = {
     },
     scree: {
         scores: [0.95, 0.9, 0.85, 0.8, 0.75, 0.5, 0.45, 0.4, 0.35, 0.3, 0.2, 0.1]
-    }
+    },
+    search_strategy: [
+        { name: "Scopus", hits: 7, searchString: '( ABS ( "Mongoose" ) OR ABS ( "Mongoose ODM" ) ) AND ( ABS ( "MongoDB" ) OR ABS ( "NoSQL" ) )' },
+        { name: "IEEE Xplore", hits: 133, searchString: '("Abstract":Mongoose) OR ("Abstract":Mongoose Object Document Mapper)' },
+        { name: "ACM Digital Library", hits: 5, searchString: '("Mongoose" OR "Mongoose ODM") AND ("MongoDB" OR "NoSQL")' }
+    ]
 };
 
 const scriptPath = path.join(__dirname, 'generate_charts.py');

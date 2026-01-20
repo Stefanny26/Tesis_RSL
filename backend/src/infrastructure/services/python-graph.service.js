@@ -17,9 +17,10 @@ class PythonGraphService {
      * Genera gráficos PRISMA y Scree Plot usando Python
      * @param {Object} prismaData - Datos de cribado PRISMA
      * @param {Array<number>} screeScores - Lista de puntajes de cribado
+     * @param {Array<Object>} searchStrategy - Datos de estrategia de búsqueda (Source, Hits, Query)
      * @returns {Promise<Object>} Rutas de las imágenes generadas
      */
-    async generateCharts(prismaData, screeScores) {
+    async generateCharts(prismaData, screeScores, searchStrategy) {
         return new Promise((resolve, reject) => {
             const inputData = {
                 prisma: {
@@ -35,7 +36,8 @@ class PythonGraphService {
                 },
                 scree: {
                     scores: screeScores || []
-                }
+                },
+                search_strategy: searchStrategy || []
             };
 
             console.log('📊 Generando gráficos con Python...');
@@ -67,6 +69,7 @@ class PythonGraphService {
                     const urls = {};
                     if (results.prisma) urls.prisma = `/uploads/charts/${results.prisma}`;
                     if (results.scree) urls.scree = `/uploads/charts/${results.scree}`;
+                    if (results.chart1) urls.chart1 = `/uploads/charts/${results.chart1}`;
 
                     console.log('✅ Gráficos generados:', urls);
                     resolve(urls);

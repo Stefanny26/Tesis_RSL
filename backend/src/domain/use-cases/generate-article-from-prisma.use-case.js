@@ -137,7 +137,7 @@ class GenerateArticleFromPrismaUseCase {
       try {
         if (this.pythonGraphService && this.screeningRecordRepository) {
           const scores = await this.screeningRecordRepository.getAllScores(projectId);
-          chartPaths = await this.pythonGraphService.generateCharts(prismaContext.screening, scores);
+          chartPaths = await this.pythonGraphService.generateCharts(prismaContext.screening, scores, prismaContext.protocol.databases);
         }
       } catch (err) {
         console.error('⚠️ Error generando gráficos:', err);
@@ -323,6 +323,14 @@ Genera SOLO el texto de la introducción en español:`;
 `;
     }
 
+    let searchChart = '';
+    if (charts.chart1) {
+      searchChart = `
+![Chart 1: Data sources and search strategy results](${charts.chart1})
+*Gráfico 1. Fuentes de datos y resultados de la estrategia de búsqueda.*
+`;
+    }
+
     const screeSection = screePlot ? `
 ## 2.X Priorización mediante Inteligencia Artificial
 
@@ -346,15 +354,9 @@ Los criterios se definieron siguiendo el marco PICO:
 
 ## 2.3 Fuentes de información y estrategia de búsqueda
 
-Se realizó una búsqueda sistemática en las siguientes bases de datos electrónicas: ${dbNames}. El período de búsqueda abarcó desde ${prismaContext.protocol.temporalRange.start || '2023'} hasta ${prismaContext.protocol.temporalRange.end || '2025'}.
+La búsqueda se centró en identificar estudios relevantes publicados entre ${prismaContext.protocol.temporalRange.start || '2023'} y ${prismaContext.protocol.temporalRange.end || '2025'}. Se seleccionaron ${databases.length} bases de datos académicas clave en el campo de las ciencias de la computación: ${dbNames}. La búsqueda inicial arrojó un total de ${prismaContext.screening.totalResults || 0} artículos. El Gráfico 1 detalla las bases de datos consultadas, el número de resultados y las cadenas de búsqueda específicas utilizadas.
 
-La estrategia de búsqueda se construyó utilizando términos controlados y palabras clave relacionadas con:
-${prismaMapping.methods.searchStrategy}
-
-**Ejemplo de cadena de búsqueda (${dbName}):**
-\`\`\`
-${searchString}
-\`\`\`
+${searchChart}
 
 Las estrategias completas para todas las bases de datos se encuentran disponibles en el material suplementario.
 
