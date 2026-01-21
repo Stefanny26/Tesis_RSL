@@ -13,7 +13,6 @@ import {
   CheckCircle2, 
   Circle, 
   Loader2, 
-  Sparkles, 
   AlertCircle,
   FileText,
   CheckCheck,
@@ -22,8 +21,6 @@ import {
 } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Textarea } from "@/components/ui/textarea"
 
 interface PrismaItem {
@@ -73,7 +70,7 @@ const PRISMA_SECTIONS = {
 }
 
 const PRISMA_ITEM_NAMES: Record<number, string> = {
-  1: "Título",
+  1: "Título del estudio",
   2: "Resumen estructurado",
   3: "Justificación",
   4: "Objetivos",
@@ -111,7 +108,7 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
   const [isLoading, setIsLoading] = useState(true)
   const [isCompleting, setIsCompleting] = useState(false)
   const [activeBlock, setActiveBlock] = useState<string | null>(null)
-  const [currentSection, setCurrentSection] = useState("Todos")
+  const [currentSection, setCurrentSection] = useState("TÍTULO")
 
   useEffect(() => {
     loadData()
@@ -215,13 +212,7 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
     }
   }
 
-  const getItemsBySection = (section: string) => {
-    if (section === "Todos") return items
-    const itemNumbers = PRISMA_SECTIONS[section as keyof typeof PRISMA_SECTIONS] || []
-    return items.filter(item => itemNumbers.includes(item.item_number || item.itemNumber))
-  }
 
-  const filteredItems = getItemsBySection(currentSection)
 
   if (isLoading) {
     return (
@@ -318,97 +309,168 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
           </CardContent>
         </Card>
 
-        {/* Items List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ítems PRISMA</CardTitle>
-            <CardDescription>Revise y edite cada ítem según sea necesario</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Section Filter */}
-            <Tabs value={currentSection} onValueChange={setCurrentSection} className="mb-6">
-              <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto">
-                <TabsTrigger value="Todos">Todos</TabsTrigger>
-                {Object.keys(PRISMA_SECTIONS).map(section => (
-                  <TabsTrigger key={section} value={section}>
-                    {section}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+        {/* New Layout: Sidebar + Content */}
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Sidebar Index */}
+          <div className="w-full md:w-64 flex-shrink-0">
+            <Card className="sticky top-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Índice
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                {Object.keys(PRISMA_SECTIONS).map((section) => {
+                  const sectionItems = PRISMA_SECTIONS[section as keyof typeof PRISMA_SECTIONS] || []
+                  const completed = items.filter(item => 
+                    sectionItems.includes(item.item_number || item.itemNumber) && item.completed
+                  ).length
+                  const total = sectionItems.length
 
-            {/* Items Accordion */}
-            <Accordion type="single" collapsible className="w-full">
-              {filteredItems.map((item) => (
-                <AccordionItem key={item.id} value={`item-${item.item_number || item.itemNumber}`}>
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center gap-3 text-left">
-                      {item.completed ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-gray-300 flex-shrink-0" />
-                      )}
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          {item.section} - {PRISMA_ITEM_NAMES[item.item_number || item.itemNumber] || `Ítem ${item.item_number || item.itemNumber}`}
+                  return (
+                    <Button
+                      key={section}
+                      variant={currentSection === section ? "default" : "ghost"}
+                      size="sm"
+                      className="w-full justify-between text-left font-normal"
+                      onClick={() => {
+                        setCurrentSection(section)
+                        const element = document.getElementById(`section-${section}`)
+                        if (element) {
+                          element.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }
+                      }}
+                    >
+                      <span className="truncate">{section}</span>
+                      <span className="text-xs ml-2 flex-shrink-0">
+                        {completed}/{total}
+                      </span>
+                    </Button>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1">
+            <Card>
+              <CardContent className="p-6 md:p-8">
+                <div className="max-w-4xl mx-auto space-y-12">
+                  {Object.entries(PRISMA_SECTIONS).map(([sectionName, itemNumbers]) => {
+                    const sectionItems = items.filter(item => 
+                      itemNumbers.includes(item.item_number || item.itemNumber)
+                    ).sort((a, b) => (a.item_number || a.itemNumber) - (b.item_number || b.itemNumber))
+
+                    return (
+                      <div
+                        key={sectionName}
+                        id={`section-${sectionName}`}
+                        className="scroll-mt-8 space-y-6 border-b pb-8 last:border-0"
+                      >
+                        {/* Section Header */}
+                        <div className="space-y-2">
+                          <h2 className="text-2xl font-bold text-primary">
+                            {sectionName}
+                          </h2>
+                          <div className="flex items-center gap-2">
+                            <Progress 
+                              value={(sectionItems.filter(i => i.completed).length / sectionItems.length) * 100} 
+                              className="h-2 flex-1"
+                            />
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">
+                              {sectionItems.filter(i => i.completed).length}/{sectionItems.length}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Ítem PRISMA #{item.item_number || item.itemNumber}
+
+                        {/* Section Items */}
+                        <div className="space-y-8">
+                          {sectionItems.map((item) => (
+                            <div
+                              key={item.id}
+                              id={`item-${item.item_number || item.itemNumber}`}
+                              className="space-y-3"
+                            >
+                              {/* Item Header */}
+                              <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 mt-1">
+                                  {item.completed ? (
+                                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                  ) : (
+                                    <Circle className="h-5 w-5 text-gray-300" />
+                                  )}
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="font-semibold text-lg">
+                                      {PRISMA_ITEM_NAMES[item.item_number || item.itemNumber] || `Ítem ${item.item_number || item.itemNumber}`}
+                                    </h3>
+                                    <Badge variant="outline" className="text-xs">
+                                      #{item.item_number || item.itemNumber}
+                                    </Badge>
+                                    <Badge variant={item.completed ? "default" : "secondary"} className="text-xs">
+                                      {item.content_type === 'automated' && '🤖 IA'}
+                                      {item.content_type === 'human' && '👤 Manual'}
+                                      {item.content_type === 'hybrid' && '🔄 Híbrido'}
+                                      {item.content_type === 'pending' && '⏳ Pendiente'}
+                                    </Badge>
+                                  </div>
+                                  {item.data_source && (
+                                    <p className="text-sm text-muted-foreground">
+                                      <strong>Fuente:</strong> {item.data_source}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Item Content */}
+                              <div className="ml-8">
+                                {!item.content && item.content_type === 'pending' && (
+                                  <Alert className="mb-3">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                      Este ítem aún no ha sido completado. Escriba el contenido manualmente o genere con IA.
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+                                <Textarea
+                                  value={item.content || ''}
+                                  onChange={(e) => {
+                                    const newContent = e.target.value
+                                    setItems(prev => prev.map(i => 
+                                      (i.item_number || i.itemNumber) === (item.item_number || item.itemNumber) 
+                                        ? { ...i, content: newContent }
+                                        : i
+                                    ))
+                                  }}
+                                  onBlur={() => {
+                                    if (item.content) {
+                                      handleUpdateItem(item.item_number || item.itemNumber, item.content)
+                                    }
+                                  }}
+                                  rows={6}
+                                  placeholder={`Contenido del ítem ${PRISMA_ITEM_NAMES[item.item_number || item.itemNumber]}...`}
+                                  className="font-serif text-base leading-relaxed min-h-[120px] resize-y"
+                                />
+                                <div className="flex items-center justify-between mt-2">
+                                  <span className="text-xs text-muted-foreground">
+                                    {(item.content || '').split(/\s+/).filter(w => w.length > 0).length} palabras
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <Badge variant={item.completed ? "default" : "secondary"}>
-                        {item.content_type === 'automated' && '🤖 IA'}
-                        {item.content_type === 'human' && '👤 Manual'}
-                        {item.content_type === 'hybrid' && '🔄 Híbrido'}
-                        {item.content_type === 'pending' && '⏳ Pendiente'}
-                      </Badge>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4 pt-4">
-                      {item.data_source && (
-                        <div className="text-sm text-muted-foreground">
-                          <strong>Fuente:</strong> {item.data_source}
-                        </div>
-                      )}
-                      {!item.content && item.content_type === 'pending' && (
-                        <div className="text-sm text-yellow-600 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-950 p-3 rounded-md mb-2">
-                          ⏳ Este ítem aún no ha sido completado. Use el botón "Completar Todos" o escriba el contenido manualmente.
-                        </div>
-                      )}
-                      <Textarea
-                        value={item.content || ''}
-                        onChange={(e) => {
-                          const newContent = e.target.value
-                          setItems(prev => prev.map(i => 
-                            (i.item_number || i.itemNumber) === (item.item_number || item.itemNumber) 
-                              ? { ...i, content: newContent }
-                              : i
-                          ))
-                        }}
-                        onBlur={() => {
-                          if (item.content) {
-                            handleUpdateItem(item.item_number || item.itemNumber, item.content)
-                          }
-                        }}
-                        rows={8}
-                        placeholder="Contenido del ítem PRISMA..."
-                        className="font-serif"
-                      />
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-
-            {filteredItems.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No hay ítems en esta sección</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </main>
     </div>
   )
