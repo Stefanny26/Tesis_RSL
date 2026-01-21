@@ -197,12 +197,22 @@ class PrismaItemRepository {
 
   /**
    * Actualizar contenido de ítem (marca como editado por humano si es necesario)
+   * Si el ítem no existe, lo crea automáticamente
    */
   async updateContent(projectId, itemNumber, content, markAsHumanEdited = true) {
     // Obtener el ítem actual
-    const currentItem = await this.findByProjectAndNumber(projectId, itemNumber);
+    let currentItem = await this.findByProjectAndNumber(projectId, itemNumber);
+    
+    // Si no existe, crearlo primero
     if (!currentItem) {
-      throw new Error(`Ítem PRISMA ${itemNumber} no encontrado`);
+      console.log(`📝 Ítem PRISMA ${itemNumber} no existe, creando...`);
+      currentItem = await this.create({
+        projectId,
+        itemNumber,
+        content: '',
+        contentType: 'pending',
+        completed: false
+      });
     }
 
     // Determinar nuevo content_type
