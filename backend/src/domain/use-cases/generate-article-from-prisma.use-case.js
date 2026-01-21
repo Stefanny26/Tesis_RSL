@@ -136,7 +136,16 @@ class GenerateArticleFromPrismaUseCase {
       let chartPaths = {};
       try {
         if (this.pythonGraphService && this.screeningRecordRepository) {
-          const scores = await this.screeningRecordRepository.getAllScores(projectId);
+          // Intentar obtener scores de ambas fases (title_abstract tiene prioridad)
+          let scores = await this.screeningRecordRepository.getAllScores(projectId, 'title_abstract');
+          
+          // Si no hay scores en title_abstract, intentar fulltext
+          if (!scores || scores.length === 0) {
+            scores = await this.screeningRecordRepository.getAllScores(projectId, 'fulltext');
+          }
+          
+          console.log(`📊 Scores obtenidos para gráfico scree: ${scores?.length || 0} puntos`);
+          
           // Usar searchQueries del protocolo que tiene la información real de búsquedas
           const searchData = (prismaContext.protocol.searchQueries || []).map(sq => ({
             name: sq.database || sq.databaseId || 'Unknown',

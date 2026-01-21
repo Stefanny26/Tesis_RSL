@@ -40,6 +40,11 @@ class PythonGraphService {
                 search_strategy: searchStrategy || []
             };
 
+            console.log('📊 Datos enviados a Python:');
+            console.log('   - PRISMA stats:', prismaData);
+            console.log('   - Scores disponibles:', screeScores?.length || 0);
+            console.log('   - Primer score (ejemplo):', screeScores?.[0]);
+            console.log('   - Search strategy queries:', searchStrategy?.length || 0);
             console.log('📊 Generando gráficos con Python...');
 
             const pythonProcess = spawn('python', [this.scriptPath, '--output-dir', this.outputDir]);
@@ -71,21 +76,32 @@ class PythonGraphService {
                     const results = JSON.parse(stdout);
                     console.log('📊 Resultados parseados:', results);
                     
-                    // Convertir a URLs absolutas apuntando al backend
-                    const backendUrl = process.env.BACKEND_URL;
+                    // En producción (Render), usar base64 porque el sistema de archivos es efímero
+                    // En desarrollo, usar URLs locales
+                    const isProduction = process.env.NODE_ENV === 'production';
                     
-                    if (!backendUrl) {
-                        console.error('❌ ERROR CRÍTICO: BACKEND_URL no está configurada en las variables de entorno');
-                        console.error('   Configura BACKEND_URL en Render Dashboard para que las imágenes funcionen');
-                    }
-                    
-                    const baseUrl = backendUrl || process.env.FRONTEND_URL?.replace('3000', '3001') || 'http://localhost:3001';
                     const urls = {};
-                    if (results.prisma) urls.prisma = `${baseUrl}/uploads/charts/${results.prisma}`;
-                    if (results.scree) urls.scree = `${baseUrl}/uploads/charts/${results.scree}`;
-                    if (results.chart1) urls.chart1 = `${baseUrl}/uploads/charts/${results.chart1}`;
+                    
+                    if (isProduction) {
+                        // Usar base64 directamente en producción
+                        console.log('🔧 Modo producción: usando imágenes base64');
+                        if (results.prisma_base64) urls.prisma = results.prisma_base64;
+                        if (results.scree_base64) urls.scree = results.scree_base64;
+                        if (results.chart1_base64) urls.chart1 = results.chart1_base64;
+                    } else {
+                        // Usar URLs en desarrollo local
+                        console.log('🔧 Modo desarrollo: usando URLs locales');
+                        const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+                        if (results.prisma) urls.prisma = `${backendUrl}/uploads/charts/${results.prisma}`;
+                        if (results.scree) urls.scree = `${backendUrl}/uploads/charts/${results.scree}`;
+                        if (results.chart1) urls.chart1 = `${backendUrl}/uploads/charts/${results.chart1}`;
+                    }
 
-                    console.log('✅ URLs finales de gráficos:', urls);
+                    console.log('✅ URLs finales de gráficos:', 
+                        isProduction ? 
+                        { prisma: '✅ base64', scree: '✅ base64', chart1: '✅ base64' } : 
+                        urls
+                    );
                     resolve(urls);
                 } catch (e) {
                     console.error('❌ Error parseando output de Python:', e);

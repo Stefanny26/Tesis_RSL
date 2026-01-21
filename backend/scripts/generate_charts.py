@@ -1,6 +1,8 @@
 import sys
 import json
 import os
+import base64
+from io import BytesIO
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
@@ -9,6 +11,15 @@ import argparse
 def ensure_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
+
+def fig_to_base64(fig):
+    """Convierte una figura de matplotlib a base64"""
+    buf = BytesIO()
+    fig.savefig(buf, format='png', dpi=300, bbox_inches='tight')
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
+    return f"data:image/png;base64,{img_base64}"
 
 def draw_prisma(data, output_path):
     fig, ax = plt.subplots(figsize=(10, 8))
@@ -91,13 +102,47 @@ def draw_prisma(data, output_path):
 
     ax.set_title("PRISMA 2020 Flow Diagram", fontsize=14, fontweight='bold')
     plt.tight_layout()
+    
+    # Guardar en archivo
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    
+    # Convertir a base64
+    base64_str = fig_to_base64(fig)
     plt.close()
+    
+    return base64_str
 
 def draw_scree(data, output_path):
     scores = sorted(data.get('scores', []), reverse=True)
     if not scores:
-        return
+        print("⚠️  No hay scores disponibles para generar scree plot", file=sys.stderr)
+        # Crear imagen placeholder
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.text(0.5, 0.5, 'No hay datos de relevancia disponibles\nPara generar el gráfico scree plot', 
+                ha='center', va='center', fontsize=14, color='gray')
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.axis('off')
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        base64_str = fig_to_base64(fig)
+        plt.close()
+        return base64_str
+    
+    if len(scores) < 3:
+        print(f"⚠️  Insuficientes scores ({len(scores)}) para generar scree plot - se requieren al menos 3", file=sys.stderr)
+        # Crear imagen placeholder con advertencia
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.text(0.5, 0.5, f'Datos insuficientes ({len(scores)} puntos)\nSe requieren al menos 3 referencias con relevancia', 
+                ha='center', va='center', fontsize=14, color='orange')
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.axis('off')
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        base64_str = fig_to_base64(fig)
+        plt.close()
+        return base64_str
 
     df = pd.DataFrame({'Rank': range(1, len(scores) + 1), 'Score': scores})
     
@@ -163,8 +208,15 @@ def draw_scree(data, output_path):
 
     ax.legend(loc='lower left', fontsize='small')
     plt.tight_layout()
+    
+    # Guardar en archivo
     plt.savefig(output_path, dpi=300)
+    
+    # Convertir a base64
+    base64_str = fig_to_base64(fig)
     plt.close()
+    
+    return base64_str
 
 def draw_search_table(data, output_path):
     # Data structure: list of {name, hits, searchString}
@@ -232,8 +284,15 @@ def draw_search_table(data, output_path):
             cell.set_facecolor('#f0f0f0')
 
     plt.tight_layout()
+    
+    # Guardar en archivo
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    
+    # Convertir a base64
+    base64_str = fig_to_base64(fig)
     plt.close()
+    
+    return base64_str
 
 def main():
     parser = argparse.ArgumentParser()
@@ -245,6 +304,15 @@ def main():
     # Read data from stdin
     try:
         input_data = json.loads(sys.stdin.read())
+        print(f"🐍 Python recibió datos:", file=sys.stderr)
+        print(f"   - Tiene 'prisma': {'prisma' in input_data}", file=sys.stderr)
+        print(f"   - Tiene 'scree': {'scree' in input_data}", file=sys.stderr)
+        if 'scree' in input_data:
+            scores_count = len(input_data['scree'].get('scores', []))
+            print(f"   - Scores en scree: {scores_count}", file=sys.stderr)
+            if scores_count > 0:
+                print(f"   - Primer score: {input_data['scree']['scores'][0]}", file=sys.stderr)
+        print(f"   - Tiene 'search_strategy': {'search_strategy' in input_data}", file=sys.stderr)
     except json.JSONDecodeError:
         print("Error: Invalid JSON input", file=sys.stderr)
         sys.exit(1)
@@ -253,18 +321,21 @@ def main():
 
     if 'prisma' in input_data:
         prisma_path = os.path.join(args.output_dir, 'prisma_flow.png')
-        draw_prisma(input_data['prisma'], prisma_path)
+        prisma_base64 = draw_prisma(input_data['prisma'], prisma_path)
         results['prisma'] = 'prisma_flow.png'
+        results['prisma_base64'] = prisma_base64
 
     if 'scree' in input_data:
         scree_path = os.path.join(args.output_dir, 'scree_plot.png')
-        draw_scree(input_data['scree'], scree_path)
+        scree_base64 = draw_scree(input_data['scree'], scree_path)
         results['scree'] = 'scree_plot.png'
+        results['scree_base64'] = scree_base64
 
     if 'search_strategy' in input_data:
         chart1_path = os.path.join(args.output_dir, 'chart1_search.png')
-        draw_search_table(input_data['search_strategy'], chart1_path)
+        chart1_base64 = draw_search_table(input_data['search_strategy'], chart1_path)
         results['chart1'] = 'chart1_search.png'
+        results['chart1_base64'] = chart1_base64
 
     print(json.dumps(results))
 
