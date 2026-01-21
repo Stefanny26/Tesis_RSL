@@ -174,12 +174,15 @@ class GenerateArticleFromPrismaUseCase {
         console.warn('⚠️ Advertencia: Título del artículo vacío, usando fallback genérico');
       }
 
+      // 6.5. Convertir imágenes a base64 para guardar en BD
+      const chartPathsBase64 = await this.convertImagesToBase64(chartPaths);
+
       const article = {
         title: articleTitle,
         abstract: await this.generateProfessionalAbstract(prismaMapping, prismaContext, rqsStats),
         introduction: await this.generateProfessionalIntroduction(prismaMapping, prismaContext, rqsEntries),
-        methods: await this.generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries, chartPaths),
-        results: await this.generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats, chartPaths),
+        methods: await this.generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries, chartPathsBase64),
+        results: await this.generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats, chartPathsBase64),
         discussion: await this.generateProfessionalDiscussion(prismaMapping, prismaContext, rqsStats, rqsEntries),
         conclusions: await this.generateProfessionalConclusions(prismaMapping, prismaContext, rqsStats),
         references: this.generateProfessionalReferences(prismaContext, rqsEntries),
@@ -1226,6 +1229,49 @@ Una revisión sistemática de calidad es transparente sobre qué sabe, qué no s
       'low': 'Baja'
     };
     return translations[quality] || 'Media';
+  }
+
+  /**
+   * Convertir imágenes de URLs a base64 para guardar en BD
+   */
+  async convertImagesToBase64(chartPaths) {
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    if (!chartPaths || Object.keys(chartPaths).length === 0) {
+      return {};
+    }
+
+    const base64Charts = {};
+    
+    try {
+      for (const [key, url] of Object.entries(chartPaths)) {
+        if (!url) continue;
+        
+        // Extraer el nombre del archivo de la URL
+        const filename = url.split('/').pop();
+        const filePath = path.join(__dirname, '../../../uploads/charts', filename);
+        
+        try {
+          // Leer el archivo
+          const imageBuffer = await fs.readFile(filePath);
+          // Convertir a base64
+          const base64 = imageBuffer.toString('base64');
+          // Crear data URL
+          base64Charts[key] = `data:image/png;base64,${base64}`;
+          console.log(`✅ Imagen ${key} convertida a base64 (${Math.round(base64.length/1024)}KB)`);
+        } catch (err) {
+          console.error(`⚠️ No se pudo leer imagen ${filename}:`, err.message);
+          // Mantener la URL original si falla la conversión
+          base64Charts[key] = url;
+        }
+      }
+    } catch (err) {
+      console.error('⚠️ Error convirtiendo imágenes a base64:', err);
+      return chartPaths; // Retornar URLs originales si falla
+    }
+    
+    return base64Charts;
   }
 
   /**
