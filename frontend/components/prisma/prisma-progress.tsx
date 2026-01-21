@@ -61,7 +61,7 @@ export function PrismaProgress({ completedItems, totalItems }: PrismaProgressPro
             <div className="text-sm text-amber-900 dark:text-amber-200">
               <p className="font-medium mb-1">Cumplimiento incompleto</p>
               <p className="text-xs leading-relaxed">
-                Se requiere completar los {pendingItems} ítems restantes para cumplir con los estándares PRISMA 2020 
+                Se requiere completar los {pendingItems} ítems restantes para cumplir con los estándares PRISMA 2020
                 y asegurar la transparencia metodológica de la revisión sistemática.
               </p>
             </div>
@@ -74,7 +74,7 @@ export function PrismaProgress({ completedItems, totalItems }: PrismaProgressPro
             <div className="text-sm text-emerald-900 dark:text-emerald-200">
               <p className="font-medium mb-1">Lista de verificación completa</p>
               <p className="text-xs leading-relaxed">
-                Se han completado todos los ítems requeridos por PRISMA 2020. 
+                Se han completado todos los ítems requeridos por PRISMA 2020.
                 El documento cumple con los estándares de reporte para revisiones sistemáticas.
               </p>
             </div>

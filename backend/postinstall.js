@@ -33,4 +33,30 @@ if (process.env.DATABASE_URL) {
   console.warn('   Agrega PostgreSQL desde Railway Dashboard\n');
 }
 
+// Instalar dependencias de Python si está disponible
+console.log('🐍 Verificando dependencias de Python...');
+const { exec } = require('child_process');
+const fs = require('fs');
+
+if (fs.existsSync('requirements.txt')) {
+  exec('pip3 --version', (error, stdout, stderr) => {
+    if (error) {
+      console.warn('⚠️  pip3 no encontrado, saltando instalación de dependencias Python');
+      console.warn('   Las funciones de gráficos pueden no estar disponibles');
+    } else {
+      console.log('✅ pip3 encontrado');
+      console.log('📦 Instalando dependencias Python...');
+      exec('pip3 install -r requirements.txt', (error, stdout, stderr) => {
+        if (error) {
+          console.warn('⚠️  Error instalando dependencias Python:', error.message);
+        } else {
+          console.log('✅ Dependencias Python instaladas correctamente');
+        }
+      });
+    }
+  });
+} else {
+  console.warn('⚠️  requirements.txt no encontrado');
+}
+
 console.log('✅ Setup completado\n');

@@ -36,8 +36,8 @@ export function PrismaItemCard({
   return (
     <Card
       className={`border-l-4 transition-all ${isCompleted
-          ? "border-l-emerald-600 bg-emerald-50/30 dark:bg-emerald-950/10"
-          : "border-l-gray-300 hover:border-l-blue-500"
+        ? "border-l-emerald-600 bg-emerald-50/30 dark:bg-emerald-950/10"
+        : "border-l-gray-300 hover:border-l-blue-500"
         }`}
     >
       <CardHeader className="pb-3">
@@ -46,8 +46,8 @@ export function PrismaItemCard({
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${isCompleted
-                    ? 'border-emerald-600 bg-emerald-600 text-white'
-                    : 'border-gray-300 bg-white'
+                  ? 'border-emerald-600 bg-emerald-600 text-white'
+                  : 'border-gray-300 bg-white'
                   }`}>
                   {isCompleted && <Check className="h-4 w-4" />}
                   {!isCompleted && <span className="text-xs font-medium text-gray-500">{item.id}</span>}
@@ -94,12 +94,12 @@ export function PrismaItemCard({
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Contenido</label>
 
             <div className={`rounded-lg border-2 transition-colors ${content && contentType !== 'pending'
-                ? contentType === 'automated'
-                  ? "border-blue-200 bg-blue-50/30 dark:bg-blue-950/10"
-                  : contentType === 'hybrid'
-                    ? "border-purple-200 bg-purple-50/30 dark:bg-purple-950/10"
-                    : "border-emerald-200 bg-emerald-50/30 dark:bg-emerald-950/10"
-                : "border-dashed border-gray-300"
+              ? contentType === 'automated'
+                ? "border-blue-200 bg-blue-50/30 dark:bg-blue-950/10"
+                : contentType === 'hybrid'
+                  ? "border-purple-200 bg-purple-50/30 dark:bg-purple-950/10"
+                  : "border-emerald-200 bg-emerald-50/30 dark:bg-emerald-950/10"
+              : "border-dashed border-gray-300"
               }`}>
               <Textarea
                 placeholder="Este ítem no tiene contenido aún. Puede completarlo manualmente o usar el botón 'Completar PRISMA Automáticamente' en la parte superior de la página."
