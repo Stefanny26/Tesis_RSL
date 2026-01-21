@@ -66,11 +66,18 @@ class PythonGraphService {
                 try {
                     const results = JSON.parse(stdout);
                     // Convertir a URLs absolutas apuntando al backend
-                    const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL?.replace('3000', '3001') || 'http://localhost:3001';
+                    const backendUrl = process.env.BACKEND_URL;
+                    
+                    if (!backendUrl) {
+                        console.error('❌ ERROR CRÍTICO: BACKEND_URL no está configurada en las variables de entorno');
+                        console.error('   Configura BACKEND_URL en Render Dashboard para que las imágenes funcionen');
+                    }
+                    
+                    const baseUrl = backendUrl || process.env.FRONTEND_URL?.replace('3000', '3001') || 'http://localhost:3001';
                     const urls = {};
-                    if (results.prisma) urls.prisma = `${backendUrl}/uploads/charts/${results.prisma}`;
-                    if (results.scree) urls.scree = `${backendUrl}/uploads/charts/${results.scree}`;
-                    if (results.chart1) urls.chart1 = `${backendUrl}/uploads/charts/${results.chart1}`;
+                    if (results.prisma) urls.prisma = `${baseUrl}/uploads/charts/${results.prisma}`;
+                    if (results.scree) urls.scree = `${baseUrl}/uploads/charts/${results.scree}`;
+                    if (results.chart1) urls.chart1 = `${baseUrl}/uploads/charts/${results.chart1}`;
 
                     console.log('✅ Gráficos generados:', urls);
                     resolve(urls);
