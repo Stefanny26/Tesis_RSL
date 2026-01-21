@@ -76,32 +76,15 @@ class PythonGraphService {
                     const results = JSON.parse(stdout);
                     console.log('📊 Resultados parseados:', results);
                     
-                    // En producción (Render), usar base64 porque el sistema de archivos es efímero
-                    // En desarrollo, usar URLs locales
-                    const isProduction = process.env.NODE_ENV === 'production';
+                    // Convertir a URLs absolutas apuntando al backend
+                    const backendUrl = process.env.BACKEND_URL || 'https://tesis-rsl-backend.onrender.com';
                     
                     const urls = {};
-                    
-                    if (isProduction) {
-                        // Usar base64 directamente en producción
-                        console.log('🔧 Modo producción: usando imágenes base64');
-                        if (results.prisma_base64) urls.prisma = results.prisma_base64;
-                        if (results.scree_base64) urls.scree = results.scree_base64;
-                        if (results.chart1_base64) urls.chart1 = results.chart1_base64;
-                    } else {
-                        // Usar URLs en desarrollo local
-                        console.log('🔧 Modo desarrollo: usando URLs locales');
-                        const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
-                        if (results.prisma) urls.prisma = `${backendUrl}/uploads/charts/${results.prisma}`;
-                        if (results.scree) urls.scree = `${backendUrl}/uploads/charts/${results.scree}`;
-                        if (results.chart1) urls.chart1 = `${backendUrl}/uploads/charts/${results.chart1}`;
-                    }
+                    if (results.prisma) urls.prisma = `${backendUrl}/uploads/charts/${results.prisma}`;
+                    if (results.scree) urls.scree = `${backendUrl}/uploads/charts/${results.scree}`;
+                    if (results.chart1) urls.chart1 = `${backendUrl}/uploads/charts/${results.chart1}`;
 
-                    console.log('✅ URLs finales de gráficos:', 
-                        isProduction ? 
-                        { prisma: '✅ base64', scree: '✅ base64', chart1: '✅ base64' } : 
-                        urls
-                    );
+                    console.log('✅ URLs finales de gráficos:', urls);
                     resolve(urls);
                 } catch (e) {
                     console.error('❌ Error parseando output de Python:', e);

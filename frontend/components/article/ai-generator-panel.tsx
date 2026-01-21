@@ -52,41 +52,6 @@ export function AIGeneratorPanel({
         </Alert>
 
         <div className="space-y-2">
-          <div className="space-y-1">
-            <Label className="text-[11px]">Generar Sección Individual</Label>
-            <Select value={selectedSection} onValueChange={setSelectedSection} disabled={isGenerating}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="abstract">Resumen</SelectItem>
-                <SelectItem value="introduction">Introducción</SelectItem>
-                <SelectItem value="methods">Métodos</SelectItem>
-                <SelectItem value="results">Resultados</SelectItem>
-                <SelectItem value="discussion">Discusión</SelectItem>
-                <SelectItem value="conclusions">Conclusiones</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={handleGenerateSection}
-              disabled={isGenerating || disabled}
-              className="w-full bg-transparent text-[11px] h-7"
-              variant="outline"
-            >
-              <Sparkles className="mr-1 h-3 w-3" />
-              Generar Sección
-            </Button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">O</span>
-            </div>
-          </div>
-
           <div className="space-y-1.5">
             <Label className="text-xs">Generar Artículo Completo</Label>
             <Button onClick={handleGenerateFull} disabled={isGenerating || disabled} className="w-full text-xs h-8">

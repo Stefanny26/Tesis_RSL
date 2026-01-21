@@ -14,7 +14,8 @@ import type { ArticleVersion } from "@/lib/article-types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Save, FileDown, Eye, Loader2, Lock, Sparkles } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Save, FileDown, Eye, Loader2, Lock, Sparkles, FileText } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth-context"
 import { exportArticleToPDF, exportArticleToDOCX } from "@/lib/article-export"
@@ -410,12 +411,84 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             />
           )}
 
-          {/* New Layout: Sidebar + Content (similar to PRISMA) */}
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Sidebar Index */}
-            <div className="w-full md:w-64 flex-shrink-0 space-y-4">
-              {/* Índice de Secciones */}
-              <div className="sticky top-6">
+          {/* New Layout: 3 columns - Index + Content + AI Panel */}
+          <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_260px] gap-4">
+            {/* Left Sidebar: Index */}
+            <div className="w-full">
+              <Card className="sticky top-6">
+                <CardHeader className="pb-2 pt-3">
+                  <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+                    <FileText className="h-3 w-3" />
+                    Índice del Artículo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-0.5 py-2">
+                  <button
+                    onClick={() => document.getElementById('section-title')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
+                  >
+                    Título
+                  </button>
+                  <button
+                    onClick={() => document.getElementById('section-abstract')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
+                  >
+                    Resumen
+                  </button>
+                  <button
+                    onClick={() => document.getElementById('section-introduction')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
+                  >
+                    Introducción
+                  </button>
+                  <button
+                    onClick={() => document.getElementById('section-methods')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
+                  >
+                    Métodos
+                  </button>
+                  <button
+                    onClick={() => document.getElementById('section-results')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
+                  >
+                    Resultados
+                  </button>
+                  <button
+                    onClick={() => document.getElementById('section-discussion')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
+                  >
+                    Discusión
+                  </button>
+                  <button
+                    onClick={() => document.getElementById('section-conclusions')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
+                  >
+                    Conclusiones
+                  </button>
+                  <button
+                    onClick={() => document.getElementById('section-references')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
+                  >
+                    Referencias
+                  </button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Center: Main Content Area (Article Editor) */}
+            <div className="w-full">
+              {currentVersion && (
+                <ArticleEditor
+                  version={currentVersion}
+                  onContentChange={handleContentChange}
+                  disabled={isGenerating}
+                />
+              )}
+            </div>
+
+            {/* Right Sidebar: AI Generator + Actions */}
+            <div className="w-full space-y-4">
+              <div className="sticky top-6 space-y-4">
                 <AIGeneratorPanel
                   onGenerateDraft={handleGenerateDraft}
                   onGenerateFullArticle={handleGenerateFullArticle}
@@ -431,55 +504,49 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
                 />
 
                 {/* Action Buttons */}
-                <div className="flex flex-col gap-2 mt-4">
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={handlePreview}
-                      disabled={!currentVersion || isGenerating}
-                      className="flex-1"
-                      size="sm"
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      Vista Previa
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold">Acciones</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={handlePreview}
+                        disabled={!currentVersion || isGenerating}
+                        className="flex-1"
+                        size="sm"
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        Vista Previa
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleExport('pdf')}
+                        disabled={!currentVersion || isGenerating}
+                        className="flex-1"
+                        size="sm"
+                      >
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Exportar
+                      </Button>
+                    </div>
+                    <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving} className="w-full" size="sm">
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Guardar Versión
+                        </>
+                      )}
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleExport('pdf')}
-                      disabled={!currentVersion || isGenerating}
-                      className="flex-1"
-                      size="sm"
-                    >
-                      <FileDown className="mr-2 h-4 w-4" />
-                      Exportar
-                    </Button>
-                  </div>
-                  <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving} className="w-full" size="sm">
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Guardar Versión
-                      </>
-                    )}
-                  </Button>
-                </div>
+                  </CardContent>
+                </Card>
               </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="flex-1">
-              {currentVersion && (
-                <ArticleEditor
-                  version={currentVersion}
-                  onContentChange={handleContentChange}
-                  disabled={isGenerating}
-                />
-              )}
             </div>
           </div>
         </div>

@@ -1,8 +1,6 @@
 import sys
 import json
 import os
-import base64
-from io import BytesIO
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
@@ -11,15 +9,6 @@ import argparse
 def ensure_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
-
-def fig_to_base64(fig):
-    """Convierte una figura de matplotlib a base64"""
-    buf = BytesIO()
-    fig.savefig(buf, format='png', dpi=300, bbox_inches='tight')
-    buf.seek(0)
-    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    buf.close()
-    return f"data:image/png;base64,{img_base64}"
 
 def draw_prisma(data, output_path):
     fig, ax = plt.subplots(figsize=(10, 8))
@@ -102,15 +91,8 @@ def draw_prisma(data, output_path):
 
     ax.set_title("PRISMA 2020 Flow Diagram", fontsize=14, fontweight='bold')
     plt.tight_layout()
-    
-    # Guardar en archivo
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    
-    # Convertir a base64
-    base64_str = fig_to_base64(fig)
     plt.close()
-    
-    return base64_str
 
 def draw_scree(data, output_path):
     scores = sorted(data.get('scores', []), reverse=True)
@@ -125,9 +107,8 @@ def draw_scree(data, output_path):
         ax.axis('off')
         plt.tight_layout()
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        base64_str = fig_to_base64(fig)
         plt.close()
-        return base64_str
+        return
     
     if len(scores) < 3:
         print(f"⚠️  Insuficientes scores ({len(scores)}) para generar scree plot - se requieren al menos 3", file=sys.stderr)
@@ -140,9 +121,8 @@ def draw_scree(data, output_path):
         ax.axis('off')
         plt.tight_layout()
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        base64_str = fig_to_base64(fig)
         plt.close()
-        return base64_str
+        return
 
     df = pd.DataFrame({'Rank': range(1, len(scores) + 1), 'Score': scores})
     
@@ -208,15 +188,8 @@ def draw_scree(data, output_path):
 
     ax.legend(loc='lower left', fontsize='small')
     plt.tight_layout()
-    
-    # Guardar en archivo
     plt.savefig(output_path, dpi=300)
-    
-    # Convertir a base64
-    base64_str = fig_to_base64(fig)
     plt.close()
-    
-    return base64_str
 
 def draw_search_table(data, output_path):
     # Data structure: list of {name, hits, searchString}
@@ -284,15 +257,8 @@ def draw_search_table(data, output_path):
             cell.set_facecolor('#f0f0f0')
 
     plt.tight_layout()
-    
-    # Guardar en archivo
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    
-    # Convertir a base64
-    base64_str = fig_to_base64(fig)
     plt.close()
-    
-    return base64_str
 
 def main():
     parser = argparse.ArgumentParser()
@@ -321,21 +287,18 @@ def main():
 
     if 'prisma' in input_data:
         prisma_path = os.path.join(args.output_dir, 'prisma_flow.png')
-        prisma_base64 = draw_prisma(input_data['prisma'], prisma_path)
+        draw_prisma(input_data['prisma'], prisma_path)
         results['prisma'] = 'prisma_flow.png'
-        results['prisma_base64'] = prisma_base64
 
     if 'scree' in input_data:
         scree_path = os.path.join(args.output_dir, 'scree_plot.png')
-        scree_base64 = draw_scree(input_data['scree'], scree_path)
+        draw_scree(input_data['scree'], scree_path)
         results['scree'] = 'scree_plot.png'
-        results['scree_base64'] = scree_base64
 
     if 'search_strategy' in input_data:
         chart1_path = os.path.join(args.output_dir, 'chart1_search.png')
-        chart1_base64 = draw_search_table(input_data['search_strategy'], chart1_path)
+        draw_search_table(input_data['search_strategy'], chart1_path)
         results['chart1'] = 'chart1_search.png'
-        results['chart1_base64'] = chart1_base64
 
     print(json.dumps(results))
 
