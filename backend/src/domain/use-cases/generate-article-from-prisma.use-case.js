@@ -137,7 +137,13 @@ class GenerateArticleFromPrismaUseCase {
       try {
         if (this.pythonGraphService && this.screeningRecordRepository) {
           const scores = await this.screeningRecordRepository.getAllScores(projectId);
-          chartPaths = await this.pythonGraphService.generateCharts(prismaContext.screening, scores, prismaContext.protocol.databases);
+          // Usar searchQueries del protocolo que tiene la información real de búsquedas
+          const searchData = (prismaContext.protocol.searchQueries || []).map(sq => ({
+            name: sq.database || sq.databaseId || 'Unknown',
+            hits: sq.resultsCount || 0,
+            searchString: sq.query || sq.apiQuery || 'N/A'
+          }));
+          chartPaths = await this.pythonGraphService.generateCharts(prismaContext.screening, scores, searchData);
         }
       } catch (err) {
         console.error('⚠️ Error generando gráficos:', err);
