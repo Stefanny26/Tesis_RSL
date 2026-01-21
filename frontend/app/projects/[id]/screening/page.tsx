@@ -171,7 +171,21 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
 
   const handleSelectForFullText = async (referenceIds: string[], count: number, phase: string) => {
     try {
-      // Primero revertir el estado de los artículos previamente seleccionados
+      // 1. Identificar todas las referencias clasificadas por IA (candidatas)
+      const classifiedRefs = references.filter(r => 
+        r.aiClassification || r.similarity_score !== undefined || r.screeningScore !== undefined
+      )
+      
+      // 2. Separar en seleccionadas y no seleccionadas
+      const selectedIds = new Set(referenceIds)
+      const notSelectedRefs = classifiedRefs.filter(r => !selectedIds.has(r.id))
+      
+      console.log(`📊 Selección de ${phase}:`)
+      console.log(`   ✅ Seleccionadas para revisión: ${referenceIds.length}`)
+      console.log(`   ❌ Auto-excluidas: ${notSelectedRefs.length}`)
+      console.log(`   📋 Total clasificadas: ${classifiedRefs.length}`)
+      
+      // 3. Primero revertir el estado de los artículos previamente seleccionados
       const previouslySelected = Array.from(selectedForFullText)
       if (previouslySelected.length > 0) {
         await Promise.all(
@@ -179,24 +193,38 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
         )
       }
       
-      // Marcar las NUEVAS referencias seleccionadas como 'pending' para revisión manual
+      // 4. Marcar las NUEVAS referencias seleccionadas como 'pending' para revisión manual
       await Promise.all(
         referenceIds.map(id => apiClient.updateReferenceStatus(id, { status: 'pending' }))
       )
       
-      // Actualizar estado local: reemplazar selección anterior
+      // 5. AUTOMÁTICAMENTE EXCLUIR las referencias NO seleccionadas
+      if (notSelectedRefs.length > 0) {
+        console.log(`🔄 Excluyendo automáticamente ${notSelectedRefs.length} referencias...`)
+        await Promise.all(notSelectedRefs.map(ref => 
+          apiClient.updateReferenceStatus(ref.id, { 
+            status: 'excluded',
+            exclusionReason: `No alcanzó el criterio de corte de ${phase}. Score insuficiente para revisión de texto completo.`
+          })
+        ))
+      }
+      
+      // 6. Actualizar estado local: reemplazar selección anterior
       setReferences((prev) =>
-        prev.map((ref) => 
-          referenceIds.includes(ref.id) 
-            ? { ...ref, status: "pending" as const } 
-            : ref
-        )
+        prev.map((ref) => {
+          if (referenceIds.includes(ref.id)) {
+            return { ...ref, status: "pending" as const }
+          } else if (notSelectedRefs.some(r => r.id === ref.id)) {
+            return { ...ref, status: "excluded" as const }
+          }
+          return ref
+        })
       )
       
-      // REEMPLAZAR (no acumular) IDs seleccionados para full-text
+      // 7. REEMPLAZAR (no acumular) IDs seleccionados para full-text
       setSelectedForFullText(new Set(referenceIds))
       
-      // Guardar en el protocolo para persistencia
+      // 8. Guardar en el protocolo para persistencia
       try {
         await apiClient.updateProtocol(params.id, {
           selectedForFullText: referenceIds
@@ -205,30 +233,23 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
         console.warn('No se pudo guardar selectedForFullText en protocolo:', protocolError)
       }
 
-      // Actualizar stats
+      // 9. Actualizar stats
       setStats(prev => {
         const newStats = { ...prev }
-        referenceIds.forEach(id => {
-          const ref = references.find(r => r.id === id)
-          if (ref && ref.status !== 'pending') {
-            // Decrementar el estado anterior
-            if (ref.status === 'included') newStats.included--
-            else if (ref.status === 'excluded') newStats.excluded--
-            // Incrementar pending
-            newStats.pending++
-          }
-        })
+        newStats.pending = referenceIds.length
+        newStats.excluded = prev.excluded + notSelectedRefs.length
         return newStats
       })
       
       toast({ 
-        title: "Artículos seleccionados para Full Text", 
-        description: `${count} artículos marcados para revisión manual (${phase})` 
+        title: "✅ Selección completada", 
+        description: `${count} artículos para revisión • ${notSelectedRefs.length} excluidos automáticamente` 
       })
       
-      // Navegar a la pestaña de revisión manual
+      // 10. Navegar a la pestaña de revisión manual
       setActiveTab("revision")
     } catch (error) {
+      console.error('❌ Error en selección:', error)
       toast({ 
         title: "Error", 
         description: "No se pudieron seleccionar los artículos", 
