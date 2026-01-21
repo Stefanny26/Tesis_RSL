@@ -49,22 +49,22 @@ export function ArticleEditor({ version, onContentChange, disabled = false }: Ar
   }, [])
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-200px)]">
+    <div className="flex flex-col md:flex-row gap-4 h-[calc(100vh-180px)]">
       {/* Sidebar Index */}
-      <div className="w-full md:w-64 flex-shrink-0 bg-card rounded-lg border p-4 h-full hidden md:flex flex-col">
-        <div className="flex items-center gap-2 mb-4 text-muted-foreground">
-          <AlignLeft className="h-4 w-4" />
-          <span className="font-medium text-sm">Índice</span>
+      <div className="w-full md:w-56 flex-shrink-0 bg-card rounded-lg border p-3 h-full hidden md:flex flex-col">
+        <div className="flex items-center gap-1.5 mb-3 text-muted-foreground">
+          <AlignLeft className="h-3.5 w-3.5" />
+          <span className="font-medium text-xs">Índice</span>
         </div>
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-1">
+        <ScrollArea className="flex-1 pr-3">
+          <div className="space-y-0.5">
             {sections.map((section) => (
               <Button
                 key={section.key}
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "w-full justify-start text-left font-normal",
+                  "w-full justify-start text-left font-normal text-xs h-7",
                   activeSection === section.key
                     ? "bg-accent text-accent-foreground font-medium"
                     : "text-muted-foreground hover:text-foreground"
@@ -80,26 +80,26 @@ export function ArticleEditor({ version, onContentChange, disabled = false }: Ar
 
       {/* Main Content - Continuous Scroll */}
       <Card className="flex-1 h-full overflow-hidden flex flex-col shadow-sm">
-        <ScrollArea className="flex-1 p-6 md:p-8 bg-white dark:bg-zinc-950">
-          <div className="max-w-3xl mx-auto space-y-12 pb-20">
+        <ScrollArea className="flex-1 p-4 md:p-6 bg-white dark:bg-zinc-950">
+          <div className="max-w-3xl mx-auto space-y-8 pb-16">
             {/* Document Header */}
-            <div className="text-center border-b pb-8 mb-8">
-              <h1 className="text-3xl font-bold tracking-tight mb-2">{version.title}</h1>
-              <p className="text-muted-foreground text-sm">Versión {version.version} • {new Date(version.createdAt).toLocaleDateString()}</p>
+            <div className="text-center border-b pb-5 mb-6">
+              <h1 className="text-2xl font-bold tracking-tight mb-1.5">{version.title}</h1>
+              <p className="text-muted-foreground text-xs">Versión {version.version} • {new Date(version.createdAt).toLocaleDateString()}</p>
             </div>
 
             {sections.map((section) => (
               <div
                 key={section.key}
                 id={`section-${section.key}`}
-                className="scroll-mt-8 space-y-4"
+                className="scroll-mt-6 space-y-2.5"
                 onFocus={() => setActiveSection(section.key)}
               >
                 <div className="flex items-center justify-between">
-                  <Label htmlFor={section.key} className="text-lg font-semibold text-primary">
+                  <Label htmlFor={section.key} className="text-base font-semibold text-primary">
                     {section.label}
                   </Label>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                     {(version.content[section.key] || '').split(/\s+/).filter(w => w.length > 0).length} palabras
                   </span>
                 </div>
@@ -108,10 +108,10 @@ export function ArticleEditor({ version, onContentChange, disabled = false }: Ar
                   id={section.key}
                   value={version.content[section.key] || ''}
                   onChange={(e) => onContentChange(section.key, e.target.value)}
-                  className="min-h-[150px] font-serif text-lg leading-relaxed border-0 focus-visible:ring-0 px-0 resize-y bg-transparent hover:bg-muted/10 transition-colors rounded-none border-b border-transparent focus:border-primary/20"
+                  className="min-h-[120px] font-serif text-sm leading-relaxed border-0 focus-visible:ring-0 px-0 resize-y bg-transparent hover:bg-muted/10 transition-colors rounded-none border-b border-transparent focus:border-primary/20"
                   placeholder={`Escribe o genera el contenido para ${section.label.toLowerCase()}...`}
                   disabled={disabled}
-                  style={{ minHeight: `${section.rows * 1.5}em` }}
+                  style={{ minHeight: `${section.rows * 1.3}em` }}
                 />
               </div>
             ))}

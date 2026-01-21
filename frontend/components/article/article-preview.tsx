@@ -22,13 +22,13 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
         showCloseButton={false}
       >
         {/* Header fijo con controles */}
-        <DialogHeader className="px-8 py-6 border-b bg-background flex-shrink-0">
-          <div className="flex items-start justify-between gap-4">
+        <DialogHeader className="px-4 py-3 border-b bg-background flex-shrink-0">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
-              <DialogTitle className="text-3xl font-bold leading-tight mb-3">
+              <DialogTitle className="text-lg font-bold leading-tight mb-1.5">
                 {version.title}
               </DialogTitle>
-              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
                 <span className="font-medium">Versión {version.version}</span>
                 <span>•</span>
                 <span>{new Date(version.createdAt).toLocaleDateString('es-ES', {
@@ -42,32 +42,32 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
                 <span className="font-semibold">{version.wordCount.toLocaleString()} palabras</span>
               </div>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <Button variant="outline" size="default" onClick={() => onExport('pdf')} className="gap-2">
-                <FileDown className="h-4 w-4" />
+            <div className="flex gap-1.5 shrink-0">
+              <Button variant="outline" size="sm" onClick={() => onExport('pdf')} className="gap-1.5 text-xs h-7">
+                <FileDown className="h-3 w-3" />
                 PDF
               </Button>
-              <Button variant="outline" size="default" onClick={() => onExport('docx')} className="gap-2">
-                <FileDown className="h-4 w-4" />
+              <Button variant="outline" size="sm" onClick={() => onExport('docx')} className="gap-1.5 text-xs h-7">
+                <FileDown className="h-3 w-3" />
                 DOCX
               </Button>
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-5 w-5" />
+              <Button variant="ghost" size="sm" onClick={onClose} className="h-7 w-7 p-0">
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </DialogHeader>
 
         {/* Contenido scrolleable */}
-        <div className="overflow-y-auto px-12 py-8 flex-1">
-          <div className="max-w-5xl mx-auto">
-            <article className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4 prose-p:text-base prose-p:leading-relaxed prose-p:mb-4">
+        <div className="overflow-y-auto px-6 py-4 flex-1">
+          <div className="max-w-4xl mx-auto">
+            <article className="prose prose-sm max-w-none dark:prose-invert prose-headings:font-bold prose-h2:text-base prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-sm prose-h3:mt-4 prose-h3:mb-2 prose-p:text-[13px] prose-p:leading-relaxed prose-p:mb-2">
 
               {/* Abstract */}
               {version.content.abstract && (
-                <section className="mb-12 bg-muted/30 p-8 rounded-lg border">
-                  <h2 className="!mt-0 !mb-4 text-primary">Abstract</h2>
-                  <div className="text-justify leading-relaxed text-base">
+                <section className="mb-4 bg-muted/30 p-4 rounded-lg border">
+                  <h2 className="!mt-0 !mb-2 text-primary text-sm">Abstract</h2>
+                  <div className="text-justify leading-relaxed text-[13px]">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.abstract}</ReactMarkdown>
                   </div>
                 </section>
@@ -75,9 +75,9 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
 
               {/* Introduction */}
               {version.content.introduction && (
-                <section className="mb-12">
-                  <h2 className="border-b-2 border-primary/20 pb-3">1. Introduction</h2>
-                  <div className="text-justify leading-relaxed">
+                <section className="mb-4">
+                  <h2 className="border-b border-primary/20 pb-1.5 text-sm">1. Introduction</h2>
+                  <div className="text-justify leading-relaxed text-[13px]">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.introduction}</ReactMarkdown>
                   </div>
                 </section>
@@ -85,9 +85,9 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
 
               {/* Methods */}
               {version.content.methods && (
-                <section className="mb-12">
-                  <h2 className="border-b-2 border-primary/20 pb-3">2. Methods</h2>
-                  <div className="text-justify leading-relaxed">
+                <section className="mb-4">
+                  <h2 className="border-b border-primary/20 pb-1.5 text-sm">2. Methods</h2>
+                  <div className="text-justify leading-relaxed text-[13px]">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.methods}</ReactMarkdown>
                   </div>
                 </section>
@@ -95,9 +95,9 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
 
               {/* Results */}
               {version.content.results && (
-                <section className="mb-12">
-                  <h2 className="border-b-2 border-primary/20 pb-3">3. Results</h2>
-                  <div className="text-justify leading-relaxed">
+                <section className="mb-4">
+                  <h2 className="border-b border-primary/20 pb-1.5 text-sm">3. Results</h2>
+                  <div className="text-justify leading-relaxed text-[13px]">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.results}</ReactMarkdown>
                   </div>
                 </section>
@@ -105,9 +105,9 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
 
               {/* Discussion */}
               {version.content.discussion && (
-                <section className="mb-12">
-                  <h2 className="border-b-2 border-primary/20 pb-3">4. Discussion</h2>
-                  <div className="text-justify leading-relaxed">
+                <section className="mb-4">
+                  <h2 className="border-b border-primary/20 pb-1.5 text-sm">4. Discussion</h2>
+                  <div className="text-justify leading-relaxed text-[13px]">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.discussion}</ReactMarkdown>
                   </div>
                 </section>
@@ -115,9 +115,9 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
 
               {/* Conclusions */}
               {version.content.conclusions && (
-                <section className="mb-12">
-                  <h2 className="border-b-2 border-primary/20 pb-3">5. Conclusions</h2>
-                  <div className="text-justify leading-relaxed">
+                <section className="mb-4">
+                  <h2 className="border-b border-primary/20 pb-1.5 text-sm">5. Conclusions</h2>
+                  <div className="text-justify leading-relaxed text-[13px]">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.conclusions}</ReactMarkdown>
                   </div>
                 </section>
@@ -125,9 +125,9 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
 
               {/* Declarations */}
               {version.content.declarations && (
-                <section className="mb-12 bg-muted/20 p-8 rounded-lg border border-dashed">
-                  <h2 className="!mt-0 !mb-4">Declarations</h2>
-                  <div className="text-justify leading-relaxed text-sm">
+                <section className="mb-4 bg-muted/20 p-3 rounded-lg border border-dashed">
+                  <h2 className="!mt-0 !mb-2 text-sm">Declarations</h2>
+                  <div className="text-justify leading-relaxed text-[11px]">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.declarations}</ReactMarkdown>
                   </div>
                 </section>
@@ -135,9 +135,9 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
 
               {/* References */}
               {version.content.references && (
-                <section className="mb-12">
-                  <h2 className="border-b-2 border-primary/20 pb-3">References</h2>
-                  <div className="leading-relaxed text-sm space-y-3">
+                <section className="mb-4">
+                  <h2 className="border-b border-primary/20 pb-1.5 text-sm">References</h2>
+                  <div className="leading-relaxed text-[11px] space-y-1.5">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.references}</ReactMarkdown>
                   </div>
                 </section>

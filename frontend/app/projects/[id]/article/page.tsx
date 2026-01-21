@@ -368,34 +368,34 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
     <div className="min-h-screen bg-background">
       <DashboardNav />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
+      <main className="container mx-auto px-3 py-3">
+        <div className="space-y-1.5">
           {/* Project Header */}
           {project && <ProjectHeader project={project} />}
 
           {/* Status Alert */}
           {!status && (
-            <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
-              <Lock className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+            <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950 py-1.5">
+              <Lock className="h-3 w-3 text-yellow-600" />
+              <AlertDescription className="text-[11px] text-yellow-800 dark:text-yellow-200">
                 Cargando estado del proyecto...
               </AlertDescription>
             </Alert>
           )}
 
           {status && !status.canGenerate && (
-            <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
-              <Lock className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+            <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950 py-1.5">
+              <Lock className="h-3 w-3 text-yellow-600" />
+              <AlertDescription className="text-[11px] text-yellow-800 dark:text-yellow-200">
                 {status.message}
               </AlertDescription>
             </Alert>
           )}
 
           {status && status.canGenerate && (
-            <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
-              <Sparkles className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800 dark:text-green-200">
+            <Alert className="border-green-500 bg-green-50 dark:bg-green-950 py-2">
+              <Sparkles className="h-3 w-3 text-green-600" />
+              <AlertDescription className="text-green-800 dark:text-green-200 text-[11px]">
                 {status.message} Puede generar el artículo científico completo.
               </AlertDescription>
             </Alert>
@@ -410,7 +410,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             />
           )}
 
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-2.5">
             {/* Main Editor */}
             {currentVersion && (
               <div className="lg:col-span-2">
@@ -423,7 +423,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             )}
 
             {/* Sidebar */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               <AIGeneratorPanel
                 onGenerateDraft={handleGenerateDraft}
                 onGenerateFullArticle={handleGenerateFullArticle}
@@ -438,36 +438,38 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
               />
 
               {/* Action Buttons - Moved to bottom of sidebar */}
-              <div className="flex flex-col gap-2 pt-4 border-t">
+              <div className="flex flex-col gap-2 pt-3 border-t">
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     onClick={handlePreview}
                     disabled={!currentVersion || isGenerating}
-                    className="flex-1"
+                    className="flex-1 text-xs h-8"
+                    size="sm"
                   >
-                    <Eye className="mr-2 h-4 w-4" />
+                    <Eye className="mr-1.5 h-3.5 w-3.5" />
                     Vista Previa
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => handleExport('pdf')}
                     disabled={!currentVersion || isGenerating}
-                    className="flex-1"
+                    className="flex-1 text-xs h-8"
+                    size="sm"
                   >
-                    <FileDown className="mr-2 h-4 w-4" />
+                    <FileDown className="mr-1.5 h-3.5 w-3.5" />
                     Exportar
                   </Button>
                 </div>
-                <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving} className="w-full">
+                <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving} className="w-full text-xs h-8" size="sm">
                   {isSaving ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                       Guardando...
                     </>
                   ) : (
                     <>
-                      <Save className="mr-2 h-4 w-4" />
+                      <Save className="mr-1.5 h-3.5 w-3.5" />
                       Guardar Versión
                     </>
                   )}

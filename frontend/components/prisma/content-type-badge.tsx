@@ -52,16 +52,16 @@ export function ContentTypeBadge({ contentType, dataSource, className }: Content
         <TooltipTrigger asChild>
           <Badge 
             variant={config.variant}
-            className={`${config.color} ${className} cursor-help transition-all hover:scale-105`}
+            className={`${config.color} ${className} cursor-help transition-all hover:scale-105 text-[10px] px-1.5 py-0`}
           >
-            <Icon className="h-3 w-3 mr-1" />
+            <Icon className="h-2.5 w-2.5 mr-0.5" />
             {config.label}
           </Badge>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">
-          <p className="text-sm">{config.tooltip}</p>
+          <p className="text-[11px]">{config.tooltip}</p>
           {dataSource && (
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-[10px] text-muted-foreground mt-0.5">
               Fuente: {dataSource}
             </p>
           )}

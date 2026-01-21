@@ -35,25 +35,25 @@ export function AIGeneratorPanel({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wand2 className="h-5 w-5" />
+      <CardHeader className="pb-2 pt-3 px-3">
+        <CardTitle className="flex items-center gap-1 text-sm">
+          <Wand2 className="h-3.5 w-3.5" />
           Generador con IA
         </CardTitle>
-        <CardDescription>Genera borradores automáticamente usando inteligencia artificial</CardDescription>
+        <CardDescription className="text-[11px]">Genera borradores automáticamente usando inteligencia artificial</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription className="text-sm">
+      <CardContent className="space-y-2 px-3 pb-3">
+        <Alert className="py-1.5">
+          <Info className="h-3 w-3" />
+          <AlertDescription className="text-[11px] leading-tight">
             La IA utilizará tu protocolo PICO, referencias incluidas y checklist PRISMA para generar contenido académico
             de alta calidad.
           </AlertDescription>
         </Alert>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Generar Sección Individual</Label>
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <Label className="text-[11px]">Generar Sección Individual</Label>
             <Select value={selectedSection} onValueChange={setSelectedSection} disabled={isGenerating}>
               <SelectTrigger>
                 <SelectValue />
@@ -70,10 +70,10 @@ export function AIGeneratorPanel({
             <Button
               onClick={handleGenerateSection}
               disabled={isGenerating || disabled}
-              className="w-full bg-transparent"
+              className="w-full bg-transparent text-[11px] h-7"
               variant="outline"
             >
-              <Sparkles className="mr-2 h-4 w-4" />
+              <Sparkles className="mr-1 h-3 w-3" />
               Generar Sección
             </Button>
           </div>
@@ -87,10 +87,10 @@ export function AIGeneratorPanel({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Generar Artículo Completo</Label>
-            <Button onClick={handleGenerateFull} disabled={isGenerating || disabled} className="w-full">
-              <Wand2 className="mr-2 h-4 w-4" />
+          <div className="space-y-1.5">
+            <Label className="text-xs">Generar Artículo Completo</Label>
+            <Button onClick={handleGenerateFull} disabled={isGenerating || disabled} className="w-full text-xs h-8">
+              <Wand2 className="mr-1.5 h-3.5 w-3.5" />
               Generar Borrador Completo
             </Button>
           </div>

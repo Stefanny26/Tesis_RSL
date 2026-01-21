@@ -57,14 +57,20 @@ class PythonGraphService {
 
             pythonProcess.on('close', (code) => {
                 if (code !== 0) {
-                    console.error('❌ Error generando gráficos:', stderr);
+                    console.error('❌ Error generando gráficos (código de salida:', code, ')');
+                    console.error('❌ STDERR:', stderr);
+                    console.error('❌ STDOUT:', stdout);
                     // No fallar drásticamente, retornar vacío para no romper generación de artículo
                     resolve({});
                     return;
                 }
 
+                console.log('🐍 Python output (raw):', stdout);
+                
                 try {
                     const results = JSON.parse(stdout);
+                    console.log('📊 Resultados parseados:', results);
+                    
                     // Convertir a URLs absolutas apuntando al backend
                     const backendUrl = process.env.BACKEND_URL;
                     
@@ -79,10 +85,11 @@ class PythonGraphService {
                     if (results.scree) urls.scree = `${baseUrl}/uploads/charts/${results.scree}`;
                     if (results.chart1) urls.chart1 = `${baseUrl}/uploads/charts/${results.chart1}`;
 
-                    console.log('✅ Gráficos generados:', urls);
+                    console.log('✅ URLs finales de gráficos:', urls);
                     resolve(urls);
                 } catch (e) {
                     console.error('❌ Error parseando output de Python:', e);
+                    console.error('   Output recibido:', stdout);
                     resolve({});
                 }
             });

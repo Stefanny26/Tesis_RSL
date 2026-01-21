@@ -20,20 +20,19 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   }
 
   return (
-    <div className="sticky top-16 z-20 bg-background border-b pb-4 mb-6 -mx-4 px-4">
-      <div className="space-y-4">
-        {/* Header con título y descripción */}
-        <div className="flex items-start justify-between">
-          <div className="space-y-2 flex-1 mr-4">
-            <h1 className="text-3xl font-bold tracking-tight">{project.title}</h1>
-            <p className="text-muted-foreground">
+    <div className="bg-background border-b pb-3 mb-4">
+      <div className="space-y-3">
+        {/* Header con título y descripción más compacto */}
+        <div className="flex items-center justify-between">
+          <div className="flex-1 mr-4">
+            <h1 className="text-xl font-bold tracking-tight leading-tight">{project.title}</h1>
+            <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
               {project.protocol?.picoFramework?.population
                 ? `Investigación sobre ${project.protocol.picoFramework.population}`
-                : project.description?.substring(0, 200) || 'Proyecto de revisión sistemática'}
-              {project.description && project.description.length > 200 && '...'}
+                : project.description?.substring(0, 120) || 'Proyecto de revisión sistemática'}
             </p>
           </div>
-          <Badge variant={project.status === "completed" ? "outline" : "default"}>
+          <Badge variant={project.status === "completed" ? "outline" : "default"} className="shrink-0 text-xs">
             {project.status === "draft"
               ? "Borrador"
               : project.status === "in-progress"
@@ -46,46 +45,50 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
           </Badge>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="grid md:grid-cols-4 gap-4">
+        {/* Navigation Tabs más compactos */}
+        <div className="grid grid-cols-4 gap-2">
           <Button 
             asChild
             variant={isActive(`/projects/${projectId}`) ? "default" : "outline"}
-            className="h-auto py-4 flex-col gap-2"
+            size="sm"
+            className="h-auto py-2 flex-col gap-1"
           >
             <Link href={`/projects/${projectId}`}>
-              <Settings className="h-5 w-5" />
-              <span>Protocolo</span>
+              <Settings className="h-4 w-4" />
+              <span className="text-xs">Protocolo</span>
             </Link>
           </Button>
           <Button 
             asChild
             variant={isActive(`/projects/${projectId}/screening`) ? "default" : "outline"}
-            className="h-auto py-4 flex-col gap-2"
+            size="sm"
+            className="h-auto py-2 flex-col gap-1"
           >
             <Link href={`/projects/${projectId}/screening`}>
-              <Filter className="h-5 w-5" />
-              <span>Cribado</span>
+              <Filter className="h-4 w-4" />
+              <span className="text-xs">Cribado</span>
             </Link>
           </Button>
           <Button 
             asChild
             variant={isActive(`/projects/${projectId}/prisma`) ? "default" : "outline"}
-            className="h-auto py-4 flex-col gap-2"
+            size="sm"
+            className="h-auto py-2 flex-col gap-1"
           >
             <Link href={`/projects/${projectId}/prisma`}>
-              <ClipboardCheck className="h-5 w-5" />
-              <span>PRISMA</span>
+              <ClipboardCheck className="h-4 w-4" />
+              <span className="text-xs">PRISMA</span>
             </Link>
           </Button>
           <Button 
             asChild
             variant={isActive(`/projects/${projectId}/article`) ? "default" : "outline"}
-            className="h-auto py-4 flex-col gap-2"
+            size="sm"
+            className="h-auto py-2 flex-col gap-1"
           >
             <Link href={`/projects/${projectId}/article`}>
-              <FileEdit className="h-5 w-5" />
-              <span>Artículo</span>
+              <FileEdit className="h-4 w-4" />
+              <span className="text-xs">Artículo</span>
             </Link>
           </Button>
         </div>

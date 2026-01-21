@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
 import { ProjectHeader } from "@/components/project-header"
 import type { Project } from "@/lib/types"
@@ -9,15 +10,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { 
-  CheckCircle2, 
-  Circle, 
-  Loader2, 
+import {
+  CheckCircle2,
+  Circle,
+  Loader2,
   AlertCircle,
   FileText,
   CheckCheck,
   Lock,
-  Unlock
+  Unlock,
+  ArrowRight
 } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
@@ -101,6 +103,7 @@ const PRISMA_ITEM_NAMES: Record<number, string> = {
 
 export default function PrismaPageImproved({ params }: { params: { id: string } }) {
   const { toast } = useToast()
+  const router = useRouter()
   const [project, setProject] = useState<Project | null>(null)
   const [items, setItems] = useState<PrismaItem[]>([])
   const [stats, setStats] = useState<PrismaStats | null>(null)
@@ -109,6 +112,7 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
   const [isCompleting, setIsCompleting] = useState(false)
   const [activeBlock, setActiveBlock] = useState<string | null>(null)
   const [currentSection, setCurrentSection] = useState("TÍTULO")
+  const [prismaLocked, setPrismaLocked] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -117,24 +121,29 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
   async function loadData() {
     try {
       setIsLoading(true)
-      
+
       // Cargar proyecto
       const projectData = await apiClient.getProject(params.id)
       setProject(projectData)
       
+      // Verificar si PRISMA está bloqueado
+      if (projectData.protocol?.prisma_locked || projectData.protocol?.prismaLocked) {
+        setPrismaLocked(true)
+      }
+
       // Cargar ítems PRISMA
       const prismaResponse = await apiClient.request(`/api/projects/${params.id}/prisma`, { method: 'GET' })
       if (prismaResponse.success && prismaResponse.data) {
         setItems(prismaResponse.data.items || [])
         setStats(prismaResponse.data.stats || null)
       }
-      
+
       // Cargar estado
       const statusResponse = await apiClient.getPrismaStatus(params.id)
       if (statusResponse.success && statusResponse.data) {
         setStatus(statusResponse.data)
       }
-      
+
     } catch (error: any) {
       console.error('Error cargando datos PRISMA:', error)
       toast({
@@ -151,24 +160,24 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
     try {
       setIsCompleting(true)
       setActiveBlock(block)
-      
+
       toast({
         title: "Completando PRISMA",
         description: `Generando contenido para bloque: ${block === 'all' ? 'TODOS' : block.toUpperCase()}...`,
       })
-      
+
       const response = await apiClient.completePrismaByBlocks(params.id, block)
-      
+
       if (response.success) {
         toast({
           title: "✅ PRISMA Completado",
           description: `Bloques completados: ${response.data.blocksProcessed.join(', ')}`,
         })
-        
+
         // Recargar datos
         await loadData()
       }
-      
+
     } catch (error: any) {
       console.error('Error completando PRISMA:', error)
       toast({
@@ -188,25 +197,51 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
         method: 'PUT',
         body: JSON.stringify({ content })
       })
-      
+
       if (response.success) {
         toast({
           title: "Guardado",
           description: `Ítem ${itemNumber} actualizado`
         })
-        
+
         // Actualizar localmente
-        setItems(prev => prev.map(item => 
-          (item.item_number || item.itemNumber) === itemNumber 
+        setItems(prev => prev.map(item =>
+          (item.item_number || item.itemNumber) === itemNumber
             ? { ...item, content, content_type: 'human', completed: true }
             : item
         ))
       }
-      
+
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "No se pudo guardar",
+        variant: "destructive"
+      })
+    }
+  }
+
+  async function handleFinalizePrisma() {
+    try {
+      // Actualizar protocolo para bloquear PRISMA
+      await apiClient.updateProtocol(params.id, { prismaLocked: true })
+      
+      setPrismaLocked(true)
+      
+      toast({
+        title: "✅ PRISMA Finalizado",
+        description: "La sección PRISMA ha sido bloqueada. Ya no se pueden realizar cambios.",
+      })
+      
+      // Redirigir a la página de artículo después de 1 segundo
+      setTimeout(() => {
+        router.push(`/projects/${params.id}/article`)
+      }, 1000)
+      
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo finalizar PRISMA",
         variant: "destructive"
       })
     }
@@ -231,7 +266,7 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
     <div className="min-h-screen bg-background">
       <DashboardNav />
 
-      <main className="container mx-auto px-4 py-8 space-y-6">
+      <main className="container mx-auto px-4 py-8 space-y-4">
         {/* Header */}
         {project && <ProjectHeader project={project} />}
 
@@ -240,7 +275,7 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-1">
                   <FileText className="h-5 w-5" />
                   Lista de Verificación PRISMA 2020
                 </CardTitle>
@@ -248,42 +283,40 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
                   Estado de cumplimiento de la guía de reporte
                 </CardDescription>
               </div>
-              {status?.isPrismaComplete && (
+              {status?.isPrismaComplete && !prismaLocked && (
                 <Badge className="bg-green-500">
                   <CheckCheck className="h-4 w-4 mr-1" />
                   Completo
                 </Badge>
               )}
+              {prismaLocked && (
+                <Badge className="bg-blue-500">
+                  <Lock className="h-4 w-4 mr-1" />
+                  Finalizado
+                </Badge>
+              )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-2">
             {/* Progress bar */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Progreso General</span>
-                <span className="text-muted-foreground">
-                  {stats?.completed || 0}/27 ítems ({stats?.completionPercentage || 0}%)
-                </span>
-              </div>
-              <Progress value={stats?.completionPercentage || 0} className="h-3" />
-            </div>
+
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div className="flex flex-col items-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
-                <div className="text-xl font-bold text-green-600">{stats?.completed || 0}</div>
+                <div className="text-2xl font-bold text-green-600">{stats?.completed || 0}</div>
                 <div className="text-sm text-muted-foreground">Completados</div>
               </div>
               <div className="flex flex-col items-center p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
-                <div className="text-3xl font-bold text-yellow-600">{stats?.pending || 0}</div>
+                <div className="text-2xl font-bold text-yellow-600">{stats?.pending || 0}</div>
                 <div className="text-sm text-muted-foreground">Pendientes</div>
               </div>
               <div className="flex flex-col items-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                <div className="text-3xl font-bold text-blue-600">{stats?.automated || 0}</div>
+                <div className="text-2xl font-bold text-blue-600">{stats?.automated || 0}</div>
                 <div className="text-sm text-muted-foreground">Automatizados</div>
               </div>
               <div className="flex flex-col items-center p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
-                <div className="text-3xl font-bold text-purple-600">{stats?.human || 0}</div>
+                <div className="text-2xl font-bold text-purple-600">{stats?.human || 0}</div>
                 <div className="text-sm text-muted-foreground">Manuales</div>
               </div>
             </div>
@@ -323,7 +356,7 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
               <CardContent className="space-y-1">
                 {Object.keys(PRISMA_SECTIONS).map((section) => {
                   const sectionItems = PRISMA_SECTIONS[section as keyof typeof PRISMA_SECTIONS] || []
-                  const completed = items.filter(item => 
+                  const completed = items.filter(item =>
                     sectionItems.includes(item.item_number || item.itemNumber) && item.completed
                   ).length
                   const total = sectionItems.length
@@ -356,10 +389,10 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
           {/* Main Content Area */}
           <div className="flex-1">
             <Card>
-              <CardContent className="p-6 md:p-8">
-                <div className="max-w-4xl mx-auto space-y-12">
+              <CardContent className="p-4 md:p-8">
+                <div className="max-w-4xl mx-auto space-y-10">
                   {Object.entries(PRISMA_SECTIONS).map(([sectionName, itemNumbers]) => {
-                    const sectionItems = items.filter(item => 
+                    const sectionItems = items.filter(item =>
                       itemNumbers.includes(item.item_number || item.itemNumber)
                     ).sort((a, b) => (a.item_number || a.itemNumber) - (b.item_number || b.itemNumber))
 
@@ -367,7 +400,7 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
                       <div
                         key={sectionName}
                         id={`section-${sectionName}`}
-                        className="scroll-mt-8 space-y-6 border-b pb-8 last:border-0"
+                        className="scroll-mt-4 space-y-6 pb-8 last:pb-0"
                       >
                         {/* Section Header */}
                         <div className="space-y-2">
@@ -375,8 +408,8 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
                             {sectionName}
                           </h2>
                           <div className="flex items-center gap-2">
-                            <Progress 
-                              value={(sectionItems.filter(i => i.completed).length / sectionItems.length) * 100} 
+                            <Progress
+                              value={(sectionItems.filter(i => i.completed).length / sectionItems.length) * 100}
                               className="h-2 flex-1"
                             />
                             <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -386,82 +419,92 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
                         </div>
 
                         {/* Section Items */}
-                        <div className="space-y-8">
-                          {sectionItems.map((item) => (
-                            <div
-                              key={item.id}
-                              id={`item-${item.item_number || item.itemNumber}`}
-                              className="space-y-3"
-                            >
-                              {/* Item Header */}
-                              <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0 mt-1">
-                                  {item.completed ? (
-                                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                  ) : (
-                                    <Circle className="h-5 w-5 text-gray-300" />
-                                  )}
-                                </div>
-                                <div className="flex-1 space-y-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <h3 className="font-semibold text-lg">
-                                      {PRISMA_ITEM_NAMES[item.item_number || item.itemNumber] || `Ítem ${item.item_number || item.itemNumber}`}
-                                    </h3>
-                                    <Badge variant="outline" className="text-xs">
-                                      #{item.item_number || item.itemNumber}
-                                    </Badge>
-                                    <Badge variant={item.completed ? "default" : "secondary"} className="text-xs">
-                                      {item.content_type === 'automated' && '🤖 IA'}
-                                      {item.content_type === 'human' && '👤 Manual'}
-                                      {item.content_type === 'hybrid' && '🔄 Híbrido'}
-                                      {item.content_type === 'pending' && '⏳ Pendiente'}
-                                    </Badge>
-                                  </div>
-                                  {item.data_source && (
-                                    <p className="text-sm text-muted-foreground">
-                                      <strong>Fuente:</strong> {item.data_source}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Item Content */}
-                              <div className="ml-8">
-                                {!item.content && item.content_type === 'pending' && (
-                                  <Alert className="mb-3">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertDescription>
-                                      Este ítem aún no ha sido completado. Escriba el contenido manualmente o genere con IA.
-                                    </AlertDescription>
-                                  </Alert>
+                        <div className="space-y-4">{sectionItems.map((item) => (
+                          <div
+                            key={item.id}
+                            id={`item-${item.item_number || item.itemNumber}`}
+                            className="space-y-1"
+                          >
+                            {/* Item Header */}
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 mt-1">
+                                {item.completed ? (
+                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                ) : (
+                                  <Circle className="h-5 w-5 text-gray-300" />
                                 )}
-                                <Textarea
-                                  value={item.content || ''}
-                                  onChange={(e) => {
-                                    const newContent = e.target.value
-                                    setItems(prev => prev.map(i => 
-                                      (i.item_number || i.itemNumber) === (item.item_number || item.itemNumber) 
-                                        ? { ...i, content: newContent }
-                                        : i
-                                    ))
-                                  }}
-                                  onBlur={() => {
-                                    if (item.content) {
-                                      handleUpdateItem(item.item_number || item.itemNumber, item.content)
-                                    }
-                                  }}
-                                  rows={6}
-                                  placeholder={`Contenido del ítem ${PRISMA_ITEM_NAMES[item.item_number || item.itemNumber]}...`}
-                                  className="font-serif text-base leading-relaxed min-h-[120px] resize-y"
-                                />
-                                <div className="flex items-center justify-between mt-2">
-                                  <span className="text-xs text-muted-foreground">
-                                    {(item.content || '').split(/\s+/).filter(w => w.length > 0).length} palabras
-                                  </span>
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="font-semibold text-lg">
+                                    {PRISMA_ITEM_NAMES[item.item_number || item.itemNumber] || `Ítem ${item.item_number || item.itemNumber}`}
+                                  </h3>
+                                  <Badge variant="outline" className="text-xs">
+                                    #{item.item_number || item.itemNumber}
+                                  </Badge>
+                                  <Badge variant={item.completed ? "default" : "secondary"} className="text-xs">
+                                    {item.content_type === 'automated' && ' IA'}
+                                    {item.content_type === 'human' && ' Manual'}
+                                    {item.content_type === 'hybrid' && ' Híbrido'}
+                                    {item.content_type === 'pending' && ' Pendiente'}
+                                  </Badge>
                                 </div>
+                                {item.data_source && (
+                                  <p className="text-sm text-muted-foreground">
+                                    <strong>Fuente:</strong> {item.data_source}
+                                  </p>
+                                )}
                               </div>
                             </div>
-                          ))}
+
+                            {/* Item Content */}
+                            <div className="ml-5">
+                              {!item.content && item.content_type === 'pending' && !prismaLocked && (
+                                <Alert className="mb-3">
+                                  <AlertCircle className="h-2 w-4" />
+                                  <AlertDescription>
+                                    Este ítem aún no ha sido completado. Escriba el contenido manualmente o genere con IA.
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+                              {prismaLocked && (
+                                <Alert className="mb-3 border-blue-500 bg-blue-50 dark:bg-blue-950">
+                                  <Lock className="h-4 w-4 text-blue-600" />
+                                  <AlertDescription className="text-blue-900 dark:text-blue-100">
+                                    PRISMA finalizado. No se pueden realizar cambios.
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+                              <Textarea
+                                value={item.content || ''}
+                                onChange={(e) => {
+                                  if (prismaLocked) return
+                                  const newContent = e.target.value
+                                  setItems(prev => prev.map(i =>
+                                    (i.item_number || i.itemNumber) === (item.item_number || item.itemNumber)
+                                      ? { ...i, content: newContent }
+                                      : i
+                                  ))
+                                }}
+                                onBlur={() => {
+                                  if (prismaLocked) return
+                                  if (item.content) {
+                                    handleUpdateItem(item.item_number || item.itemNumber, item.content)
+                                  }
+                                }}
+                                disabled={prismaLocked}
+                                rows={6}
+                                placeholder={prismaLocked ? "Contenido bloqueado" : `Contenido del ítem ${PRISMA_ITEM_NAMES[item.item_number || item.itemNumber]}...`}
+                                className="font-serif text-base leading-relaxed min-h-[120px] resize-y"
+                              />
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="text-xs text-muted-foreground">
+                                  {(item.content || '').split(/\s+/).filter(w => w.length > 0).length} palabras
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                         </div>
                       </div>
                     )
@@ -471,6 +514,26 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
             </Card>
           </div>
         </div>
+        {/* Botón de finalización cuando PRISMA está completo */}
+        {status?.isPrismaComplete && !prismaLocked && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold">PRISMA Finalizado</h3>
+                <p className="text-xs text-muted-foreground">
+                  Has completado todos los ítems de la lista de verificación PRISMA 2020. Ahora puedes generar el artículo científico completo.
+                </p>
+                <Button
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white h-9"
+                  onClick={handleFinalizePrisma}
+                >
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Finalizar y Continuar a Artículo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   )
