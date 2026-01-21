@@ -19,6 +19,11 @@ graph TB
             CTRL_PRISMA[PRISMA Controller]
             CTRL_RQS[RQS Controller]
             CTRL_ARTICLE[Article Controller]
+            CTRL_GRAPH[Graph Controller]
+        end
+
+        subgraph "Services"
+            SERV_PYTHON[Python Graph Service<br/>- generate_charts.py<br/>- matplotlib]
         end
 
         subgraph "Use Cases"
@@ -340,6 +345,12 @@ sequenceDiagram
 - Queries SQL optimizadas
 - Mapeo de datos
 - Transacciones
+
+**5. Python Services** (Servicios de Análisis)
+- Ejecución de scripts locales (`child_process`)
+- Generación de gráficos con `matplotlib`
+- Scripts: `backend/scripts/generate_charts.py`
+- Salida: Imágenes PNG en `uploads/charts/`
 
 ---
 

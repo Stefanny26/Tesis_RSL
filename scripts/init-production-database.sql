@@ -90,12 +90,17 @@ CREATE TABLE IF NOT EXISTS protocols (
   refined_question TEXT,
   key_terms JSONB DEFAULT '{}'::jsonb,
   temporal_range JSONB DEFAULT '{}'::jsonb,
-  prisma_compliance JSONB DEFAULT '[]'::jsonb,
+  temporal_range JSONB DEFAULT '{}'::jsonb,
+  -- prisma_compliance REMOVED (now in prisma_items table)
   area VARCHAR(200),
   
   search_plan JSONB DEFAULT '{}'::jsonb,
   screening_results JSONB DEFAULT '{}'::jsonb,
+  
   fase2_unlocked BOOLEAN DEFAULT FALSE,
+  selected_for_full_text JSONB DEFAULT '[]'::jsonb,
+  screening_finalized BOOLEAN DEFAULT FALSE,
+  prisma_unlocked BOOLEAN DEFAULT FALSE,
   
   prisma_locked BOOLEAN DEFAULT FALSE,
   prisma_completed_at TIMESTAMP WITH TIME ZONE,
@@ -327,6 +332,16 @@ CREATE TABLE IF NOT EXISTS screening_records (
   screening_method VARCHAR(50),
   phase VARCHAR(20),
   
+  -- Campos agregados por migración de scoring avanzado
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  stage VARCHAR(50),
+  scores JSONB DEFAULT '{}'::jsonb,
+  total_score DECIMAL(5,2),
+  threshold DECIMAL(5,2),
+  exclusion_reasons JSONB DEFAULT '[]'::jsonb,
+  comment TEXT,
+  reviewed_at TIMESTAMP WITH TIME ZONE,
+  
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -334,6 +349,9 @@ CREATE TABLE IF NOT EXISTS screening_records (
 CREATE INDEX IF NOT EXISTS idx_screening_records_project ON screening_records(project_id);
 CREATE INDEX IF NOT EXISTS idx_screening_records_reference ON screening_records(reference_id);
 CREATE INDEX IF NOT EXISTS idx_screening_records_decision ON screening_records(decision);
+CREATE INDEX IF NOT EXISTS idx_screening_records_stage ON screening_records(stage);
+CREATE INDEX IF NOT EXISTS idx_screening_records_total_score ON screening_records(total_score DESC);
+CREATE INDEX IF NOT EXISTS idx_screening_records_user ON screening_records(user_id);
 
 -- =====================================================
 -- TRIGGERS PARA UPDATED_AT

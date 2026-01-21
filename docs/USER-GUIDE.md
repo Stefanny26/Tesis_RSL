@@ -413,6 +413,32 @@ Algunos ítems se completan automáticamente con datos de fases anteriores:
 
 ---
 
+## 5️⃣ Fase 5: Generación de Artículo Científico
+
+Una vez completadas todas las fases anteriores, el sistema puede redactar un borrador de tu artículo científico ("Generative Paper").
+
+### Características del Artículo Generado
+- **Formato:** Estructura IMRaD (Introducción, Métodos, Resultados, Discusión).
+- **Extensión:** ~4000-5000 palabras.
+- **Contenido:** Basado 100% en los datos de tu protocolo, cribado y extracción.
+
+### Gráficos Automáticos (Novedad ✨)
+El sistema incluye automáticamente gráficos de alta calidad generados por Python (`matplotlib`):
+1. **Diagrama de Flujo PRISMA:** Visualiza el proceso de selección de estudios (identificados, cribados, incluidos).
+2. **Tabla de Estrategia de Búsqueda:** Resumen visual de las ecuaciones usadas en cada base de datos.
+3. **Scree Plot (Gráfico de Sedimientación):** Muestra la distribución de relevancia de los artículos cribados por IA.
+
+### Pasos para Generar
+1. Ve a la pestaña **"Artículo"**.
+2. Verifica que las fases anteriores estén completas (Protocolo, Cribado, PRISMA).
+3. Haz click en **"Generar Borrador de Artículo"**.
+4. Espera ~1-2 minutos mientras la IA redacta y Python genera los gráficos.
+5. **Descarga** el resultado:
+   - **Markdown (.md):** Ideal para editar en Obsidian o VS Code.
+   - **PDF:** Documento final maquetado.
+
+---
+
 ## ❓ Preguntas Frecuentes (FAQ)
 
 ### Generales

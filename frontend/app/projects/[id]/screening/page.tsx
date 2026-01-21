@@ -1517,32 +1517,37 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                               
                               toast({
                                 title: "Cribado Finalizado",
-                                description: "Guardando resultados y generando contenido PRISMA automáticamente..."
+                                description: "Generando contenido PRISMA automáticamente..."
                               })
                               
                               // 2. Generar automáticamente todo el contenido de PRISMA
-                              try {
-                                const prismaResponse = await apiClient.completePrismaByBlocks(params.id, 'all')
-                                
-                                if (prismaResponse.success) {
-                                  toast({
-                                    title: "PRISMA Completado Automáticamente",
-                                    description: "Todo el contenido PRISMA se ha generado exitosamente",
-                                  })
-                                }
-                              } catch (prismaError) {
-                                console.error('Error al completar PRISMA:', prismaError)
-                                // No mostramos error al usuario, el PRISMA se puede completar manualmente después
+                              console.log('🔄 Iniciando generación automática de PRISMA...')
+                              const prismaResponse = await apiClient.completePrismaByBlocks(params.id, 'all')
+                              
+                              console.log('✅ Respuesta de PRISMA:', prismaResponse)
+                              
+                              if (prismaResponse.success) {
+                                toast({
+                                  title: "✅ PRISMA Completado",
+                                  description: `Bloques procesados: ${prismaResponse.data?.blocksProcessed?.join(', ') || 'todos'}`,
+                                })
+                              } else {
+                                toast({
+                                  title: "⚠️ PRISMA parcialmente completado",
+                                  description: "Algunos bloques pueden requerir revisión manual",
+                                  variant: "destructive"
+                                })
                               }
                               
-                              // 3. Redirigir a PRISMA después de 3 segundos
+                              // 3. Redirigir a PRISMA después de 2 segundos
                               setTimeout(() => {
                                 router.push(`/projects/${params.id}/prisma`)
-                              }, 3000)
-                            } catch (error) {
+                              }, 2000)
+                            } catch (error: any) {
+                              console.error('❌ Error completo:', error)
                               toast({
                                 title: "Error",
-                                description: "No se pudo finalizar el cribado",
+                                description: error.message || "No se pudo finalizar el cribado",
                                 variant: "destructive"
                               })
                             } finally {
