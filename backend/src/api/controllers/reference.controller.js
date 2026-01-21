@@ -580,8 +580,9 @@ const uploadPdf = async (req, res) => {
 
     console.log(`📄 Subiendo PDF para referencia ${id}...`);
 
-    // Construir URL relativa del archivo
-    const pdfUrl = `/uploads/pdfs/${req.file.filename}`;
+    // Construir URL absoluta del archivo apuntando al backend
+    const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL?.replace('3000', '3001') || 'http://localhost:3001';
+    const pdfUrl = `${backendUrl}/uploads/pdfs/${req.file.filename}`;
 
     // Actualizar la referencia en la base de datos
     const updated = await referenceRepository.update(id, {
