@@ -343,10 +343,10 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
         </Card>
 
         {/* New Layout: Sidebar + Content */}
-        <div className="flex flex-col md:flex-row gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
           {/* Sidebar Index */}
-          <div className="w-full md:w-64 flex-shrink-0">
-            <Card className="sticky top-6">
+          <div className="w-full">
+            <Card className="sticky top-4">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -387,10 +387,10 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1">
+          <div className="w-full">
             <Card>
-              <CardContent className="p-4 md:p-8">
-                <div className="max-w-4xl mx-auto space-y-10">
+              <CardContent className="p-6">
+                <div className="space-y-8">
                   {Object.entries(PRISMA_SECTIONS).map(([sectionName, itemNumbers]) => {
                     const sectionItems = items.filter(item =>
                       itemNumbers.includes(item.item_number || item.itemNumber)
@@ -400,11 +400,11 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
                       <div
                         key={sectionName}
                         id={`section-${sectionName}`}
-                        className="scroll-mt-4 space-y-6 pb-8 last:pb-0"
+                        className="scroll-mt-6 space-y-4 pb-6 border-b last:border-0 last:pb-0"
                       >
                         {/* Section Header */}
                         <div className="space-y-2">
-                          <h2 className="text-2xl font-bold text-primary">
+                          <h2 className="text-xl font-bold text-primary">
                             {sectionName}
                           </h2>
                           <div className="flex items-center gap-2">
@@ -412,7 +412,7 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
                               value={(sectionItems.filter(i => i.completed).length / sectionItems.length) * 100}
                               className="h-2 flex-1"
                             />
-                            <span className="text-sm text-muted-foreground whitespace-nowrap">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
                               {sectionItems.filter(i => i.completed).length}/{sectionItems.length}
                             </span>
                           </div>
@@ -427,30 +427,30 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
                           >
                             {/* Item Header */}
                             <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 mt-1">
+                              <div className="flex-shrink-0 mt-0.5">
                                 {item.completed ? (
                                   <CheckCircle2 className="h-5 w-5 text-green-500" />
                                 ) : (
                                   <Circle className="h-5 w-5 text-gray-300" />
                                 )}
                               </div>
-                              <div className="flex-1 space-y-1">
+                              <div className="flex-1 space-y-1.5">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <h3 className="font-semibold text-lg">
+                                  <h3 className="font-semibold text-base">
                                     {PRISMA_ITEM_NAMES[item.item_number || item.itemNumber] || `Ítem ${item.item_number || item.itemNumber}`}
                                   </h3>
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge variant="outline" className="text-xs h-5">
                                     #{item.item_number || item.itemNumber}
                                   </Badge>
-                                  <Badge variant={item.completed ? "default" : "secondary"} className="text-xs">
-                                    {item.content_type === 'automated' && ' IA'}
-                                    {item.content_type === 'human' && ' Manual'}
-                                    {item.content_type === 'hybrid' && ' Híbrido'}
-                                    {item.content_type === 'pending' && ' Pendiente'}
+                                  <Badge variant={item.completed ? "default" : "secondary"} className="text-xs h-5">
+                                    {item.content_type === 'automated' && '🤖 IA'}
+                                    {item.content_type === 'human' && '✍️ Manual'}
+                                    {item.content_type === 'hybrid' && '🔄 Híbrido'}
+                                    {item.content_type === 'pending' && '⏳ Pendiente'}
                                   </Badge>
                                 </div>
                                 {item.data_source && (
-                                  <p className="text-sm text-muted-foreground">
+                                  <p className="text-xs text-muted-foreground">
                                     <strong>Fuente:</strong> {item.data_source}
                                   </p>
                                 )}
@@ -458,19 +458,19 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
                             </div>
 
                             {/* Item Content */}
-                            <div className="ml-5">
+                            <div className="ml-8">
                               {!item.content && item.content_type === 'pending' && !prismaLocked && (
-                                <Alert className="mb-3">
-                                  <AlertCircle className="h-2 w-4" />
-                                  <AlertDescription>
+                                <Alert className="mb-2">
+                                  <AlertCircle className="h-4 w-4" />
+                                  <AlertDescription className="text-xs">
                                     Este ítem aún no ha sido completado. Escriba el contenido manualmente o genere con IA.
                                   </AlertDescription>
                                 </Alert>
                               )}
                               {prismaLocked && (
-                                <Alert className="mb-3 border-blue-500 bg-blue-50 dark:bg-blue-950">
+                                <Alert className="mb-2 border-blue-500 bg-blue-50 dark:bg-blue-950">
                                   <Lock className="h-4 w-4 text-blue-600" />
-                                  <AlertDescription className="text-blue-900 dark:text-blue-100">
+                                  <AlertDescription className="text-xs text-blue-900 dark:text-blue-100">
                                     PRISMA finalizado. No se pueden realizar cambios.
                                   </AlertDescription>
                                 </Alert>
@@ -493,11 +493,11 @@ export default function PrismaPageImproved({ params }: { params: { id: string } 
                                   }
                                 }}
                                 disabled={prismaLocked}
-                                rows={6}
+                                rows={5}
                                 placeholder={prismaLocked ? "Contenido bloqueado" : `Contenido del ítem ${PRISMA_ITEM_NAMES[item.item_number || item.itemNumber]}...`}
-                                className="font-serif text-base leading-relaxed min-h-[120px] resize-y"
+                                className="font-serif text-sm leading-relaxed min-h-[100px] resize-y"
                               />
-                              <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center justify-between mt-1.5">
                                 <span className="text-xs text-muted-foreground">
                                   {(item.content || '').split(/\s+/).filter(w => w.length > 0).length} palabras
                                 </span>

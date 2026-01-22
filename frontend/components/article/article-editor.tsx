@@ -24,8 +24,8 @@ export function ArticleEditor({ version, onContentChange, disabled = false }: Ar
 
   return (
     <Card className="w-full shadow-sm">
-      <ScrollArea className="h-[calc(100vh-180px)] p-4 bg-white dark:bg-zinc-950">
-        <div className="max-w-5xl space-y-6 pb-12">
+      <ScrollArea className="h-[calc(100vh-180px)] p-6 bg-white dark:bg-zinc-950">
+        <div className="max-w-5xl mx-auto space-y-6 pb-12 px-8">
           {/* Document Header */}
           <div id="section-title" className="text-center border-b pb-4 mb-4 scroll-mt-6">
             <h1 className="text-xl font-bold tracking-tight mb-1">{version.title}</h1>

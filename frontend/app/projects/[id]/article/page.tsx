@@ -14,7 +14,7 @@ import type { ArticleVersion } from "@/lib/article-types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Save, FileDown, Eye, Loader2, Lock, Sparkles, FileText } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth-context"
@@ -402,19 +402,107 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             </Alert>
           )}
 
-          {/* Stats */}
-          {currentVersion && (
-            <ArticleStats
-              wordCount={currentVersion.wordCount}
-              lastSaved={currentVersion.createdAt}
-              completionPercentage={calculateCompletion()}
-            />
-          )}
+          {/* Top Section: 3 Bloques - Info IA + Generador + Acciones */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Bloque 1: Información del Generador con IA */}
+            <Card>
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="flex items-center gap-1.5 text-sm">
+                  <Sparkles className="h-4 w-4" />
+                  Generador con IA
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Genera borradores automáticamente usando inteligencia artificial
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="py-2 pb-1">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  La IA utilizará tu protocolo PICO, referencias incluidas y checklist PRISMA para generar contenido académico de alta calidad.
+                </p>
+              </CardContent>
+            </Card>
 
-          {/* New Layout: 3 columns - Index + Content + AI Panel */}
-          <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_260px] gap-4">
-            {/* Left Sidebar: Index */}
-            <div className="w-full">
+            {/* Bloque 2: Generar Artículo Completo */}
+            <Card>
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="text-sm font-semibold">Generar Artículo Completo</CardTitle>
+                <CardDescription className="text-xs">
+                  Crea todas las secciones del artículo automáticamente
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 pt-2 pb-3">
+               
+                <Button
+                  onClick={handleGenerateFullArticle}
+                  disabled={isGenerating || !status?.canGenerate}
+                  className="w-full"
+                  size="sm"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generar Borrador Completo
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Bloque 3: Acciones */}
+            <Card>
+              <CardHeader >
+                <CardTitle className="text-sm font-semibold">Acciones</CardTitle>
+                <CardDescription className="text-xs">
+                  Gestiona y exporta tu artículo científico
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 ">
+                <Button
+                  variant="outline"
+                  onClick={handlePreview}
+                  disabled={!currentVersion || isGenerating}
+                  className="w-full"
+                  size="sm"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Vista Previa
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('pdf')}
+                  disabled={!currentVersion || isGenerating}
+                  className="w-full"
+                  size="sm"
+                >
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Exportar
+                </Button>
+                <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving} className="w-full" size="sm">
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Guardar Versión
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* New Layout: Index (col-3) + Content (col-9) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Left Sidebar: Index + Version History */}
+            <div className="lg:col-span-3 space-y-4">
               <Card className="sticky top-6">
                 <CardHeader className="pb-2 pt-3">
                   <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
@@ -473,10 +561,17 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
                   </button>
                 </CardContent>
               </Card>
+
+              <VersionHistory
+                versions={versions}
+                currentVersionId={currentVersionId || ''}
+                onSelectVersion={setCurrentVersionId}
+                onRestoreVersion={handleRestoreVersion}
+              />
             </div>
 
             {/* Center: Main Content Area (Article Editor) */}
-            <div className="w-full">
+            <div className="lg:col-span-9">
               {currentVersion && (
                 <ArticleEditor
                   version={currentVersion}
@@ -484,69 +579,6 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
                   disabled={isGenerating}
                 />
               )}
-            </div>
-
-            {/* Right Sidebar: AI Generator + Actions */}
-            <div className="w-full space-y-4">
-              <div className="sticky top-6 space-y-4">
-                <AIGeneratorPanel
-                  onGenerateDraft={handleGenerateDraft}
-                  onGenerateFullArticle={handleGenerateFullArticle}
-                  disabled={isGenerating || !status?.canGenerate}
-                  isGenerating={isGenerating}
-                />
-                
-                <VersionHistory
-                  versions={versions}
-                  currentVersionId={currentVersionId || ''}
-                  onSelectVersion={setCurrentVersionId}
-                  onRestoreVersion={handleRestoreVersion}
-                />
-
-                {/* Action Buttons */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold">Acciones</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={handlePreview}
-                        disabled={!currentVersion || isGenerating}
-                        className="flex-1"
-                        size="sm"
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Vista Previa
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleExport('pdf')}
-                        disabled={!currentVersion || isGenerating}
-                        className="flex-1"
-                        size="sm"
-                      >
-                        <FileDown className="mr-2 h-4 w-4" />
-                        Exportar
-                      </Button>
-                    </div>
-                    <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving} className="w-full" size="sm">
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Guardando...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Guardar Versión
-                        </>
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
             </div>
           </div>
         </div>

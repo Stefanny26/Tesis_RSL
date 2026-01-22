@@ -47,7 +47,9 @@ class PythonGraphService {
             console.log('   - Search strategy queries:', searchStrategy?.length || 0);
             console.log('📊 Generando gráficos con Python...');
 
-            const pythonProcess = spawn('python', [this.scriptPath, '--output-dir', this.outputDir]);
+            // Usar python3 para compatibilidad con entornos Linux/Render
+            const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+            const pythonProcess = spawn(pythonCommand, [this.scriptPath, '--output-dir', this.outputDir]);
 
             let stdout = '';
             let stderr = '';
