@@ -254,8 +254,25 @@ class ScreeningRecordRepository {
 
   /**
    * Obtiene todos los puntajes individuales ordenados descendientemente
+   * Busca primero en references.screening_score (screening híbrido)
+   * Si no hay, busca en screening_records.total_score (screening manual)
    */
   async getAllScores(projectId, stage = 'fulltext') {
+    // Intentar desde references (screening híbrido)
+    const refQuery = `
+      SELECT screening_score 
+      FROM "references" 
+      WHERE project_id = $1 AND screening_score IS NOT NULL
+      ORDER BY screening_score DESC
+    `;
+    const refResult = await database.query(refQuery, [projectId]);
+    
+    if (refResult.rows.length > 0) {
+      console.log(`📊 Scores encontrados en references: ${refResult.rows.length} puntos`);
+      return refResult.rows.map(r => parseFloat(r.screening_score));
+    }
+    
+    // Fallback: buscar en screening_records
     const query = `
       SELECT total_score 
       FROM screening_records 
@@ -263,6 +280,7 @@ class ScreeningRecordRepository {
       ORDER BY total_score DESC
     `;
     const result = await database.query(query, [projectId, stage]);
+    console.log(`📊 Scores encontrados en screening_records: ${result.rows.length} puntos`);
     return result.rows.map(r => parseFloat(r.total_score));
   }
 }
