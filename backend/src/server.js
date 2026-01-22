@@ -21,6 +21,81 @@ const rqsRoutes = require('./api/routes/rqs.routes');
 // Importar middleware BSON
 const { bsonMiddleware } = require('./infrastructure/middlewares/bson.middleware');
 
+// Importar módulos para verificación de Python
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
+
+/**
+ * Verificar que Python y las dependencias estén instaladas
+ */
+async function verifyPythonEnvironment() {
+  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🔍 VERIFICANDO ENTORNO PYTHON');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+  const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+  
+  try {
+    // Verificar versión de Python
+    const { stdout: pythonVersion } = await execPromise(`${pythonCommand} --version`);
+    console.log('✅ Python encontrado:', pythonVersion.trim());
+
+    // Verificar matplotlib
+    try {
+      const { stdout: matplotlibVersion } = await execPromise(
+        `${pythonCommand} -c "import matplotlib; print(matplotlib.__version__)"`
+      );
+      console.log('✅ Matplotlib instalado:', matplotlibVersion.trim());
+    } catch (error) {
+      console.error('❌ Matplotlib NO instalado');
+      console.error('   Error:', error.message);
+    }
+
+    // Verificar pandas
+    try {
+      const { stdout: pandasVersion } = await execPromise(
+        `${pythonCommand} -c "import pandas; print(pandas.__version__)"`
+      );
+      console.log('✅ Pandas instalado:', pandasVersion.trim());
+    } catch (error) {
+      console.error('❌ Pandas NO instalado');
+      console.error('   Error:', error.message);
+    }
+
+    // Verificar que el script existe
+    const path = require('path');
+    const fs = require('fs');
+    const scriptPath = path.join(__dirname, '../scripts/generate_charts.py');
+    if (fs.existsSync(scriptPath)) {
+      console.log('✅ Script generate_charts.py encontrado');
+    } else {
+      console.error('❌ Script generate_charts.py NO encontrado');
+    }
+
+    // Verificar carpeta de uploads
+    const uploadsDir = path.join(__dirname, '../uploads/charts');
+    if (fs.existsSync(uploadsDir)) {
+      console.log('✅ Carpeta uploads/charts existe');
+    } else {
+      console.log('⚠️  Carpeta uploads/charts no existe (se creará automáticamente)');
+    }
+
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('✅ VERIFICACIÓN DE PYTHON COMPLETADA');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+  } catch (error) {
+    console.error('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('❌ ERROR: Python NO está instalado o no está en el PATH');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('Error:', error.message);
+    console.error('\n⚠️  Las imágenes de gráficos NO se generarán.');
+    console.error('   Solución: Actualiza el Build Command en Render a:');
+    console.error('   npm install && pip3 install -r requirements.txt\n');
+  }
+}
+
 /**
  * Servidor principal de la aplicación
  */
@@ -151,6 +226,9 @@ class Server {
     try {
       // Conectar a la base de datos
       await this.connectDatabase();
+
+      // Verificar entorno Python (para generación de gráficos)
+      await verifyPythonEnvironment();
 
       // Iniciar servidor HTTP
       this.app.listen(this.port, () => {
