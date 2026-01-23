@@ -6,12 +6,21 @@ import { FileDown, X } from "lucide-react"
 import type { ArticleVersion } from "@/lib/article-types"
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import Image from 'next/image'
 
 interface ArticlePreviewProps {
   version: ArticleVersion
   open: boolean
   onClose: () => void
   onExport: (format: 'pdf' | 'docx') => void
+}
+
+// Componentes personalizados para ReactMarkdown
+const markdownComponents = {
+  img: ({ node, ...props }: any) => {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img {...props} alt={props.alt || ''} className="w-full h-auto my-4" />
+  }
 }
 
 export function ArticlePreview({ version, open, onClose, onExport }: ArticlePreviewProps) {
@@ -68,7 +77,7 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
                 <section className="mb-4 bg-muted/30 p-4 rounded-lg border">
                   <h2 className="!mt-0 !mb-2 text-primary text-sm">Abstract</h2>
                   <div className="text-justify leading-relaxed text-[13px]">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.abstract}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{version.content.abstract}</ReactMarkdown>
                   </div>
                 </section>
               )}
@@ -78,7 +87,7 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
                 <section className="mb-4">
                   <h2 className="border-b border-primary/20 pb-1.5 text-sm">1. Introduction</h2>
                   <div className="text-justify leading-relaxed text-[13px]">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.introduction}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{version.content.introduction}</ReactMarkdown>
                   </div>
                 </section>
               )}
@@ -88,7 +97,7 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
                 <section className="mb-4">
                   <h2 className="border-b border-primary/20 pb-1.5 text-sm">2. Methods</h2>
                   <div className="text-justify leading-relaxed text-[13px]">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.methods}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{version.content.methods}</ReactMarkdown>
                   </div>
                 </section>
               )}
@@ -98,7 +107,7 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
                 <section className="mb-4">
                   <h2 className="border-b border-primary/20 pb-1.5 text-sm">3. Results</h2>
                   <div className="text-justify leading-relaxed text-[13px]">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.results}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{version.content.results}</ReactMarkdown>
                   </div>
                 </section>
               )}
@@ -108,7 +117,7 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
                 <section className="mb-4">
                   <h2 className="border-b border-primary/20 pb-1.5 text-sm">4. Discussion</h2>
                   <div className="text-justify leading-relaxed text-[13px]">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.discussion}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{version.content.discussion}</ReactMarkdown>
                   </div>
                 </section>
               )}
@@ -118,7 +127,7 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
                 <section className="mb-4">
                   <h2 className="border-b border-primary/20 pb-1.5 text-sm">5. Conclusions</h2>
                   <div className="text-justify leading-relaxed text-[13px]">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.conclusions}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{version.content.conclusions}</ReactMarkdown>
                   </div>
                 </section>
               )}
@@ -128,7 +137,7 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
                 <section className="mb-4 bg-muted/20 p-3 rounded-lg border border-dashed">
                   <h2 className="!mt-0 !mb-2 text-sm">Declarations</h2>
                   <div className="text-justify leading-relaxed text-[11px]">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.declarations}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{version.content.declarations}</ReactMarkdown>
                   </div>
                 </section>
               )}
@@ -138,7 +147,7 @@ export function ArticlePreview({ version, open, onClose, onExport }: ArticlePrev
                 <section className="mb-4">
                   <h2 className="border-b border-primary/20 pb-1.5 text-sm">References</h2>
                   <div className="leading-relaxed text-[11px] space-y-1.5">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{version.content.references}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{version.content.references}</ReactMarkdown>
                   </div>
                 </section>
               )}
