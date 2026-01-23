@@ -59,6 +59,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
       // Cargar versiones guardadas del artículo
       try {
         const versionsData = await apiClient.getArticleVersions(params.id)
+        
         if (versionsData.success && versionsData.data && versionsData.data.length > 0) {
           setVersions(versionsData.data)
           setCurrentVersionId(versionsData.data[0].id)

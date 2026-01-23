@@ -174,15 +174,17 @@ class GenerateArticleFromPrismaUseCase {
         console.warn('⚠️ Advertencia: Título del artículo vacío, usando fallback genérico');
       }
 
-      // 6.5. Convertir imágenes a base64 para guardar en BD
-      const chartPathsBase64 = await this.convertImagesToBase64(chartPaths);
+      // 6.5. NO convertir a base64, usar URLs directas para evitar problemas con ReactMarkdown
+      // Las imágenes ya están guardadas en uploads/charts/ y son servidas por Express
+      console.log('📸 Usando URLs directas para imágenes en lugar de base64');
+      const chartPathsForArticle = chartPaths; // Usar URLs directas
 
       const article = {
         title: articleTitle,
         abstract: await this.generateProfessionalAbstract(prismaMapping, prismaContext, rqsStats),
         introduction: await this.generateProfessionalIntroduction(prismaMapping, prismaContext, rqsEntries),
-        methods: await this.generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries, chartPathsBase64),
-        results: await this.generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats, chartPathsBase64),
+        methods: await this.generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries, chartPathsForArticle),
+        results: await this.generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats, chartPathsForArticle),
         discussion: await this.generateProfessionalDiscussion(prismaMapping, prismaContext, rqsStats, rqsEntries),
         conclusions: await this.generateProfessionalConclusions(prismaMapping, prismaContext, rqsStats),
         references: this.generateProfessionalReferences(prismaContext, rqsEntries),
