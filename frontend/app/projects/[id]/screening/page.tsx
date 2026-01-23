@@ -1496,7 +1496,9 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                 
                 // Calcular referencias procesadas en Fase 1 (las que tienen clasificación de IA)
                 const screenedInPhase1 = classifiedRefs.length
-                const excludedInPhase1 = excludedByAI.length
+                // CORRECCIÓN: Excluidas = Total clasificadas - Seleccionadas para revisión
+                // Esto incluye tanto las auto-excluidas por IA como las excluidas manualmente por el usuario
+                const excludedInPhase1 = classifiedRefs.length - selectedForReview.length
                 
                 const prismaStats = {
                   identified: totalRefs,
