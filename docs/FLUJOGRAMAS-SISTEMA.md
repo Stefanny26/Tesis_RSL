@@ -297,26 +297,26 @@ flowchart TD
 ### Componentes del Sistema
 
 ```mermaid
-graph TB
-    subgraph Frontend["Frontend (Next.js 14 + React 19)"]
-        UI[Interfaz de Usuario<br/>Editor PRISMA]
+flowchart TB
+    subgraph Frontend["Frontend: Next.js 14 + React 19"]
+        UI[Interfaz de Usuario - Editor PRISMA]
         ValidateBtn[Botón: Validar con IA]
         Feedback[Panel de Feedback]
     end
     
-    subgraph Backend["Backend (Node.js 20 + Express 4.18)"]
-        API[API REST<br/>POST /api/prisma/validate]
-        Controller[PRISMA Controller<br/>validateWithAI()]
-        Prompts[27 Prompts<br/>prisma-validation-prompts.js]
+    subgraph Backend["Backend: Node.js 20 + Express 4.18"]
+        API[API REST - POST /api/prisma/validate]
+        Controller[PRISMA Controller - validateWithAI]
+        Prompts[27 Prompts - prisma-validation-prompts.js]
     end
     
     subgraph AI["Servicios IA"]
-        ChatGPT[ChatGPT gpt-4o-mini<br/>OpenAI API]
-        Embeddings[MiniLM-L6-v2<br/>Local @xenova/transformers]
+        ChatGPT[ChatGPT gpt-4o-mini - OpenAI API]
+        Embeddings[MiniLM-L6-v2 - Local xenova/transformers]
     end
     
-    subgraph Database["Base de Datos (PostgreSQL 15)"]
-        PrismaTable[(Tabla: prisma_items<br/>- item_number<br/>- content<br/>- status<br/>- ai_score<br/>- is_unlocked)]
+    subgraph Database["Base de Datos: PostgreSQL 15"]
+        PrismaTable[(Tabla prisma_items: item_number, content, status, ai_score, is_unlocked)]
     end
     
     UI --> ValidateBtn
