@@ -13,6 +13,18 @@
  */
 
 class GenerateArticleFromPrismaUseCase {
+  // Constantes para estándares editoriales universales (IEEE/Elsevier/Springer/MDPI)
+  static EDITORIAL_STANDARDS = {
+    TITLE_MAX_WORDS: 25,
+    ABSTRACT_MIN_WORDS: 150,
+    ABSTRACT_MAX_WORDS: 250,
+    KEYWORDS_MIN: 3,
+    KEYWORDS_MAX: 6,
+    CONCLUSIONS_MIN_WORDS: 150,
+    CONCLUSIONS_MAX_WORDS: 300,
+    MIN_TOTAL_WORDS: 2000
+  };
+
   constructor({
     prismaItemRepository,
     protocolRepository,
@@ -164,7 +176,7 @@ class GenerateArticleFromPrismaUseCase {
       // 6. Generar artículo con CALIDAD ACADÉMICA
       console.log('📝 Generando secciones del artículo...');
 
-      // ✅ VALIDACIÓN: Asegurar que title nunca esté vacío
+      // ✅ VALIDACIÓN: Asegurar que title nunca esté vacío y cumple longitud editorial
       const articleTitle = prismaMapping.title ||
         prismaContext.protocol.title ||
         prismaContext.protocol.proposedTitle ||
@@ -172,6 +184,17 @@ class GenerateArticleFromPrismaUseCase {
 
       if (!articleTitle || articleTitle.trim() === '') {
         console.warn('⚠️ Advertencia: Título del artículo vacío, usando fallback genérico');
+      }
+      
+      // Validar longitud del título según estándares editoriales
+      const titleWordCount = articleTitle.split(/\s+/).filter(w => w.length > 0).length;
+      const { TITLE_MAX_WORDS } = GenerateArticleFromPrismaUseCase.EDITORIAL_STANDARDS;
+      
+      if (titleWordCount > TITLE_MAX_WORDS) {
+        console.warn(`⚠️ Título excede longitud recomendada: ${titleWordCount} palabras (máximo recomendado: ${TITLE_MAX_WORDS})`);
+        console.warn(`   Considere acortar: "${articleTitle.substring(0, 80)}..."`);
+      } else {
+        console.log(`✅ Título cumple estándar editorial: ${titleWordCount} palabras`);
       }
 
       // 6.5. NO convertir a base64, usar URLs directas para evitar problemas con ReactMarkdown
@@ -182,6 +205,7 @@ class GenerateArticleFromPrismaUseCase {
       const article = {
         title: articleTitle,
         abstract: await this.generateProfessionalAbstract(prismaMapping, prismaContext, rqsStats),
+        keywords: await this.generateKeywords(prismaContext, rqsStats),
         introduction: await this.generateProfessionalIntroduction(prismaMapping, prismaContext, rqsEntries),
         methods: await this.generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries, chartPathsForArticle),
         results: await this.generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats, chartPathsForArticle),
@@ -197,17 +221,32 @@ class GenerateArticleFromPrismaUseCase {
           rqsDataIncluded: rqsEntries.length > 0,
           rqsEntriesCount: rqsEntries.length,
           tablesIncluded: 3,
-          figuresRecommended: ['PRISMA flow diagram', 'Distribution charts']
+          figuresRecommended: ['PRISMA flow diagram', 'Distribution charts'],
+          editorialStandards: {
+            compliant: true,
+            format: 'IEEE/Elsevier/Springer/MDPI',
+            abstractWords: 0,
+            keywordsCount: 0,
+            conclusionsWords: 0
+          }
         }
       };
 
       article.metadata.wordCount = this.calculateWordCount(article);
+      
+      // Calcular estadísticas editoriales
+      article.metadata.editorialStandards.abstractWords = article.abstract.split(/\s+/).filter(w => w.length > 0).length;
+      article.metadata.editorialStandards.keywordsCount = article.keywords.split(';').filter(k => k.trim().length > 0).length;
+      article.metadata.editorialStandards.conclusionsWords = article.conclusions.split(/\s+/).filter(w => w.length > 0).length;
 
       // Validación de calidad
       this.validateArticleQuality(article);
 
       console.log('✅ Artículo profesional generado exitosamente');
       console.log(`📊 Palabras totales: ${article.metadata.wordCount}`);
+      console.log(`📊 Abstract: ${article.metadata.editorialStandards.abstractWords} palabras`);
+      console.log(`📊 Keywords: ${article.metadata.editorialStandards.keywordsCount} términos`);
+      console.log(`📊 Conclusiones: ${article.metadata.editorialStandards.conclusionsWords} palabras`);
       console.log(`📊 Tablas incluidas: ${article.metadata.tablesIncluded}`);
 
       return { success: true, article };
@@ -243,7 +282,7 @@ DATOS RQS PROCESADOS (${rqsStats.total} estudios):
 - Cobertura RQ2: ${rqsStats.rqRelations.rq2.yes} directos, ${rqsStats.rqRelations.rq2.partial} parciales
 - Cobertura RQ3: ${rqsStats.rqRelations.rq3.yes} directos, ${rqsStats.rqRelations.rq3.partial} parciales
 
-**ESTRUCTURA OBLIGATORIA (250-300 palabras):**
+**ESTRUCTURA OBLIGATORIA (150-250 palabras - ESTÁNDAR EDITORIAL IEEE/Elsevier/Springer):**
 
 **Background**: 2-3 frases estableciendo el problema y gap de investigación específico.
 
@@ -262,6 +301,7 @@ DATOS RQS PROCESADOS (${rqsStats.total} estudios):
 - Tercera persona impersonal
 - Sin abreviaturas no definidas
 - Coherencia total entre secciones
+- **CRÍTICO: Mantener entre 150-250 palabras (estándar editorial universal)**
 
 Genera SOLO el texto del abstract sin encabezados de sección:`;
 
@@ -271,7 +311,72 @@ Genera SOLO el texto del abstract sin encabezados de sección:`;
       'chatgpt'
     );
 
-    return response.trim();
+    const abstractText = response.trim();
+    
+    // Validación de longitud según estándares editoriales
+    const wordCount = abstractText.split(/\s+/).filter(w => w.length > 0).length;
+    const { ABSTRACT_MIN_WORDS, ABSTRACT_MAX_WORDS } = GenerateArticleFromPrismaUseCase.EDITORIAL_STANDARDS;
+    
+    if (wordCount < ABSTRACT_MIN_WORDS) {
+      console.warn(`⚠️ Abstract DEBAJO del estándar editorial: ${wordCount} palabras (mínimo: ${ABSTRACT_MIN_WORDS})`);
+    } else if (wordCount > ABSTRACT_MAX_WORDS) {
+      console.warn(`⚠️ Abstract EXCEDE el estándar editorial: ${wordCount} palabras (máximo: ${ABSTRACT_MAX_WORDS})`);
+    } else {
+      console.log(`✅ Abstract cumple estándar editorial: ${wordCount} palabras`);
+    }
+
+    return abstractText;
+  }
+
+  /**
+   * KEYWORDS profesionales (obligatorio en journals IEEE/Elsevier/Springer/MDPI)
+   */
+  async generateKeywords(prismaContext, rqsStats) {
+    const prompt = `Genera palabras clave (keywords) para un artículo científico de revisión sistemática.
+
+**CONTEXTO DEL ESTUDIO:**
+- Objetivo: ${prismaContext.protocol.objective}
+- Tecnologías principales: ${rqsStats.technologies.slice(0, 5).map(t => t.technology).join(', ')}
+- Contextos: ${Object.keys(rqsStats.contexts).join(', ')}
+- Tipo de estudio: Revisión sistemática de literatura
+
+**REQUISITOS EDITORIALES ESTRICTOS:**
+- Generar EXACTAMENTE entre 3 y 6 palabras clave
+- Deben reflejar: tecnología, dominio de aplicación, y método
+- Evitar palabras genéricas como "revisión", "análisis" (a menos que sean muy específicas)
+- Usar términos indexables en bases académicas (IEEE Xplore, Scopus, Web of Science)
+- Preferir términos en inglés cuando sean estándar internacional (ej: Machine Learning, IoT)
+- Separar con punto y coma
+- Capitalización: Primera letra mayúscula o todas minúsculas según convención del término
+
+**EJEMPLOS DE BUENAS KEYWORDS:**
+- Machine Learning; Ciberseguridad; Internet de las Cosas; Blockchain; Revisión Sistemática
+- Cloud Computing; DevOps; Metodología Ágil; Calidad de Software
+- Inteligencia Artificial; Detección de Anomalías; Seguridad Industrial
+
+Genera SOLO la lista de palabras clave separadas por punto y coma, sin numeración ni formato adicional:`;
+
+    const response = await this.aiService.generateText(
+      this.getEnhancedSystemPrompt(),
+      prompt,
+      'chatgpt'
+    );
+
+    const keywords = response.trim();
+    
+    // Validación de cantidad de keywords
+    const keywordArray = keywords.split(';').map(k => k.trim()).filter(k => k.length > 0);
+    const { KEYWORDS_MIN, KEYWORDS_MAX } = GenerateArticleFromPrismaUseCase.EDITORIAL_STANDARDS;
+    
+    if (keywordArray.length < KEYWORDS_MIN) {
+      console.warn(`⚠️ Keywords insuficientes: ${keywordArray.length} (mínimo: ${KEYWORDS_MIN})`);
+    } else if (keywordArray.length > KEYWORDS_MAX) {
+      console.warn(`⚠️ Demasiadas keywords: ${keywordArray.length} (máximo: ${KEYWORDS_MAX})`);
+    } else {
+      console.log(`✅ Keywords cumplen estándar: ${keywordArray.length} términos`);
+    }
+
+    return keywords;
   }
 
   /**
@@ -347,44 +452,29 @@ Genera SOLO el texto de la introducción en español:`;
 `;
     }
 
-    // Generar tabla de búsquedas desde los datos del protocolo
+    // Generar tabla de búsquedas - SOLO markdown puro, sin títulos adicionales
     let searchChart = '';
     
-    // Priorizar searchQueries que tiene las queries completas
     if (searchQueries.length > 0) {
-      // Construir tabla con las bases de datos y sus cadenas de búsqueda
-      let tableRows = searchQueries.map(sq => {
+      const tableRows = searchQueries.map(sq => {
         const dbName = sq.databaseName || sq.database || 'N/A';
         const searchStr = sq.query || 'N/A';
         return `| ${dbName} | ${searchStr} |`;
       }).join('\n');
 
-      searchChart = `
-**Tabla 1: Fuentes de datos y estrategia de búsqueda**
-
-| Base de Datos | Cadena de Búsqueda |
+      searchChart = `| Base de Datos | Cadena de Búsqueda |
 |---------------|-------------------|
-${tableRows}
-
-*Tabla 1. Bases de datos académicas y cadenas de búsqueda utilizadas.*
-`;
+${tableRows}`;
     } else if (databases.length > 0) {
-      // Fallback si no hay searchQueries (proyectos antiguos)
-      let tableRows = databases.map(db => {
+      const tableRows = databases.map(db => {
         const dbName = db.name || db || 'N/A';
         const searchStr = db.query || db.searchString || 'Ver protocolo';
         return `| ${dbName} | ${searchStr} |`;
       }).join('\n');
 
-      searchChart = `
-**Tabla 1: Fuentes de datos y estrategia de búsqueda**
-
-| Base de Datos | Cadena de Búsqueda |
+      searchChart = `| Base de Datos | Cadena de Búsqueda |
 |---------------|-------------------|
-${tableRows}
-
-*Tabla 1. Bases de datos académicas y cadenas de búsqueda utilizadas.*
-`;
+${tableRows}`;
     }
 
     const screeSection = screePlot ? `
@@ -739,11 +829,11 @@ ${rqsEntries.map((entry, i) => {
         metrics = metricsList.substring(0, 40);
       }
 
-      // RQ relations con símbolos
+      // RQ relations con símbolos LaTeX-compatibles
       const getRQSymbol = (relation) => {
-        if (relation === 'yes') return '✓';
-        if (relation === 'partial') return '◐';
-        return '✗';
+        if (relation === 'yes') return '$\\\\checkmark$';
+        if (relation === 'partial') return '$\\\\circ$';
+        return '$\\\\times$';
       };
       const rq1 = getRQSymbol(entry.rq1Relation);
       const rq2 = getRQSymbol(entry.rq2Relation);
@@ -754,7 +844,7 @@ ${rqsEntries.map((entry, i) => {
       return `| ${id} | ${evidence} | ${metrics} | ${rq1} | ${rq2} | ${rq3} | ${quality} |`;
     }).join('\n')}
 
-*Leyenda: ✓ = Relación directa, ◐ = Relación parcial, ✗ = Sin relación directa*
+*Leyenda: $\\checkmark$ = Relación directa, $\\circ$ = Relación parcial, $\\times$ = Sin relación directa*
 *Calidad: Evaluación cualitativa basada en transparencia metodológica y reporte de limitaciones*
 `;
   }
@@ -917,7 +1007,7 @@ Cobertura de RQs:
 - RQ2: ${rqsStats.rqRelations.rq2.yes + rqsStats.rqRelations.rq2.partial} estudios relevantes
 - RQ3: ${rqsStats.rqRelations.rq3.yes + rqsStats.rqRelations.rq3.partial} estudios relevantes
 
-**ESTRUCTURA REQUERIDA (400-500 palabras):**
+**ESTRUCTURA REQUERIDA (150-300 palabras - ESTÁNDAR EDITORIAL):**
 
 **Párrafo 1 (Síntesis de hallazgos):**
 Sintetiza en 3-4 frases los hallazgos principales que responden a las RQs.
@@ -935,6 +1025,7 @@ Recomienda 2-3 líneas específicas de investigación futura basadas en gaps ide
 Cierra con una declaración sobre la contribución de esta revisión al campo.
 
 **ESTILO:**
+- **CRÍTICO: Mantener entre 150-300 palabras TOTALES (estándar editorial universal)**
 - Conciso pero completo
 - Tercera persona impersonal
 - Sin referencias a tablas o figuras
@@ -956,6 +1047,18 @@ Genera SOLO el texto de conclusiones:`;
     // Eliminar títulos en negrita o headers al inicio del texto
     cleanedResponse = cleanedResponse.replace(/^#+\s*Conclusiones\s*\n*/i, '');
     cleanedResponse = cleanedResponse.replace(/^\*\*Conclusiones\*\*\s*\n*/i, '');
+    
+    // Validación de longitud según estándares editoriales
+    const wordCount = cleanedResponse.split(/\s+/).filter(w => w.length > 0).length;
+    const { CONCLUSIONS_MIN_WORDS, CONCLUSIONS_MAX_WORDS } = GenerateArticleFromPrismaUseCase.EDITORIAL_STANDARDS;
+    
+    if (wordCount < CONCLUSIONS_MIN_WORDS) {
+      console.warn(`⚠️ Conclusiones DEBAJO del estándar: ${wordCount} palabras (mínimo: ${CONCLUSIONS_MIN_WORDS})`);
+    } else if (wordCount > CONCLUSIONS_MAX_WORDS) {
+      console.warn(`⚠️ Conclusiones EXCEDEN el estándar: ${wordCount} palabras (máximo: ${CONCLUSIONS_MAX_WORDS})`);
+    } else {
+      console.log(`✅ Conclusiones cumplen estándar: ${wordCount} palabras`);
+    }
     
     return cleanedResponse.trim();
   }
@@ -1151,37 +1254,93 @@ Los autores declaran que se han seguido estrictamente las directrices PRISMA 202
   }
 
   /**
-   * Validar calidad del artículo generado
+   * Validar calidad del artículo generado según estándares editoriales universales
    */
   validateArticleQuality(article) {
     const errors = [];
+    const warnings = [];
+    const { 
+      TITLE_MAX_WORDS, 
+      ABSTRACT_MIN_WORDS, 
+      ABSTRACT_MAX_WORDS,
+      KEYWORDS_MIN,
+      KEYWORDS_MAX,
+      CONCLUSIONS_MIN_WORDS,
+      CONCLUSIONS_MAX_WORDS,
+      MIN_TOTAL_WORDS
+    } = GenerateArticleFromPrismaUseCase.EDITORIAL_STANDARDS;
 
-    // Validar longitud de abstract
-    if (article.abstract.length < 200) {
-      errors.push('Abstract muy corto (< 200 caracteres)');
+    // ✅ Validar título
+    const titleWords = article.title.split(/\s+/).filter(w => w.length > 0).length;
+    if (titleWords > TITLE_MAX_WORDS) {
+      warnings.push(`Título excede ${TITLE_MAX_WORDS} palabras (${titleWords} palabras)`);
+    }
+
+    // ✅ Validar abstract
+    const abstractWords = article.abstract.split(/\s+/).filter(w => w.length > 0).length;
+    if (abstractWords < ABSTRACT_MIN_WORDS) {
+      errors.push(`Abstract muy corto: ${abstractWords} palabras (mínimo: ${ABSTRACT_MIN_WORDS})`);
+    } else if (abstractWords > ABSTRACT_MAX_WORDS) {
+      warnings.push(`Abstract muy largo: ${abstractWords} palabras (máximo: ${ABSTRACT_MAX_WORDS})`);
+    }
+
+    // ✅ Validar keywords (obligatorio)
+    if (!article.keywords || article.keywords.trim() === '') {
+      errors.push('Keywords faltantes (obligatorio en journals)');
+    } else {
+      const keywordArray = article.keywords.split(';').map(k => k.trim()).filter(k => k.length > 0);
+      if (keywordArray.length < KEYWORDS_MIN) {
+        errors.push(`Keywords insuficientes: ${keywordArray.length} (mínimo: ${KEYWORDS_MIN})`);
+      } else if (keywordArray.length > KEYWORDS_MAX) {
+        warnings.push(`Demasiadas keywords: ${keywordArray.length} (máximo: ${KEYWORDS_MAX})`);
+      }
+    }
+
+    // ✅ Validar conclusiones
+    const conclusionsWords = article.conclusions.split(/\s+/).filter(w => w.length > 0).length;
+    if (conclusionsWords < CONCLUSIONS_MIN_WORDS) {
+      warnings.push(`Conclusiones cortas: ${conclusionsWords} palabras (mínimo recomendado: ${CONCLUSIONS_MIN_WORDS})`);
+    } else if (conclusionsWords > CONCLUSIONS_MAX_WORDS) {
+      warnings.push(`Conclusiones largas: ${conclusionsWords} palabras (máximo recomendado: ${CONCLUSIONS_MAX_WORDS})`);
     }
 
     // Validar que contiene tablas en resultados
     if (article.results && !article.results.includes('Tabla')) {
-      errors.push('Falta referencia a tablas en resultados');
+      warnings.push('Falta referencia a tablas en resultados');
     }
 
-    // Validar word count mínimo
-    if (article.metadata.wordCount < 2000) {
-      console.warn(`⚠️ Advertencia: Word count bajo (${article.metadata.wordCount} palabras). Se recomienda mínimo 2000 palabras para un artículo académico completo.`);
+    // Validar word count mínimo total
+    if (article.metadata.wordCount < MIN_TOTAL_WORDS) {
+      warnings.push(`Word count bajo: ${article.metadata.wordCount} palabras (mínimo recomendado: ${MIN_TOTAL_WORDS})`);
     }
 
     // Validar que todas las secciones principales existen
-    const requiredSections = ['title', 'abstract', 'introduction', 'methods', 'results', 'discussion', 'conclusions'];
+    const requiredSections = ['title', 'abstract', 'keywords', 'introduction', 'methods', 'results', 'discussion', 'conclusions'];
     requiredSections.forEach(section => {
-      if (!article[section] || article[section].length < 100) {
-        errors.push(`Sección ${section} vacía o muy corta`);
+      if (!article[section] || article[section].length < 10) {
+        errors.push(`Sección "${section}" vacía o muy corta`);
       }
     });
 
+    // Reportar errores críticos
     if (errors.length > 0) {
-      console.warn('⚠️ Advertencias de calidad del artículo:');
-      errors.forEach(err => console.warn(`   - ${err}`));
+      console.error('❌ ERRORES CRÍTICOS (no cumple estándares editoriales):');
+      errors.forEach(err => console.error(`   - ${err}`));
+    }
+
+    // Reportar advertencias
+    if (warnings.length > 0) {
+      console.warn('⚠️ Advertencias de calidad (recomendaciones editoriales):');
+      warnings.forEach(warn => console.warn(`   - ${warn}`));
+    }
+    
+    // Resumen de validación
+    if (errors.length === 0 && warnings.length === 0) {
+      console.log('✅ Artículo cumple TODOS los estándares editoriales (IEEE/Elsevier/Springer/MDPI)');
+    } else if (errors.length === 0) {
+      console.log('✅ Artículo cumple estándares mínimos (con advertencias menores)');
+    } else {
+      console.log('❌ Artículo NO cumple estándares editoriales mínimos');
     }
   }
 

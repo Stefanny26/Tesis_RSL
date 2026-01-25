@@ -1,7 +1,12 @@
 # ANEXO B: PROMPTS DEL GATEKEEPER DE VALIDACIÓN PRISMA
 
+**Fecha**: Enero 25, 2026  
+**Autores**: Stefanny Mishel Hernández Buenaño, Adriana Pamela González Orellana  
+**Tutor**: Ing. Paulo César Galarza Sánchez, MSc.  
+**Institución**: Universidad de las Fuerzas Armadas ESPE
+
 > **Sistema de Validación IA para Cumplimiento PRISMA 2020**  
-> 27 Prompts Especializados para Validación Automática (OpenAI ChatGPT)
+> 27 Prompts Especializados para Validación Automática con OpenAI ChatGPT
 
 ---
 
@@ -45,7 +50,11 @@
 
 **Archivo técnico:** [backend/src/config/prisma-validation-prompts.js](../backend/src/config/prisma-validation-prompts.js)
 
-**Modelo de IA:** OpenAI ChatGPT
+**Modelo de IA:** OpenAI ChatGPT (gpt-4o-mini)  
+**API**: OpenAI Chat Completions API  
+**Temperature**: 0.3 (alta precisión para validación)  
+**Max tokens**: 1000-1500 por validación  
+**Costo estimado**: ~$0.0002-0.0005 por ítem validado
 
 **Formato de respuesta:** JSON estructurado con decision, score, reasoning, issues, suggestions, criteriaChecklist
 
@@ -784,10 +793,23 @@ Para el experimento (Anexo C), cada ítem necesita:
 
 ---
 
-**Próximos pasos:**
-- ✅ Anexo A: Manual de Usuario (COMPLETADO)
-- ✅ Anexo B: Prompts Gatekeeper (5 ítems críticos COMPLETADOS)
-- ⏳ Completar 22 ítems restantes
-- ⏳ Anexo C: Dataset de validación
+## INFORMACIÓN DEL DOCUMENTO
 
-¿Continuamos con los ítems 8-27 o pasamos al Anexo C?
+**Última actualización**: Enero 25, 2026  
+**Versión del sistema**: 1.0.0  
+**Modelo de IA**: OpenAI ChatGPT (gpt-4o-mini)  
+**Backend**: Node.js 20.x, Express 4.18.2  
+**Base de datos**: PostgreSQL 15+
+
+**Estado de implementación**:
+- ✅ 27/27 prompts PRISMA implementados
+- ✅ Validación JSON estructurada
+- ✅ Integración con sistema de artículos
+- ✅ Tracking de uso de API
+
+**Contacto**:
+- Stefanny Hernández: smhernandez2@espe.edu.ec
+- Adriana González: apgonzales1@espe.edu.ec
+- Tutor: Paulo Galarza - pcgalarza@espe.edu.ec
+
+**Institución**: Universidad de las Fuerzas Armadas ESPE - Departamento de Ciencias de la Computación

@@ -1,5 +1,10 @@
 # ANEXO C: CONJUNTO DE DATOS PARA VALIDACIÓN DEL GATEKEEPER IA
 
+**Fecha**: Enero 25, 2026  
+**Autores**: Stefanny Mishel Hernández Buenaño, Adriana Pamela González Orellana  
+**Tutor**: Ing. Paulo César Galarza Sánchez, MSc.  
+**Institución**: Universidad de las Fuerzas Armadas ESPE
+
 > **Dataset de Evaluación Experimental del Sistema de Validación PRISMA**  
 > Protocolo de Recolección, Etiquetado y Análisis
 
@@ -26,7 +31,7 @@ Evaluar cuantitativamente la **precisión del gatekeeper de IA** en validar el c
 
 ### 1.2 Pregunta de Investigación
 
-> **RQ:** ¿Con qué precisión puede un sistema basado en IA generativa (Gemini 1.5) validar el cumplimiento de los ítems PRISMA 2020 en comparación con evaluadores humanos expertos?
+> **RQ:** ¿Con qué precisión puede un sistema basado en IA generativa (ChatGPT gpt-4o-mini) validar el cumplimiento de los ítems PRISMA 2020 en comparación con evaluadores humanos expertos?
 
 ### 1.3 Hipótesis
 
@@ -69,12 +74,13 @@ Evaluar cuantitativamente la **precisión del gatekeeper de IA** en validar el c
 
 **Ejemplos APROBADOS (buenos):**
 - Revisiones sistemáticas publicadas en journals **Q1** (JCR 2022-2024)
-- Fuentes:
-  - PubMed Central (PMC)
-  - Cochrane Library
-  - JMIR (Journal of Medical Internet Research)
-  - Frontiers in Psychology
-- Criterio: RSL que citan explícitamente seguir PRISMA 2020
+- Fuentes principales:
+  - **PubMed Central (PMC)**: Base de datos biomédica, acceso completo a artículos
+  - **Cochrane Library**: Estándar de oro en revisiones sistemáticas
+  - **JMIR (Journal of Medical Internet Research)**: Q1 en informática médica
+  - **Frontiers in Psychology**: Open access, alta calidad metodológica
+- **Criterio de selección**: RSL que citen explícitamente "PRISMA 2020" en metodología
+- **Idiomas**: Inglés (principal) y español (secundario)
 
 **Ejemplos RECHAZADOS (malos):**
 - 50% de RSL con problemas documentados (revisiones antiguas pre-PRISMA 2020)
@@ -430,8 +436,9 @@ node scripts/run-validation-experiment.js --item 6 --dataset ./dataset/labeled/d
 
 **Consideraciones:**
 - ⏱️ 200 ejemplos × 2 seg = ~7 minutos por ítem
-- 💵 Costo API: ~$0.05-0.10 por ítem (Gemini Flash)
+- 💵 Costo API: ~$0.03-0.05 por ítem usando ChatGPT gpt-4o-mini ($0.150/1M in, $0.600/1M out)
 - 📊 Total experimento: 10 ítems × 7 min = **70 minutos**
+- 💰 Costo total estimado: ~$0.40 para dataset completo (2,000 validaciones)
 
 ---
 
@@ -577,7 +584,8 @@ Agregar: "CRÍTICO: El título DEBE incluir explícitamente 'Revisión Sistemát
 
 - **Dataset:** 2,000 ejemplos (10 ítems × 200 ejemplos)
 - **Período:** 15-25 Enero 2026
-- **Modelo IA:** Google Gemini 1.5 Flash
+- **Modelo IA:** OpenAI ChatGPT (gpt-4o-mini)
+- **Backend:** Node.js 20.x con @xenova/transformers 2.17.2
 - **Inter-rater Reliability:** κ = 0.87 (casi perfecto)
 
 ## Métricas Globales
@@ -656,4 +664,8 @@ Antes de considerar el dataset completo:
 - Adriana González: apgonzales1@espe.edu.ec
 - Tutor: Paulo Galarza - pcgalarza@espe.edu.ec
 
-**Última actualización:** Enero 8, 2026
+---
+
+**Última actualización:** Enero 25, 2026  
+**Versión del sistema:** 1.0.0  
+**Institución:** Universidad de las Fuerzas Armadas ESPE - Departamento de Ciencias de la Computación

@@ -1,5 +1,10 @@
 # 📋 Prompts y Reglas de IA - Sistema RSL Manager
 
+**Fecha**: Enero 25, 2026  
+**Autores**: Stefanny Mishel Hernández Buenaño, Adriana Pamela González Orellana  
+**Tutor**: Ing. Paulo César Galarza Sánchez, MSc.  
+**Institución**: Universidad de las Fuerzas Armadas ESPE
+
 Este documento detalla todos los prompts utilizados en el sistema, sus reglas y ejemplos de uso.
 
 ---
@@ -86,10 +91,9 @@ Al ingresar el tema, el usuario debe seleccionar el modelo de IA:
 ```
 Seleccione el modelo de IA para generar el análisis:
 ( ) ChatGPT (GPT-4o-mini)
-( ) Gemini (gemini-2.0-flash-exp)
 ```
 
-**Recomendación**: Gemini tiene mayor cuota disponible actualmente.
+**Modelo utilizado**: ChatGPT (gpt-4o-mini) para todas las funciones del sistema.
 
 ---
 
@@ -253,12 +257,12 @@ metodología PRISMA al ser descriptivo y no anticipar resultados.
 ### ⚙️ Configuración Técnica
 
 ```javascript
-// Archivo: generate-protocol-analysis.use-case.js
-const response = await this.geminiService.generateContent({
+// Archivo: src/domain/use-cases/protocol/generate-protocol-analysis.use-case.js
+const response = await this.openaiService.generateContent({
   prompt: prompt,
   temperature: 0.3,  // Baja creatividad, alta precisión
-  maxTokens: 3000,   // Respuesta extensa
-  model: 'gemini-2.0-flash-exp'
+  maxTokens: 3000,   // Respuesta extensa para análisis completo
+  model: 'gpt-4o-mini'  // Modelo ChatGPT económico
 });
 ```
 
@@ -454,12 +458,12 @@ No incluyas explicaciones fuera del JSON.
 ### ⚙️ Configuración Técnica
 
 ```javascript
-// Archivo: generate-protocol-terms.use-case.js
-const response = await this.geminiService.generateContent({
+// Archivo: src/domain/use-cases/protocol/generate-protocol-terms.use-case.js
+const response = await this.openaiService.generateContent({
   prompt: prompt,
-  temperature: 0.4,  // Moderada precisión
-  maxTokens: 1000,   // Suficiente para 4 categorías
-  model: 'gemini-2.0-flash-exp'
+  temperature: 0.4,  // Moderada precisión para expansión de términos
+  maxTokens: 1000,   // Suficiente para 4 categorías con 3-6 términos cada una
+  model: 'gpt-4o-mini'
 });
 ```
 
@@ -758,12 +762,12 @@ No incluyas explicaciones fuera del JSON.
 ### ⚙️ Configuración Técnica
 
 ```javascript
-// Archivo: generate-inclusion-exclusion-criteria.use-case.js (nuevo)
-const response = await this.geminiService.generateContent({
+// Archivo: src/domain/use-cases/protocol/generate-inclusion-exclusion-criteria.use-case.js
+const response = await this.openaiService.generateContent({
   prompt: prompt,
-  temperature: 0.3,  // Alta precisión para criterios rigurosos
+  temperature: 0.3,  // Alta precisión para criterios rigurosos PRISMA
   maxTokens: 2000,   // Suficiente para 6 categorías detalladas
-  model: 'gemini-2.0-flash-exp'
+  model: 'gpt-4o-mini'
 });
 ```
 
@@ -936,11 +940,11 @@ Analiza la referencia y responde ÚNICAMENTE con un JSON:
 | **Exclude** | Viola ≥1 criterio exclusión O <50% inclusión | Descartada |
 | **Review** | Confidence <0.7 | Requiere revisión manual |
 
-### ⚠️ Limitaciones Actuales
+### ⚠️ Consideraciones de Uso
 
-- **ChatGPT**: Cuota agotada (insufficient_quota)
-- **Gemini**: 0 requests disponibles (free tier exhausted)
-- **Solución**: Usar embeddings (siguiente sección)
+- **ChatGPT (gpt-4o-mini)**: $0.150 por 1M tokens de entrada, $0.600 por 1M tokens de salida
+- **Embeddings locales (MiniLM-L6-v2)**: Sin costo, ejecución local con @xenova/transformers 2.17.2
+- **Estrategia de optimización**: Usar embeddings locales para cribado (gratis) y ChatGPT solo para generación/validación
 
 ---
 
@@ -954,10 +958,13 @@ Evaluar similitud semántica entre protocolo y referencias usando embeddings vec
 
 ### 🔧 Modelo Utilizado
 ```
-Modelo: Xenova/all-MiniLM-L6-v2
-Dimensiones: 384
+Modelo: Xenova/all-MiniLM-L6-v2 (Sentence-Transformers)
+Librería: @xenova/transformers 2.17.2
+Dimensiones: 384 (vector embeddings)
 Método: Cosine Similarity
-Ventajas: Local, gratuito, ilimitado
+Ejecución: Local (Node.js backend)
+Ventajas: Gratuito, ilimitado, sin latencia de API, reproducible
+Costo: $0.00 por proyecto
 ```
 
 ### 📝 Algoritmo
@@ -1088,17 +1095,15 @@ const elbowPoint = secondDerivative.reduce((max, curr) =>
 ### Variables de Entorno (.env)
 
 ```bash
-# OpenAI (ChatGPT)
+# OpenAI (ChatGPT) - Modelo principal para todo el sistema
 OPENAI_API_KEY=sk-proj-xxxxx
 OPENAI_MODEL=gpt-4o-mini
 
-# Google (Gemini)
-GEMINI_API_KEY=xxxxx
-GEMINI_MODEL=gemini-2.0-flash-exp
-
-# Límites (opcionales)
+# Límites (opcionales, valores por defecto razonables)
 MAX_TOKENS_DEFAULT=2000
 TEMPERATURE_DEFAULT=0.7
+
+# Nota: Embeddings locales no requieren API key (MiniLM-L6-v2)
 ```
 
 ### Tracking de Uso
@@ -1299,22 +1304,37 @@ P01 (Títulos) → P02 (PICO) → P03 (Términos) → P04 (Estrategias)
 
 | Módulo | Precisión Esperada | Tiempo Promedio | Tokens Promedio | Costo Estimado |
 |--------|-------------------|-----------------|-----------------|----------------|
-| P01 | 95% (3/3 títulos válidos) | 3-5s | 500 | $0.001 |
-| P02 | 90% (PICO completo) | 5-8s | 800 | $0.002 |
-| P03 | 85% (términos relevantes) | 8-12s | 1200 | $0.003 |
-| P04 | 88% (sintaxis correcta) | 10-15s | 1500 | $0.004 |
-| P06 | 92% (decisión correcta) | 4-6s | 600 | $0.002 |
-| P07 | 87% (threshold óptimo) | 1-2s | N/A | Gratis |
-| P08 | 100% (matemático) | <1s | N/A | Gratis |
-| P09 | 100% (determinístico) | 2-3s | N/A | Gratis |
-| P10 | 88% (calidad contenido) | 15-30s | 2000 | $0.005 |
-| P11 | 85% (evaluación RQS) | 5-8s/estudio | 800 | $0.002 |
-| P12 | 82% (coherencia artículo) | 45-90s | 8000 | $0.020 |
+| P01 | 95% (3/3 títulos válidos) | 3-5s | 500 | $0.0008 |
+| P02 | 90% (PICO completo) | 5-8s | 800 | $0.0010 |
+| P03 | 85% (términos relevantes) | 8-12s | 1200 | $0.0012 |
+| P04 | 88% (sintaxis correcta) | 10-15s | 1500 | $0.0014 |
+| P06 | 92% (decisión correcta) | 4-6s | 600 | $0.0008 |
+| P07 | 87% (threshold óptimo) | 1-2s | N/A | $0.00 |
+| P08 | 100% (matemático) | <1s | N/A | $0.00 |
+| P09 | 100% (determinístico) | 2-3s | N/A | $0.00 |
+| P10 | 88% (calidad contenido) | 15-30s | 2000 | $0.0015 |
+| P11 | 85% (evaluación RQS) | 5-8s/estudio | 800 | $0.0010 |
+| P12 | 82% (coherencia artículo) | 45-90s | 8000 | $0.0060 |
 
-**Total estimado por proyecto completo**: $0.10 - $0.15 USD
+**Total estimado por proyecto completo**: ~$0.015 USD (~$0.08/mes para 10 proyectos usando ChatGPT)
+
+**Nota**: Costos basados en ChatGPT gpt-4o-mini ($0.150/1M in, $0.600/1M out) + embeddings locales gratuitos.
 
 ---
 
-**Última actualización**: Enero 2026  
-**Versión del sistema**: 1.2.0  
-**Modelos activos**: Gemini 2.0 Flash Exp, all-MiniLM-L6-v2, Claude 3.5 Sonnet
+## 📝 Información del Documento
+
+**Última actualización**: Enero 25, 2026  
+**Versión del sistema**: 1.0.0  
+**Modelos de IA activos**:
+- **Embeddings**: all-MiniLM-L6-v2 (Xenova/transformers 2.17.2) - Local, sin costo
+- **LLM principal**: gpt-4o-mini (OpenAI ChatGPT) - Pago por uso
+
+**Backend**: Node.js 20.x, Express 4.18.2  
+**Frontend**: Next.js 14.2.25, React 19, TypeScript  
+**Base de datos**: PostgreSQL 15+ con extensión pgvector  
+
+**Autores**: Stefanny Mishel Hernández Buenaño, Adriana Pamela González Orellana  
+**Tutor**: Ing. Paulo César Galarza Sánchez, MSc.  
+**Institución**: Universidad de las Fuerzas Armadas ESPE - Departamento de Ciencias de la Computación  
+**Carrera**: Ingeniería en Tecnologías de la Información

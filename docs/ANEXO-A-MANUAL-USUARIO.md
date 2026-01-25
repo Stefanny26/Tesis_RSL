@@ -1,7 +1,7 @@
 # ANEXO A: MANUAL DE USUARIO DE LA PLATAFORMA
 
 > **Sistema RSL - Revisión Sistemática de Literatura con Validación IA**  
-> Versión 1.0 | Enero 2026
+> Versión 1.0 | Actualizado: Enero 25, 2026
 
 ---
 
@@ -74,7 +74,6 @@ El Sistema RSL es una plataforma web que guía y automatiza el proceso completo 
 4. Autoriza el acceso con tu cuenta de Google
 5. Completa tu perfil (opcional)
 
-![Pantalla de login](../screenshots/01-login.png)
 
 ### 3.2 Inicio de Sesión
 
@@ -107,8 +106,6 @@ El Sistema RSL es una plataforma web que guía y automatiza el proceso completo 
    - **Descripción**: Breve resumen del objetivo de la revisión
    - **Fecha Límite**: (opcional)
 3. Clic en **"Crear Proyecto"**
-
-![Crear proyecto](../screenshots/02-crear-proyecto.png)
 
 ### 4.2 Panel de Proyectos (Dashboard)
 
@@ -156,8 +153,6 @@ El dashboard muestra todos tus proyectos con:
 3. Clic en **"Analizar con IA"** ✨
 4. La IA descompondrá tu pregunta en componentes PICO
 5. Revisa y ajusta la descomposición
-
-![Análisis PICO](../screenshots/03-pico-analisis.png)
 
 **Componentes PICO:**
 - **P (Population)**: Estudiantes universitarios de programación
@@ -278,14 +273,12 @@ Completa el plan de búsqueda:
 5. Clic en **"Procesar"**
 6. Revisa resumen de importación
 
-**Opción B: Búsqueda en Scopus** (API automática)
+**Opción B: Búsqueda en Scopus** (API automática - requiere API key)
 
 1. Clic en **"Buscar en Scopus"**
 2. Pega tu cadena de búsqueda
 3. Clic en **"Ejecutar Búsqueda"**
 4. Las referencias se importan automáticamente
-
-![Importar referencias](../screenshots/04-importar-refs.png)
 
 ### 6.2 Detección de Duplicados
 
@@ -312,8 +305,6 @@ El sistema detecta duplicados usando:
    - (Opcional) Agrega justificación
 3. El progreso se guarda automáticamente
 
-![Cribado manual](../screenshots/05-screening.png)
-
 **Opción 2: Cribado Asistido por IA**
 
 1. Selecciona referencias (Ctrl + clic para múltiples)
@@ -326,14 +317,20 @@ El sistema detecta duplicados usando:
 
 **Embeddings vs LLM:**
 
-| Característica | Embeddings | LLM |
-|----------------|------------|-----|
-| Velocidad | ⚡ Muy rápido | 🐢 Más lento |
-| Costo | Gratis (local) | Usa API (cuota) |
+| Característica | Embeddings (MiniLM-L6-v2) | LLM (Gemini/ChatGPT) |
+|----------------|---------------------------|----------------------|
+| Velocidad | ⚡ Muy rápido (local) | 🐢 Más lento (API) |
+| Costo | Gratis (procesamiento local) | Usa cuota de API |
 | Precisión | 75-85% | 85-95% |
-| Justificación | Basada en similitud | Razonamiento detallado |
+| Justificación | Basada en similitud semántica | Razonamiento contextual |
+| Reproducibilidad | Alta (determinista) | Media (estocástica) |
 
-**Recomendación:** Usar embeddings para pre-filtrado (500+ refs) y LLM para casos dudosos.
+**Recomendación de uso según volumen:**
+- **< 100 referencias:** LLM directo (alta precisión)
+- **100-500 referencias:** Embeddings para pre-filtrado → LLM para casos dudosos
+- **> 500 referencias:** Embeddings + revisión manual de casos límite
+
+**Nota técnica:** El modelo de embeddings (MiniLM-L6-v2) se ejecuta localmente mediante @xenova/transformers, mientras que los LLMs requieren conexión a APIs externas.
 
 ### 6.4 Vista Rayyan (Simplificada)
 
@@ -373,8 +370,6 @@ Para revisión rápida:
    - PNG (para insertar en documento)
    - SVG (editable)
    - Datos tabulares (Excel)
-
-![Diagrama PRISMA](../screenshots/06-prisma-diagram.png)
 
 ---
 
@@ -417,9 +412,7 @@ La checklist PRISMA 2020 consta de **27 ítems** organizados en 7 secciones:
    - Ítem 5: Criterios de elegibilidad
    - Ítem 6: Fuentes de información
    - Ítem 7: Estrategia de búsqueda
-   - (Y más)
-
-![PRISMA automático](../screenshots/07-prisma-auto.png)
+   - Y otros ítems extraíbles del protocolo
 
 ### 7.4 Editar Ítems Manualmente
 
@@ -527,8 +520,6 @@ El panel superior muestra:
 3. El sistema transforma los 27 ítems en secciones del artículo
 4. Generación tarda ~30 segundos
 5. Resultado: Borrador completo del artículo en formato académico
-
-![Generación artículo](../screenshots/08-articulo-gen.png)
 
 ### 8.3 Editar y Refinar
 
@@ -642,13 +633,16 @@ El panel superior muestra:
 
 **Documentación adicional:**
 - 📖 [Guía de Usuario Completa](USER-GUIDE.md)
-- 🎥 [Video Tutoriales](https://youtube.com/...)
-- 💬 [Preguntas Frecuentes (FAQ)](FAQ.md)
+- 📖 [Guía de Testing](TESTING-GUIDE.md)
+- 📖 [Arquitectura del Sistema](ARQUITECTURA-SISTEMA.md)
+- 📖 [Prompts y Reglas de IA](PROMPTS-Y-REGLAS-IA.md)
+- 📖 [Dataset de Validación](ANEXO-C-DATASET-VALIDACION.md)
 
 **Contacto técnico:**
-- 📧 Email: smhernandez2@espe.edu.ec, apgonzales1@espe.edu.ec
-- 🐛 Reportar bug: [GitHub Issues](https://github.com/...)
-- 💡 Sugerencias: [Formulario de feedback](...)
+- 📧 Email estudiantes: smhernandez2@espe.edu.ec, apgonzales1@espe.edu.ec
+- 👨‍🏫 Tutor: pcgalarza@espe.edu.ec
+- 🏛️ Universidad de las Fuerzas Armadas ESPE
+- 🏢 Departamento de Ciencias de la Computación
 
 ---
 
@@ -675,7 +669,27 @@ El panel superior muestra:
 
 ---
 
+## 📄 INFORMACIÓN DEL DOCUMENTO
+
 **Versión del Manual:** 1.0  
-**Última actualización:** Enero 8, 2026  
-**Autores:** Hernández Buenaño S., González Orellana A.  
-**Universidad:** ESPE - Departamento de Ciencias de la Computación
+**Última actualización:** Enero 25, 2026  
+**Autores:** 
+- Hernández Buenaño Stefanny Mishel (smhernandez2@espe.edu.ec)
+- González Orellana Adriana Pamela (apgonzales1@espe.edu.ec)
+
+**Tutor:** Ing. Paulo César Galarza Sánchez, MSc.  
+**Universidad:** Universidad de las Fuerzas Armadas ESPE  
+**Departamento:** Ciencias de la Computación  
+**Carrera:** Tecnologías de la Información y Comunicación
+
+**Trabajo de Integración Curricular:**  
+"Desarrollo de un Sistema Web para la Gestión de Revisiones Sistemáticas con Validación Automatizada mediante Inteligencia Artificial"
+
+---
+
+**Tecnologías utilizadas:**
+- Backend: Node.js 20 + Express 4
+- Frontend: Next.js 14 + React 19 + TypeScript
+- Base de datos: PostgreSQL 15 + pgvector
+- IA: Google Gemini API, OpenAI GPT, MiniLM-L6-v2 (embeddings)
+- Despliegue: Render (backend), Vercel (frontend)
