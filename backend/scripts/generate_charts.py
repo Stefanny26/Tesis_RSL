@@ -11,7 +11,7 @@ def ensure_dir(directory):
         os.makedirs(directory)
 
 def draw_prisma(data, output_path):
-    fig, ax = plt.subplots(figsize=(10, 8))
+    _, ax = plt.subplots(figsize=(10, 8))
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 100)
     ax.axis('off')
@@ -19,7 +19,6 @@ def draw_prisma(data, output_path):
     # Color scheme
     box_color = '#e6f2ff'
     edge_color = '#0066cc'
-    text_color = 'black'
 
     # Helper to draw box
     def draw_box(x, y, width, height, text, label=None):
@@ -43,7 +42,7 @@ def draw_prisma(data, output_path):
     retrieved = data.get('retrieved', 0)
     not_retrieved = data.get('not_retrieved', 0)
     assessed = data.get('assessed', 0)
-    excluded_reasons = data.get('excluded_reasons', {}) # dict of reason: count
+    excluded_reasons = data.get('excluded_reasons', {})  # dict of reason: count
     included = data.get('included', 0)
 
     # Layout
@@ -82,7 +81,7 @@ def draw_prisma(data, output_path):
     draw_arrow(50, 25, 50, 15)
 
     # Excluded reasons
-    reasons_text = "Reports excluded:\n" + "\n".join([f"{k} (n={v})" for k, v in excluded_reasons.items()])
+    reasons_text = "Reports excluded:\n" + "\n".join(f"{k} (n={v})" for k, v in excluded_reasons.items())
     draw_box(70, 20, 25, 15, reasons_text)
     ax.annotate("", xy=(70, 30), xytext=(65, 30), arrowprops=dict(arrowstyle="->", color=edge_color, lw=1.5))
 
@@ -99,7 +98,7 @@ def draw_scree(data, output_path):
     if not scores:
         print("⚠️  No hay scores disponibles para generar scree plot", file=sys.stderr)
         # Crear imagen placeholder
-        fig, ax = plt.subplots(figsize=(12, 6))
+        _, ax = plt.subplots(figsize=(12, 6))
         ax.text(0.5, 0.5, 'No hay datos de relevancia disponibles\nPara generar el gráfico scree plot', 
                 ha='center', va='center', fontsize=14, color='gray')
         ax.set_xlim(0, 1)
@@ -113,7 +112,7 @@ def draw_scree(data, output_path):
     if len(scores) < 3:
         print(f"⚠️  Insuficientes scores ({len(scores)}) para generar scree plot - se requieren al menos 3", file=sys.stderr)
         # Crear imagen placeholder con advertencia
-        fig, ax = plt.subplots(figsize=(12, 6))
+        _, ax = plt.subplots(figsize=(12, 6))
         ax.text(0.5, 0.5, f'Datos insuficientes ({len(scores)} puntos)\nSe requieren al menos 3 referencias con relevancia', 
                 ha='center', va='center', fontsize=14, color='orange')
         ax.set_xlim(0, 1)
@@ -124,9 +123,9 @@ def draw_scree(data, output_path):
         plt.close()
         return
 
-    df = pd.DataFrame({'Rank': range(1, len(scores) + 1), 'Score': scores})
+    df = pd.DataFrame({'Rank': list(range(1, len(scores) + 1)), 'Score': scores})
     
-    fig, ax = plt.subplots(figsize=(10, 6))
+    _, ax = plt.subplots(figsize=(10, 6))
     ax.plot(df['Rank'], df['Score'], marker='o', linestyle='-', color='#0066cc', markersize=4)
     
     ax.set_xlabel('Rank')
@@ -219,11 +218,9 @@ def draw_search_table(data, output_path):
     # Create figure
     # Dynamic height based on number of rows and text lines
     # Estimate height:
-    total_lines = sum([str(row[2]).count('\n') + 1 for row in table_data])
-    row_height = 0.6 # base height per row unit
-    fig_height = max(4, len(table_data) * 1.5 + 2) # approximate
+    fig_height = max(4, len(table_data) * 1.5 + 2)  # approximate
     
-    fig, ax = plt.subplots(figsize=(12, fig_height))
+    _, ax = plt.subplots(figsize=(12, fig_height))
     ax.axis('off')
     ax.axis('tight')
     
@@ -270,7 +267,7 @@ def main():
     # Read data from stdin
     try:
         input_data = json.loads(sys.stdin.read())
-        print(f"🐍 Python recibió datos:", file=sys.stderr)
+        print("🐍 Python recibió datos:", file=sys.stderr)
         print(f"   - Tiene 'prisma': {'prisma' in input_data}", file=sys.stderr)
         print(f"   - Tiene 'scree': {'scree' in input_data}", file=sys.stderr)
         if 'scree' in input_data:

@@ -10,6 +10,8 @@ class GetApiUsageStatsUseCase {
 
   async execute(userId) {
     try {
+      console.log(`📊 Obteniendo estadísticas de uso para usuario: ${userId}`);
+      
       // Obtener uso de las últimas 24 horas
       const last24Hours = new Date();
       last24Hours.setHours(last24Hours.getHours() - 24);
@@ -19,6 +21,8 @@ class GetApiUsageStatsUseCase {
         last24Hours,
         new Date()
       );
+
+      console.log(`📊 Registros encontrados en las últimas 24h: ${usage.length}`);
 
       // Límites de las APIs
       const limits = {

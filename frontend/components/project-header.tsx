@@ -46,7 +46,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         </div>
 
         {/* Navigation Tabs más compactos */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button 
             asChild
             variant={isActive(`/projects/${projectId}`) ? "default" : "outline"}
@@ -67,17 +67,6 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
             <Link href={`/projects/${projectId}/screening`}>
               <Filter className="h-4 w-4" />
               <span className="text-xs">Cribado</span>
-            </Link>
-          </Button>
-          <Button 
-            asChild
-            variant={isActive(`/projects/${projectId}/prisma`) ? "default" : "outline"}
-            size="sm"
-            className="h-auto py-2 flex-col gap-1"
-          >
-            <Link href={`/projects/${projectId}/prisma`}>
-              <ClipboardCheck className="h-4 w-4" />
-              <span className="text-xs">PRISMA</span>
             </Link>
           </Button>
           <Button 

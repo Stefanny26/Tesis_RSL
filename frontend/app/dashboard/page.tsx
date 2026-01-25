@@ -93,7 +93,7 @@ export default function DashboardPage() {
   const stats = useMemo(() => ({
     totalProjects: projects.length,
     activeProjects: countActiveProjects(projects),
-    prismaCompliantProjects: 0,
+    prismaCompliantProjects: projects.filter(p => p.prismaCompliancePercentage === 100).length,
     totalReferences: projects.reduce((acc, p) => acc + (p.references?.total || 0), 0),
   }), [projects])
 

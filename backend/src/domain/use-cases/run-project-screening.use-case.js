@@ -445,9 +445,9 @@ ${item.llmCriteriosNoCumplidos ? `\nNo cumple: ${item.llmCriteriosNoCumplidos.jo
       const sum = sortedSimilarities.reduce((acc, val) => acc + val, 0);
       
       const statistics = {
-        min: parseFloat(sortedSimilarities[0].toFixed(4)),
-        max: parseFloat(sortedSimilarities[sortedSimilarities.length - 1].toFixed(4)),
-        mean: parseFloat((sum / sortedSimilarities.length).toFixed(4)),
+        min: Number.parseFloat(sortedSimilarities[0].toFixed(4)),
+        max: Number.parseFloat(sortedSimilarities[sortedSimilarities.length - 1].toFixed(4)),
+        mean: Number.parseFloat((sum / sortedSimilarities.length).toFixed(4)),
         median: this.calculatePercentile(sortedSimilarities, 50),
         percentile25: this.calculatePercentile(sortedSimilarities, 25),
         percentile50: this.calculatePercentile(sortedSimilarities, 50),
@@ -461,7 +461,7 @@ ${item.llmCriteriosNoCumplidos ? `\nNo cumple: ${item.llmCriteriosNoCumplidos.jo
       const elbowPoint = this.findElbowPoint(sortedDescending);
       
       const recommendedCutoff = {
-        threshold: parseFloat(elbowPoint.threshold.toFixed(4)),
+        threshold: Number.parseFloat(elbowPoint.threshold.toFixed(4)),
         articlesToReview: elbowPoint.articlesToReview,
         percentageOfTotal: elbowPoint.percentageOfTotal.toFixed(1)
       };

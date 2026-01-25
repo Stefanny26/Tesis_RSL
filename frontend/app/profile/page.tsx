@@ -144,7 +144,7 @@ export default function ProfilePage() {
         <div className="mb-6">
           <h2 className="text-lg font-bold mb-4">Uso de APIs de IA</h2>
           <p className="text-muted-foreground mb-6">
-            Monitorea tu consumo de créditos de ChatGPT y Gemini para evitar exceder los límites gratuitos
+            Monitorea tu consumo de créditos de ChatGPT para evitar exceder los límites gratuitos
           </p>
         </div>
 
@@ -164,7 +164,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         ) : stats ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          <div className="grid gap-6 md:grid-cols-2 mb-8">
             {/* ChatGPT Card */}
             <Card className="relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-transparent" />
@@ -218,70 +218,6 @@ export default function ProfilePage() {
                 </div>
 
                 {stats.summary.chatgpt.usage.failedRequests > 0 && (
-                  <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                    <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
-                    <div className="text-xs">
-                      <p className="font-medium text-red-600">Cuota agotada</p>
-                      <p className="text-red-600/80">API sin créditos disponibles</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Gemini Card */}
-            <Card className="relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent" />
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-blue-600" />
-                    <CardTitle>Gemini</CardTitle>
-                  </div>
-                  {getStatusBadge(stats.summary.gemini.remaining.percentUsed)}
-                </div>
-                <CardDescription>{stats.summary.gemini.model}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Requests (24h)</span>
-                    <span className="font-medium">
-                      {stats.summary.gemini.usage.recentRequests24h} / {stats.summary.gemini.dailyRequestLimit}
-                    </span>
-                  </div>
-                  <Progress 
-                    value={stats.summary.gemini.remaining.percentUsed} 
-                    className="h-2"
-                  />
-                  <div className={`w-full h-2 rounded-full mt-[-8px] ${getProgressColor(stats.summary.gemini.remaining.percentUsed)}`} 
-                       style={{ width: `${stats.summary.gemini.remaining.percentUsed}%` }} 
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Exitosas</p>
-                    <p className="font-medium flex items-center gap-1">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      {stats.summary.gemini.usage.successfulRequests}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Fallidas</p>
-                    <p className="font-medium flex items-center gap-1">
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                      {stats.summary.gemini.usage.failedRequests}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground">Requests restantes (hoy)</p>
-                  <p className="text-2xl font-bold">{stats.summary.gemini.remaining.dailyRequests}</p>
-                </div>
-
-                {stats.summary.gemini.usage.failedRequests > 0 && (
                   <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
                     <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
                     <div className="text-xs">

@@ -58,7 +58,7 @@ class RQSController {
         rqsEntryRepository: new RQSEntryRepository(),
         referenceRepository: new ReferenceRepository(),
         protocolRepository: new ProtocolRepository(),
-        aiService: new AIService()
+        aiService: new AIService(userId)
       });
 
       const result = await extractUseCase.execute(projectId, userId);
@@ -96,7 +96,7 @@ class RQSController {
         rqsEntryRepository: new RQSEntryRepository(),
         referenceRepository: new ReferenceRepository(),
         protocolRepository: new ProtocolRepository(),
-        aiService: new AIService()
+        aiService: new AIService(userId)
       });
 
       const result = await extractUseCase.extractSingle(projectId, referenceId, userId);
@@ -203,7 +203,7 @@ class RQSController {
       
       const detailedStats = {
         ...stats,
-        completionRate: entries.length > 0 ? (parseInt(stats.validated) / entries.length * 100).toFixed(1) : 0,
+        completionRate: entries.length > 0 ? (Number.parseInt(stats.validated) / entries.length * 100).toFixed(1) : 0,
         studyTypeDistribution: this.calculateDistribution(entries, 'studyType'),
         contextDistribution: this.calculateDistribution(entries, 'context'),
         technologyDistribution: this.calculateTopTechnologies(entries, 5),
@@ -294,7 +294,7 @@ class RQSController {
     });
 
     return Object.entries(years)
-      .sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
+      .sort((a, b) => Number.parseInt(b[0]) - Number.parseInt(a[0]))
       .reduce((obj, [year, count]) => {
         obj[year] = count;
         return obj;
@@ -311,18 +311,18 @@ class RQSController {
 
     const rows = entries.map(entry => [
       entry.id,
-      `"${(entry.author || '').replace(/"/g, '""')}"`,
+      `"${(entry.author || '').replaceAll('"', '""')}"`,
       entry.year,
-      `"${(entry.title || '').replace(/"/g, '""')}"`,
-      `"${(entry.source || '').replace(/"/g, '""')}"`,
+      `"${(entry.title || '').replaceAll('"', '""')}"`,
+      `"${(entry.source || '').replaceAll('"', '""')}"`,
       entry.studyType || '',
       entry.technology || '',
       entry.context || '',
-      `"${(entry.keyEvidence || '').replace(/"/g, '""')}"`,
+      `"${(entry.keyEvidence || '').replaceAll('"', '""')}"`,
       entry.rq1Relation || '',
       entry.rq2Relation || '',
       entry.rq3Relation || '',
-      `"${(entry.limitations || '').replace(/"/g, '""')}"`,
+      `"${(entry.limitations || '').replaceAll('"', '""')}"`,
       entry.qualityScore || '',
       entry.validated ? 'Yes' : 'No',
       entry.extractionMethod || ''

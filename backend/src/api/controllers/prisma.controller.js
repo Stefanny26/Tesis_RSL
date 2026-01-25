@@ -18,7 +18,7 @@ class PrismaController {
     this.protocolRepository = new ProtocolRepository();
     this.projectRepository = new ProjectRepository();
     this.referenceRepository = new ReferenceRepository();
-    this.aiService = new AIService();
+    // AIService se creará por método para incluir userId
   }
 
   /**
@@ -331,7 +331,7 @@ class PrismaController {
 
       const validateUseCase = new ValidatePrismaItemUseCase({
         prismaItemRepository: this.prismaItemRepository,
-        aiService: this.aiService
+        aiService: new AIService(req.userId)
       });
 
       const result = await validateUseCase.execute(projectId, parseInt(itemNumber));
@@ -414,7 +414,7 @@ class PrismaController {
 
       const extractUseCase = new ExtractFullTextDataUseCase({
         referenceRepository: this.referenceRepository,
-        aiService: this.aiService
+        aiService: new AIService(req.userId)
       });
 
       const result = await extractUseCase.processProjectPDFs(projectId);
@@ -502,12 +502,12 @@ class PrismaController {
 
       const extractFullTextUseCase = new ExtractFullTextDataUseCase({
         referenceRepository: this.referenceRepository,
-        aiService: this.aiService
+        aiService: new AIService(req.userId)
       });
 
       const completeItemsUseCase = new CompletePrismaItemsUseCase({
         protocolRepository: this.protocolRepository,
-        aiService: this.aiService,
+        aiService: new AIService(req.userId),
         generatePrismaContextUseCase: generateContextUseCase,
         extractFullTextDataUseCase: extractFullTextUseCase
       });
@@ -568,7 +568,7 @@ class PrismaController {
       const completeByBlocksUseCase = new CompletePrismaByBlocksUseCase({
         prismaItemRepository: this.prismaItemRepository,
         protocolRepository: this.protocolRepository,
-        aiService: this.aiService,
+        aiService: new AIService(req.userId),
         generatePrismaContextUseCase: generateContextUseCase
       });
 

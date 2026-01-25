@@ -22,8 +22,8 @@ const rqsRoutes = require('./api/routes/rqs.routes');
 const { bsonMiddleware } = require('./infrastructure/middlewares/bson.middleware');
 
 // Importar módulos para verificación de Python
-const { exec } = require('child_process');
-const util = require('util');
+const { exec } = require('node:child_process');
+const util = require('node:util');
 const execPromise = util.promisify(exec);
 
 /**
@@ -64,8 +64,8 @@ async function verifyPythonEnvironment() {
     }
 
     // Verificar que el script existe
-    const path = require('path');
-    const fs = require('fs');
+    const path = require('node:path');
+    const fs = require('node:fs');
     const scriptPath = path.join(__dirname, '../scripts/generate_charts.py');
     if (fs.existsSync(scriptPath)) {
       console.log('✅ Script generate_charts.py encontrado');
@@ -127,7 +127,7 @@ class Server {
     this.app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
     // Servir archivos estáticos (PDFs)
-    const path = require('path');
+    const path = require('node:path');
     this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
     // BSON middleware para respuestas grandes

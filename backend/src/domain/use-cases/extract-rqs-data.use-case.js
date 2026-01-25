@@ -7,6 +7,9 @@
  * IMPORTANTE: Solo analiza referencias con screeningStatus='included' o 'fulltext_included'
  */
 const RQSEntry = require('../models/rqs-entry.model');
+const fs = require('node:fs');
+const path = require('node:path');
+const pdf = require('pdf-parse');
 
 class ExtractRQSDataUseCase {
   constructor({
@@ -136,11 +139,40 @@ class ExtractRQSDataUseCase {
   }
 
   /**
+   * Extraer texto de PDF si está disponible
+   */
+  async extractTextFromPDF(pdfPath) {
+    try {
+      console.log(`📄 Leyendo PDF: ${pdfPath}`);
+      const dataBuffer = fs.readFileSync(pdfPath);
+      const data = await pdf(dataBuffer);
+      console.log(`✅ PDF leído exitosamente (${data.numpages} páginas, ${data.text.length} caracteres)`);
+      return data.text;
+    } catch (error) {
+      console.error(`❌ Error leyendo PDF ${pdfPath}:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Extraer datos RQS de una referencia usando IA
    */
   async extractFromReference(reference, researchQuestions) {
+    // Intentar leer PDF completo si está disponible
+    let fullText = null;
+    if (reference.fullTextPath || reference.pdfPath) {
+      const pdfPath = reference.fullTextPath || reference.pdfPath;
+      const fullPath = path.resolve(__dirname, '../../../', pdfPath);
+      
+      if (fs.existsSync(fullPath)) {
+        fullText = await this.extractTextFromPDF(fullPath);
+      } else {
+        console.warn(`⚠️ PDF no encontrado en: ${fullPath}`);
+      }
+    }
+
     const systemPrompt = this.getSystemPrompt();
-    const userPrompt = this.getUserPrompt(reference, researchQuestions);
+    const userPrompt = this.getUserPrompt(reference, researchQuestions, fullText);
 
     try {
       const response = await this.aiService.generateText(
@@ -214,18 +246,18 @@ class ExtractRQSDataUseCase {
   sanitizeEnumValue(value, allowedValues, defaultValue = 'other') {
     if (!value) return defaultValue;
     
-    const normalized = value.toLowerCase().trim().replace(/_/g, ' ');
+    const normalized = value.toLowerCase().trim().replaceAll('_', ' ');
     
     // 1. Coincidencia exacta (considerando que BD usa snake_case)
-    const normalizedWithUnderscore = normalized.replace(/ /g, '_');
+    const normalizedWithUnderscore = normalized.replaceAll(' ', '_');
     if (allowedValues.includes(normalizedWithUnderscore)) {
       return normalizedWithUnderscore;
     }
     
     // 2. Coincidencia parcial (fuzzy matching)
     for (const allowed of allowedValues) {
-      if (normalized.includes(allowed.replace(/_/g, ' ')) || 
-          allowed.replace(/_/g, ' ').includes(normalized)) {
+      if (normalized.includes(allowed.replaceAll('_', ' ')) || 
+          allowed.replaceAll('_', ' ').includes(normalized)) {
         return allowed;
       }
     }
@@ -292,10 +324,14 @@ FORMATO DE SALIDA: JSON estricto, sin texto adicional.`;
   /**
    * User Prompt para extracción RQS
    */
-  getUserPrompt(reference, researchQuestions) {
+  getUserPrompt(reference, researchQuestions, fullText = null) {
     const rqList = researchQuestions.map((rq, index) => 
       `RQ${index + 1}: ${rq}`
     ).join('\n');
+
+    const contentSource = fullText 
+      ? `**TEXTO COMPLETO DEL PDF:**\n${fullText.substring(0, 15000)}...\n\n(Texto truncado para análisis)` 
+      : `**ABSTRACT:** ${reference.abstract || 'No disponible'}`;
 
     return `Extrae datos estructurados (RQS) del siguiente estudio:
 
@@ -303,7 +339,7 @@ FORMATO DE SALIDA: JSON estricto, sin texto adicional.`;
 **AUTORES:** ${reference.authors || 'No disponible'}
 **AÑO:** ${reference.year || 'No disponible'}
 **FUENTE:** ${reference.journal || reference.source || 'No disponible'}
-**ABSTRACT:** ${reference.abstract || 'No disponible'}
+${contentSource}
 
 **PREGUNTAS DE INVESTIGACIÓN DEL PROYECTO:**
 ${rqList || 'No definidas'}
@@ -400,20 +436,43 @@ Responde AHORA con el JSON:`;
         protocol?.researchQuestions || []
       );
 
-      // Crear entrada
-      const rqsEntry = await this.rqsEntryRepository.create({
+      // Crear instancia del modelo RQSEntry
+      const rqsEntry = new RQSEntry({
         projectId,
         referenceId,
-        ...rqsData,
+        
+        author: rqsData.author || reference.authors || 'Unknown',
+        year: rqsData.year || reference.year || new Date().getFullYear(),
+        title: reference.title,
+        source: reference.journal || reference.source || '',
+        
+        studyType: rqsData.studyType,
+        technology: rqsData.technology,
+        context: rqsData.context,
+        
+        keyEvidence: rqsData.keyEvidence,
+        metrics: rqsData.metrics,
+        
+        rq1Relation: rqsData.rq1Relation,
+        rq2Relation: rqsData.rq2Relation,
+        rq3Relation: rqsData.rq3Relation,
+        rqNotes: rqsData.rqNotes,
+        
+        limitations: rqsData.limitations,
+        qualityScore: rqsData.qualityScore,
+        
         extractionMethod: 'ai_assisted',
         extractedBy: userId,
         extractedAt: new Date(),
         validated: false
       });
 
+      // Guardar en base de datos
+      const savedEntry = await this.rqsEntryRepository.create(rqsEntry);
+
       return {
         success: true,
-        rqsEntry,
+        rqsEntry: savedEntry,
         alreadyExists: false
       };
 

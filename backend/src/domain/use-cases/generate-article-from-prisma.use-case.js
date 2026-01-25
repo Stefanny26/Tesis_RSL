@@ -330,31 +330,67 @@ Genera SOLO el texto de la introducción en español:`;
    * MÉTODOS PROFESIONALES con detalles reproducibles completos
    */
   async generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries, charts = {}) {
+    // Usar searchQueries si está disponible, sino databases
+    const searchQueries = prismaContext.protocol.searchQueries || [];
     const databases = prismaContext.protocol.databases || [];
-    const dbNames = databases.map(db => db.name).join(', ') || 'bases de datos electrónicas';
-    const searchString = databases[0]?.searchString || 'Ver anexo para estrategias completas';
-    const dbName = databases[0]?.name || 'Base de datos principal';
+    
+    // Para compatibilidad con código existente
+    const dbNames = searchQueries.length > 0 
+      ? searchQueries.map(sq => sq.databaseName || sq.database).join(', ')
+      : databases.map(db => db.name || db).join(', ') || 'bases de datos electrónicas';
 
     let screePlot = '';
     if (charts.scree) {
       screePlot = `
 ![Priority Screening Score Distribution](${charts.scree})
-*Figura: Distribución de puntajes de relevancia semántica (Scree Plot).*
+*Figura 1. Distribución de puntajes de relevancia semántica (Scree Plot).*
 `;
     }
 
+    // Generar tabla de búsquedas desde los datos del protocolo
     let searchChart = '';
-    if (charts.chart1) {
+    
+    // Priorizar searchQueries que tiene las queries completas
+    if (searchQueries.length > 0) {
+      // Construir tabla con las bases de datos y sus cadenas de búsqueda
+      let tableRows = searchQueries.map(sq => {
+        const dbName = sq.databaseName || sq.database || 'N/A';
+        const searchStr = sq.query || 'N/A';
+        return `| ${dbName} | ${searchStr} |`;
+      }).join('\n');
+
       searchChart = `
-![Chart 1: Data sources and search strategy results](${charts.chart1})
-*Gráfico 1. Fuentes de datos y resultados de la estrategia de búsqueda.*
+**Tabla 1: Fuentes de datos y estrategia de búsqueda**
+
+| Base de Datos | Cadena de Búsqueda |
+|---------------|-------------------|
+${tableRows}
+
+*Tabla 1. Bases de datos académicas y cadenas de búsqueda utilizadas.*
+`;
+    } else if (databases.length > 0) {
+      // Fallback si no hay searchQueries (proyectos antiguos)
+      let tableRows = databases.map(db => {
+        const dbName = db.name || db || 'N/A';
+        const searchStr = db.query || db.searchString || 'Ver protocolo';
+        return `| ${dbName} | ${searchStr} |`;
+      }).join('\n');
+
+      searchChart = `
+**Tabla 1: Fuentes de datos y estrategia de búsqueda**
+
+| Base de Datos | Cadena de Búsqueda |
+|---------------|-------------------|
+${tableRows}
+
+*Tabla 1. Bases de datos académicas y cadenas de búsqueda utilizadas.*
 `;
     }
 
     const screeSection = screePlot ? `
-## 2.X Priorización mediante Inteligencia Artificial
+## 2.4 Priorización mediante Inteligencia Artificial
 
-Se utilizó un enfoque híbrido de cribado asistido por IA. Las referencias descargadas fueron analizadas semánticamente para generar un puntaje de relevancia (0-1). La Figura anterior muestra la distribución de estos puntajes, permitiendo identificar el punto de corte óptimo para maximizar la recuperación de estudios relevantes minimizando el esfuerzo de revisión manual.
+Se utilizó un enfoque híbrido de cribado asistido por IA. Las referencias descargadas fueron analizadas semánticamente para generar un puntaje de relevancia (0-1). La Figura 1 muestra la distribución de estos puntajes, permitiendo identificar el punto de corte óptimo para maximizar la recuperación de estudios relevantes minimizando el esfuerzo de revisión manual.
 ${screePlot}
 ` : '';
 
@@ -374,7 +410,7 @@ Los criterios se definieron siguiendo el marco PICO:
 
 ## 2.3 Fuentes de información y estrategia de búsqueda
 
-La búsqueda se centró en identificar estudios relevantes publicados entre ${prismaContext.protocol.temporalRange.start || '2023'} y ${prismaContext.protocol.temporalRange.end || '2025'}. Se seleccionaron ${databases.length} bases de datos académicas clave en el campo de las ciencias de la computación: ${dbNames}. La búsqueda inicial arrojó un total de ${prismaContext.screening.totalResults || 0} artículos. El Gráfico 1 detalla las bases de datos consultadas, el número de resultados y las cadenas de búsqueda específicas utilizadas.
+La búsqueda se centró en identificar estudios relevantes publicados entre ${prismaContext.protocol.temporalRange.start || '2023'} y ${prismaContext.protocol.temporalRange.end || '2025'}. Se seleccionaron ${databases.length} bases de datos académicas clave en el campo de las ciencias de la computación: ${dbNames}. La búsqueda inicial arrojó un total de ${prismaContext.screening.totalResults || 0} artículos. La Tabla 1 detalla las bases de datos consultadas, el número de resultados y las cadenas de búsqueda específicas utilizadas.
 
 ${searchChart}
 
@@ -382,7 +418,7 @@ Las estrategias completas para todas las bases de datos se encuentran disponible
 
 ${screeSection}
 
-## 2.4 Proceso de selección
+## 2.5 Proceso de selección
 
 ${prismaMapping.methods.selectionProcess}
 
@@ -391,7 +427,7 @@ El proceso siguió tres fases:
 2. **Cribado por título y resumen**: Dos revisores independientes evaluaron los títulos y resúmenes de forma independiente. Los desacuerdos se resolvieron mediante consenso o, cuando fue necesario, mediante la consulta a un tercer revisor.
 3. **Revisión de texto completo**: Los artículos que pasaron el cribado inicial fueron recuperados en texto completo y evaluados contra los criterios de elegibilidad completos.
 
-## 2.5 Extracción de datos mediante esquema RQS
+## 2.6 Extracción de datos mediante esquema RQS
 
 Los datos se extrajeron utilizando un esquema RQS (Research Question Schema) estructurado y estandarizado, diseñado específicamente para esta revisión. El esquema RQS incluyó los siguientes campos:
 
@@ -427,7 +463,7 @@ La extracción fue asistida por inteligencia artificial (Claude Sonnet 4) para a
 
 Para garantizar la consistencia, se realizó una extracción piloto con 3 estudios antes de proceder con el conjunto completo. Los datos extraídos se almacenaron en una base de datos estructurada compatible con análisis estadístico.
 
-## 2.6 Evaluación del riesgo de sesgo
+## 2.7 Evaluación del riesgo de sesgo
 
 ${prismaMapping.methods.riskOfBias}
 
@@ -437,7 +473,7 @@ Se aplicó una evaluación cualitativa de la calidad metodológica considerando:
 - Suficiencia de datos para responder las RQs
 - Declaración explícita de limitaciones
 
-## 2.7 Síntesis de datos
+## 2.8 Síntesis de datos
 
 ${prismaMapping.methods.synthesisMethod}
 
@@ -461,16 +497,12 @@ La síntesis se organizó en torno a las tres preguntas de investigación, integ
 
 ${prismaMapping.results.studySelection}
 
-La Figura 1 presenta el diagrama de flujo PRISMA completo del proceso de selección. La búsqueda inicial identificó **${prismaContext.screening.totalResults || 'N/A'} registros** a través de las bases de datos consultadas. Tras la eliminación de duplicados (n=${prismaContext.screening.duplicatesRemoved || 'N/A'}), se cribaron **${prismaContext.screening.afterScreening || 'N/A'} registros únicos** por título y resumen.
+La Figura 2 presenta el diagrama de flujo PRISMA completo del proceso de selección. La búsqueda inicial identificó **${prismaContext.screening.totalResults || 'N/A'} registros** a través de las bases de datos consultadas. Tras la eliminación de duplicados (n=${prismaContext.screening.duplicatesRemoved || 'N/A'}), se cribaron **${prismaContext.screening.afterScreening || 'N/A'} registros únicos** por título y resumen.
 
 De estos, **${prismaContext.screening.fullTextRetrieved || 'N/A'} artículos** fueron recuperados para evaluación de texto completo. Finalmente, **${rqsStats.total} estudios** cumplieron todos los criterios de inclusión y fueron incluidos en la síntesis cualitativa.
 
-La Figura 1 presenta el diagrama de flujo PRISMA completo del proceso de selección. La búsqueda inicial identificó **${prismaContext.screening.totalResults || 'N/A'} registros** a través de las bases de datos consultadas. Tras la eliminación de duplicados (n=${prismaContext.screening.duplicatesRemoved || 'N/A'}), se cribaron **${prismaContext.screening.afterScreening || 'N/A'} registros únicos** por título y resumen.
-
-De estos, **${prismaContext.screening.fullTextRetrieved || 'N/A'} artículos** fueron recuperados para evaluación de texto completo. Finalmente, **${rqsStats.total} estudios** cumplieron todos los criterios de inclusión y fueron incluidos en la síntesis cualitativa.
-
-${charts.prisma ? `![PRISMA 2020 Flow Diagram](${charts.prisma})` : '**[FIGURA 1: Diagrama de flujo PRISMA 2020]**'}
-*Figura 1. Diagrama de flujo PRISMA 2020 del proceso de selección de estudios.*
+${charts.prisma ? `![PRISMA 2020 Flow Diagram](${charts.prisma})` : '**[FIGURA 2: Diagrama de flujo PRISMA 2020]**'}
+*Figura 2. Diagrama de flujo PRISMA 2020 del proceso de selección de estudios.*
 
 ## 3.2 Características de los estudios incluidos
 
@@ -480,7 +512,7 @@ ${rqsAnalysis || prismaMapping.results.studyCharacteristics || 'Los estudios inc
 
 ${prismaMapping.results.riskOfBiasResults}
 
-La Tabla 3 presenta la evaluación cualitativa del riesgo de sesgo para cada estudio incluido. La mayoría de los estudios (${rqsStats.qualityDistribution?.medium || 0} de ${rqsStats.total}) presentaron un riesgo de sesgo **moderado**, principalmente debido a limitaciones metodológicas menores o falta de detalles en la descripción de procedimientos.
+La Tabla 4 presenta la evaluación cualitativa del riesgo de sesgo para cada estudio incluido. La mayoría de los estudios (${rqsStats.qualityDistribution?.medium || 0} de ${rqsStats.total}) presentaron un riesgo de sesgo **moderado**, principalmente debido a limitaciones metodológicas menores o falta de detalles en la descripción de procedimientos.
 
 ${this.generateTable3Professional(rqsEntries)}
 
@@ -546,7 +578,7 @@ Genera 2-3 párrafos académicos (400-500 palabras total) que:
 - NO inventes estudios, autores ni hallazgos adicionales
 - Tercera persona impersonal
 - Lenguaje académico formal en español
-- Incluye referencias a "Tabla 1" y "Tabla 2" donde corresponda
+- Incluye referencias a "Tabla 2" y "Tabla 3" donde corresponda
 - Conecta las observaciones con el objetivo de la revisión
 
 Responde SOLO con los párrafos de análisis:`;
@@ -669,7 +701,7 @@ Genera 2 párrafos (300-400 palabras), tercera persona, español:`;
    */
   generateTable1Professional(rqsEntries) {
     return `
-**Tabla 1. Características generales de los estudios incluidos en la revisión sistemática**
+**Tabla 2. Características generales de los estudios incluidos en la revisión sistemática**
 
 | ID | Autor (Año) | Tipo de estudio | Contexto | Tecnología principal | Publicación |
 |----|-------------|-----------------|----------|---------------------|-------------|
@@ -689,7 +721,7 @@ ${rqsEntries.map((entry, i) => {
 
   generateTable2Professional(rqsEntries) {
     return `
-**Tabla 2. Síntesis de resultados principales y métricas reportadas**
+**Tabla 3. Síntesis de resultados principales y métricas reportadas**
 
 | ID | Evidencia clave | Métricas principales | RQ1 | RQ2 | RQ3 | Calidad |
 |----|----------------|---------------------|-----|-----|-----|---------|
@@ -708,9 +740,14 @@ ${rqsEntries.map((entry, i) => {
       }
 
       // RQ relations con símbolos
-      const rq1 = entry.rq1Relation === 'yes' ? '✓' : entry.rq1Relation === 'partial' ? '◐' : '✗';
-      const rq2 = entry.rq2Relation === 'yes' ? '✓' : entry.rq2Relation === 'partial' ? '◐' : '✗';
-      const rq3 = entry.rq3Relation === 'yes' ? '✓' : entry.rq3Relation === 'partial' ? '◐' : '✗';
+      const getRQSymbol = (relation) => {
+        if (relation === 'yes') return '✓';
+        if (relation === 'partial') return '◐';
+        return '✗';
+      };
+      const rq1 = getRQSymbol(entry.rq1Relation);
+      const rq2 = getRQSymbol(entry.rq2Relation);
+      const rq3 = getRQSymbol(entry.rq3Relation);
 
       const quality = this.translateQuality(entry.qualityScore);
 
@@ -724,7 +761,7 @@ ${rqsEntries.map((entry, i) => {
 
   generateTable3Professional(rqsEntries) {
     return `
-**Tabla 3. Evaluación del riesgo de sesgo y calidad metodológica**
+**Tabla 4. Evaluación del riesgo de sesgo y calidad metodológica**
 
 | ID | Diseño adecuado | Datos suficientes | Limitaciones reportadas | Transparencia | Riesgo global |
 |----|----------------|-------------------|------------------------|---------------|---------------|
@@ -736,10 +773,23 @@ ${rqsEntries.map((entry, i) => {
       const hasMetrics = entry.metrics && Object.keys(entry.metrics).length > 0;
       const hasEvidence = entry.keyEvidence && entry.keyEvidence.length > 50;
 
-      const design = entry.studyType !== 'review' ? 'Adecuado' : 'Parcial';
-      const dataQuality = (hasMetrics && hasEvidence) ? 'Suficientes' : hasEvidence ? 'Parciales' : 'Insuficientes';
+      const design = entry.studyType === 'review' ? 'Parcial' : 'Adecuado';
+      
+      const getDataQuality = () => {
+        if (hasMetrics && hasEvidence) return 'Suficientes';
+        if (hasEvidence) return 'Parciales';
+        return 'Insuficientes';
+      };
+      const dataQuality = getDataQuality();
+      
       const limitationsReported = hasLimitations ? 'Sí' : 'No';
-      const transparency = (hasLimitations && hasMetrics) ? 'Alta' : hasEvidence ? 'Media' : 'Baja';
+      
+      const getTransparency = () => {
+        if (hasLimitations && hasMetrics) return 'Alta';
+        if (hasEvidence) return 'Media';
+        return 'Baja';
+      };
+      const transparency = getTransparency();
 
       // Calcular riesgo global
       let riskScore = 0;
@@ -748,7 +798,12 @@ ${rqsEntries.map((entry, i) => {
       if (hasLimitations) riskScore++;
       if (hasMetrics) riskScore++;
 
-      const globalRisk = riskScore >= 3 ? 'Bajo' : riskScore === 2 ? 'Moderado' : 'Alto';
+      const getGlobalRisk = (score) => {
+        if (score >= 3) return 'Bajo';
+        if (score === 2) return 'Moderado';
+        return 'Alto';
+      };
+      const globalRisk = getGlobalRisk(riskScore);
 
       return `| ${id} | ${design} | ${dataQuality} | ${limitationsReported} | ${transparency} | ${globalRisk} |`;
     }).join('\n')}
@@ -895,16 +950,21 @@ Genera SOLO el texto de conclusiones:`;
       'chatgpt'
     );
 
-    return response.trim();
+    // Limpiar títulos duplicados que la IA pueda generar al inicio
+    let cleanedResponse = response.trim();
+    
+    // Eliminar títulos en negrita o headers al inicio del texto
+    cleanedResponse = cleanedResponse.replace(/^#+\s*Conclusiones\s*\n*/i, '');
+    cleanedResponse = cleanedResponse.replace(/^\*\*Conclusiones\*\*\s*\n*/i, '');
+    
+    return cleanedResponse.trim();
   }
 
   /**
    * REFERENCIAS profesionales con citas formateadas
    */
   generateProfessionalReferences(prismaContext, rqsEntries) {
-    return `## Referencias
-
-Esta revisión sistemática sintetizó evidencia de **${rqsEntries.length} estudios primarios** que cumplieron los criterios de inclusión establecidos en el protocolo PRISMA 2020.
+    return `Esta revisión sistemática sintetizó evidencia de **${rqsEntries.length} estudios primarios** que cumplieron los criterios de inclusión establecidos en el protocolo PRISMA 2020.
 
 ### Estudios incluidos en la síntesis
 
@@ -993,7 +1053,7 @@ Los autores declaran que se han seguido estrictamente las directrices PRISMA 202
 
       // Años
       if (entry.year) {
-        const year = parseInt(entry.year);
+        const year = Number.parseInt(entry.year);
         stats.yearRange.min = Math.min(stats.yearRange.min, year);
         stats.yearRange.max = Math.max(stats.yearRange.max, year);
         stats.yearDistribution[year] = (stats.yearDistribution[year] || 0) + 1;
@@ -1078,7 +1138,7 @@ Los autores declaran que se han seguido estrictamente las directrices PRISMA 202
    */
   async validatePrismaComplete(projectId) {
     const stats = await this.prismaItemRepository.getComplianceStats(projectId);
-    const completed = parseInt(stats.completed) || 0;
+    const completed = Number.parseInt(stats.completed) || 0;
 
     if (completed < 27) {
       throw new Error(
@@ -1129,9 +1189,7 @@ Los autores declaran que se han seguido estrictamente las directrices PRISMA 202
    * Generar declaraciones finales profesionales
    */
   generateDeclarations(prismaContext) {
-    return `## Declaraciones
-
-### Registro y protocolo
+    return `### Registro y protocolo
 
 El protocolo de esta revisión sistemática se definió y documentó completamente antes de la fase de selección de estudios, siguiendo las directrices PRISMA 2020. El protocolo incluyó criterios de elegibilidad predefinidos (PICO), estrategia de búsqueda completa, métodos de extracción de datos mediante esquema RQS estructurado, y plan de síntesis narrativa. El protocolo no fue registrado prospectivamente en una base de datos pública (ej. PROSPERO).
 
@@ -1237,8 +1295,8 @@ Una revisión sistemática de calidad es transparente sobre qué sabe, qué no s
    * Convertir imágenes de URLs a base64 para guardar en BD
    */
   async convertImagesToBase64(chartPaths) {
-    const fs = require('fs').promises;
-    const path = require('path');
+    const fs = require('node:fs').promises;
+    const path = require('node:path');
     
     if (!chartPaths || Object.keys(chartPaths).length === 0) {
       return {};

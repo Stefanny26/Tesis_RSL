@@ -11,6 +11,7 @@ export interface ArticleVersion {
     discussion: string
     conclusions: string
     references: string
+    declarations: string
   }
   createdAt: Date
   createdBy: string

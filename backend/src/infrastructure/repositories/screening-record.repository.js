@@ -269,7 +269,7 @@ class ScreeningRecordRepository {
     
     if (refResult.rows.length > 0) {
       console.log(`📊 Scores encontrados en references: ${refResult.rows.length} puntos`);
-      return refResult.rows.map(r => parseFloat(r.screening_score));
+      return refResult.rows.map(r => Number.parseFloat(r.screening_score));
     }
     
     // Fallback: buscar en screening_records
@@ -281,7 +281,7 @@ class ScreeningRecordRepository {
     `;
     const result = await database.query(query, [projectId, stage]);
     console.log(`📊 Scores encontrados en screening_records: ${result.rows.length} puntos`);
-    return result.rows.map(r => parseFloat(r.total_score));
+    return result.rows.map(r => Number.parseFloat(r.total_score));
   }
 }
 

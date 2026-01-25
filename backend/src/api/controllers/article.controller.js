@@ -26,7 +26,7 @@ class ArticleController {
     this.articleVersionRepository = new ArticleVersionRepository(database);
     this.screeningRecordRepository = new ScreeningRecordRepository();
     this.pythonGraphService = new PythonGraphService();
-    this.aiService = new AIService();
+    // AIService se creará por método para incluir userId
   }
 
   /**
@@ -105,7 +105,7 @@ class ArticleController {
         protocolRepository: this.protocolRepository,
         rqsEntryRepository: this.rqsEntryRepository,
         screeningRecordRepository: this.screeningRecordRepository,
-        aiService: this.aiService,
+        aiService: new AIService(req.userId),
         pythonGraphService: this.pythonGraphService,
         generatePrismaContextUseCase: generateContextUseCase
       });
@@ -196,7 +196,7 @@ class ArticleController {
         protocolRepository: this.protocolRepository,
         rqsEntryRepository: this.rqsEntryRepository,
         screeningRecordRepository: this.screeningRecordRepository,
-        aiService: this.aiService,
+        aiService: new AIService(req.userId),
         pythonGraphService: this.pythonGraphService,
         generatePrismaContextUseCase: generateContextUseCase
       });

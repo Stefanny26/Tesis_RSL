@@ -1,12 +1,17 @@
 const OpenAI = require('openai');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const ApiUsageRepository = require('../repositories/api-usage.repository');
 
 /**
  * Servicio centralizado para interacción con APIs de IA
  * Soporta OpenAI (ChatGPT) y Google Gemini con fallback automático
+ * INCLUYE REGISTRO AUTOMÁTICO DE USO
  */
 class AIService {
-  constructor() {
+  constructor(userId = null) {
+    this.userId = userId;
+    this.apiUsageRepository = new ApiUsageRepository();
+    
     // Inicializar OpenAI/ChatGPT (PRIORIDAD 1)
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
@@ -110,23 +115,43 @@ class AIService {
       throw new Error('OpenAI API key no configurada');
     }
 
-    const completion = await this.openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: userPrompt
-        }
-      ],
-      temperature: 0.3,
-      max_tokens: 2500
-    });
+    const startTime = Date.now();
+    let success = false;
+    let errorMessage = null;
+    let tokensUsed = 0;
 
-    return completion.choices[0].message.content;
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt
+          },
+          {
+            role: "user",
+            content: userPrompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 2500
+      });
+
+      tokensUsed = completion.usage?.total_tokens || 0;
+      success = true;
+
+      // Registrar uso exitoso
+      await this._trackUsage('chatgpt', 'chat.completions', 'gpt-4o-mini', tokensUsed, true, null);
+
+      return completion.choices[0].message.content;
+    } catch (error) {
+      errorMessage = error.message;
+      
+      // Registrar uso fallido
+      await this._trackUsage('chatgpt', 'chat.completions', 'gpt-4o-mini', 0, false, errorMessage);
+      
+      throw error;
+    }
   }
 
   /**
@@ -162,12 +187,49 @@ class AIService {
       throw new Error('OpenAI API key requerida para embeddings');
     }
 
-    const response = await this.openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: text,
-    });
+    try {
+      const response = await this.openai.embeddings.create({
+        model: "text-embedding-3-small",
+        input: text,
+      });
 
-    return response.data[0].embedding;
+      // Registrar uso de embeddings
+      await this._trackUsage('embeddings', 'embeddings.create', 'text-embedding-3-small', 0, true, null);
+
+      return response.data[0].embedding;
+    } catch (error) {
+      // Registrar uso fallido
+      await this._trackUsage('embeddings', 'embeddings.create', 'text-embedding-3-small', 0, false, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Registra el uso de una API
+   * @private
+   */
+  async _trackUsage(provider, endpoint, model, tokensTotal, success, errorMessage) {
+    try {
+      if (!this.userId) {
+        // Si no hay userId, no registramos (para casos donde se llama sin contexto de usuario)
+        return;
+      }
+
+      await this.apiUsageRepository.create({
+        userId: this.userId,
+        provider,
+        endpoint,
+        model,
+        tokensPrompt: 0,
+        tokensCompletion: 0,
+        tokensTotal,
+        success,
+        errorMessage
+      });
+    } catch (error) {
+      console.error('⚠️ Error registrando uso de API:', error.message);
+      // No lanzar error para no interrumpir el flujo principal
+    }
   }
 
   /**

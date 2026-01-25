@@ -962,6 +962,8 @@ class ApiClient {
 }
 
 // Tipos para RQS
+type RQRelation = 'yes' | 'no' | 'partial'
+
 export interface RQSEntry {
   id: number
   projectId: string
@@ -975,9 +977,9 @@ export interface RQSEntry {
   context?: 'industrial' | 'enterprise' | 'academic' | 'experimental' | 'mixed' | 'other'
   keyEvidence?: string
   metrics?: Record<string, any>
-  rq1Relation?: 'yes' | 'no' | 'partial'
-  rq2Relation?: 'yes' | 'no' | 'partial'
-  rq3Relation?: 'yes' | 'no' | 'partial'
+  rq1Relation?: RQRelation
+  rq2Relation?: RQRelation
+  rq3Relation?: RQRelation
   rqNotes?: string
   limitations?: string
   qualityScore?: 'high' | 'medium' | 'low'

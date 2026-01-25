@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { FileText, Upload, CheckCircle, AlertCircle, Eye, Trash2, Download, ClipboardCheck } from "lucide-react"
+import { FileText, Upload, CheckCircle, AlertCircle, Eye, Trash2, Download, ClipboardCheck, Brain } from "lucide-react"
 import type { Reference } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import { ReferenceDetailDialog } from "./reference-detail-dialog"
@@ -24,6 +24,7 @@ interface FullTextReviewProps {
 export function FullTextReview({ references, projectId, onReferencesChange }: FullTextReviewProps) {
   const { toast } = useToast()
   const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set())
+  const [extractingIds, setExtractingIds] = useState<Set<string>>(new Set())
   const [pdfUrls, setPdfUrls] = useState<Record<string, string>>({})
   const [selectedReference, setSelectedReference] = useState<Reference | null>(null)
   const [evaluationReference, setEvaluationReference] = useState<Reference | null>(null)
@@ -143,6 +144,52 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
   const handleOpenEvaluation = (ref: Reference) => {
     setEvaluationReference(ref)
     setEvaluationDialogOpen(true)
+  }
+
+  const handleExtractRQS = async (ref: Reference) => {
+    if (!pdfUrls[ref.id]) {
+      toast({
+        title: "PDF no disponible",
+        description: "Primero debes cargar el PDF completo",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setExtractingIds(prev => new Set(prev).add(ref.id))
+
+    try {
+      const apiClient = new ApiClient()
+      
+      toast({
+        title: "🤖 Analizando PDF con IA...",
+        description: "Extrayendo datos estructurados para RQS"
+      })
+
+      await apiClient.extractSingleRQS(projectId, ref.id)
+
+      toast({
+        title: "✅ Análisis completado",
+        description: "Los datos RQS han sido extraídos exitosamente"
+      })
+
+      if (onReferencesChange) {
+        onReferencesChange()
+      }
+    } catch (error: any) {
+      console.error('❌ Error extrayendo RQS:', error)
+      toast({
+        title: "Error en extracción",
+        description: error.message || "No se pudo analizar el PDF",
+        variant: "destructive"
+      })
+    } finally {
+      setExtractingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(ref.id)
+        return newSet
+      })
+    }
   }
 
   const handleEvaluationComplete = () => {
@@ -282,6 +329,16 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
                           >
                             <Download className="h-4 w-4 mr-2" />
                             Ver PDF
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="bg-purple-600 hover:bg-purple-700"
+                            onClick={() => handleExtractRQS(ref)}
+                            disabled={extractingIds.has(ref.id)}
+                          >
+                            <Brain className="h-4 w-4 mr-2" />
+                            {extractingIds.has(ref.id) ? 'Analizando...' : 'Analizar con IA'}
                           </Button>
                           <Button
                             size="sm"

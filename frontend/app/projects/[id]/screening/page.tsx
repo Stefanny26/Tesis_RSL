@@ -1350,28 +1350,37 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                                                 return
                                               }
                                               
-                                              const formData = new FormData()
-                                              formData.append('pdf', file)
-                                              formData.append('referenceId', ref.id)
-                                              
                                               try {
                                                 toast({
                                                   title: "Subiendo PDF...",
                                                   description: `Cargando ${file.name}`
                                                 })
                                                 
-                                                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/references/${ref.id}/upload-pdf`, {
-                                                  method: 'POST',
-                                                  body: formData,
-                                                  credentials: 'include'
-                                                })
-                                                
-                                                if (!response.ok) throw new Error('Error al subir PDF')
+                                                await apiClient.uploadPdf(ref.id, file)
                                                 
                                                 toast({
                                                   title: "PDF cargado exitosamente",
-                                                  description: "El archivo está disponible para revisión"
+                                                  description: "Analizando contenido con IA..."
                                                 })
+                                                
+                                                // Análisis automático con IA
+                                                try {
+                                                  console.log('🤖 Iniciando análisis automático de PDF...')
+                                                  await apiClient.extractSingleRQS(params.id, ref.id)
+                                                  console.log('✅ Análisis completado exitosamente')
+                                                  
+                                                  toast({
+                                                    title: "✅ Análisis completado",
+                                                    description: "Los datos RQS han sido extraídos exitosamente"
+                                                  })
+                                                } catch (analysisError: any) {
+                                                  console.error('⚠️ Error en análisis automático:', analysisError)
+                                                  toast({
+                                                    title: "Advertencia",
+                                                    description: "PDF subido, pero el análisis automático falló. Puedes intentarlo manualmente más tarde.",
+                                                    variant: "default"
+                                                  })
+                                                }
                                                 
                                                 await reloadReferences()
                                               } catch (error) {
@@ -1521,8 +1530,8 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                       <CardHeader>
                         <CardTitle>Finalizar Proceso de Cribado</CardTitle>
                         <CardDescription>
-                          Una vez finalizado el cribado, se guardarán los resultados y se desbloqueará la fase PRISMA. 
-                          No se podrán realizar más cambios en las referencias seleccionadas.
+                          Una vez finalizado el cribado, se completará automáticamente el checklist PRISMA 2020 y 
+                          podrá acceder a la sección de Artículo para generar su borrador completo.
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -1540,11 +1549,11 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                               
                               toast({
                                 title: "Cribado Finalizado",
-                                description: "Generando contenido PRISMA automáticamente..."
+                                description: "Completando PRISMA 2020 automáticamente..."
                               })
                               
                               // 2. Generar automáticamente todo el contenido de PRISMA
-                              console.log('🔄 Iniciando generación automática de PRISMA...')
+                              console.log('🔄 Iniciando autocompletado de PRISMA...')
                               const prismaResponse = await apiClient.completePrismaByBlocks(params.id, 'all')
                               
                               console.log('✅ Respuesta de PRISMA:', prismaResponse)
@@ -1552,19 +1561,19 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                               if (prismaResponse.success) {
                                 toast({
                                   title: "✅ PRISMA Completado",
-                                  description: `Bloques procesados: ${prismaResponse.data?.blocksProcessed?.join(', ') || 'todos'}`,
+                                  description: "Redirigiendo a la sección de Artículo...",
                                 })
                               } else {
                                 toast({
                                   title: "⚠️ PRISMA parcialmente completado",
-                                  description: "Algunos bloques pueden requerir revisión manual",
+                                  description: "Puede revisar PRISMA antes de generar el artículo",
                                   variant: "destructive"
                                 })
                               }
                               
-                              // 3. Redirigir a PRISMA después de 2 segundos
+                              // 3. Redirigir al Artículo después de 2 segundos
                               setTimeout(() => {
-                                router.push(`/projects/${params.id}/prisma`)
+                                router.push(`/projects/${params.id}/article`)
                               }, 2000)
                             } catch (error: any) {
                               console.error('❌ Error completo:', error)
@@ -1584,7 +1593,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                           {isFinalizingScreening ? (
                             <>
                               <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                              Finalizando...
+                              Completando PRISMA...
                             </>
                           ) : screeningFinalized ? (
                             <>
@@ -1594,7 +1603,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                           ) : (
                             <>
                               <CheckCircle2 className="h-5 w-5 mr-2" />
-                              Finalizar Cribado y Desbloquear PRISMA
+                              Finalizar Cribado
                             </>
                           )}
                         </Button>
