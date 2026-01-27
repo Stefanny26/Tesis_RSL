@@ -40,10 +40,14 @@
 ### 3️⃣ EL GATEKEEPER: CORAZÓN DE LA INNOVACIÓN
 
 > **"El Gatekeeper es un sistema de validación inteligente que actúa como un tutor virtual disponible 24/7."**
+>
+> **IMPORTANTE**: El Gatekeeper valida el **REPORTE PRISMA** (tu artículo científico final), NO el protocolo inicial.
 
 #### ¿Cómo funciona? (MOSTRAR DIAGRAMA 2)
 
-**Paso 1**: Usuario escribe contenido para el **Ítem 1 de PRISMA** (por ejemplo, el título)
+**Contexto**: Ya terminaste Fase 1 (protocolo) y Fase 2 (cribado). Ahora estás en **Fase 3**: escribiendo tu artículo científico siguiendo PRISMA 2020.
+
+**Paso 1**: Usuario escribe contenido para el **Ítem 1 de PRISMA** (Título del artículo científico)
 
 **Paso 2**: Click en **"Validar con IA"**
 
@@ -61,21 +65,24 @@
 #### Ejemplo Real:
 
 ```
-USUARIO ESCRIBE:
+📝 USUARIO ESCRIBE (Ítem 1 - Título del artículo):
 "Aplicaciones de IA en Educación"
 
-IA RESPONDE:
+🤖 IA RESPONDE:
 ❌ RECHAZADO (Score: 30%)
 Problema: El título no identifica el documento como "revisión sistemática"
-Sugerencia: Agregar "Una Revisión Sistemática" al final
+según criterio PRISMA Item 1a
+Sugerencia: Agregar "Una Revisión Sistemática" o "Revisión Sistemática de Literatura"
 
-USUARIO CORRIGE:
+📝 USUARIO CORRIGE:
 "Aplicaciones de IA en Educación: Una Revisión Sistemática"
 
-IA RESPONDE:
+🤖 IA RESPONDE:
 ✅ APROBADO (Score: 95%)
-Cumple criterio PRISMA Item 1. Ítem 2 desbloqueado ✅
+Cumple criterio PRISMA Item 1a. Ítem 2 (Abstract) desbloqueado ✅
 ```
+
+**Aclaración**: Este título del artículo es diferente al tema que seleccionaste en Fase 1. En Fase 1 definiste tu pregunta de investigación, ahora en Fase 3 escribes el artículo completo que reporta tus hallazgos.
 
 ---
 
