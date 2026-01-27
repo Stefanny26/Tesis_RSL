@@ -41,7 +41,7 @@ class CompletePrismaByBlocksUseCase {
 
       // 2. Determinar qué bloques ejecutar
       const blocks = block === 'all' 
-        ? ['methods', 'results', 'discussion', 'other']
+        ? ['title', 'abstract', 'introduction', 'methods', 'results', 'discussion', 'other']
         : [block];
 
       const results = {};
@@ -164,6 +164,81 @@ NIVEL ESPERADO: Un revisor experto debe poder:
    */
   getBlockConfig(blockName) {
     const configs = {
+      title: {
+        name: 'TÍTULO',
+        items: [
+          {
+            number: 1,
+            section: 'Title',
+            topic: 'Identificar el reporte como una revisión sistemática',
+            guidance: 'Generar un título académico que identifique claramente que es una revisión sistemática. Usar el objetivo de la revisión y el tema principal. Ejemplo: "Implementación de Inteligencia Artificial en el Cultivo de Fresas: Una Revisión Sistemática sobre Eficiencia Agrícola Basada en Datos".'
+          }
+        ]
+      },
+      abstract: {
+        name: 'RESUMEN',
+        items: [
+          {
+            number: 2,
+            section: 'Abstract',
+            topic: 'Resumen estructurado',
+            guidance: 'Generar un resumen estructurado de 250-300 palabras con las secciones: ANTECEDENTES (contexto y problema), OBJETIVO (pregunta de investigación), MÉTODOS (bases de datos, criterios, análisis), RESULTADOS (número de estudios, hallazgos principales), CONCLUSIONES (implicaciones). Usar números reales del contexto PRISMA.'
+          }
+        ]
+      },
+      introduction: {
+        name: 'INTRODUCCIÓN',
+        items: [
+          {
+            number: 3,
+            section: 'Introduction',
+            topic: 'Justificación',
+            guidance: 'Explicar por qué esta revisión es necesaria en el contexto del conocimiento actual. Incluir: importancia del tema, vacíos en el conocimiento, necesidad de síntesis sistemática.'
+          },
+          {
+            number: 4,
+            section: 'Introduction',
+            topic: 'Objetivos',
+            guidance: 'Declarar explícitamente el objetivo general de la revisión sistemática y los objetivos específicos si existen. Usar el marco PICO si está disponible en el contexto.'
+          },
+          {
+            number: 5,
+            section: 'Introduction',
+            topic: 'Criterios de elegibilidad',
+            guidance: 'Describir los criterios de inclusión y exclusión aplicados. Incluir: tipos de estudio, población, intervención, comparadores, outcomes, restricciones (año, idioma, etc.). Extraer del protocolo.'
+          },
+          {
+            number: 6,
+            section: 'Introduction',
+            topic: 'Fuentes de información',
+            guidance: 'Enumerar todas las bases de datos y fuentes consultadas con fechas de búsqueda. Incluir estrategia de búsqueda en literatura gris si aplica.'
+          },
+          {
+            number: 7,
+            section: 'Introduction',
+            topic: 'Estrategia de búsqueda',
+            guidance: 'Presentar la cadena de búsqueda completa para al menos una base de datos. Incluir términos clave, operadores booleanos, y adaptaciones por base de datos.'
+          },
+          {
+            number: 8,
+            section: 'Introduction',
+            topic: 'Proceso de selección de estudios',
+            guidance: 'Describir el proceso de selección: número de revisores, método de resolución de desacuerdos, herramientas utilizadas (ej: Covidence, Rayyan, sistema propio), fases de cribado (título/resumen, texto completo).'
+          },
+          {
+            number: 9,
+            section: 'Introduction',
+            topic: 'Proceso de extracción de datos',
+            guidance: 'Describir qué datos se extrajeron de cada estudio y cómo. Incluir: variables extraídas, herramientas usadas, validación de extracción.'
+          },
+          {
+            number: 10,
+            section: 'Introduction',
+            topic: 'Datos extraídos',
+            guidance: 'Listar específicamente las variables/datos extraídos de los estudios: autor, año, país, diseño del estudio, muestra, intervención, outcomes medidos, resultados principales.'
+          }
+        ]
+      },
       methods: {
         name: 'MÉTODOS',
         items: [
