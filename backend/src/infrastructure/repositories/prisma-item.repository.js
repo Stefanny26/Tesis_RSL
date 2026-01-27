@@ -318,14 +318,14 @@ class PrismaItemRepository {
    * @private
    */
   _getSectionForItem(itemNumber) {
-    if (itemNumber === 1) return 'TITLE';
-    if (itemNumber === 2) return 'ABSTRACT';
-    if (itemNumber >= 3 && itemNumber <= 10) return 'INTRODUCTION';
-    if (itemNumber >= 11 && itemNumber <= 15) return 'METHODS';
-    if (itemNumber >= 16 && itemNumber <= 22) return 'RESULTS';
-    if (itemNumber === 23) return 'DISCUSSION';
-    if (itemNumber >= 24 && itemNumber <= 27) return 'OTHER';
-    return 'OTHER';
+    if (itemNumber === 1) return 'Title';
+    if (itemNumber === 2) return 'Abstract';
+    if (itemNumber >= 3 && itemNumber <= 10) return 'Introduction';
+    if (itemNumber >= 11 && itemNumber <= 15) return 'Methods';
+    if (itemNumber >= 16 && itemNumber <= 22) return 'Results';
+    if (itemNumber === 23) return 'Discussion';
+    if (itemNumber >= 24 && itemNumber <= 27) return 'Funding';
+    return 'Funding';
   }
 }
 
