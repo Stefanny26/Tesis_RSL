@@ -25,14 +25,16 @@ flowchart TD
     Start([Usuario inicia sesión]) --> CreateProject[Crear Proyecto]
     CreateProject --> Phase1[FASE 1: Protocolo PICO]
     
-    Phase1 --> InputQuestion[Ingresar pregunta de investigación]
-    InputQuestion --> PICO[IA genera análisis PICO]
-    PICO --> Terms[IA genera términos del protocolo]
-    Terms --> Criteria[IA genera criterios inclusión/exclusión]
-    Criteria --> SearchStrings[IA genera cadenas de búsqueda]
+    Phase1 --> InputIdea[Usuario ingresa:<br/>- Idea inicial<br/>- Descripción breve<br/>- Área de investigación]
+    InputIdea --> AIGenerate[IA genera 5 propuestas<br/>de temas relacionados]
+    AIGenerate --> UserSelect[Usuario selecciona<br/>tema de interés]
+    UserSelect --> PICO[IA construye análisis PICO<br/>completo]
+    PICO --> Terms[IA genera términos<br/>del protocolo]
+    Terms --> Criteria[IA genera criterios<br/>inclusión/exclusión]
+    Criteria --> SearchStrings[IA genera cadenas<br/>de búsqueda]
     SearchStrings --> ProtocolComplete{¿Protocolo completo?}
     
-    ProtocolComplete -->|No| InputQuestion
+    ProtocolComplete -->|No| UserSelect
     ProtocolComplete -->|Sí| Phase2[FASE 2: Búsqueda y Cribado]
     
     Phase2 --> Import[Importar referencias<br/>BibTeX, RIS, CSV]

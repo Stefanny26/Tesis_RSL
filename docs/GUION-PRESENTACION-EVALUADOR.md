@@ -30,7 +30,7 @@
 > 
 > El sistema tiene **4 fases integradas**:
 > 
-> 1. **Protocolo PICO**: La IA ayuda a definir la pregunta de investigación
+> 1. **Protocolo PICO**: El usuario ingresa idea inicial, descripción y área de investigación → La IA genera 5 propuestas de temas → Usuario selecciona una → IA construye análisis PICO completo + términos + criterios + cadenas de búsqueda
 > 2. **Búsqueda y Cribado**: Cribado automático de referencias con IA (embeddings + ChatGPT)
 > 3. **✨ Gatekeeper PRISMA** ← NUESTRA INNOVACIÓN PRINCIPAL
 > 4. **Generación de Artículo**: Redacción automática del documento científico
@@ -174,17 +174,26 @@ Cumple criterio PRISMA Item 1. Ítem 2 desbloqueado ✅
 - Estadísticas: 4-12 meses, alta complejidad
 - Gap: No hay herramientas con validación automatizada PRISMA
 
-### **Minuto 5-10**: Solución (GATEKEEPER)
-- Mostrar **Diagrama 2** (Flujo del Gatekeeper)
+### **Minuto 5-10**: Solución (FLUJO COMPLETO)
+- **Fase 1 - Protocolo PICO**:
+  - Usuario ingresa: Idea inicial, descripción breve, área de investigación
+  - IA genera 5 propuestas de temas relacionados
+  - Usuario selecciona la propuesta que más le interesa
+  - IA construye automáticamente: Análisis PICO, términos clave, criterios de inclusión/exclusión, cadenas de búsqueda
+- **Fase 2 - Cribado**: Importar referencias → Detectar duplicados → Cribado con IA (embeddings o LLM)
+- **Fase 3 - GATEKEEPER** (mostrar Diagrama 2): Validación secuencial de 27 ítems PRISMA
+- **Fase 4 - Artículo**: Generación automática del documento científico
+
+### **Minuto 10-13**: Gatekeeper en Detalle
 - Explicar ejemplo concreto (título rechazado → corregido → aprobado)
 - Mostrar **Diagrama 5** (Arquitectura)
 
-### **Minuto 10-13**: Tecnologías e Implementación
+### **Minuto 13-16**: Tecnologías e Implementación
 - Stack tecnológico (Next.js, Node.js, PostgreSQL, ChatGPT)
 - ChatGPT gpt-4o-mini vs Gemini (explicar por qué OpenAI)
 - Costos: $0.08/proyecto
 
-### **Minuto 13-16**: Validación Experimental
+### **Minuto 16-18**: Validación Experimental
 - Diseño: 2,000 validaciones
 - Objetivo: F1-Score ≥ 0.80
 - Mostrar ANEXO-C
@@ -242,6 +251,9 @@ Cumple criterio PRISMA Item 1. Ítem 2 desbloqueado ✅
 - "El 40% de RSL publicadas no cumplen estándar PRISMA completo..."
 
 ### Para la solución:
+- "El usuario ingresa una idea inicial, descripción y área de interés..."
+- "La IA analiza y propone 5 temas de investigación personalizados..."
+- "Una vez seleccionado el tema, la IA construye automáticamente el protocolo PICO completo..."
 - "Implementamos un gatekeeper inteligente que actúa como tutor virtual 24/7..."
 - "Cada ítem tiene su propio prompt especializado con criterios PRISMA exactos..."
 
