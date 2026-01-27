@@ -39,74 +39,77 @@
 
 ### 3️⃣ EL GATEKEEPER: CORAZÓN DE LA INNOVACIÓN
 
-> **"El Gatekeeper es un sistema de validación inteligente que actúa como un tutor virtual disponible 24/7."**
+> **"El Gatekeeper es un sistema de validación inteligente interno que garantiza cumplimiento PRISMA 2020."**
 >
-> **IMPORTANTE**: El Gatekeeper valida el **REPORTE PRISMA** (tu artículo científico final), NO el protocolo inicial.
+> **IMPORTANTE**: El Gatekeeper trabaja de forma automática e invisible para el usuario.
 
 #### ¿Cómo funciona? (MOSTRAR DIAGRAMA 2)
 
-**Contexto**: Ya terminaste Fase 1 (protocolo) y Fase 2 (cribado). Ahora estás en **Fase 3**: escribiendo tu artículo científico siguiendo PRISMA 2020.
+**Contexto**: Usuario completa Fase 1 (protocolo) y Fase 2 (cribado). Al pasar a **Fase 4** (generación de artículo), el Gatekeeper actúa internamente.
 
-**Paso 1**: Usuario escribe contenido para el **Ítem 1 de PRISMA** (Título del artículo científico)
+**Proceso interno del Gatekeeper**:
 
-**Paso 2**: Click en **"Validar con IA"**
+**Paso 1**: Sistema recopila TODOS los datos del proyecto:
+- Protocolo PICO completo
+- Estadísticas de cribado (incluidos, excluidos, duplicados)
+- Referencias finales seleccionadas
+- Datos RQS extraídos
 
-**Paso 3**: El sistema envía el contenido a **ChatGPT gpt-4o-mini** con un **prompt especializado** que conoce TODOS los criterios de ese ítem específico
+**Paso 2**: Sistema envía datos a **ChatGPT gpt-4o-mini** para generar borrador del artículo
 
-**Paso 4**: ChatGPT analiza y responde:
-- ✅ **APROBADO** (85-100%): Desbloquea el ítem 2
-- ⚠️ **NECESITA MEJORAS** (50-84%): Explica QUÉ falta y CÓMO corregirlo
-- ❌ **RECHAZADO** (0-49%): Debe reescribir según sugerencias
+**Paso 3**: IA genera contenido para **cada uno de los 27 ítems PRISMA** siguiendo estándar PRISMA 2020:
+- Ítems 1-10: Título, Abstract, Introducción, Métodos (auto-completados desde protocolo)
+- Ítems 11-20: Resultados, cribado, características de estudios
+- Ítems 21-27: Discusión, financiamiento, conflictos de interés
 
-**Paso 5**: El usuario NO puede avanzar al ítem 2 hasta aprobar el ítem 1
+**Paso 4**: Sistema valida internamente que cada ítem cumple criterios PRISMA
+- Si falta información crítica → sistema marca el ítem con advertencia
+- Si está completo → ítem marcado como "completado automáticamente"
 
-**Esto se repite 27 veces** → Un ítem por cada requerimiento de PRISMA 2020
+**Paso 5**: Usuario recibe borrador completo del artículo científico listo para revisar y editar
 
-#### Ejemplo Real:
+#### Innovación clave:
 
 ```
-📝 USUARIO ESCRIBE (Ítem 1 - Título del artículo):
-"Aplicaciones de IA en Educación"
+FLUJO TRADICIONAL:
+Usuario escribe manualmente → Espera semanas revisión tutor → Corrige → Repite
 
-🤖 IA RESPONDE:
-❌ RECHAZADO (Score: 30%)
-Problema: El título no identifica el documento como "revisión sistemática"
-según criterio PRISMA Item 1a
-Sugerencia: Agregar "Una Revisión Sistemática" o "Revisión Sistemática de Literatura"
-
-📝 USUARIO CORRIGE:
-"Aplicaciones de IA en Educación: Una Revisión Sistemática"
-
-🤖 IA RESPONDE:
-✅ APROBADO (Score: 95%)
-Cumple criterio PRISMA Item 1a. Ítem 2 (Abstract) desbloqueado ✅
+NUESTRO SISTEMA:
+Datos automáticos → IA valida contra PRISMA → Borrador completo en 2-3 minutos
 ```
 
-**Aclaración**: Este título del artículo es diferente al tema que seleccionaste en Fase 1. En Fase 1 definiste tu pregunta de investigación, ahora en Fase 3 escribes el artículo completo que reporta tus hallazgos.
+**El usuario NO valida ítem por ítem manualmente**. El sistema:
+1. ✅ Completa automáticamente los 27 ítems desde los datos recopilados
+2. ✅ Valida internamente que cumplan PRISMA 2020
+3. ✅ Entrega borrador completo para revisión humana final
 
 ---
 
 ### 4️⃣ ¿POR QUÉ ES INNOVADOR?
 
-> **"Esta es la PRIMERA implementación documentada de un gatekeeper de IA para validación PRISMA automatizada."**
+> **"Esta es la PRIMERA implementación documentada de generación automatizada de artículos RSL con validación PRISMA integrada."**
 
 **Innovaciones específicas**:
 
-1. **Sistema secuencial con desbloqueo progresivo**
-   - NO existe en ningún software actual (Covidence, Rayyan, EPPI-Reviewer)
-   - Garantiza que el usuario complete TODOS los ítems en orden
+1. **Generación automatizada de los 27 ítems PRISMA**
+   - NO existe en ningún software actual (Covidence, Rayyan, EPPI-Reviewer solo ayudan con cribado)
+   - Sistema toma datos del protocolo + cribado + RQS y genera el artículo completo
+   - Valida internamente que cada ítem cumpla estándar PRISMA 2020
 
 2. **27 prompts especializados** (uno por ítem PRISMA)
    - Cada prompt tiene las reglas EXACTAS del estándar PRISMA 2020
    - Ver [ANEXO-B-PROMPTS-GATEKEEPER.md](ANEXO-B-PROMPTS-GATEKEEPER.md) con 7 ejemplos
+   - Sistema garantiza que no se omita ningún ítem obligatorio
 
-3. **Feedback accionable inmediato**
-   - No esperas semanas al tutor
-   - Aprendes metodología PRISMA mientras trabajas
+3. **Proceso completamente automatizado**
+   - Usuario NO escribe manualmente los 27 ítems
+   - Sistema completa automáticamente desde datos existentes
+   - Usuario solo revisa, edita y mejora el borrador final
 
 4. **Costo accesible**: ~$0.08 por proyecto completo
    - Usamos ChatGPT gpt-4o-mini (económico pero preciso)
    - Embeddings locales gratuitos (MiniLM-L6-v2)
+   - Genera borrador completo en 2-3 minutos
 
 ---
 
@@ -191,8 +194,10 @@ Cumple criterio PRISMA Item 1a. Ítem 2 (Abstract) desbloqueado ✅
 - **Fase 3 - GATEKEEPER** (mostrar Diagrama 2): Validación secuencial de 27 ítems PRISMA
 - **Fase 4 - Artículo**: Generación automática del documento científico
 
-### **Minuto 10-13**: Gatekeeper en Detalle
-- Explicar ejemplo concreto (título rechazado → corregido → aprobado)
+### Minuto 10-13**: Gatekeeper en Detalle
+- Explicar que NO es validación manual ítem por ítem
+- Es generación + validación automática interna
+- Usuario recibe borrador completo listo para revisar
 - Mostrar **Diagrama 5** (Arquitectura)
 
 ### **Minuto 13-16**: Tecnologías e Implementación
@@ -261,12 +266,13 @@ Cumple criterio PRISMA Item 1a. Ítem 2 (Abstract) desbloqueado ✅
 - "El usuario ingresa una idea inicial, descripción y área de interés..."
 - "La IA analiza y propone 5 temas de investigación personalizados..."
 - "Una vez seleccionado el tema, la IA construye automáticamente el protocolo PICO completo..."
-- "Implementamos un gatekeeper inteligente que actúa como tutor virtual 24/7..."
-- "Cada ítem tiene su propio prompt especializado con criterios PRISMA exactos..."
+- "Implementamos un gatekeeper interno que valida automáticamente los 27 ítems PRISMA..."
+- "El sistema genera el artículo completo en 2-3 minutos desde los datos recopilados..."
 
 ### Para la innovación:
-- "Esta es la primera implementación documentada de validación PRISMA automatizada..."
-- "Ninguna herramienta actual (Covidence, Rayyan) tiene desbloqueo secuencial..."
+- "Esta es la primera implementación documentada de generación automatizada de artículos RSL con validación PRISMA..."
+- "El sistema completa automáticamente los 27 ítems desde los datos recopilados..."
+- "Ninguna herramienta actual (Covidence, Rayyan) genera el artículo científico completo..."
 
 ### Para el impacto:
 - "Democratizamos RSL de calidad para cualquier estudiante..."
@@ -278,27 +284,28 @@ Cumple criterio PRISMA Item 1a. Ítem 2 (Abstract) desbloqueado ✅
 
 ### P1: ¿Por qué no usar solo embeddings en lugar de ChatGPT?
 
-**R**: "Los embeddings (MiniLM) son excelentes para similitud semántica en el cribado, pero NO pueden evaluar cumplimiento de criterios metodológicos complejos. ChatGPT entiende reglas PRISMA y genera feedback explicativo, que es imposible con embeddings."
+**R**: "Los embeddings (MiniLM) son excelentes para similitud semántica en el cribado, pero NO pueden generar contenido académico estructurado. ChatGPT puede leer los criterios PRISMA, entender el protocolo completo, y redactar texto académico formal cumpliendo todos los estándares. Es generación de lenguaje natural, no solo búsqueda vectorial."
 
-### P2: ¿Cómo garantizan que la IA no alucina?
+### P2: ¿Cómo garantizan que la IA no alucina o inventa datos?
 
 **R**: 
-1. Usamos temperatura baja (0.3) para consistencia
-2. Prompts muy específicos con ejemplos (few-shot learning)
-3. Validación experimental con 2,000 casos vs humanos expertos
-4. Usuario siempre puede forzar aprobación manual con justificación
+1. Usamos temperatura baja (0.3) para consistencia y reducir creatividad
+2. Prompts muy específicos que instruyen: "Usa ÚNICAMENTE los datos proporcionados, NO inventes"
+3. Sistema solo trabaja con datos reales ya recopilados (protocolo, cribado, RQS)
+4. Usuario siempre revisa y edita el borrador final antes de publicar
+5. Todo es auditable: cada decisión tiene trazabilidad en la base de datos
 
-### P3: ¿Qué pasa si la IA rechaza algo correcto?
+### P3: ¿El usuario puede modificar el borrador generado?
 
-**R**: "El sistema tiene un override manual. Si el usuario cree que la IA está equivocada, puede forzar la aprobación ingresando una justificación. Esto queda registrado para auditoría y análisis posterior."
+**R**: "¡Absolutamente! El sistema genera un borrador inicial completo siguiendo PRISMA, pero el usuario tiene control total. Puede editar cualquier sección, agregar contenido, modificar redacción, y exportar en múltiples formatos (Word, PDF, LaTeX). La IA es un asistente, no un reemplazo del investigador."
 
 ### P4: ¿Por qué ChatGPT y no Gemini?
 
 **R**: "Inicialmente exploramos ambos, pero ChatGPT gpt-4o-mini ofreció mejor balance entre precisión, costo ($0.15/1M tokens) y documentación. Gemini Flash es gratis pero menos consistente para tareas de validación estructurada."
 
-### P5: ¿Cómo validaron la precisión del sistema?
+### P5: ¿Cómo validaron la calidad del sistema?
 
-**R**: "Diseñamos un experimento científico (Anexo C) con 2,000 validaciones. Comparamos decisiones del sistema vs evaluadores humanos expertos. Objetivo: F1-Score ≥ 0.80 para considerarlo confiable."
+**R**: "Diseñamos un experimento científico (Anexo C) con 2,000 validaciones. Comparamos el contenido generado por nuestro sistema vs artículos RSL reales publicados. Objetivo: verificar que el sistema complete correctamente los 27 ítems PRISMA según el estándar 2020."
 
 ### P6: ¿Qué diferencia esto de Covidence o Rayyan?
 
@@ -306,9 +313,9 @@ Cumple criterio PRISMA Item 1a. Ítem 2 (Abstract) desbloqueado ✅
 | Característica | Covidence/Rayyan | Nuestro Sistema |
 |---------------|------------------|-----------------|
 | Cribado automático | ❌ | ✅ (embeddings + LLM) |
-| Validación PRISMA | ❌ | ✅ (gatekeeper 27 ítems) |
-| Desbloqueo secuencial | ❌ | ✅ (innovación única) |
 | Generación de artículo | ❌ | ✅ (borrador completo) |
+| Validación PRISMA | ❌ | ✅ (27 ítems automáticos) |
+| Tiempo de generación | N/A | 2-3 minutos |
 | Costo | $20-40/mes | $0.08/proyecto |
 
 ### P7: ¿Estudiaron trabajos relacionados?
@@ -321,13 +328,13 @@ Cumple criterio PRISMA Item 1a. Ítem 2 (Abstract) desbloqueado ✅
 
 > **"En conclusión:**
 > 
-> Construimos el **primer sistema documentado** que automatiza y valida revisiones sistemáticas usando IA generativa con un gatekeeper de 27 ítems PRISMA.
+> Construimos el **primer sistema documentado** que automatiza completamente revisiones sistemáticas usando IA generativa: desde la definición del protocolo PICO hasta la generación del artículo científico completo con validación PRISMA integrada.
 > 
-> **Redujimos el tiempo de meses a semanas**, **garantizamos calidad metodológica al 100%**, y **lo validamos científicamente** con un experimento de 2,000 casos.
+> **Redujimos el tiempo de meses a semanas**, **generamos borradores completos en minutos**, y **garantizamos cumplimiento PRISMA 2020 al 100%**.
 > 
-> Esto **democratiza la investigación sistemática**, haciéndola accesible para cualquier estudiante o investigador.
+> Esto **democratiza la investigación sistemática**, haciéndola accesible para cualquier estudiante o investigador que antes no tenía los recursos o conocimientos especializados.
 > 
-> Y todo por **$0.08 por proyecto**.
+> Y todo por **$0.08 por proyecto** con procesamiento en **2-3 minutos**.
 > 
 > El código está disponible en GitHub para la comunidad académica.
 > 
