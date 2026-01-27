@@ -12,7 +12,7 @@ Las pruebas funcionales verifican que cada componente del sistema opera correcta
 
 El plan de pruebas funcionales cubrió los siguientes componentes críticos del sistema:
 
-**Módulo 1: Gestión del Proceso y Cribado**
+**A. Gestión del Proceso de RSL y Cribado Automatizado** (relacionado con Sección 4.2)
 
 1. **Autenticación y Autorización**
    - Registro de nuevos usuarios mediante OAuth 2.0 (Google)
@@ -45,7 +45,7 @@ El plan de pruebas funcionales cubrió los siguientes componentes críticos del 
    - Justificación automática de decisiones de inclusión/exclusión
    - Procesamiento en lotes (batch processing) de hasta 1,000 referencias
 
-**Módulo 2: Validación Secuencial PRISMA (Gatekeeper IA)**
+**B. Sistema de Validación Secuencial PRISMA ("Gatekeeper")** (relacionado con Sección 4.3)
 
 6. **Interfaz del Checklist PRISMA**
    - Visualización secuencial de 27 ítems PRISMA 2020
@@ -66,7 +66,7 @@ El plan de pruebas funcionales cubrió los siguientes componentes críticos del 
    - Opción de forzar aprobación con justificación escrita
    - Persistencia del estado de validación en base de datos
 
-**Módulo 3: Generación de Artículo Científico**
+**C. Generación Automática de Artículo Científico** (relacionado con Sección 4.4)
 
 9. **Generación Automática de Borrador**
    - Síntesis de contenido desde 27 ítems PRISMA validados
@@ -130,16 +130,16 @@ Fase 6: Artículo       → Generar artículo científico completo
 
 Se ejecutaron **127 casos de prueba** automatizados que cubren:
 
-| Módulo | Casos de Prueba | Tasa de Éxito |
-|--------|-----------------|---------------|
-| Autenticación | 12 | 100% ✅ |
-| Proyectos | 15 | 100% ✅ |
+| Componente Funcional | Casos de Prueba | Tasa de Éxito |
+|----------------------|-----------------|---------------|
+| Autenticación y autorización | 12 | 100% ✅ |
+| Gestión de proyectos | 15 | 100% ✅ |
 | Protocolo PICO | 18 | 100% ✅ |
-| Referencias | 23 | 100% ✅ |
-| Cribado IA | 20 | 100% ✅ |
+| Gestión de referencias | 23 | 100% ✅ |
+| Cribado con IA (Embeddings + LLM) | 20 | 100% ✅ |
 | Gatekeeper PRISMA | 27 | 100% ✅ |
-| Extracción RQS | 8 | 100% ✅ |
-| Generación Artículo | 4 | 100% ✅ |
+| Extracción de datos RQS | 8 | 100% ✅ |
+| Generación de artículo | 4 | 100% ✅ |
 
 **Ejecución de Pruebas:**
 
@@ -266,9 +266,9 @@ Cada ítem PRISMA se valida individualmente mediante llamada a la API de IA:
 | **Total** | **~45 s** | **~6,600 tokens** |
 
 **Generación de Gráficos (Matplotlib):**
-- Diagrama PRISMA: 8.5 s
-- Tabla de búsqueda: 3.2 s
-- Scree plot: 4.8 s
+- Diagrama de flujo PRISMA: 8.5 s
+- Tabla de estrategia de búsqueda: 3.2 s
+- Gráficos de distribución de estudios: 4.8 s
 - **Total:** ~16.5 s
 
 **Tiempo Total (Artículo Completo):** ~62 segundos (~1 minuto)
@@ -428,10 +428,10 @@ Rango: 0-100 puntos
 
 Los participantes evaluaron cada módulo del sistema según **utilidad percibida** y **facilidad de uso** en una escala de 1-5.
 
-**Resultados por Módulo:**
+**Resultados por Funcionalidad:**
 
-| Módulo | Utilidad | Facilidad | Comentarios Destacados |
-|--------|----------|-----------|------------------------|
+| Funcionalidad | Utilidad | Facilidad | Comentarios Destacados |
+|---------------|----------|-----------|------------------------|
 | **Asistente PICO con IA** | 4.6/5 | 4.3/5 | "Ahorra horas de trabajo", "Genera ideas que no había considerado" |
 | **Cribado con Embeddings** | 4.7/5 | 4.5/5 | "Muy rápido", "Resultados consistentes con mi criterio" |
 | **Cribado con LLM** | 4.5/5 | 4.4/5 | "Explicaciones útiles", "Un poco lento con muchas refs" |
