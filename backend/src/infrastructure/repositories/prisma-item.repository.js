@@ -206,9 +206,10 @@ class PrismaItemRepository {
     // Si no existe, crearlo primero
     if (!currentItem) {
       console.log(`📝 Ítem PRISMA ${itemNumber} no existe, creando...`);
-      currentItem = await this.create({
+      currentItem = await this.upsert({
         projectId,
         itemNumber,
+        section: this._getSectionForItem(itemNumber),
         content: '',
         contentType: 'pending',
         completed: false
@@ -235,7 +236,6 @@ class PrismaItemRepository {
         content_type = $2,
         last_human_edit = $3,
         completed = true,
-        completed_at = COALESCE(completed_at, NOW()),
         updated_at = NOW()
       WHERE project_id = $4 AND item_number = $5
       RETURNING *
@@ -255,7 +255,6 @@ class PrismaItemRepository {
       UPDATE prisma_items
       SET 
         completed = true,
-        completed_at = COALESCE(completed_at, NOW()),
         updated_at = NOW()
       WHERE project_id = $1 AND item_number = $2
       RETURNING *
@@ -312,6 +311,21 @@ class PrismaItemRepository {
     `;
     const result = await database.query(query, [projectId]);
     return result.rows.map(row => new PrismaItem(row));
+  }
+
+  /**
+   * Método auxiliar para determinar la sección según el número de ítem
+   * @private
+   */
+  _getSectionForItem(itemNumber) {
+    if (itemNumber === 1) return 'TITLE';
+    if (itemNumber === 2) return 'ABSTRACT';
+    if (itemNumber >= 3 && itemNumber <= 10) return 'INTRODUCTION';
+    if (itemNumber >= 11 && itemNumber <= 15) return 'METHODS';
+    if (itemNumber >= 16 && itemNumber <= 22) return 'RESULTS';
+    if (itemNumber === 23) return 'DISCUSSION';
+    if (itemNumber >= 24 && itemNumber <= 27) return 'OTHER';
+    return 'OTHER';
   }
 }
 
