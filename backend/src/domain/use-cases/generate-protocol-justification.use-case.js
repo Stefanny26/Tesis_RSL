@@ -1,5 +1,4 @@
 const OpenAI = require('openai');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
  * Use Case: Genera la JUSTIFICACIÓN del protocolo de revisión sistemática
@@ -21,24 +20,24 @@ class GenerateProtocolJustificationUseCase {
   }
 
   /**
-   * Ejecuta la generación de justificación usando provider especificado
+   * Ejecuta la generación de justificación usando ChatGPT
    */
   async execute({ title, description, area, yearStart, yearEnd, pico, matrixData, aiProvider = 'chatgpt' }) {
-    console.log(`\n🔬 Generando JUSTIFICACIÓN con ${aiProvider}...`);
+    console.log(`\nGenerando JUSTIFICACIÓN...`);
     console.log(`   Título: ${title}`);
     console.log(`   Área: ${area}`);
     console.log(`   Rango temporal: ${yearStart} - ${yearEnd}`);
 
     if (!this.openai) {
-      throw new Error('No hay proveedor de IA configurado');
+      throw new Error('OpenAI no está configurado');
     }
 
     try {
       const result = await this._generateWithChatGPT({ title, description, area, yearStart, yearEnd, pico, matrixData });
-      console.log(`✅ Justificación generada exitosamente con chatgpt`);
+      console.log('Justificación generada exitosamente');
       return result;
     } catch (error) {
-      console.error(`❌ Error con chatgpt:`, error.message);
+      console.error('Error generando justificación:', error.message);
       throw error;
     }
   }

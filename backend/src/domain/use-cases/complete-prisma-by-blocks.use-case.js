@@ -29,7 +29,7 @@ class CompletePrismaByBlocksUseCase {
    */
   async execute(projectId, block = 'all') {
     try {
-      console.log(`🔄 Completando PRISMA - Bloque: ${block}`);
+      console.log(`Completando PRISMA - Bloque: ${block}`);
 
       // 1. Generar PRISMA Context
       const contextResult = await this.generatePrismaContextUseCase.execute(projectId);
@@ -48,7 +48,7 @@ class CompletePrismaByBlocksUseCase {
 
       // 3. Ejecutar cada bloque secuencialmente
       for (const blockName of blocks) {
-        console.log(`📝 Procesando bloque: ${blockName.toUpperCase()}`);
+        console.log(`Procesando bloque: ${blockName.toUpperCase()}`);
         const blockResult = await this.processBlock(projectId, blockName, prismaContext);
         results[blockName] = blockResult;
       }
@@ -68,7 +68,7 @@ class CompletePrismaByBlocksUseCase {
       };
 
     } catch (error) {
-      console.error('❌ Error completando PRISMA por bloques:', error);
+      console.error('Error completando PRISMA por bloques:', error);
       throw error;
     }
   }
@@ -83,12 +83,12 @@ class CompletePrismaByBlocksUseCase {
     const prompt = this.generateAcademicPrompt(blockConfig, prismaContext);
     
     // Llamar a IA (prioridad ChatGPT)
-    console.log(`🤖 Consultando IA para bloque: ${blockName}`);
+    console.log(`Consultando IA para bloque: ${blockName}`);
     const systemPrompt = this.getSystemPrompt();
     const userPrompt = this.generateAcademicPrompt(blockConfig, prismaContext);
     
     const aiResponse = await this.aiService.generateText(systemPrompt, userPrompt, 'chatgpt');
-    console.log(`✅ Respuesta recibida de IA (${aiResponse.length} caracteres)`);
+    console.log(`Respuesta recibida de IA (${aiResponse.length} caracteres)`);
 
     // Parsear respuesta
     let itemsData;
@@ -99,17 +99,17 @@ class CompletePrismaByBlocksUseCase {
       } else {
         itemsData = JSON.parse(aiResponse);
       }
-      console.log(`✅ JSON parseado: ${itemsData.items?.length || 0} ítems`);
+      console.log(`JSON parseado: ${itemsData.items?.length || 0} ítems`);
     } catch (error) {
-      console.error('❌ Error parseando respuesta de IA:', error);
-      console.error('📄 Respuesta completa:', aiResponse.substring(0, 500));
+      console.error('Error parseando respuesta de IA:', error);
+      console.error('Respuesta completa:', aiResponse.substring(0, 500));
       throw new Error('La IA no devolvió JSON válido');
     }
 
     // Guardar ítems en BD
     const savedItems = [];
     for (const itemData of itemsData.items || []) {
-      console.log(`💾 Guardando ítem ${itemData.itemNumber}...`);
+      console.log(`Guardando ítem ${itemData.itemNumber}...`);
       const saved = await this.prismaItemRepository.updateContent(
         projectId,
         itemData.itemNumber,
@@ -119,7 +119,7 @@ class CompletePrismaByBlocksUseCase {
       savedItems.push(saved);
     }
     
-    console.log(`✅ Bloque ${blockName}: ${savedItems.length} ítems guardados`);
+    console.log(`Bloque ${blockName}: ${savedItems.length} ítems guardados`);
 
     return {
       success: true,

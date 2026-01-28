@@ -8,7 +8,7 @@ const pdf = require('pdf-parse');
  * Analiza PDFs de referencias incluidas para extraer información estructurada
  * que será usada en la redacción de PRISMA y ARTÍCULO.
  * 
- * ⚠️ IMPORTANTE: Este use case NO toma decisiones de inclusión/exclusión.
+ * IMPORTANTE: Este use case NO toma decisiones de inclusión/exclusión.
  * Solo extrae y estructura información de PDFs ya seleccionados.
  */
 class ExtractFullTextDataUseCase {
@@ -26,14 +26,14 @@ class ExtractFullTextDataUseCase {
       const data = await pdf(dataBuffer);
       return data.text;
     } catch (error) {
-      console.error(`❌ Error extrayendo texto del PDF ${pdfPath}:`, error);
+      console.error(`Error extrayendo texto del PDF ${pdfPath}:`, error);
       throw new Error(`No se pudo leer el PDF: ${error.message}`);
     }
   }
 
   /**
    * Usa IA para extraer información estructurada del texto (PDF completo o abstract)
-   * ⚠️ NO toma decisiones, solo extrae datos
+   * NO toma decisiones, solo extrae datos
    */
   async extractStructuredData(text, referenceMetadata, isAbstractOnly = false) {
     const sourceType = isAbstractOnly ? 'abstract' : 'full text';
@@ -45,7 +45,7 @@ Article Metadata:
 - Year: ${referenceMetadata.year || 'Not specified'}
 - Source: ${isAbstractOnly ? 'ABSTRACT ONLY (no full text available)' : 'FULL TEXT'}
 
-${isAbstractOnly ? '⚠️ IMPORTANT: You are analyzing ONLY the abstract. Extract what you can, but indicate when information is not available in the abstract.' : ''}
+${isAbstractOnly ? 'IMPORTANT: You are analyzing ONLY the abstract. Extract what you can, but indicate when information is not available in the abstract.' : ''}
 
 Extract the following information from the ${sourceType}:
 
@@ -93,7 +93,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
       
       return extractedData;
     } catch (error) {
-      console.error('❌ Error en extracción estructurada con IA:', error);
+      console.error('Error en extracción estructurada con IA:', error);
       
       // Retornar estructura vacía en caso de error
       return {
@@ -135,19 +135,19 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
         
         if (fs.existsSync(fullPath)) {
           // Caso 1: Hay PDF completo disponible
-          console.log(`📄 Extrayendo texto completo de: ${reference.title}`);
+          console.log(`Extrayendo texto completo de: ${reference.title}`);
           textToAnalyze = await this.extractTextFromPDF(fullPath);
           source = 'full_text';
         } else {
           // PDF path existe pero archivo no encontrado, usar abstract
-          console.log(`⚠️ PDF no encontrado, analizando abstract de: ${reference.title}`);
+          console.log(`PDF no encontrado, analizando abstract de: ${reference.title}`);
           textToAnalyze = reference.abstract || '';
           isAbstractOnly = true;
           source = 'abstract_only';
         }
       } else {
         // Caso 2: No hay PDF, analizar solo abstract (instrucción del tutor)
-        console.log(`📝 No hay PDF, analizando abstract de: ${reference.title}`);
+        console.log(`No hay PDF, analizando abstract de: ${reference.title}`);
         textToAnalyze = reference.abstract || '';
         isAbstractOnly = true;
         source = 'abstract_only';
@@ -158,7 +158,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
       }
 
       // 3. Extraer datos estructurados con IA
-      console.log(`🤖 Analizando ${isAbstractOnly ? 'abstract' : 'texto completo'} con IA...`);
+      console.log(`Analizando ${isAbstractOnly ? 'abstract' : 'texto completo'} con IA...`);
       const structuredData = await this.extractStructuredData(textToAnalyze, {
         title: reference.title,
         authors: reference.authors,
@@ -176,7 +176,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
         fullTextExtractedAt: new Date()
       });
 
-      console.log(`✅ Datos extraídos exitosamente de: ${reference.title} (${source})`);
+      console.log(`Datos extraídos exitosamente de: ${reference.title} (${source})`);
 
       return {
         success: true,
@@ -187,7 +187,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
       };
 
     } catch (error) {
-      console.error(`❌ Error procesando PDF ${referenceId}:`, error);
+      console.error(`Error procesando PDF ${referenceId}:`, error);
       throw error;
     }
   }
@@ -219,7 +219,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
       const withPDF = includedReferences.filter(ref => ref.pdfPath).length;
       const abstractOnly = includedReferences.length - withPDF;
 
-      console.log(`📚 Procesando ${includedReferences.length} referencias (${withPDF} con PDF completo, ${abstractOnly} solo abstract)...`);
+      console.log(`Procesando ${includedReferences.length} referencias (${withPDF} con PDF completo, ${abstractOnly} solo abstract)...`);
 
       // 2. Procesar cada referencia secuencialmente (evitar rate limits)
       const results = [];
@@ -232,7 +232,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
           results.push(result);
           processed++;
         } catch (error) {
-          console.error(`❌ Error en ${reference.title}:`, error.message);
+          console.error(`Error en ${reference.title}:`, error.message);
           results.push({
             success: false,
             referenceId: reference.id,
@@ -246,7 +246,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      console.log(`✅ Procesamiento completo: ${processed} exitosos, ${errors} errores`);
+      console.log(`Procesamiento completo: ${processed} exitosos, ${errors} errores`);
       console.log(`   - Con PDF completo: ${withPDF}`);
       console.log(`   - Solo abstract: ${abstractOnly}`);
 
@@ -261,7 +261,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
       };
 
     } catch (error) {
-      console.error('❌ Error procesando PDFs del proyecto:', error);
+      console.error('Error procesando PDFs del proyecto:', error);
       throw error;
     }
   }
@@ -339,7 +339,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
       };
 
     } catch (error) {
-      console.error('❌ Error obteniendo resumen de datos:', error);
+      console.error('Error obteniendo resumen de datos:', error);
       throw error;
     }
   }

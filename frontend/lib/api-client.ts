@@ -378,13 +378,6 @@ class ApiClient {
     return data.data.item
   }
 
-  async generatePrismaContent(projectId: string) {
-    const data = await this.request(`/api/projects/${projectId}/prisma/generate`, {
-      method: 'POST',
-    })
-    return data.data
-  }
-
   async updatePrismaItem(projectId: string, itemNumber: number, updates: { content?: string; completed?: boolean }) {
     const data = await this.request(`/api/projects/${projectId}/prisma/${itemNumber}`, {
       method: 'PUT',
@@ -754,16 +747,6 @@ class ApiClient {
    */
   async generatePrismaContext(projectId: string) {
     const data = await this.request(`/api/projects/${projectId}/prisma/generate-context`, {
-      method: 'POST',
-    })
-    return data
-  }
-
-  /**
-   * Completa ítems PRISMA automáticamente
-   */
-  async completePrismaItems(projectId: string) {
-    const data = await this.request(`/api/projects/${projectId}/prisma/complete-items`, {
       method: 'POST',
     })
     return data

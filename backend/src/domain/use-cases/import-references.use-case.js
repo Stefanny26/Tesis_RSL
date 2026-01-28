@@ -3,7 +3,7 @@
  * Versión simplificada - parsea formatos básicos
  */
 class ImportReferencesUseCase {
-  constructor(referenceRepository) {
+  constructor({ referenceRepository }) {
     this.referenceRepository = referenceRepository;
   }
 
@@ -14,7 +14,7 @@ class ImportReferencesUseCase {
    * @returns {Promise<Object>} - Resultado de la importación
    */
   async execute(projectId, files) {
-    console.log('📦 ImportReferencesUseCase.execute()');
+    console.log('ImportReferencesUseCase.execute()');
     console.log('   Project ID:', projectId);
     console.log('   Archivos:', files.length);
     
@@ -33,7 +33,7 @@ class ImportReferencesUseCase {
     for (const file of files) {
       try {
         const fileExtension = file.originalname.split('.').pop().toLowerCase();
-        console.log(`📄 Procesando archivo: ${file.originalname}`);
+        console.log(`Procesando archivo: ${file.originalname}`);
         console.log(`   Extensión: ${fileExtension}`);
         console.log(`   Tamaño: ${file.buffer ? file.buffer.length : 0} bytes`);
         
@@ -44,36 +44,36 @@ class ImportReferencesUseCase {
 
         // Parsear según el tipo de archivo
         if (fileExtension === 'csv') {
-          console.log('🔍 Parseando como CSV...');
+          console.log('Parseando como CSV...');
           parsedReferences = this.parseCSV(content);
         } else if (fileExtension === 'json') {
-          console.log('🔍 Parseando como JSON...');
+          console.log('Parseando como JSON...');
           parsedReferences = JSON.parse(content);
         } else if (fileExtension === 'ris' || fileExtension === 'txt') {
-          console.log('🔍 Parseando como RIS...');
+          console.log('Parseando como RIS...');
           parsedReferences = this.parseRIS(content);
         } else if (fileExtension === 'bib') {
-          console.log('🔍 Parseando como BibTeX...');
+          console.log('Parseando como BibTeX...');
           parsedReferences = this.parseBibTeX(content);
         } else if (fileExtension === 'nbib') {
-          console.log('🔍 Parseando como PubMed (nbib)...');
+          console.log('Parseando como PubMed (nbib)...');
           parsedReferences = this.parseRIS(content); // nbib usa formato similar a RIS
         } else if (fileExtension === 'ciw') {
-          console.log('🔍 Parseando como Web of Science (ciw)...');
+          console.log('Parseando como Web of Science (ciw)...');
           parsedReferences = this.parseRIS(content); // ciw usa formato similar a RIS
         } else {
-          console.log(`❌ Formato no soportado: ${fileExtension}`);
+          console.log(`Formato no soportado: ${fileExtension}`);
           throw new Error(`Formato de archivo no soportado: ${fileExtension}. Formatos soportados: CSV, JSON, RIS, BibTeX, nbib, ciw.`);
         }
         
-        console.log(`✅ Parseadas ${parsedReferences.length} referencias`);
+        console.log(`Parseadas ${parsedReferences.length} referencias`);
 
         // Guardar referencias en la base de datos
-        console.log(`💾 Guardando ${parsedReferences.length} referencias en BD...`);
+        console.log(`Guardando ${parsedReferences.length} referencias en BD...`);
         
         for (const refData of parsedReferences) {
           try {
-            console.log(`   📝 Procesando: ${refData.title || 'Sin título'}`);
+            console.log(`   Procesando: ${refData.title || 'Sin título'}`);
             
             // Verificar si ya existe (por DOI o título)
             const existing = refData.doi || refData.title ? 
@@ -84,14 +84,14 @@ class ImportReferencesUseCase {
               ) : null;
 
             if (existing) {
-              console.log(`   ⚠️  Duplicado: ${refData.title}`);
+              console.log(`   Duplicado: ${refData.title}`);
               results.duplicates++;
               continue;
             }
 
             // Crear la referencia
-            console.log(`   💾 Insertando en BD...`);
-            const reference = await this.referenceRepository.create({
+            console.log(`   Insertando en BD...`);
+            const reference = await this.referenceRepository.create({}
               ...refData,
               projectId: projectId,
               screeningStatus: refData.screeningStatus || 'pending',
@@ -99,11 +99,11 @@ class ImportReferencesUseCase {
               importedAt: new Date()
             });
 
-            console.log(`   ✅ Insertado ID: ${reference.id}`);
+            console.log(`   Insertado ID: ${reference.id}`);
             results.references.push(reference);
             results.success++;
           } catch (error) {
-            console.log(`   ❌ Error insertando: ${error.message}`);
+            console.log(`   Error insertando: ${error.message}`);
             results.failed++;
             results.errors.push({
               title: refData.title || 'Unknown',
@@ -165,7 +165,7 @@ class ImportReferencesUseCase {
 
     // Parsear headers
     const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
-    console.log('📋 Headers detectados:', headers);
+    console.log('Headers detectados:', headers);
     
     const references = [];
 
@@ -187,7 +187,7 @@ class ImportReferencesUseCase {
       if (ref.title && ref.title.trim().length > 0) {
         references.push(ref);
       } else {
-        console.warn(`⚠️  Fila ${i + 1}: Sin título válido, saltando...`);
+        console.warn(`Fila ${i + 1}: Sin título válido, saltando...`);
       }
     }
 

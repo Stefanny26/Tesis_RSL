@@ -1,5 +1,4 @@
 const OpenAI = require('openai');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
  * Caso de uso: Cribado automático de referencias con IA
@@ -7,16 +6,11 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
  */
 class ScreenReferencesWithAIUseCase {
   constructor() {
-    // Inicializar OpenAI/ChatGPT (PRIORIDAD 1)
+    // Inicializar OpenAI/ChatGPT
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
       });
-    }
-    
-    // Inicializar Gemini (PRIORIDAD 2)
-    if (process.env.GEMINI_API_KEY) {
-      this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     }
   }
 
@@ -37,19 +31,11 @@ class ScreenReferencesWithAIUseCase {
     const prompt = this.buildPrompt(reference, inclusionCriteria, exclusionCriteria, researchQuestion);
 
     try {
-      let result;
-      
-      if (aiProvider === 'chatgpt' && this.openai) {
-        result = await this.generateWithChatGPT(prompt);
-      } else if (aiProvider === 'gemini' && this.gemini) {
-        result = await this.generateWithGemini(prompt);
-      } else if (this.openai) {
-        result = await this.generateWithChatGPT(prompt);
-      } else if (this.gemini) {
-        result = await this.generateWithGemini(prompt);
-      } else {
-        throw new Error('No hay proveedores de IA configurados');
+      if (!this.openai) {
+        throw new Error('OpenAI API key no configurada');
       }
+
+      const result = await this.generateWithChatGPT(prompt);
 
       return {
         success: true,
@@ -209,31 +195,6 @@ Responde SOLO con JSON válido.`;
     });
 
     return JSON.parse(completion.choices[0].message.content);
-  }
-
-  async generateWithGemini(prompt) {
-    if (!this.gemini) {
-      throw new Error('Gemini API key no configurada');
-    }
-
-    const model = this.gemini.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp", // Flash experimental es rápido y gratuito para screening
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 2500,
-        responseMimeType: "application/json"
-      }
-    });
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text().trim();
-    
-    if (text.startsWith('```json')) {
-      text = text.replace(/^```json\n/, '').replace(/\n```$/, '');
-    }
-    
-    return JSON.parse(text);
   }
 }
 

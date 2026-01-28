@@ -120,12 +120,12 @@ class EvaluateFullTextUseCase {
           screeningScore: totalScore
         },
         message: decision === 'include' 
-          ? `✅ Referencia incluida (${totalScore}/${record.maxScore} puntos)`
-          : `❌ Referencia excluida (${totalScore}/${record.maxScore} puntos)`
+          ? `Referencia incluida (${totalScore}/${record.maxScore} puntos)`
+          : `Referencia excluida (${totalScore}/${record.maxScore} puntos)`
       };
 
     } catch (error) {
-      console.error('❌ Error en evaluación de texto completo:', error);
+      console.error('Error en evaluación de texto completo:', error);
       throw error;
     }
   }
@@ -142,7 +142,7 @@ class EvaluateFullTextUseCase {
         records: records.map(r => r.toJSON())
       };
     } catch (error) {
-      console.error('❌ Error obteniendo historial:', error);
+      console.error('Error obteniendo historial:', error);
       throw error;
     }
   }
@@ -168,7 +168,7 @@ class EvaluateFullTextUseCase {
         record: record.toJSON()
       };
     } catch (error) {
-      console.error('❌ Error obteniendo última evaluación:', error);
+      console.error('Error obteniendo última evaluación:', error);
       throw error;
     }
   }
@@ -247,12 +247,12 @@ class EvaluateFullTextUseCase {
         threshold: updatedRecord.threshold,
         exclusionReasons,
         message: decision === 'include' 
-          ? `✅ Re-evaluación: Referencia incluida (${totalScore}/${updatedRecord.maxScore} puntos)`
-          : `❌ Re-evaluación: Referencia excluida (${totalScore}/${updatedRecord.maxScore} puntos)`
+          ? `Re-evaluación: Referencia incluida (${totalScore}/${updatedRecord.maxScore} puntos)`
+          : `Re-evaluación: Referencia excluida (${totalScore}/${updatedRecord.maxScore} puntos)`
       };
 
     } catch (error) {
-      console.error('❌ Error en re-evaluación:', error);
+      console.error('Error en re-evaluación:', error);
       throw error;
     }
   }
@@ -309,7 +309,7 @@ class EvaluateFullTextUseCase {
       };
 
     } catch (error) {
-      console.error('❌ Error eliminando evaluación:', error);
+      console.error('Error eliminando evaluación:', error);
       throw error;
     }
   }

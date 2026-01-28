@@ -1,17 +1,8 @@
 const GenerateProtocolAnalysisUseCase = require('../../domain/use-cases/generate-protocol-analysis.use-case');
 const GenerateProtocolJustificationUseCase = require('../../domain/use-cases/generate-protocol-justification.use-case');
-const GenerateTitleFromQuestionUseCase = require('../../domain/use-cases/generate-title-from-question.use-case');
 const ScreenReferencesWithAIUseCase = require('../../domain/use-cases/screen-references-with-ai.use-case');
 const ScreenReferencesWithEmbeddingsUseCase = require('../../domain/use-cases/screen-references-embeddings.use-case');
-const RefineSearchStringUseCase = require('../../domain/use-cases/refine-search-string.use-case');
 const GenerateTitlesUseCase = require('../../domain/use-cases/generate-titles.use-case');
-const SearchQueryGenerator = require('../../domain/use-cases/search-query-generator.use-case');
-const GenerateProtocolTermsUseCase = require('../../domain/use-cases/generate-protocol-terms.use-case');
-const GenerateInclusionExclusionCriteriaUseCase = require('../../domain/use-cases/generate-inclusion-exclusion-criteria.use-case');
-const RunProjectScreeningUseCase = require('../../domain/use-cases/run-project-screening.use-case');
-const AnalyzeScreeningResultsUseCase = require('../../domain/use-cases/analyze-screening-results.use-case');
-const ScopusSearchUseCase = require('../../domain/use-cases/scopus-search.use-case');
-const GoogleScholarSearch = require('../../domain/use-cases/google-scholar-search.use-case');
 const ReferenceRepository = require('../../infrastructure/repositories/reference.repository');
 const ProtocolRepository = require('../../infrastructure/repositories/protocol.repository');
 const ApiUsageRepository = require('../../infrastructure/repositories/api-usage.repository');
@@ -22,10 +13,8 @@ const protocolRepository = new ProtocolRepository();
 const apiUsageRepository = new ApiUsageRepository();
 const generateProtocolAnalysisUseCase = new GenerateProtocolAnalysisUseCase();
 const generateProtocolJustificationUseCase = new GenerateProtocolJustificationUseCase();
-const generateTitleUseCase = new GenerateTitleFromQuestionUseCase();
 const screenReferencesUseCase = new ScreenReferencesWithAIUseCase();
 const screenEmbeddingsUseCase = new ScreenReferencesWithEmbeddingsUseCase();
-const refineSearchStringUseCase = new RefineSearchStringUseCase();
 const generateTitlesUseCase = new GenerateTitlesUseCase();
 const searchQueryGenerator = new SearchQueryGenerator();
 const generateProtocolTermsUseCase = new GenerateProtocolTermsUseCase();
@@ -41,7 +30,6 @@ const getModelByProvider = (provider) => {
   };
   return models[provider] || 'gpt-4o-mini';
 };
-const scopusSearchUseCase = new ScopusSearchUseCase(referenceRepository);
 
 /**
  * Helper: Registrar uso de API en la base de datos
@@ -132,65 +120,6 @@ const generateProtocolAnalysis = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Error al generar análisis con IA'
-    });
-  }
-};
-
-/**
- * POST /api/ai/generate-title
- * Genera título basado en pregunta de investigación
- */
-const generateTitle = async (req, res) => {
-  try {
-    const { researchQuestion, aiProvider } = req.body;
-
-    if (!researchQuestion) {
-      return res.status(400).json({
-        success: false,
-        message: 'Pregunta de investigación es requerida'
-      });
-    }
-
-    console.log('🤖 Generando título desde pregunta de investigación...');
-    console.log('   Proveedor:', aiProvider || 'chatgpt');
-
-    const result = await generateTitleUseCase.execute({
-      researchQuestion,
-      aiProvider: aiProvider || 'chatgpt'
-    });
-
-    // Registrar uso de API
-    const usedProvider = result.data?.provider || aiProvider || 'chatgpt';
-    await trackApiUsage({
-      userId: req.user?.id,
-      provider: usedProvider,
-      endpoint: '/api/ai/generate-title',
-      model: getModelByProvider(usedProvider),
-      tokensPrompt: 800,
-      tokensCompletion: 600,
-      success: true
-    });
-
-    console.log('✅ Título generado exitosamente');
-
-    res.status(200).json(result);
-  } catch (error) {
-    console.error('❌ Error generando título:', error);
-    
-    // Registrar error de API
-    const errorProvider = req.body.aiProvider || 'chatgpt';
-    await trackApiUsage({
-      userId: req.user?.id,
-      provider: errorProvider,
-      endpoint: '/api/ai/generate-title',
-      model: getModelByProvider(errorProvider),
-      success: false,
-      errorMessage: error.message
-    });
-    
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error al generar título con IA'
     });
   }
 };
@@ -296,45 +225,6 @@ const screenReferencesBatch = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Error al analizar referencias con IA'
-    });
-  }
-};
-
-/**
- * POST /api/ai/refine-search-string
- * Refina la cadena de búsqueda basándose en resultados
- */
-const refineSearchString = async (req, res) => {
-  try {
-    const { currentSearchString, searchResults, researchQuestion, databases, aiProvider } = req.body;
-
-    if (!currentSearchString) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cadena de búsqueda actual es requerida'
-      });
-    }
-
-    console.log('🤖 Refinando cadena de búsqueda con IA...');
-    console.log('   Proveedor:', aiProvider || 'chatgpt');
-    console.log('   Resultados a analizar:', searchResults?.length || 0);
-
-    const result = await refineSearchStringUseCase.execute({
-      currentSearchString,
-      searchResults,
-      researchQuestion,
-      databases,
-      aiProvider: aiProvider || 'chatgpt'
-    });
-
-    console.log('✅ Cadena de búsqueda refinada');
-
-    res.status(200).json(result);
-  } catch (error) {
-    console.error('❌ Error refinando búsqueda:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error al refinar cadena de búsqueda'
     });
   }
 };
@@ -1524,7 +1414,6 @@ const generateProtocolJustification = async (req, res) => {
 module.exports = {
   generateProtocolAnalysis,
   generateProtocolJustification,
-  generateTitle,
   screenReference,
   screenReferencesBatch,
   refineSearchString,
@@ -1541,14 +1430,9 @@ module.exports = {
   runProjectScreeningLLM,
   analyzeScreeningResults,
   generateSearchQueries,
-  scopusCount,
-  scopusSearch,
-  scopusValidate,
   getSupportedDatabases,
-  scopusFetch,
   getDatabasesByResearchArea,
   detectArea,
-  googleScholarCount,
 };
 
 

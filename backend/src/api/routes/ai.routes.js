@@ -3,10 +3,8 @@ const router = express.Router();
 const { 
   generateProtocolAnalysis,
   generateProtocolJustification,
-  generateTitle,
   screenReference,
   screenReferencesBatch,
-  refineSearchString,
   generateTitles,
   generateSearchStrategies,
   screenReferenceEmbeddings,
@@ -20,14 +18,9 @@ const {
   runProjectScreeningLLM,
   analyzeScreeningResults,
   generateSearchQueries,
-  scopusCount,
-  scopusSearch,
-  scopusValidate,
   getSupportedDatabases,
-  scopusFetch,
   getDatabasesByResearchArea,
-  detectArea,
-  googleScholarCount
+  detectArea
 } = require('../controllers/ai.controller');
 const { authMiddleware } = require('../../infrastructure/middlewares/auth.middleware');
 
@@ -54,17 +47,6 @@ router.post(
 );
 
 /**
- * @route   POST /api/ai/generate-title
- * @desc    Generar título académico basado en pregunta de investigación
- * @access  Private (requiere JWT)
- */
-router.post(
-  '/generate-title',
-  authMiddleware,
-  generateTitle
-);
-
-/**
  * @route   POST /api/ai/screen-reference
  * @desc    Analizar una referencia individual con IA (inclusión/exclusión)
  * @access  Private (requiere JWT)
@@ -87,17 +69,7 @@ router.post(
 );
 
 /**
- * @route   POST /api/ai/refine-search-string
- * @desc    Refinar cadena de búsqueda basándose en resultados iniciales
- * @access  Private (requiere JWT)
- */
-router.post(
-  '/refine-search-string',
-  authMiddleware,
-  refineSearchString
-);
 
-/**
  * @route   POST /api/ai/generate-titles
  * @desc    Generar 5 opciones de títulos con validación Cochrane
  * @access  Private (requiere JWT)
@@ -240,39 +212,6 @@ router.post(
 );
 
 /**
- * @route   POST /api/ai/scopus-count
- * @desc    Contar resultados en Scopus usando API
- * @access  Private (requiere JWT)
- */
-router.post(
-  '/scopus-count',
-  authMiddleware,
-  scopusCount
-);
-
-/**
- * @route   POST /api/ai/scopus-search
- * @desc    Buscar artículos en Scopus con paginación
- * @access  Private (requiere JWT)
- */
-router.post(
-  '/scopus-search',
-  authMiddleware,
-  scopusSearch
-);
-
-/**
- * @route   GET /api/ai/scopus-validate
- * @desc    Validar API Key de Scopus (desde .env)
- * @access  Private (requiere JWT)
- */
-router.get(
-  '/scopus-validate',
-  authMiddleware,
-  scopusValidate
-);
-
-/**
  * @route   GET /api/ai/supported-databases
  * @desc    Obtener lista de bases de datos soportadas
  * @access  Private (requiere JWT)
@@ -281,17 +220,6 @@ router.get(
   '/supported-databases',
   authMiddleware,
   getSupportedDatabases
-);
-
-/**
- * @route   POST /api/ai/scopus-fetch
- * @desc    Buscar artículos en Scopus y guardarlos automáticamente en BD del proyecto
- * @access  Private (requiere JWT)
- */
-router.post(
-  '/scopus-fetch',
-  authMiddleware,
-  scopusFetch
 );
 
 /**
@@ -314,17 +242,6 @@ router.post(
   '/detect-research-area',
   authMiddleware,
   detectArea
-);
-
-/**
- * @route   POST /api/ai/google-scholar-count
- * @desc    Contar artículos en Google Scholar
- * @access  Private (requiere JWT)
- */
-router.post(
-  '/google-scholar-count',
-  // authMiddleware, // Si quieres proteger la ruta
-  googleScholarCount
 );
 
 module.exports = router;

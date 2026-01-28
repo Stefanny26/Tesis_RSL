@@ -1,5 +1,4 @@
 const OpenAI = require('openai');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const {
   sanitizeTerm,
   validateIEEE,
@@ -18,16 +17,11 @@ const {
  */
 class SearchQueryGenerator {
   constructor() {
-    // Inicializar OpenAI/ChatGPT (PRIORIDAD 1)
+    // Inicializar OpenAI/ChatGPT
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
       });
-    }
-    
-    // Inicializar Gemini (PRIORIDAD 2)
-    if (process.env.GEMINI_API_KEY) {
-      this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     }
   }
 
@@ -36,49 +30,44 @@ class SearchQueryGenerator {
    */
   async generate({ databases = ['scopus', 'ieee'], picoData = {}, protocolTerms = {}, researchArea = '', matrixData = {}, aiProvider = 'chatgpt', yearStart, yearEnd, selectedTitle }) {
     try {
-      console.log('🔍 Generando queries de búsqueda...');
-      console.log('📌 Título RSL:', selectedTitle || 'No especificado');
-      console.log('📅 Rango temporal recibido: yearStart =', yearStart, ', yearEnd =', yearEnd);
+      console.log('Generando queries de búsqueda...');
+      console.log('Título RSL:', selectedTitle || 'No especificado');
+      console.log('Rango temporal recibido: yearStart =', yearStart, ', yearEnd =', yearEnd);
 
       const prompt = this.buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData, yearStart, yearEnd, selectedTitle });
       
       let text;
-      if (aiProvider === 'chatgpt' && this.openai) {
+      if (this.openai) {
         const completion = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7
         });
         text = completion.choices[0].message.content;
-      } else if (this.gemini) {
-        const model = this.gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        text = response.text();
       } else {
-        throw new Error('No hay proveedor de IA configurado');
+        throw new Error('No hay proveedor de IA configurado (OpenAI API Key requerida)');
       }
 
-      console.log('📄 Respuesta COMPLETA de IA para búsquedas:');
+      console.log('Respuesta COMPLETA de IA para búsquedas:');
       console.log('='.repeat(80));
       console.log(text);
       console.log('='.repeat(80));
-      console.log(`🎯 Bases de datos solicitadas (${databases.length}):`, databases);
+      console.log(`Bases de datos solicitadas (${databases.length}):`, databases);
 
       // Parsear la respuesta
       const queries = this.parseResponse(text, databases, yearStart, yearEnd);
       
-      console.log(`📊 Resultado del parseo: ${queries.length} queries de ${databases.length} solicitadas`);
+      console.log(`Resultado del parseo: ${queries.length} queries de ${databases.length} solicitadas`);
       
       // Verificar si faltan queries
       if (queries.length < databases.length) {
-        console.warn(`⚠️  PROBLEMA: Faltan ${databases.length - queries.length} queries`);
+        console.warn(`PROBLEMA: Faltan ${databases.length - queries.length} queries`);
         const generatedDbs = queries.map(q => q.database.toLowerCase());
         const missingDbs = databases.filter(db => !generatedDbs.includes(db.toLowerCase()));
-        console.warn(`❌ Bases de datos faltantes: ${missingDbs.join(', ')}`);
+        console.warn(`Bases de datos faltantes: ${missingDbs.join(', ')}`);
       }
 
-      console.log('✅ Queries generadas exitosamente');
+      console.log('Queries generadas exitosamente');
       console.log('   Total queries:', queries.length);
 
       return {
@@ -93,13 +82,13 @@ class SearchQueryGenerator {
       };
 
     } catch (error) {
-      console.error('❌ Error generando queries:', error);
+      console.error('Error generando queries:', error);
       throw new Error(`Error generando queries de búsqueda: ${error.message}`);
     }
   }
 
   /**
-   * Construye el prompt mejorado para la IA con reglas PRISMA/Cochrane
+   * Construye el prompt mejorado con metodología PRISMA 2020 y trazabilidad PICO
    */
   buildPrompt({ databases, picoData, protocolTerms, researchArea, matrixData, yearStart, yearEnd, selectedTitle }) {
     // Extraer términos del protocolo
@@ -108,160 +97,131 @@ class SearchQueryGenerator {
     const studyTypes = protocolTerms?.tipoEstudio || protocolTerms?.studyType || [];
     const themes = protocolTerms?.focosTematicos || protocolTerms?.thematicFocus || [];
 
-    return `Eres un experto en metodología PRISMA y Cochrane para Revisiones Sistemáticas de Literatura (RSL).
+    return `Eres un Metadata Specialist y Bibliotecario Académico experto en Revisiones Sistemáticas (RSL) bajo metodología PRISMA 2020. Tu tarea es traducir un protocolo de investigación en cadenas de búsqueda (Search Strings) de alta precisión y reproducibilidad.
 
 ═══════════════════════════════════════════════════════════════
-CONTEXTO METODOLÓGICO (REGLA BASE)
+INSUMOS DEL PROTOCOLO (TRAZABILIDAD METODOLÓGICA)
 ═══════════════════════════════════════════════════════════════
 
-La ESTRATEGIA DE BÚSQUEDA operacionaliza la cadena:
-Título RSL → PICO → Definición de Términos → Criterios I/E → CADENAS DE BÚSQUEDA
+TÍTULO RSL: "${selectedTitle || 'No definido'}"
 
-👉 NO introduces conceptos nuevos.
-👉 Solo traduces lo ya definido en consultas ejecutables.
-👉 Toda búsqueda debe ser REPRODUCIBLE por otro investigador.
-
-═══════════════════════════════════════════════════════════════
-TRAZABILIDAD (DERIVA DE PASOS PREVIOS)
-═══════════════════════════════════════════════════════════════
-
-${selectedTitle ? `TÍTULO RSL: "${selectedTitle}"` : ''}
-
-COMPONENTES PICO:
-- P (Población): ${picoData?.population || 'No especificado'}
-- I (Intervención): ${picoData?.intervention || 'No especificado'}
+COMPONENTES PICO (Marco Metodológico):
+- P (Población/Contexto): ${picoData?.population || 'No especificado'}
+- I (Intervención/Tecnología): ${picoData?.intervention || 'No especificado'}
 - C (Comparación): ${picoData?.comparison || 'N/A'}
-- O (Resultado): ${picoData?.outcome || 'No especificado'}
+- O (Outcomes/Resultados): ${picoData?.outcome || 'No especificado'}
 
-TÉRMINOS DEFINIDOS EN EL PROTOCOLO:
-🔬 Tecnología (de I): ${technologies.join(', ') || 'No especificado'}
-🏥 Dominio (de P): ${domains.join(', ') || 'No especificado'}
-📚 Tipo estudio: ${studyTypes.join(', ') || 'No especificado'}
-🎯 Focos temáticos (de O): ${themes.join(', ') || 'No especificado'}
+TÉRMINOS DEFINIDOS EN PASO 4 (Definición de Términos):
+- Tecnología (deriva de I): ${technologies.join(', ') || 'No especificado'}
+- Dominio (deriva de P): ${domains.join(', ') || 'No especificado'}
+- Tipo estudio: ${studyTypes.join(', ') || 'No especificado'}
+- Focos temáticos (deriva de O): ${themes.join(', ') || 'No especificado'}
 
 ÁREA DE INVESTIGACIÓN: ${researchArea || 'General'}
 RANGO TEMPORAL: ${yearStart && yearEnd ? `${yearStart}-${yearEnd}` : 'No especificado'}
-IDIOMA: Inglés (dominante en literatura técnica)
+IDIOMA: Inglés (idioma dominante en literatura técnica indexada)
 
 ═══════════════════════════════════════════════════════════════
-REGLAS METODOLÓGICAS (NIVEL EXPERTO)
+ESTRATEGIA DE CONSTRUCCIÓN (Bloques Booleanos Balanceados)
 ═══════════════════════════════════════════════════════════════
 
-Regla 1. DERIVACIÓN SECUENCIAL OBLIGATORIA
-- Cada término de la cadena DEBE provenir de: Título → PICO → Definición de términos
-- ❌ NO se permiten términos "exploratorios" no justificados
+REGLA DE ORO: La cadena de búsqueda operacionaliza el flujo metodológico:
+Título RSL → PICO → Términos Definidos → Criterios I/E → SEARCH STRINGS
 
-Regla 2. DESCOMPOSICIÓN POR BLOQUES CONCEPTUALES
-Construye la cadena por bloques semánticos:
+NO introduces conceptos nuevos. Solo traduces lo ya definido en consultas ejecutables.
+Toda búsqueda debe ser REPRODUCIBLE por otro investigador.
 
-┌─────────────────┬──────────────────────┐
-│ BLOQUE          │ ORIGEN               │
-├─────────────────┼──────────────────────┤
-│ Tecnología      │ I del PICO           │
-│ Dominio/contexto│ P del PICO           │
-│ Enfoque/resultado│ O del PICO (si aplica)│
-└─────────────────┴──────────────────────┘
+ESTRUCTURA OBLIGATORIA:
+(Bloque I: Tecnología) AND (Bloque P: Dominio/Contexto) AND (Bloque O: Resultados)
 
-Cada bloque usa OR interno y se conectan con AND.
-
-Regla 3. USO CORRECTO DE OPERADORES
-- AND → intersección conceptual (entre bloques)
-- OR → sinónimos/variantes (dentro de bloques)
-- " " → frases exactas (multi-palabra)
-- Truncadores solo si es técnicamente relevante
-
-Ejemplo correcto de estructura:
-(Bloque Tecnología) AND (Bloque Dominio) AND (Bloque Resultado)
-
-Regla 4. INCLUIR TODOS LOS SINÓNIMOS TÉCNICOS REALES
 Cada bloque debe incluir:
-- Nombres completos y acrónimos
-- Variantes ortográficas
-- Términos equivalentes del dominio
+1. SINÓNIMOS TÉCNICOS: Nombres completos + acrónimos + variantes
+   Ejemplo: "Machine Learning" OR ML OR "Artificial Intelligence" OR AI
 
-Ejemplo: "Object Document Mapping" OR ODM OR Mongoose
+2. FRASES EXACTAS: Usa comillas para términos compuestos
+   Ejemplo: "cloud computing" OR "distributed systems"
 
-Regla 5. CONSISTENCIA INTER-BASE
-La LÓGICA CONCEPTUAL debe ser idéntica en todas las bases.
-Solo cambia la SINTAXIS, no los conceptos.
+3. OPERADORES BOOLEANOS:
+   - AND → intersección conceptual (entre bloques)
+   - OR → sinónimos/variantes (dentro de bloques)
+   - " " → frases exactas (multi-palabra)
+
+4. CONSISTENCIA INTER-BASE: La LÓGICA CONCEPTUAL debe ser idéntica.
+   Solo cambia la SINTAXIS según la base de datos.
 
 ═══════════════════════════════════════════════════════════════
-SINTAXIS POR BASE DE DATOS (NIVEL IMPLEMENTACIÓN)
+SINTAXIS POR BASE DE DATOS (Restricciones Técnicas)
 ═══════════════════════════════════════════════════════════════
 
-IEEE Xplore:
-- Query directa sin campos especiales
-- NO usar campos (TI:, AB:, "Document Title")
-- Estructura: (término1 OR término2) AND (término3 OR término4) AND (término5 OR término6)
-- Permite hasta 5 grupos AND con hasta 5 OR por grupo
+**IEEE Xplore:**
+- Query directa SIN etiquetas de campo (NO usar TI:, AB:, "Document Title")
+- MÁXIMO 5 grupos AND, cada uno con hasta 5 términos OR
+- Estructura: ("term1" OR "term2") AND ("term3" OR "term4")
 - Ejemplo: ("Internet of Things" OR IoT) AND ("digital health" OR telehealth) AND (privacy OR security)
-${yearStart && yearEnd ? `- FILTRO TEMPORAL: La interfaz IEEE usa filtro separado de año, NO incluyas año en query` : ''}
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: IEEE usa filtro separado en interfaz, NO incluir año en query` : ''}
 
-Scopus:
-- Formato: TITLE-ABS-KEY(("term1" OR "term2") AND ("term3" OR "term4"))
-- Agrupa sinónimos con OR dentro de paréntesis
-- Conecta bloques conceptuales con AND
-- Asegurar paréntesis balanceados
-- Ejemplo: TITLE-ABS-KEY(("machine learning" OR "deep learning") AND ("healthcare" OR "medical") AND ("diagnosis" OR "prediction"))
-${yearStart && yearEnd ? `- FILTRO TEMPORAL: Agrega al final: AND PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}` : ''}
+**Scopus:**
+- Formato OBLIGATORIO: TITLE-ABS-KEY((...bloques...))
+- Paréntesis balanceados CRÍTICO
+- Ejemplo: TITLE-ABS-KEY(("machine learning" OR "deep learning") AND ("healthcare" OR "medical"))
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: Agregar al final: AND PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}` : ''}
 
-PubMed:
-- Use [Title/Abstract] para términos principales
-- Opcionalmente incluir MeSH entre corchetes [MeSH Terms]
-- Ejemplo: (machine learning[Title/Abstract] OR deep learning[Title/Abstract]) AND (healthcare[Title/Abstract] OR medical[Title/Abstract])
-${yearStart && yearEnd ? `- FILTRO TEMPORAL: PubMed usa filtros de fecha separados, NO incluyas año en query` : ''}
+**PubMed:**
+- Usar [Title/Abstract] para términos principales
+- Opcional: MeSH Terms para términos controlados
+- Ejemplo: ("machine learning"[Title/Abstract] OR "deep learning"[Title/Abstract]) AND ("healthcare"[Title/Abstract])
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: PubMed usa filtros de fecha en interfaz, NO incluir año` : ''}
 
-Web of Science:
-- Formato: TS=((bloque1) AND (bloque2) AND (bloque3))
+**Web of Science:**
+- Formato: TS=((...bloques...))
 - Ejemplo: TS=(("machine learning" OR "deep learning") AND ("healthcare" OR "medical"))
-${yearStart && yearEnd ? `- FILTRO TEMPORAL: Agrega al final: AND PY=(${yearStart}-${yearEnd})` : ''}
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: Agregar al final: AND PY=(${yearStart}-${yearEnd})` : ''}
 
-Google Scholar:
-- Query simple sin campos
+**Google Scholar:**
+- Query simple sin etiquetas de campo
 - Ejemplo: ("machine learning" OR "deep learning") AND ("healthcare" OR "medical")
-${yearStart && yearEnd ? `- FILTRO TEMPORAL: Google Scholar usa filtros de fecha en interfaz, NO incluyas año` : ''}
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: Usa filtros de interfaz, NO incluir año en query` : ''}
 
-ACM Digital Library:
-- Similar a Scopus pero sin wrapper TITLE-ABS-KEY
+**ACM Digital Library:**
+- Similar a Scopus pero SIN wrapper TITLE-ABS-KEY
 - Ejemplo: ("machine learning" OR "deep learning") AND ("healthcare" OR "medical")
-${yearStart && yearEnd ? `- FILTRO TEMPORAL: ACM usa filtros de fecha separados, NO incluyas año en query` : ''}
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: Usa filtros de interfaz, NO incluir año` : ''}
 
-ScienceDirect / SpringerLink / Wiley:
+**ScienceDirect / SpringerLink / Wiley:**
 - Query simple con paréntesis para agrupar
 - Ejemplo: ("machine learning" OR "deep learning") AND ("healthcare" OR "medical")
-${yearStart && yearEnd ? `- FILTRO TEMPORAL: Usan filtros de fecha en interfaz, NO incluyas año` : ''}
+${yearStart && yearEnd ? `- FILTRO TEMPORAL: Usan filtros de interfaz, NO incluir año` : ''}
 
 ═══════════════════════════════════════════════════════════════
-CHECKLIST DE CALIDAD (AUTOEVALÚA ANTES DE RESPONDER)
+REGLAS CRÍTICAS DE SALIDA
 ═══════════════════════════════════════════════════════════════
 
-✓ ¿La búsqueda puede replicarse exactamente?
-✓ ¿Todos los términos provienen del título/PICO/términos definidos?
-✓ ¿Incluye sinónimos técnicos reales?
-✓ ¿Usa correctamente AND / OR / " "?
-✓ ¿Mantiene consistencia conceptual entre bases?
-✓ ¿Respeta la sintaxis específica de cada base?
+1. NO INVENTES CONCEPTOS: Si el PICO no menciona "salud", no incluyas términos médicos.
+2. TRAZABILIDAD: Cada término DEBE derivar de: Título → PICO → Términos definidos.
+3. SINÓNIMOS JUSTIFICADOS: Solo incluye variantes técnicas reales del dominio.
+4. RANGO TEMPORAL: ${yearStart && yearEnd ? `Integrar ${yearStart}-${yearEnd} solo si sintaxis lo permite (Scopus/WoS).` : 'No especificado.'}
+5. REPRODUCIBILIDAD: Otro investigador debe poder ejecutar la misma búsqueda.
 
 ═══════════════════════════════════════════════════════════════
 FORMATO DE RESPUESTA (TEXTO PLANO, SIN MARKDOWN)
 ═══════════════════════════════════════════════════════════════
 
-DATABASE: nombre_base_datos
-QUERY: tu query completa aqui en una sola linea
-EXPLANATION: Derivación: [mencionar qué términos vienen de P/I/C/O del PICO]
+DATABASE: [Nombre exacto de la base]
+QUERY: [Cadena completa en una sola línea, sin saltos]
+EXPLANATION: [Justificación de trazabilidad: mencionar origen PICO de cada bloque]
 
 ---
 
-CRÍTICO - DEBES GENERAR EXACTAMENTE ${databases.length} QUERIES:
+CRÍTICO - GENERAR EXACTAMENTE ${databases.length} QUERIES:
 ${databases.map((db, i) => `${i + 1}. ${db}`).join('\n')}
 
-IMPORTANTE: 
-- Genera UNA query para CADA UNA de las ${databases.length} bases de datos listadas arriba
-- NO omitas ninguna base de datos de la lista
-- NO generes queries para otras bases de datos no listadas
-- NO uses backticks, NO uses markdown, solo texto plano con el formato indicado
-- Cada query debe estar en una sola línea continua
-- La EXPLANATION debe justificar la trazabilidad desde PICO
+RESTRICCIONES:
+- UNA query por CADA base de datos listada (${databases.length} total)
+- NO omitir ninguna base de la lista
+- NO generar queries para bases NO solicitadas
+- NO usar backticks, markdown, ni bloques de código
+- Cada QUERY debe ser una línea continua (sin saltos)
+- EXPLANATION debe rastrear origen PICO de cada bloque
 
 GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA AHORA:
 `;
@@ -295,91 +255,81 @@ GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA AHORA:
   }
 
   /**
-   * Parsea y sanitiza la respuesta de la IA
+   * Parsea y sanitiza la respuesta de la IA con resilencia a múltiples formatos
    */
   parseResponse(text, databases, yearStart, yearEnd) {
-    const queries = [];
-    const lines = text.split('\n');
+    console.log('Parseando queries de búsqueda...');
+    console.log(`Total de líneas a parsear: ${text.split('\n').length}`);
+    console.log(`Bases de datos solicitadas: ${databases.join(', ')}`);
+
+    // Eliminar bloques de código markdown si la IA los incluyó por error
+    const cleanText = text.replace(/```[a-z]*\n/g, '').replace(/```/g, '');
     
-    let currentQuery = {};
-    let currentField = null;
-
-    console.log('🔍 Parseando queries de búsqueda...');
-    console.log(`📝 Total de líneas a parsear: ${lines.length}`);
-    console.log(`📋 Bases de datos solicitadas: ${databases.join(', ')}`);
-
-    // Crear un map de IDs válidos (normalizados)
+    const queries = [];
     const requestedDatabaseIds = databases.map(db => this.normalizeDatabaseName(db));
-    console.log(`📋 IDs normalizados: ${requestedDatabaseIds.join(', ')}`);
+    console.log(`IDs normalizados: ${requestedDatabaseIds.join(', ')}`);
 
-    for (const line of lines) {
-      const trimmed = line.trim();
+    // Dividir por bloques usando DATABASE: como separador
+    const blocks = cleanText.split(/DATABASE\s*:/i).filter(b => b.trim());
 
-      // Detectar DATABASE
-      if (trimmed.match(/^\*{0,2}\s*DATABASE\s*:\*{0,2}/i)) {
-        if (currentQuery.database) {
-          queries.push(currentQuery);
-          console.log(`✅ Query parseada para: ${currentQuery.database}`);
-        }
-        currentQuery = {
-          database: trimmed.replace(/^\*{0,2}\s*DATABASE\s*:\*{0,2}/i, '').trim(),
-          query: '',
-          explanation: ''
+    for (const block of blocks) {
+      const lines = block.split('\n');
+      const dbName = lines[0].trim();
+      
+      // Buscar la línea que empieza con QUERY:
+      const queryLine = lines.find(l => l.toUpperCase().startsWith('QUERY:'));
+      const explanationLine = lines.find(l => l.toUpperCase().startsWith('EXPLANATION:'));
+
+      if (dbName && queryLine) {
+        const parsedQuery = {
+          database: dbName,
+          query: queryLine.replace(/QUERY\s*:/i, '').trim(),
+          explanation: explanationLine ? explanationLine.replace(/EXPLANATION\s*:/i, '').trim() : ''
         };
-        currentField = 'database';
-        console.log(`📍 Nueva base de datos detectada: ${currentQuery.database}`);
-      }
-      // QUERY
-      else if (trimmed.match(/^\*{0,2}\s*QUERY\s*:\*{0,2}/i)) {
-        const queryText = trimmed.replace(/^\*{0,2}\s*QUERY\s*:\*{0,2}/i, '').trim();
-        currentQuery.query = queryText;
-        currentField = 'query';
-      }
-      // EXPLANATION
-      else if (trimmed.match(/^\*{0,2}\s*EXPLANATION\s*:\*{0,2}/i)) {
-        const explanationText = trimmed.replace(/^\*{0,2}\s*EXPLANATION\s*:\*{0,2}/i, '').trim();
-        currentQuery.explanation = explanationText;
-        currentField = 'explanation';
-      }
-      // Continuar acumulando texto
-      else if (trimmed && currentField && !trimmed.match(/^---+$/) && !trimmed.match(/^\*{0,2}\s*(DATABASE|QUERY|EXPLANATION)\s*:\*{0,2}/i)) {
-        if (currentField === 'query') {
-          currentQuery.query += (currentQuery.query ? ' ' : '') + trimmed;
-        } else if (currentField === 'explanation') {
-          currentQuery.explanation += (currentQuery.explanation ? ' ' : '') + trimmed;
+        
+        // Si la query se cortó, buscar líneas siguientes
+        const queryIndex = lines.findIndex(l => l.toUpperCase().startsWith('QUERY:'));
+        const explanationIndex = lines.findIndex(l => l.toUpperCase().startsWith('EXPLANATION:'));
+        
+        // Concatenar líneas adicionales de query (hasta EXPLANATION o fin de bloque)
+        if (queryIndex !== -1) {
+          const endIndex = explanationIndex !== -1 ? explanationIndex : lines.length;
+          for (let i = queryIndex + 1; i < endIndex; i++) {
+            const line = lines[i].trim();
+            if (line && !line.match(/^---+$/) && !line.toUpperCase().startsWith('DATABASE:')) {
+              parsedQuery.query += ' ' + line;
+            }
+          }
         }
+        
+        queries.push(parsedQuery);
+        console.log(`Query parseada para: ${dbName}`);
       }
     }
 
-    // Agregar la última query
-    if (currentQuery.database) {
-      queries.push(currentQuery);
-      console.log(`✅ Query parseada para: ${currentQuery.database}`);
-    }
+    console.log(`Total queries parseadas (antes de filtrar): ${queries.length}`);
+    console.log(`Queries parseadas:`, queries.map(q => q.database).join(', '));
 
-    console.log(`📊 Total queries parseadas (antes de filtrar): ${queries.length}`);
-    console.log(`📋 Queries parseadas:`, queries.map(q => q.database).join(', '));
-
-    // 🔥 FILTRAR: Solo queries para bases de datos solicitadas
+    // Filtrar: Solo queries para bases de datos solicitadas
     const filteredQueries = queries.filter(q => {
       const normalizedDbName = this.normalizeDatabaseName(q.database);
       const isRequested = requestedDatabaseIds.includes(normalizedDbName);
       
-      console.log(`🔍 Verificando "${q.database}" -> normalizado: "${normalizedDbName}" -> ${isRequested ? '✅ INCLUIDA' : '❌ DESCARTADA'}`);
+      console.log(`Verificando "${q.database}" -> normalizado: "${normalizedDbName}" -> ${isRequested ? 'INCLUIDA' : 'DESCARTADA'}`);
       
       if (!isRequested) {
-        console.log(`⚠️  Descartando query no solicitada: ${q.database}`);
+        console.log(`Descartando query no solicitada: ${q.database}`);
       }
       
       return isRequested;
     });
 
-    console.log(`📊 Total queries FILTRADAS (después de filtrar): ${filteredQueries.length}`);
-    console.log(`📋 Queries filtradas:`, filteredQueries.map(q => q.database).join(', '));
+    console.log(`Total queries FILTRADAS: ${filteredQueries.length}`);
+    console.log(`Queries filtradas:`, filteredQueries.map(q => q.database).join(', '));
 
     // Si no se parseó correctamente, usar fallback
     if (filteredQueries.length === 0) {
-      console.warn('⚠️  No se parsearon queries válidas, generando básicas como fallback');
+      console.warn('No se parsearon queries válidas, generando básicas como fallback');
       return this.generateBasicQueries(databases);
     }
 
@@ -394,17 +344,17 @@ GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA AHORA:
       
       // Validación específica por base de datos
       if (dbLower === 'ieee') {
-        console.log(`🔧 Validando IEEE query...`);
+        console.log(`Validando IEEE query...`);
         while (!validateIEEE(q.query) && q.query.includes(' AND ')) {
-          console.warn(`⚠️  IEEE query inválida, reduciendo grupos AND...`);
+          console.warn(`IEEE query inválida, reduciendo grupos AND...`);
           const parts = q.query.split(/\s+AND\s+/i);
           parts.pop();
           q.query = parts.join(' AND ');
         }
-        console.log(`✅ IEEE query validada`);
+        console.log(`IEEE query validada`);
       } else if (dbLower === 'scopus') {
         if (!validateScopus(q.query)) {
-          console.warn(`⚠️  Scopus query sin TITLE-ABS-KEY, corrigiendo...`);
+          console.warn(`Scopus query sin TITLE-ABS-KEY, corrigiendo...`);
           if (!q.query.startsWith('TITLE-ABS-KEY')) {
             q.query = `TITLE-ABS-KEY(${q.query})`;
           }
@@ -412,20 +362,20 @@ GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA AHORA:
         
         // Agregar filtro temporal si falta
         if (yearStart && yearEnd && !q.query.includes('PUBYEAR')) {
-          console.warn(`⚠️  Scopus query sin filtro temporal, agregando PUBYEAR...`);
+          console.warn(`Scopus query sin filtro temporal, agregando PUBYEAR...`);
           q.query = `${q.query} AND PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}`;
-          console.log(`✅ Filtro temporal agregado: PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}`);
+          console.log(`Filtro temporal agregado: PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}`);
         }
       } else if (dbLower === 'pubmed') {
         if (!validatePubMed(q.query)) {
-          console.warn(`⚠️  PubMed query sin campos, agregando [Title/Abstract]...`);
+          console.warn(`PubMed query sin campos, agregando [Title/Abstract]...`);
           // Intento básico de corrección
           q.query = q.query.replace(/\b(\w+)\b/g, '$1[Title/Abstract]');
         }
       } else {
         // Validación básica para otras bases
         if (!basicValidateQuery(q.query)) {
-          console.warn(`⚠️  Query inválida para ${q.database}, aplicando limpieza...`);
+          console.warn(`Query inválida para ${q.database}, aplicando limpieza...`);
           q.query = q.query.replace(/[{}\[\]^~?<>]/g, '');
         }
       }

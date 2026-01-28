@@ -20,7 +20,7 @@ class GenerateTitlesUseCase {
    */
   async execute({ matrixData, picoData, aiProvider = 'chatgpt' }) {
     try {
-      console.log('📝 Generando 5 títulos con validación Cochrane...');
+      console.log('Generando 5 títulos con validación Cochrane...');
       
       if (!this.openai) {
         throw new Error('No hay proveedor de IA configurado');
@@ -37,17 +37,17 @@ class GenerateTitlesUseCase {
       try {
         response = await this._generateWithChatGPT(prompt);
       } catch (error) {
-        console.error(`❌ Error con ChatGPT:`, error.message);
+        console.error(`Error con ChatGPT:`, error.message);
         throw error;
       }
       
       // Log de respuesta cruda para debugging
-      console.log('📦 Respuesta cruda de la IA:', JSON.stringify(response).substring(0, 500));
+      console.log('Respuesta cruda de la IA:', JSON.stringify(response).substring(0, 500));
       
       // Parsear respuesta
       const titles = this._parseResponse(response);
       
-      console.log(`✅ Generados ${titles.length} títulos exitosamente con chatgpt`);
+      console.log(`Generados ${titles.length} títulos exitosamente con chatgpt`);
       
       return {
         success: true,
@@ -57,7 +57,7 @@ class GenerateTitlesUseCase {
         }
       };
     } catch (error) {
-      console.error('❌ Error en GenerateTitlesUseCase:', error);
+      console.error('Error en GenerateTitlesUseCase:', error);
       throw new Error(`Error generando títulos: ${error.message}`);
     }
   }
@@ -75,15 +75,15 @@ class GenerateTitlesUseCase {
       messages: [
         {
           role: "system",
-          content: "Eres un experto en metodología PRISMA/Cochrane con especialización en redacción de títulos académicos para revisiones sistemáticas. Generas títulos rigurosos, específicos y directamente usables. Respondes ÚNICAMENTE en formato JSON válido."
+          content: "Eres un Editor en Jefe de un Journal de Ingeniería de alto impacto (Q1). Tu estándar de calidad es extremo. Generas títulos académicos con rigor metodológico PRISMA 2020. Respondes ÚNICAMENTE en formato JSON válido."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      temperature: 0.5, // Aumentado de 0.35 a 0.5 para mayor variedad
-      max_tokens: 3000, // Aumentado de 2000 a 3000 para respuestas más completas
+      temperature: 0.6, // Aumentado a 0.6 para evitar que los 5 títulos suenen idénticos
+      max_tokens: 3000,
       response_format: { type: "json_object" }
     });
 
@@ -121,77 +121,38 @@ class GenerateTitlesUseCase {
   }
 
   /**
-   * Construye el prompt para generar títulos con reglas metodológicas rigurosas
+   * Construye el prompt para generar títulos con reglas metodológicas rigurosas PRISMA 2020
    */
   _buildPrompt(context) {
-    return `Eres un experto en metodología PRISMA/Cochrane especializado en redacción de títulos académicos para protocolos de Revisión Sistemática de Literatura (RSL).
+    return `Eres un Senior Research Editor especializado en ingeniería y metodología PRISMA 2020. Tu objetivo es generar 5 títulos de alto impacto para una Revisión Sistemática.
 
 ═══════════════════════════════════════════════════════════════
-CONTEXTO DEL PROTOCOLO (YA DEFINIDO EN FASES ANTERIORES)
+CONTEXTO DEL PROTOCOLO (Insumos Reales)
 ═══════════════════════════════════════════════════════════════
 ${context}
 
 ═══════════════════════════════════════════════════════════════
-TAREA: GENERAR 5 TÍTULOS ACADÉMICOS PARA RSL
+REGLAS DE ORO DE REDACCIÓN ACADÉMICA
 ═══════════════════════════════════════════════════════════════
+1. PRISMA COMPLIANCE (Ítem 1): Aunque el sistema sabe que es una RSL, el título final DEBE sugerir la naturaleza del estudio (ej: "A Systematic Review", "A Scoping Review" o "Evidence Synthesis"). Esto es vital para la indexación en Scopus/WoS.
+2. PRECISIÓN TÉCNICA: Sustituir términos genéricos por específicos. 
+   - NO: "Inteligencia Artificial" -> SÍ: "Deep Reinforcement Learning" o "Convolutional Neural Networks".
+   - NO: "Impacto en salud" -> SÍ: "Tasa de diagnóstico erróneo" o "Latencia en la respuesta".
+3. PROHIBICIÓN DE "BUZZWORDS": Prohibido usar: "Moderno", "Avanzado", "Reciente", "Estudio sobre", "Análisis de".
+4. LONGITUD: Entre 12 y 18 palabras.
 
-**REGLAS METODOLÓGICAS OBLIGATORIAS:**
+═══════════════════════════════════════════════════════════════
+PATRONES DE ESTRUCTURA (Selecciona uno por cada título)
+═══════════════════════════════════════════════════════════════
+A. [Intervención/Tecnología] for [Población/Problema]: A Systematic Mapping Study.
+B. [Resultado/Outcome] of [Tecnología] in [Contexto]: A Systematic Review of the Literature.
+C. [Tecnología A] vs. [Tecnología B] for [Problema]: A Comparative Evidence Synthesis.
+D. Current Trends and Future Challenges in [Tecnología] for [Dominio]: A Scoping Review.
 
-1️⃣ **NATURALEZA DEL ESTUDIO** (IMPORTANTE):
-   - ❌ NO incluir frases como "una revisión sistemática", "systematic review", "RSL"
-   - ✅ Razón: El sistema YA ES para revisiones sistemáticas, es redundante mencionarlo en el título
-   - ✅ El título debe ser DIRECTO al fenómeno, población y enfoque
-   - Ejemplo: "Técnicas de aprendizaje automático en detección de fraudes financieros" (NO agregar "...una revisión sistemática")
-
-2️⃣ **COMPONENTES OBLIGATORIOS** (responder estas 4 preguntas):
-   a) ¿Qué tema/fenómeno? → Variable/constructo/tecnología central
-   b) ¿Qué población? → Contexto/dominio de aplicación específico
-   c) ¿Qué enfoque o variable? → Aspecto metodológico o resultado de interés
-   d) ¿Cuál es la naturaleza? → Tipo de revisión (sistemática, scoping, etc.)
-
-3️⃣ **ESPECIFICIDAD TÉCNICA**:
-   - Si el dominio es técnico/tecnológico: incluir el campo (ej: "machine learning", "cybersecurity", "cloud computing")
-   - Si es clínico/médico: incluir patología/condición (ej: "diabetes tipo 2", "enfermedades cardiovasculares")
-   - Si es social: incluir población específica (ej: "adolescentes", "docentes universitarios")
-
-4️⃣ **PROHIBICIONES** (evitar ambigüedad):
-   - ❌ Palabras vacías SIN CONTEXTO: "impacto", "avance", "desarrollo", "análisis"
-   - ❌ Frases genéricas: "una revisión", "estudio exploratorio", "investigación sobre"
-   - ❌ Términos vagos: "reciente", "moderno", "avanzado", "efectivo" (sin cuantificar)
-   - ✅ USO CORRECTO: "impacto EN la tasa de error" (especificado), "avances EN técnicas de encriptación 2020-2025" (contextualizado)
-
-5️⃣ **LONGITUD ÓPTIMA**:
-   - Mínimo recomendable: 12 palabras
-   - Máximo recomendable: 22 palabras
-   - Ideal: 15-18 palabras
-   - **PENALIZACIÓN**: Títulos <10 palabras o >25 palabras deben justificarse
-
-6️⃣ **ESTRUCTURA RECOMENDADA** (3 patrones principales):
-
-   **Patrón A** (más usado):
-   [Variable/constructo] + en + [población/contexto] + mediante + [abordaje/metodología]
-   
-   Ejemplo: "Modelos predictivos aplicados a enfermedades cardiovasculares en adultos mediante aprendizaje automático"
-
-   **Patrón B** (para comparaciones):
-   [Intervención A] vs [Intervención B] + en + [población] + : impacto en + [outcome]
-   
-   Ejemplo: "Terapias cognitivo-conductuales vs farmacoterapia en depresión mayor: impacto en remisión de síntomas"
-
-   **Patrón C** (para síntesis temática):
-   [Práctica/fenómeno] + en + [dominio/sector] + : síntesis de evidencia
-   
-   Ejemplo: "Prácticas de ciberseguridad en infraestructuras críticas: síntesis de evidencia"
-
-7️⃣ **VALIDACIÓN DE CALIDAD** (autoevaluación obligatoria):
-   
-   ✅ **TÍTULO VÁLIDO si cumple TODO esto:**
-   - ❌ NO menciona "revisión sistemática" (redundante en este sistema)
-   - ✅ Identifica fenómeno central SIN ambigüedad
-   - ✅ Refleja alcance metodológico
-   - ✅ Incluye población/contexto cuando corresponde
-   - ✅ Suficientemente específico (no confundible con otro estudio)
-   - ✅ Longitud entre 12-22 palabras
+═══════════════════════════════════════════════════════════════
+INSTRUCCIONES PARA LA JUSTIFICACIÓN (Peer-Review Style)
+═══════════════════════════════════════════════════════════════
+La justificación NO debe hablar de la gramática del título. Debe explicar por qué esa intersección de (P) y (I) es un "Research Gap" (vacío de investigación) que merece ser estudiado en ${new Date().getFullYear()}.
 
 ═══════════════════════════════════════════════════════════════
 FORMATO DE RESPUESTA (JSON ESTRICTO)
@@ -204,19 +165,19 @@ IMPORTANTE: Cada título DEBE incluir una justificación de 30-50 palabras que e
 
 **FORMATO DE JUSTIFICACIÓN**: Debe hablar del CONTENIDO y RELEVANCIA del estudio, NO del título como objeto.
 
-❌ PROHIBIDO usar frases como:
+PROHIBIDO usar frases como:
 - "Se utiliza el Patrón A/B/C..."
 - "El título refleja..."
 - "Este título articula..."
 - "El título integra..."
 
-✅ CORRECTO - Hablar del contenido:
+CORRECTO - Hablar del contenido:
 Ejemplo 1: "El aprendizaje automático en contextos cardiovasculares requiere análisis de grandes volúmenes de datos clínicos que superan los enfoques estadísticos tradicionales, permitiendo identificar patrones complejos en poblaciones adultas con factores de riesgo específicos."
 
 Ejemplo 2: "La simulación de redes de comunicación en entornos profesionales de ingeniería demanda metodologías específicas que permitan evaluar el rendimiento en escenarios controlados, considerando las particularidades técnicas del dominio de aplicación."
 
 **FORMATO BILINGÜE**: Todos los títulos DEBEN estar en INGLÉS como idioma principal (title) y ESPAÑOL como traducción (spanishTitle).
-- title: Título académico en INGLÉS (siguiendo patrones A, B o C)
+- title: Título académico en INGLÉS (siguiendo patrones A, B, C o D)
 - spanishTitle: Traducción profesional al ESPAÑOL del mismo título
 - justification: Justificación en ESPAÑOL (30-50 palabras)
 - spanishJustification: Misma justificación (redundante, pero incluir para compatibilidad)
@@ -224,21 +185,21 @@ Ejemplo 2: "La simulación de redes de comunicación en entornos profesionales d
 {
   "titles": [
     {
-      "title": "[Título académico en INGLÉS, siguiendo patrones A, B o C]",
+      "title": "[Título académico en INGLÉS, siguiendo patrones A, B, C o D]",
       "spanishTitle": "[Traducción profesional y académica del título al ESPAÑOL]",
       "justification": "[OBLIGATORIO: 30-50 palabras en ESPAÑOL explicando la relevancia del contenido]",
       "spanishJustification": "[Misma justificación en español - redundante pero incluir]",
       "cochraneCompliance": "full|partial|low",
       "wordCount": [número de palabras del título EN INGLÉS],
-      "pattern": "A|B|C",
+      "pattern": "A|B|C|D",
       "components": {
         "fenomeno": "[tecnología/variable/constructo central]",
         "poblacion": "[contexto/dominio específico]",
         "enfoque": "[aspecto metodológico o variable de interés]",
-        "naturaleza": "Síntesis de evidencia" // No mencionar "Revisión Sistemática" (redundante)
+        "naturaleza": "Systematic Review / Scoping Review / Evidence Synthesis"
       },
       "validation": {
-        "explicitReview": true|false, // ¿Es claro que es un estudio de síntesis? (NO debe mencionar "revisión sistemática")
+        "explicitReview": true|false,
         "clearPhenomenon": true|false,
         "hasPopulation": true|false,
         "isSpecific": true|false,
@@ -254,15 +215,16 @@ CRITERIOS DE COMPLIANCE
 ═══════════════════════════════════════════════════════════════
 
 **"cochraneCompliance": "full"** (meta: 4-5 títulos):
-- Cumple las 7 reglas metodológicas
+- Cumple las 4 reglas de oro de redacción académica
 - Todos los campos de validation son true
-- Longitud 12-22 palabras
-- Patrón A, B o C correctamente aplicado
+- Longitud 12-18 palabras
+- Patrón A, B, C o D correctamente aplicado
 - Especificidad técnica presente
+- Naturaleza del estudio explícita (Systematic Review, Scoping Review, etc.)
 
 **"cochraneCompliance": "partial"** (máximo 1 título):
 - Falta UN elemento de validation
-- O longitud ligeramente fuera de rango (10-12 o 22-24 palabras)
+- O longitud ligeramente fuera de rango (10-12 o 18-20 palabras)
 - Estructura académica presente pero mejorable
 
 **"cochraneCompliance": "low"** (máximo 0 títulos):
@@ -274,60 +236,66 @@ CRITERIOS DE COMPLIANCE
 EJEMPLOS REFERENCIALES DE TÍTULOS VÁLIDOS
 ═══════════════════════════════════════════════════════════════
 
-✅ CORRECTO (Patrón A, full compliance):
-"Técnicas de aprendizaje automático aplicadas a detección de fraudes financieros en transacciones digitales"
-- Fenómeno: aprendizaje automático
-- Población: transacciones digitales / fraudes financieros
-- Enfoque: detección
-- Naturaleza: síntesis de evidencia (implícito)
-- Palabras: 14 ✅
+CORRECTO (Patrón A, full compliance):
+"Machine Learning Techniques for Fraud Detection in Digital Financial Transactions: A Systematic Review"
+- Fenómeno: Machine Learning Techniques
+- Población: Digital Financial Transactions
+- Enfoque: Fraud Detection
+- Naturaleza: Systematic Review (explícito)
+- Palabras: 13
 
-✅ CORRECTO (Patrón B, full compliance):
-"Blockchain vs bases de datos centralizadas en registros médicos electrónicos: impacto en seguridad y privacidad"
+CORRECTO (Patrón C, full compliance):
+"Blockchain vs. Centralized Databases for Electronic Health Records: A Comparative Evidence Synthesis"
 - Comparación explícita
-- Población: registros médicos electrónicos
-- Outcome: seguridad y privacidad
-- Palabras: 15 ✅
+- Población: Electronic Health Records
+- Outcome: Comparative Evidence
+- Naturaleza: Evidence Synthesis (explícito)
+- Palabras: 12
 
-❌ INCORRECTO (ambiguo, low compliance):
-"Inteligencia Artificial en la actualidad: una revisión"
-- Fenómeno: demasiado amplio ("IA")
+INCORRECTO (ambiguo, low compliance):
+"Artificial Intelligence: A Review"
+- Fenómeno: demasiado amplio ("AI")
 - Sin población específica
 - Sin enfoque metodológico
-- "en la actualidad" es vago
-- Palabras: 8 (muy corto)
+- Palabras: 4 (muy corto)
+- No especifica tipo de revisión
 
-❌ INCORRECTO (sin naturaleza explícita):
-"Análisis del impacto de IoT en ciudades inteligentes"
-- No dice "revisión sistemática"
+INCORRECTO (buzzwords, low compliance):
+"Advanced Analysis of Modern IoT Impact in Smart Cities"
+- "Advanced" y "Modern" son buzzwords prohibidos
 - "impacto" sin especificar EN QUÉ
 - "análisis" es genérico
+- No menciona naturaleza del estudio
 
 ═══════════════════════════════════════════════════════════════
-EJEMPLO COMPLETO DE TÍTULO CON JUSTIFICACIÓN (BILINGÜE)
+SALIDA ESPERADA (JSON ESTRICTO):
 ═══════════════════════════════════════════════════════════════
-
 {
-  "title": "Machine Learning Techniques Applied to Fraud Detection in Digital Financial Transactions",
-  "spanishTitle": "Técnicas de aprendizaje automático aplicadas a detección de fraudes en transacciones financieras digitales",
-  "justification": "El aprendizaje automático en contextos financieros digitales permite analizar grandes volúmenes de transacciones e identificar patrones anómalos que superan los enfoques tradicionales de detección. La combinación de técnicas avanzadas con el dominio específico de fraudes financieros responde a la creciente complejidad de los ataques en entornos digitales.",
-  "spanishJustification": "El aprendizaje automático en contextos financieros digitales permite analizar grandes volúmenes de transacciones e identificar patrones anómalos que superan los enfoques tradicionales de detección. La combinación de técnicas avanzadas con el dominio específico de fraudes financieros responde a la creciente complejidad de los ataques en entornos digitales.",
-  "cochraneCompliance": "full",
-  "wordCount": 12,
-  "pattern": "A",
-  "components": {
-    "fenomeno": "machine learning techniques",
-    "poblacion": "digital financial transactions",
-    "enfoque": "fraud detection",
-    "naturaleza": "Evidence synthesis"
-  },
-  "validation": {
-    "explicitReview": true,
-    "clearPhenomenon": true,
-    "hasPopulation": true,
-    "isSpecific": true,
-    "lengthOK": true
-  }
+  "titles": [
+    {
+      "title": "Title in English (Academic English only)",
+      "spanishTitle": "Traducción académica (No literal, sino terminológica)",
+      "justification": "Explicación técnica del valor científico (30-50 palabras)",
+      "spanishJustification": "Misma explicación (redundante pero incluir)",
+      "cochraneCompliance": "full",
+      "wordCount": 15,
+      "pattern": "A",
+      "components": {
+        "fenomeno": "Tecnología exacta",
+        "poblacion": "Dominio de aplicación",
+        "enfoque": "Variable medida (Outcome)",
+        "naturaleza": "Systematic Review / Scoping Review"
+      },
+      "validation": {
+        "explicitReview": true,
+        "clearPhenomenon": true,
+        "hasPopulation": true,
+        "isSpecific": true,
+        "lengthOK": true
+      }
+    }
+    // ... total 5
+  ]
 }
 
 ═══════════════════════════════════════════════════════════════
@@ -339,8 +307,9 @@ INSTRUCCIONES FINALES
 3. Usa información del CONTEXTO DEL PROTOCOLO para derivar componentes
 4. Si falta información en el contexto, infiere de manera razonable pero NUNCA uses placeholders genéricos
 5. Cada título debe ser DIRECTAMENTE USABLE como título oficial del protocolo
-6. **CRÍTICO**: Cada título DEBE tener una justificación de 30-50 palabras (campo "justification" OBLIGATORIO)
-7. Responde ÚNICAMENTE con JSON válido, sin texto adicional
+6. CRÍTICO: Cada título DEBE incluir explícitamente la naturaleza del estudio (A Systematic Review, A Scoping Review, etc.) - Esto es OBLIGATORIO para cumplir PRISMA 2020 Ítem 1
+7. CRÍTICO: Cada título DEBE tener una justificación de 30-50 palabras (campo "justification" OBLIGATORIO) explicando el RESEARCH GAP
+8. Responde ÚNICAMENTE con JSON válido, sin texto adicional
 
 GENERA LOS 5 TÍTULOS AHORA:`;
   }
@@ -374,30 +343,30 @@ GENERA LOS 5 TÍTULOS AHORA:`;
         
         // Validar longitud (5-22 palabras)
         if (wordCount < 5) {
-          console.warn(`⚠️ Título ${index + 1} muy corto (${wordCount} palabras): "${title.substring(0, 50)}..."`);
+          console.warn(`Título ${index + 1} muy corto (${wordCount} palabras): "${title.substring(0, 50)}..."`);
         }
         if (wordCount > 22) {
-          console.warn(`⚠️ Título ${index + 1} muy largo (${wordCount} palabras): "${title.substring(0, 50)}..."`);
+          console.warn(`Título ${index + 1} muy largo (${wordCount} palabras): "${title.substring(0, 50)}..."`);
         }
         
         // Validar compliance
         const compliance = item.cochraneCompliance || 'partial';
         if (!['full', 'partial', 'none'].includes(compliance)) {
-          console.warn(`⚠️ Compliance inválido para título ${index + 1}, usando 'partial'`);
+          console.warn(`Compliance inválido para título ${index + 1}, usando 'partial'`);
         }
         
         // Validar components (nuevo)
         const components = item.components || {};
         if (!components.population || !components.intervention || !components.outcome) {
-          console.warn(`⚠️ Título ${index + 1} falta components PICO requeridos`);
+          console.warn(`Título ${index + 1} falta components PICO requeridos`);
         }
         
         // Validar justification (OBLIGATORIO)
         const justification = item.justification || item.reasoning || '';
         if (!justification || justification.length < 20) {
-          console.warn(`⚠️ Título ${index + 1} tiene justificación faltante o muy corta (${justification.length} caracteres)`);
+          console.warn(`Título ${index + 1} tiene justificación faltante o muy corta (${justification.length} caracteres)`);
         } else {
-          console.log(`✅ Título ${index + 1} tiene justificación (${justification.length} caracteres)`);
+          console.log(`Título ${index + 1} tiene justificación (${justification.length} caracteres)`);
         }
         
         // Extraer título en español y justificación en español
@@ -424,19 +393,19 @@ GENERA LOS 5 TÍTULOS AHORA:`;
       // Verificar que al menos 3 sean 'full' compliance
       const fullCount = validatedTitles.filter(t => t.cochraneCompliance === 'full').length;
       if (fullCount < 3) {
-        console.warn(`⚠️ Solo ${fullCount} títulos tienen 'full' compliance, se esperaban al menos 3`);
+        console.warn(`Solo ${fullCount} títulos tienen 'full' compliance, se esperaban al menos 3`);
       }
       
-      console.log(`✅ Validación exitosa: ${validatedTitles.length} títulos, ${fullCount} con full compliance`);
+      console.log(`Validación exitosa: ${validatedTitles.length} títulos, ${fullCount} con full compliance`);
       
       return validatedTitles.slice(0, 5); // Retornar máximo 5
       
     } catch (error) {
-      console.error('❌ Error parseando respuesta:', error.message);
+      console.error('Error parseando respuesta:', error.message);
       console.error('   Respuesta recibida:', JSON.stringify(parsedJson).substring(0, 300));
       
       // Fallback: generar títulos de respaldo
-      console.log('🔄 Usando títulos de respaldo...');
+      console.log('Usando títulos de respaldo...');
       return this._generateFallbackTitles();
     }
   }

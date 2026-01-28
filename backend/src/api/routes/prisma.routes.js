@@ -52,20 +52,6 @@ router.get(
 );
 
 /**
- * @route   POST /api/projects/:projectId/prisma/generate
- * @desc    Generar contenido automatizado para todos los ítems PRISMA
- * @access  Private
- */
-router.post(
-  '/:projectId/prisma/generate',
-  [
-    param('projectId').isUUID().withMessage('ID de proyecto inválido'),
-    validateRequest
-  ],
-  (req, res) => prismaController.generateContent(req, res)
-);
-
-/**
  * @route   GET /api/projects/:projectId/prisma/:itemNumber
  * @desc    Obtener un ítem PRISMA específico
  * @access  Private
@@ -167,20 +153,6 @@ router.post(
     validateRequest
   ],
   (req, res) => prismaController.generateContext(req, res)
-);
-
-/**
- * @route   POST /api/projects/:projectId/prisma/complete-items
- * @desc    Completar ítems PRISMA automáticamente
- * @access  Private
- */
-router.post(
-  '/:projectId/prisma/complete-items',
-  [
-    param('projectId').isUUID().withMessage('ID de proyecto inválido'),
-    validateRequest
-  ],
-  (req, res) => prismaController.completeItems(req, res)
 );
 
 /**

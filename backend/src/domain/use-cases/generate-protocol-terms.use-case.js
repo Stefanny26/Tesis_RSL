@@ -23,12 +23,12 @@ class GenerateProtocolTermsUseCase {
       // REGLA METODOLÓGICA: Los términos DEBEN basarse en el título de la RSL seleccionado
       const rslTitle = selectedTitle || projectTitle;
       
-      console.log('🔍 Generando términos del protocolo...');
-      console.log('📋 Título RSL:', rslTitle);
+      console.log('Generando términos del protocolo...');
+      console.log('Título RSL:', rslTitle);
       
       if (specificSection) {
-        console.log('🎯 Regenerando sección específica:', specificSection);
-        console.log('💡 Enfoque personalizado:', customFocus || 'predeterminado');
+        console.log('Regenerando sección específica:', specificSection);
+        console.log('Enfoque personalizado:', customFocus || 'predeterminado');
       }
 
       const prompt = this.buildPrompt({
@@ -59,7 +59,7 @@ class GenerateProtocolTermsUseCase {
           });
           
           const text = completion.choices[0].message.content;
-          console.log('📥 Respuesta raw (primeros 300 chars):', text.substring(0, 300));
+          console.log('Respuesta raw (primeros 300 chars):', text.substring(0, 300));
 
           // Parsear la respuesta
           terms = this.parseResponse(text);
@@ -69,19 +69,19 @@ class GenerateProtocolTermsUseCase {
 
         } catch (parseError) {
           retryCount++;
-          console.warn(`⚠️  Intento ${retryCount} falló:`, parseError.message);
+          console.warn(`Intento ${retryCount} falló:`, parseError.message);
           
           if (retryCount >= maxRetries) {
             throw parseError;
           }
           
           // Reintentar con instrucción más estricta
-          console.log('🔄 Reintentando con temperatura más baja...');
+          console.log('Reintentando con temperatura más baja...');
         }
       }
 
-      console.log('✅ Términos generados y validados exitosamente');
-      console.log('📦 Términos finales:', JSON.stringify(terms, null, 2));
+      console.log('Términos generados y validados exitosamente');
+      console.log('Términos finales:', JSON.stringify(terms, null, 2));
 
       return {
         success: true,
@@ -94,24 +94,24 @@ class GenerateProtocolTermsUseCase {
       };
 
     } catch (error) {
-      console.error('❌ Error generando términos:', error);
+      console.error('Error generando términos:', error);
       throw new Error(`Error generando términos del protocolo: ${error.message}`);
     }
   }
 
   /**
-   * Construye el prompt para la IA (mejorado para forzar JSON)
+   * Construye el prompt para la IA (refinado para sincronización PICO y Matriz de Síntesis)
    */
   buildPrompt({ rslTitle, projectTitle, projectDescription, picoData, matrixData, specificSection, customFocus }) {
     // Usar título de la RSL seleccionado como fuente principal
     const title = (rslTitle || projectTitle || 'Tema no especificado').replace(/\n/g, ' ').trim();
     const description = (projectDescription || 'Sin descripción').replace(/\n/g, ' ').trim();
     
-    // Extraer datos PICO
-    const P = picoData?.population || 'unspecified';
-    const I = picoData?.intervention || 'unspecified';
-    const C = picoData?.comparison || null;
-    const O = picoData?.outcome || 'unspecified';
+    // Extraer datos PICO para sincronización
+    const P = picoData?.population?.descripcion || picoData?.population || 'No definida';
+    const I = picoData?.intervention?.descripcion || picoData?.intervention || 'No definida';
+    const C = picoData?.comparison?.descripcion || picoData?.comparison || 'No definida';
+    const O = picoData?.outcomes?.descripcion || picoData?.outcomes || 'No definida';
     
     // Extraer matriz Es/No Es
     const isIncluded = (matrixData?.is || []).slice(0, 10);
@@ -131,241 +131,265 @@ class GenerateProtocolTermsUseCase {
     }
 
     return `
-Eres un experto en metodología PRISMA/Cochrane para revisiones sistemáticas de literatura. Tu tarea: generar términos clave para el protocolo DERIVADOS DIRECTAMENTE del TÍTULO de la RSL.
+Eres un experto en Bibliometría y Revisiones Sistemáticas (RSL) bajo estándares PRISMA 2020. 
+Tu objetivo es descomponer el TÍTULO seleccionado en términos de búsqueda técnicos y bilingües que permitan:
+1. Construir cadenas de búsqueda con operadores booleanos
+2. Alimentar la futura Matriz de Síntesis (Autor, Metodología, Resultados)
+3. Garantizar coherencia absoluta con el marco PICO definido
 
 RESPONDE ÚNICAMENTE con JSON válido (sin texto adicional, sin markdown, sin comentarios).
 
 ═══════════════════════════════════════════════════════════════
-PRINCIPIO METODOLÓGICO FUNDAMENTAL
+CONTEXTO DEL PROTOCOLO (Sincronización PICO)
 ═══════════════════════════════════════════════════════════════
 
-⚠️ REGLA CRÍTICA: Todos los términos DEBEN derivar del TÍTULO seleccionado.
-⚠️ NO introducir conceptos nuevos que no estén en el título.
-⚠️ La sección "Definición de Términos" descompone técnicamente el título, no inventa conceptos.
+TÍTULO RSL (FUENTE ÚNICA): "${title}"
+
+OBJETIVO: Responder a una "pregunta contestable" sobre cómo [I] afecta a [O] en el contexto de [P].
+
+DEFINICIÓN PICO ACTUAL (Ya establecida en paso anterior):
+- **P (Población/Contexto)**: ${P}
+  → Orienta el "applicationDomain" (¿DÓNDE se investiga?)
+
+- **I (Intervención/Tecnología)**: ${I}
+  → Orienta las "technologies" (¿QUÉ tecnología/método se aplica?)
+
+- **C (Comparación)**: ${C}
+  → Contexto adicional si existe comparación explícita
+
+- **O (Resultado/Variable)**: ${O}
+  → Orienta el "thematicFocus" (¿QUÉ se mide/evalúa?)
+
+Matriz ES (Inclusión): ${isIncluded.length ? isIncluded.join(' | ') : 'No definida'}
+Matriz NO ES (Exclusión): ${isNotIncluded.length ? isNotIncluded.join(' | ') : 'No definida'}
 
 ═══════════════════════════════════════════════════════════════
-TÍTULO DE LA REVISIÓN SISTEMÁTICA (FUENTE ÚNICA)
+REGLAS METODOLÓGICAS PARA GENERACIÓN DE TÉRMINOS
 ═══════════════════════════════════════════════════════════════
 
-"${title}"
+PRINCIPIO FUNDAMENTAL: Todos los términos DEBEN:
+1. Derivar del TÍTULO seleccionado (no inventar conceptos nuevos)
+2. Ser consistentes con el marco PICO definido
+3. Ser buscables en bases académicas (Scopus, IEEE Xplore, WoS, ACM)
+4. Permitir llenar columnas de la Matriz de Síntesis
 
-═══════════════════════════════════════════════════════════════
-CONTEXTO PICO (para validación de coherencia)
-═══════════════════════════════════════════════════════════════
+**1. TECNOLOGÍAS (Sincronizado con I - Intervención):**
 
-- P (Población): ${P}
-- I (Intervención): ${I}
-- C (Comparación): ${C || 'ninguna'}
-- O (Resultados): ${O}
+**Objetivo:** Identificar la solución técnica central y sus variantes para construir el string de búsqueda.
 
-Matriz ES: ${isIncluded.length ? isIncluded.join(' | ') : 'ninguno'}
-Matriz NO ES: ${isNotIncluded.length ? isNotIncluded.join(' | ') : 'ninguno'}
+**Reglas obligatorias:**
+- Debe derivar del componente [I] del PICO: "${I}"
+- Generar 4-5 términos: término principal + variantes/subtipos técnicos
+- Las variantes deben ser extensiones directas o sinónimos académicos
+- NO incluir tecnologías periféricas no mencionadas en título/PICO
+- Los términos deben permitir usar operadores booleanos (AND, OR)
 
-═══════════════════════════════════════════════════════════════
-REGLAS METODOLÓGICAS OBLIGATORIAS
-═══════════════════════════════════════════════════════════════
+**Formato para búsqueda:**
+- Cada término debe ser buscable como: ("Term 1" OR "Term 2" OR "Term 3")
+- Ejemplo: ("Machine Learning" OR "Deep Learning" OR "Neural Networks")
 
-🔬 TECNOLOGÍA / HERRAMIENTAS:
-
-Regla T1: La tecnología debe ser el constructo tecnológico central DEL TÍTULO
-Regla T2: GENERAR 4-5 términos: el término principal + subtipos/variantes técnicas relacionadas
-Regla T3: Las variantes deben ser extensiones directas o sinónimos técnicos del término del título
-Regla T4: NO incluir tecnologías periféricas que no aparecen en el título
-Regla T5: Debe alinearse con "I" (Intervención) del PICO
-Regla T6: OBLIGATORIO: Siempre generar al menos 4 términos si el título lo permite
-
-Ejemplo correcto:
+**Ejemplo correcto:**
 Título: "Machine Learning Applications..."
-✅ Tecnologías (4 términos): 
+PICO-I: "Algoritmos de aprendizaje automático..."
+Technologies (4-5 términos):
   "Aprendizaje Automático - Machine Learning"
-  "Inteligencia Artificial - Artificial Intelligence"
   "Aprendizaje Profundo - Deep Learning"
   "Redes Neuronales - Neural Networks"
+  "Inteligencia Artificial - Artificial Intelligence"
 
-Título: "Aplicaciones de blockchain..."
-✅ Tecnologías (4 términos):
-  "Blockchain"
-  "Contratos Inteligentes - Smart Contracts"
-  "Tecnología de Registro Distribuido - Distributed Ledger Technology"
-  "Criptografía - Cryptography"
+**Ejemplo INCORRECTO:**
+Solo 1 término: ["Machine Learning"] → Debe generar 4-5 variantes
+Tecnologías no relacionadas: ["Big Data", "Cloud Computing"] → No están en título/PICO-I
 
-Ejemplo INCORRECTO:
-Título: "Machine Learning Applications..."
-❌ Tecnologías: ["Aprendizaje Automático - Machine Learning"] ← ERROR: Solo 1 término, debe generar 4-5
-❌ Tecnologías: ["Big Data", "Cloud Computing"] ← ERROR: NO están en el título
+**2. DOMINIO DE APLICACIÓN (Sincronizado con P - Población):**
 
-🏥 DOMINIO DE APLICACIÓN:
+**Objetivo:** Definir el contexto/entorno donde se aplica la tecnología, filtrar ruido en búsqueda.
 
-Regla D1: El dominio debe corresponder EXACTAMENTE al contexto indicado en el título
-Regla D2: GENERAR 3-4 términos relacionados con el sector/industria/contexto del título
-Regla D3: Incluir el dominio principal + subdominios o contextos técnicos relacionados
-Regla D4: La población del título debe reflejarse explícitamente en el dominio
-Regla D5: Debe alinearse con "P" (Población) del PICO
-Regla D6: OBLIGATORIO: Generar al menos 3 términos del contexto del título
+**Reglas obligatorias:**
+- Debe derivar del componente [P] del PICO: "${P}"
+- Generar 3-4 términos: dominio principal + subdominios/contextos técnicos
+- Responde a: "¿En qué entorno/sistema/sector se aplica?"
+- NO incluir variables de resultado (eficiencia, calidad, impacto)
 
-⚠️ REGLA D5 CRÍTICA - SEPARACIÓN DOMINIO vs VARIABLE:
-
-El dominio responde a "¿DÓNDE?" → Sector, industria, entorno técnico, población
-La variable (thematicFocus) responde a "¿QUÉ se mide?" → Eficiencia, calidad, impacto, rendimiento
+**REGLA DE ORO - SEPARACIÓN CRÍTICA:**
 
 ╔═══════════════════════════════════════════════════════════════╗
-║  ❌ NO INCLUIR EN applicationDomain (van en thematicFocus):  ║
+║  NO INCLUIR EN applicationDomain (son VARIABLES):            ║
 ║  • Eficiencia / Efficiency                                    ║
 ║  • Productividad / Productivity                               ║
 ║  • Rendimiento / Performance                                  ║
 ║  • Calidad / Quality                                          ║
 ║  • Impacto / Impact                                           ║
 ║  • Mejora / Improvement                                       ║
-║  • Automatización / Automation                                ║
-║  Estos son RESULTADOS/VARIABLES, NO dominios                  ║
+║  → Estos son RESULTADOS medibles, van en thematicFocus        ║
 ╚═══════════════════════════════════════════════════════════════╝
 
 ╔═══════════════════════════════════════════════════════════════╗
-║  ✅ SÍ INCLUIR EN applicationDomain:                          ║
-║  • Sectores: Healthcare, Education, Finance                   ║
-║  • Industrias: Manufacturing, Retail, Logistics               ║
+║  SÍ INCLUIR EN applicationDomain:                            ║
+║  • Sectores: Healthcare, Education, Finance, Manufacturing    ║
+║  • Industrias: Retail, Logistics, Energy, Agriculture         ║
 ║  • Entornos técnicos: Web Development, Mobile Apps, Cloud     ║
-║  • Contextos: Enterprise Systems, Small Business, Startups    ║
-║  • Poblaciones: Adult Patients, University Students, SMEs     ║
+║  • Sistemas: Enterprise Systems, Embedded Systems, IoT        ║
+║  • Contextos: Small Business, Startups, Academic Research     ║
 ╚═══════════════════════════════════════════════════════════════╝
 
-Ejemplo 1 - Título: "Impact of Machine Learning on Web Development Efficiency in Business Contexts"
-✅ CORRECTO applicationDomain (4 términos):
+**Prueba de validación:**
+- Si el término termina en "-dad" o "-ity" → NO es dominio
+- Si responde "¿Dónde/En qué contexto?" → SÍ es dominio
+- Si responde "¿Qué se mide?" → NO es dominio (va en thematicFocus)
+
+**Ejemplo correcto:**
+Título: "ML in Web Development for Enterprise Systems"
+PICO-P: "Estudios sobre desarrollo de software empresarial..."
+ApplicationDomain (3-4 términos):
   "Desarrollo Web - Web Development"
-  "Contextos Empresariales - Business Contexts"
-  "Ingeniería de Software - Software Engineering"
   "Sistemas Empresariales - Enterprise Systems"
-
-❌ INCORRECTO (mezcla con variables):
-  "Eficiencia en Desarrollo - Development Efficiency" ← NO, esto va en thematicFocus
-  ["Desarrollo Web"] ← ERROR: Solo 1 término, debe generar 3-4
-
-Ejemplo 2 - Título: "Early Detection of Cardiovascular Diseases in Adults Using ML"
-✅ CORRECTO applicationDomain (4 términos):
-  "Atención Médica - Healthcare"
-  "Cardiología Clínica - Clinical Cardiology"
-  "Población Adulta - Adult Population"
-  "Medicina Diagnóstica - Diagnostic Medicine"
-
-❌ INCORRECTO:
-  "Detección Temprana - Early Detection" ← NO, esto va en thematicFocus
-  ["Healthcare", "Adult Population"] ← ERROR: Solo 2 términos, faltan contextos relacionados
-
-Ejemplo 3 - Título: "Productivity Improvement in Mobile Development with CI/CD"
-✅ CORRECTO applicationDomain (4 términos):
-  "Desarrollo Móvil - Mobile Development"
   "Ingeniería de Software - Software Engineering"
-  "Desarrollo de Aplicaciones - Application Development"
-  "Sistemas de Software - Software Systems"
+  "Aplicaciones Corporativas - Corporate Applications"
 
-❌ INCORRECTO:
-  "Productividad - Productivity" ← NO, va en thematicFocus
-  ["Mobile Development"] ← ERROR: Solo 1 término, debe generar 3-4
+**Ejemplo INCORRECTO:**
+"Eficiencia en Desarrollo" → Es VARIABLE (thematicFocus)
+Solo 1 término: ["Web Development"] → Debe generar 3-4
 
-📌 REGLA DE ORO:
-Si el término termina en "-dad" (eficiencia, productividad, calidad, usabilidad) → NO es dominio
-Si el término describe un resultado/outcome/métrica → NO es dominio
-Si el término responde "¿dónde?" → SÍ es dominio
-Si el término responde "¿qué se mide?" → NO es dominio (va en thematicFocus)
+**3. FOCOS TEMÁTICOS (Sincronizado con O - Outcomes):**
 
-🎯 FOCOS TEMÁTICOS:
+**Objetivo:** Definir las VARIABLES/RESULTADOS que se extraerán para llenar la Matriz de Síntesis.
 
-Regla F1: Los focos NO introducen nuevos objetivos, descomponen analíticamente el fenómeno del título
-Regla F2: Cada foco responde a una pregunta implícita del título
-Regla F3: Deben anticipar los resultados esperados (O del PICO)
-Regla F4: Entre 3-5 focos (ideal: 4)
+**Reglas obligatorias:**
+- Debe derivar del componente [O] del PICO: "${O}"
+- Generar 3-5 focos que respondan: "¿Qué se mide/evalúa?"
+- Son las COLUMNAS de la futura Matriz de Síntesis
+- Deben permitir comparar hallazgos entre autores
+- NO introducir objetivos no presentes en título/PICO-O
 
-Ejemplo correcto:
-Título: "...detección temprana de enfermedades cardiovasculares..."
-✅ Focos: ["Diagnostic Accuracy", "Model Performance", "Implementation Challenges", "Clinical Decision Support"]
-← Todos derivan de "detección temprana"
+**Conexión con Matriz de Síntesis:**
+Los términos aquí se convertirán en columnas como:
+- "Autor/Año"
+- "Metodología aplicada"
+- "[Foco 1]: Precisión Diagnóstica"
+- "[Foco 2]: Rendimiento del Modelo"
+- "[Foco 3]: Desafíos de Implementación"
 
-Ejemplo INCORRECTO:
-Título: "...detección temprana..."
-❌ Focos: ["Cost Analysis", "Policy Impact"] ← NO están en el alcance del título
+**Ejemplo correcto:**
+Título: "Early Detection of Cardiovascular Diseases using ML"
+PICO-O: "Precisión diagnóstica, rendimiento de modelos, viabilidad clínica"
+ThematicFocus (3-5 términos):
+  "Precisión Diagnóstica - Diagnostic Accuracy"
+  "Rendimiento de Modelos - Model Performance"
+  "Viabilidad Clínica - Clinical Feasibility"
+  "Interpretabilidad de Resultados - Results Interpretability"
+
+**Ejemplo INCORRECTO:**
+"Desarrollo de Software" → Es DOMINIO (applicationDomain)
+Términos no medibles: "Impacto general", "Avances recientes"
 
 ═══════════════════════════════════════════════════════════════
 VALIDACIÓN DE COHERENCIA CRUZADA (AUTOMÁTICA)
 ═══════════════════════════════════════════════════════════════
 
 Antes de generar, verifica:
-✓ ¿Cada término de "technologies" está en el TÍTULO o es subtipo directo?
-✓ ¿El "applicationDomain" refleja el contexto poblacional DEL TÍTULO?
-✓ ¿Los "thematicFocus" responden a preguntas implícitas DEL TÍTULO?
-✓ ¿Hay coherencia: technologies ↔ I(PICO), applicationDomain ↔ P(PICO), thematicFocus ↔ O(PICO)?
+✓ ¿Cada término de "technologies" está alineado con PICO-I: "${I}"?
+✓ ¿El "applicationDomain" refleja el contexto de PICO-P: "${P}"?
+✓ ¿Los "thematicFocus" son medibles y derivan de PICO-O: "${O}"?
+✓ ¿Los términos son buscables con operadores booleanos en bases académicas?
+✓ ¿Los focos temáticos permiten llenar columnas de una Matriz de Síntesis?
 
 ═══════════════════════════════════════════════════════════════
 FORMATO DE SALIDA (JSON ESTRICTO)
 ═══════════════════════════════════════════════════════════════
 
+Debes entregar un JSON con términos bilingües "Español - English" listos para ser usados en cadenas de búsqueda (Strings) con operadores Booleanos.
+
 {
   "technologies": [
-    "Aprendizaje Automático - Machine Learning",
-    "Aprendizaje Profundo - Deep Learning",
-    "Inteligencia Artificial - Artificial Intelligence"
+    "Término 1 ES - Term 1 EN",
+    "Término 2 ES - Term 2 EN",
+    "Término 3 ES - Term 3 EN",
+    "Término 4 ES - Term 4 EN"
   ],
   "applicationDomain": [
-    "Desarrollo Web - Web Development",
-    "Ingeniería de Software - Software Engineering",
-    "Sistemas Empresariales - Enterprise Systems"
+    "Dominio 1 ES - Domain 1 EN",
+    "Dominio 2 ES - Domain 2 EN",
+    "Dominio 3 ES - Domain 3 EN"
   ],
   "thematicFocus": [
-    "Eficiencia en Desarrollo - Development Efficiency",
-    "Mejora de Productividad - Productivity Improvement",
-    "Automatización de Procesos - Process Automation"
+    "Foco 1 ES - Focus 1 EN",
+    "Foco 2 ES - Focus 2 EN",
+    "Foco 3 ES - Focus 3 EN",
+    "Foco 4 ES - Focus 4 EN"
   ]
 }
 
-CARACTERÍSTICAS DE LOS TÉRMINOS:
+**CARACTERÍSTICAS DE LOS TÉRMINOS:**
 - Formato BILINGÜE en una sola línea: "Español - English"
 - Español primero, luego inglés separado por " - "
 - Máximo 5 palabras por idioma
 - Entre 3-5 términos por categoría (NO rellenar artificialmente)
-- Términos traducibles a bases académicas (Scopus/WoS/IEEE)
+- Términos buscables en bases académicas (uso de comillas en búsqueda)
 - Sin explicaciones adicionales, solo el JSON
 
 ═══════════════════════════════════════════════════════════════
 EJEMPLO COMPLETO (METODOLÓGICAMENTE CORRECTO)
 ═══════════════════════════════════════════════════════════════
 
-Título: "Machine Learning Applications for Early Detection of Cardiovascular Diseases in Adults"
+**Caso: Título** "Machine Learning for Early Detection of Cardiovascular Diseases in Adults"
 
+**PICO del paso anterior:**
+- P: "Estudios empíricos sobre detección de enfermedades cardiovasculares en población adulta"
+- I: "Algoritmos de aprendizaje automático (redes neuronales, modelos predictivos)"
+- C: "Métodos diagnósticos tradicionales"
+- O: "Precisión diagnóstica, sensibilidad, especificidad, tiempo de detección"
+
+**JSON GENERADO:**
 {
   "technologies": [
     "Aprendizaje Automático - Machine Learning",
     "Aprendizaje Supervisado - Supervised Learning",
-    "Aprendizaje Profundo - Deep Learning",
+    "Redes Neuronales - Neural Networks",
     "Modelos Predictivos - Predictive Models"
   ],
   "applicationDomain": [
-    "Atención Médica - Healthcare",
+    "Diagnóstico Cardiovascular - Cardiovascular Diagnosis",
     "Cardiología Clínica - Clinical Cardiology",
-    "Detección de Enfermedades Cardiovasculares - Cardiovascular Disease Detection",
-    "Población Adulta - Adult Population"
+    "Población Adulta - Adult Population",
+    "Medicina Diagnóstica - Diagnostic Medicine"
   ],
   "thematicFocus": [
     "Precisión Diagnóstica - Diagnostic Accuracy",
-    "Rendimiento de Modelos - Model Performance",
-    "Desafíos de Implementación - Implementation Challenges",
-    "Apoyo a Decisiones Clínicas - Clinical Decision Support"
+    "Sensibilidad del Modelo - Model Sensitivity",
+    "Especificidad del Modelo - Model Specificity",
+    "Tiempo de Detección - Detection Time"
   ]
 }
 
-Análisis de coherencia:
-✓ technologies → "Machine Learning" del título (términos buscables en Scopus)
-✓ applicationDomain → "Cardiovascular Diseases in Adults" del título (CONTEXTO, no variables)
-✓ thematicFocus → "Early Detection" del título (VARIABLES a medir, no dominios)
+**Análisis de coherencia:**
+✓ technologies → Alineado con PICO-I "algoritmos de aprendizaje automático"
+✓ applicationDomain → Alineado con PICO-P "detección cardiovascular en adultos" (NO incluye "precisión" que es variable)
+✓ thematicFocus → Alineado con PICO-O "precisión, sensibilidad, especificidad, tiempo" (métricas medibles)
+✓ Todos buscables con: ("Machine Learning" OR "Neural Networks") AND ("Cardiovascular" OR "Cardiology") AND ("Diagnostic Accuracy" OR "Sensitivity")
 
 ═══════════════════════════════════════════════════════════════
-AHORA GENERA PARA EL TÍTULO:
+AHORA GENERA TÉRMINOS PARA:
 ═══════════════════════════════════════════════════════════════
 
-"${title}"
+**TÍTULO:** "${title}"
 
-INSTRUCCIÓN FINAL: Analiza el título palabra por palabra. Identifica:
-1. ¿Qué tecnología/método central menciona? → technologies
-2. ¿Qué población/contexto/dominio menciona? → applicationDomain
-3. ¿Qué aspecto/resultado/enfoque busca? → thematicFocus
+**PICO DEFINIDO:**
+- P: ${P}
+- I: ${I}
+- C: ${C}
+- O: ${O}
+
+**INSTRUCCIÓN FINAL:** 
+Analiza el TÍTULO y el PICO. Genera términos que:
+1. Sean consistentes con cada componente PICO
+2. Permitan construir búsquedas booleanas efectivas
+3. Faciliten llenar una Matriz de Síntesis (Autor, Método, Resultados)
+
+**REGLAS FINALES:**
+- NO inventes conceptos fuera del alcance del título "${title}"
+- Máximo 5 palabras por término
+- Solo JSON. Sin explicaciones.
 
 RESPONDE SOLO CON EL JSON. NADA MÁS.
 `.trim();
@@ -415,7 +439,7 @@ REGLAS PARA LA SECCIÓN "${jsonKey}"
 ═══════════════════════════════════════════════════════════════
 
 ${jsonKey === 'technologies' ? `
-🔬 TECNOLOGÍA:
+TECNOLOGÍA:
 - DEBE derivar del concepto técnico central DEL TÍTULO
 - GENERAR 4-5 términos: término principal + variantes/subtipos directos
 - Solo incluir variantes/subtipos que sean extensiones directas o sinónimos técnicos
@@ -431,14 +455,14 @@ Ejemplo: "Machine Learning Applications..." → Genera:
 ` : ''}
 
 ${jsonKey === 'applicationDomain' ? `
-🏥 DOMINIO DE APLICACIÓN:
+DOMINIO DE APLICACIÓN:
 
-⚠️ REGLA CRÍTICA - NO MEZCLAR CON VARIABLES:
+REGLA CRÍTICA - NO MEZCLAR CON VARIABLES:
 
 El dominio responde a "¿DÓNDE?" (sector, contexto, industria, población)
 Las variables responden a "¿QUÉ se mide?" (eficiencia, calidad, impacto)
 
-❌ NO incluir en applicationDomain:
+NO incluir en applicationDomain:
 • Eficiencia / Efficiency
 • Productividad / Productivity  
 • Rendimiento / Performance
@@ -448,7 +472,7 @@ Las variables responden a "¿QUÉ se mide?" (eficiencia, calidad, impacto)
 • Automatización / Automation
 → Estos son VARIABLES, van en thematicFocus
 
-✅ SÍ incluir en applicationDomain:
+SÍ incluir en applicationDomain:
 • Sectores: Healthcare, Education, Finance
 • Industrias: Manufacturing, Retail, Logistics
 • Entornos técnicos: Web Development, Mobile Apps, Cloud Computing
@@ -473,11 +497,11 @@ Ejemplo: "...in Web Development for Technology Firms..." → Genera:
   "Sistemas Empresariales - Enterprise Systems"
 
 
-📌 REGLA DE ORO: Si el término termina en "-dad" o describe un resultado → NO es dominio
+REGLA DE ORO: Si el término termina en "-dad" o describe un resultado → NO es dominio
 ` : ''}
 
 ${jsonKey === 'thematicFocus' ? `
-🎯 FOCOS TEMÁTICOS:
+FOCOS TEMÁTICOS:
 - DEBEN descomponer analíticamente el fenómeno del TÍTULO
 - Cada foco responde a pregunta implícita del título
 - NO introducir objetivos nuevos no presentes en título
@@ -517,7 +541,7 @@ RESPONDE SOLO CON EL JSON. NADA MÁS.
     const lastBrace = text.lastIndexOf('}');
     
     if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-      console.error('❌ No se encontró JSON válido en la respuesta');
+      console.error('No se encontró JSON válido en la respuesta');
       console.error('Respuesta completa:', text);
       throw new Error('No se encontró JSON en la respuesta de la IA');
     }
@@ -537,11 +561,11 @@ RESPONDE SOLO CON EL JSON. NADA MÁS.
     try {
       parsed = JSON.parse(jsonStr);
     } catch (err) {
-      console.error('❌ JSON inválido:', err.message);
+      console.error('JSON inválido:', err.message);
       console.error('JSON extraído (primeros 500 chars):', jsonStr.substring(0, 500));
       
       // Intentar fallback a formato de texto
-      console.warn('⚠️  Intentando parseResponseFlexible como fallback...');
+      console.warn('Intentando parseResponseFlexible como fallback...');
       return this.parseResponseFlexible(text);
     }
 
@@ -559,11 +583,11 @@ RESPONDE SOLO CON EL JSON. NADA MÁS.
       thematicFocus: ensureArray(parsed.thematicFocus)
     };
 
-    // 6) REGLA METODOLÓGICA: NO rellenar con 'No especificado'
+    // REGLA METODOLÓGICA: NO rellenar con 'No especificado'
     // Si una categoría queda vacía, es responsabilidad del investigador definir términos manualmente
     for (const key of Object.keys(terms)) {
       if (terms[key].length === 0) {
-        console.warn(`⚠️  Categoría ${key} vacía - El investigador debe definir términos manualmente`);
+        console.warn(`Categoría ${key} vacía - El investigador debe definir términos manualmente`);
       }
     }
 
@@ -626,15 +650,15 @@ RESPONDE SOLO CON EL JSON. NADA MÁS.
 
       // Si tiene más de 6, truncar (límite metodológico)
       if (terms[category].length > 6) {
-        console.warn(`⚠️  Categoría ${category} tiene ${terms[category].length} términos, truncando a 6`);
+        console.warn(`Categoría ${category} tiene ${terms[category].length} términos, truncando a 6`);
         terms[category] = terms[category].slice(0, 6);
       }
 
       // REGLA METODOLÓGICA: NO completar artificialmente
       // Si la IA no generó suficientes términos válidos, el investigador debe agregarlos manualmente
       if (terms[category].length < 3) {
-        console.warn(`⚠️  Categoría ${category} tiene solo ${terms[category].length} términos válidos`);
-        console.warn(`    El investigador debe revisar y agregar términos manualmente si es necesario`);
+        console.warn(`Categoría ${category} tiene solo ${terms[category].length} términos válidos`);
+        console.warn(`El investigador debe revisar y agregar términos manualmente si es necesario`);
       }
     }
 

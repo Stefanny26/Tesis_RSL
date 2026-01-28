@@ -1,12 +1,10 @@
 const ReferenceRepository = require('../../infrastructure/repositories/reference.repository');
-const ScopusSearchUseCase = require('../../domain/use-cases/scopus-search.use-case');
 const ImportReferencesUseCase = require('../../domain/use-cases/import-references.use-case');
 const ExportReferencesUseCase = require('../../domain/use-cases/export-references.use-case');
 const DetectDuplicatesUseCase = require('../../domain/use-cases/detect-duplicates.use-case');
 
 const referenceRepository = new ReferenceRepository();
-const scopusSearch = new ScopusSearchUseCase(referenceRepository);
-const importReferences = new ImportReferencesUseCase(referenceRepository);
+const importReferences = new ImportReferencesUseCase({ referenceRepository });
 const exportReferences = new ExportReferencesUseCase(referenceRepository);
 const detectDuplicates = new DetectDuplicatesUseCase();
 
@@ -427,56 +425,13 @@ const getSourceDistribution = async (req, res) => {
 
 /**
  * POST /api/references/search-academic
- * Buscar referencias en Scopus (IEEE y otros requieren carga manual)
+ * Buscar referencias en bases de datos académicas (DESHABILITADO)
  */
 const searchAcademicReferences = async (req, res) => {
   try {
-    const { query, database = 'scopus', maxResultsPerSource = 50 } = req.body;
-
-    if (!query || query.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'La cadena de búsqueda es requerida'
-      });
-    }
-
-    // Solo soportamos búsqueda API para Scopus
-    if (database !== 'scopus') {
-      return res.status(400).json({
-        success: false,
-        message: `Búsqueda API no disponible para ${database}. Use carga manual de archivos.`
-      });
-    }
-
-    // Buscar en Scopus
-    const scopusApiKey = process.env.SCOPUS_API_KEY;
-    if (!scopusApiKey) {
-      return res.status(500).json({
-        success: false,
-        message: 'API key de Scopus no configurada en el servidor'
-      });
-    }
-
-    const results = await scopusSearch.search({
-      query,
-      apiKey: scopusApiKey,
-      start: 0,
-      count: parseInt(maxResultsPerSource)
-    });
-
-    res.status(200).json({
-      success: true,
-      data: {
-        scopus: results.references,
-        ieee: [],
-        combined: results.references,
-        stats: {
-          totalScopus: results.total,
-          totalIEEE: 0,
-          totalCombined: results.count,
-          duplicatesRemoved: 0
-        }
-      }
+    return res.status(501).json({
+      success: false,
+      message: 'Búsqueda API deshabilitada. Use carga manual de archivos BibTeX/RIS/CSV.'
     });
   } catch (error) {
     console.error('Error en búsqueda académica:', error);

@@ -12,8 +12,24 @@ class GenerateProtocolAnalysisUseCase {
       required: ['titulo_propuesto', 'fase1_marco_pico', 'fase2_matriz_es_no_es'],
       properties: {
         titulo_propuesto: { type: 'string' },
-        fase1_marco_pico: { type: 'object' },
-        fase2_matriz_es_no_es: { type: 'object' }
+        fase1_marco_pico: { 
+          type: 'object',
+          required: ['marco_pico', 'pregunta_contestable'],
+          properties: {
+            marco_pico: { type: 'object' },
+            pregunta_contestable: { type: 'string' }
+          }
+        },
+        fase2_matriz_es_no_es: { 
+          type: 'object',
+          required: ['analisis_critico', 'criterios_inclusion_es', 'criterios_exclusion_no_es', 'estructura_matriz_sintesis'],
+          properties: {
+            analisis_critico: { type: 'array' },
+            criterios_inclusion_es: { type: 'array' },
+            criterios_exclusion_no_es: { type: 'array' },
+            estructura_matriz_sintesis: { type: 'array' }
+          }
+        }
       }
     };
     this.validateOutput = ajv.compile(this.outputSchema);
@@ -45,7 +61,7 @@ class GenerateProtocolAnalysisUseCase {
   }
 
   /**
-   * Construye prompt metodológicamente robusto con reglas PRISMA/Cochrane
+   * Construye prompt metodológicamente robusto con reglas PRISMA 2020/Cochrane
    * @param {Object} params - Parámetros del proyecto
    * @param {string} params.title - Título del proyecto
    * @param {string} params.description - Descripción del proyecto
@@ -55,7 +71,7 @@ class GenerateProtocolAnalysisUseCase {
    */
   buildPrompt({ title, description, area = 'No especificada', yearStart = 2020, yearEnd = new Date().getFullYear() }) {
     return `
-Eres un experto en metodología PRISMA/Cochrane para revisiones sistemáticas de literatura.
+Eres un experto en metodología PRISMA 2020 y Cochrane para revisiones sistemáticas de literatura (RSL) en Ingeniería y Tecnología.
 
 ═══════════════════════════════════════════════════════════════
 DATOS DEL PROYECTO
@@ -66,217 +82,201 @@ DATOS DEL PROYECTO
 • Rango temporal: ${yearStart} - ${yearEnd}
 
 ═══════════════════════════════════════════════════════════════
-TAREA: GENERAR PROTOCOLO METODOLÓGICO COMPLETO
+TAREA: GENERAR PROTOCOLO METODOLÓGICO Y MATRIZ DE DELIMITACIÓN
 ═══════════════════════════════════════════════════════════════
 
-Tu misión es generar:
-1. TÍTULO PROPUESTO para la revisión sistemática
-2. FASE 1: Marco PICO completo
-3. FASE 2: Matriz ES / NO ES con validación cruzada
+Tu misión es generar un protocolo que permita construir una **pregunta contestable** y una estructura para una futura **matriz de síntesis**.
 
 ═══════════════════════════════════════════════════════════════
-FASE 1: MARCO PICO
+FASE 1: MARCO PICO (Pregunta de Investigación Contestable)
 ═══════════════════════════════════════════════════════════════
 
-INSTRUCCIONES CRÍTICAS PARA CADA COMPONENTE:
+Debes definir cada componente buscando **precisión absoluta y operacionalización**:
 
-🧑 POPULATION (P):
+🧑 **P - POPULATION/PROBLEM:**
 ⚠️ **REGLA CRÍTICA PARA INGENIERÍA Y TECNOLOGÍA:**
-- La POBLACIÓN en una RSL de ingeniería NO son personas, sino ESTUDIOS o CONTEXTOS TECNOLÓGICOS
-- ❌ INCORRECTO: "Profesionales de TI entre 25-45 años en empresas latinoamericanas"
-- ✅ CORRECTO: "Estudios empíricos sobre desarrollo de software en contextos empresariales"
-
-**FORMATO OBLIGATORIO PARA POBLACIÓN:**
-"Estudios [tipo de estudios] sobre [fenómeno tecnológico] en [contexto técnico/dominio de aplicación]"
-
-**EJEMPLOS VÁLIDOS:**
-- "Estudios empíricos sobre aplicaciones de IA en ingeniería de software"
-- "Investigaciones académicas que evalúan métodos de pruebas automatizadas en desarrollo ágil"
-- "Evaluaciones técnicas de herramientas de aprendizaje automático en sistemas de producción"
+- Definición: Estudios empíricos y contextos tecnológicos que presentan el problema o condición de interés.
+- La POBLACIÓN en RSL de ingeniería son ESTUDIOS o CONTEXTOS TECNOLÓGICOS, NUNCA personas.
+- Formato obligatorio: "Estudios [tipo de estudios] sobre [fenómeno tecnológico] en [contexto técnico/dominio]"
 
 **QUÉ DEBE INCLUIR:**
-- Tipo de estudios (empíricos, evaluativos, experimentales, etc.)
+- Tipo de estudios (empíricos, evaluativos, experimentales, casos de estudio)
 - Fenómeno o tecnología investigada
 - Contexto técnico o dominio de aplicación (relacionado con ${area})
-- **LONGITUD MÍNIMA: 40-60 palabras** explicando qué estudios, sobre qué fenómeno, en qué contexto
+- **LONGITUD MÍNIMA: 40-60 palabras**
 
 **QUÉ NO DEBE INCLUIR JAMÁS:**
-- ❌ Edad de personas
-- ❌ Profesiones o roles humanos como población primaria  
-- ❌ Ubicación geográfica de personas
-- ❌ Características demográficas
+- ❌ Edad, profesiones, ubicación geográfica de personas
 - ❌ "Profesionales", "usuarios", "trabajadores" como sujeto principal
 
 **JUSTIFICACIÓN METODOLÓGICA (incluir siempre):**
-"La población se define en términos de estudios/contextos técnicos conforme a metodología PRISMA 2020 y guías de revisiones sistemáticas en ingeniería, donde la unidad de análisis son publicaciones académicas, no sujetos humanos."
+"La población se define en términos de estudios/contextos técnicos conforme a metodología PRISMA 2020, donde la unidad de análisis son publicaciones académicas, no sujetos humanos."
 
-🔬 INTERVENTION (I):
-- Debe ser la tecnología/método/fenómeno central del título
-- Debe ser OPERACIONALIZABLE (se puede buscar en bases de datos)
-- Si es tecnología: especificar versión/tipo y características
-- Si es método: especificar características distintivas y cómo se implementa
-- **LONGITUD MÍNIMA: 40-60 palabras** describiendo la intervención detalladamente
+🔬 **I - INTERVENTION (Intervención/Exposición):**
+- Definición: La tecnología, método, práctica o fenómeno observado que constituye el eje central del estudio.
+- **Debe estar lo más definida y operacionalizada posible** (versión, tipo, características distintivas).
+- Debe ser BUSCABLE en bases de datos académicas (IEEE, Scopus, ACM).
+- **LONGITUD MÍNIMA: 40-60 palabras** describiendo la intervención detalladamente, cómo se implementa, qué la caracteriza.
 
-⚖️ COMPARISON (C):
-- Si NO aplica comparación, indicar: "No se compara con intervención específica" y justificar por qué
-- Si SÍ aplica: ser explícito (ej: "métodos tradicionales sin IA", "placebo", "estándar de oro")
-- **LONGITUD MÍNIMA: 30-50 palabras** justificando la presencia o ausencia de comparación
+**Ejemplo válido:** "Algoritmos de aprendizaje profundo (redes neuronales convolucionales y recurrentes) aplicados en sistemas de reconocimiento de patrones, incluyendo sus arquitecturas, parámetros de configuración y técnicas de entrenamiento."
 
-🎯 OUTCOMES (O):
-- Deben ser MEDIBLES y OBSERVABLES en estudios empíricos
-- Ejemplos válidos: "rendimiento", "tasa de error", "satisfacción del usuario", "tiempo de respuesta"
-- Evitar: "impacto general", "efectividad" (sin especificar qué se mide)
-- **LONGITUD MÍNIMA: 40-60 palabras** listando outcomes específicos, cómo se medirán, por qué son relevantes
+⚖️ **C - COMPARISON (Comparador):**
+- Definición: Alternativa de intervención, métodos tradicionales, estándar de la industria o "sin intervención".
+- **Si NO aplica comparación:** Indicar explícitamente "No se compara con intervención específica" y **justificar por qué** (ej: enfoque exploratorio, no existe estándar de oro claro, naturaleza descriptiva de la revisión).
+- **Si SÍ aplica:** Ser específico (ej: "métodos tradicionales sin IA", "algoritmos clásicos", "enfoque manual").
+- **LONGITUD MÍNIMA: 30-50 palabras**
+
+🎯 **O - OUTCOMES (Resultados Medibles):**
+- Definición: Variables de resultado medibles y observables que se espera encontrar en los estudios.
+- **¿Qué impacto medible se espera obtener?** (rendimiento, precisión, latencia, usabilidad, tasa de error, tiempo de respuesta)
+- Deben ser **métricas específicas** que puedan extraerse de los estudios.
+- **LONGITUD MÍNIMA: 40-60 palabras** listando outcomes concretos, unidades de medida cuando sea posible.
+
+**Ejemplo válido:** "Métricas de rendimiento del sistema medidas en: (1) precisión de clasificación (accuracy, F1-score), (2) tiempo de respuesta en milisegundos, (3) uso de recursos computacionales (CPU, memoria), (4) escalabilidad medida en throughput de peticiones por segundo."
+
+**PREGUNTA CONTESTABLE:**
+Construir pregunta PICO formal que guíe toda la revisión:
+- **CON comparación:** "En [P], ¿cómo influye la aplicación de [I] en comparación con [C] sobre los niveles de [O]?"
+- **SIN comparación:** "En [P], ¿cuál es el efecto/impacto de [I] en términos de [O]?"
 
 ═══════════════════════════════════════════════════════════════
-FASE 2: MATRIZ ES / NO ES
+FASE 2: MATRIZ DE CRITERIOS DE ELEGIBILIDAD (Inclusión/Exclusión)
 ═══════════════════════════════════════════════════════════════
 
-**REGLAS OBLIGATORIAS:**
+Esta matriz sistematiza la revisión y asegura el rigor científico. Debe preparar el terreno para la futura **extracción de datos** en la matriz de síntesis.
 
-1️⃣ DERIVACIÓN DIRECTA:
-   - Todo en ES/NO ES DEBE derivar del título, descripción y área
-   - NO inventar ámbitos fuera del proyecto
+**ANÁLISIS CRÍTICO - 7 DIMENSIONES DE VALIDACIÓN:**
+Genera exactamente 7 elementos de análisis con respuestas fundamentadas:
 
-2️⃣ 5 DIMENSIONES MÍNIMAS (ambos arrays ES y NO_ES):
-   a) Tema/Tecnología específica
-   b) Tipo de estudio/método
-   c) Contexto/Población
-   d) Dominio de aplicación
-   e) Tipo de evidencia
+1. **¿Qué fenómeno/tecnología se investiga específicamente?**
+   - presente: [Respuesta detallada basada en título/descripción, min. 20-30 palabras]
+   - justificacion: [Por qué este foco, relevancia para ${area}, min. 30-40 palabras]
 
-3️⃣ TÉRMINOS MEDIBLES:
-   - ❌ Evitar: "estudios antiguos", "tecnología avanzada", "muy relevante"
-   - ✅ Usar: "estudios publicados entre ${yearStart}-${yearEnd}", "tecnologías X, Y, Z", "evidencia empírica"
+2. **¿En qué contexto técnico o dominio se aplica?**
+   - presente: [Dominio tecnológico específico, NO personas, min. 20-30 palabras]
+   - justificacion: [Relevancia del contexto para la RSL, min. 30-40 palabras]
 
-4️⃣ COHERENCIA CON PICO:
-   - Si ES dice "estudios experimentales" → PICO debe reflejar eso
-   - Si NO ES dice "literatura gris" → esto se convertirá en criterio de exclusión
+3. **¿Qué intervención/método específico se analiza?**
+   - presente: [Detalle del método, características operacionales, min. 20-30 palabras]
+   - justificacion: [Operacionalización, implementación, min. 30-40 palabras]
 
-5️⃣ VALIDACIÓN CRUZADA:
-   - Cada elemento de ES debe tener presencia en algún componente PICO
-   - Cada elemento de NO ES debe justificar una exclusión
+4. **¿Existe comparación con alternativas?**
+   - presente: [Sí/No y cuál específicamente, min. 20-30 palabras]
+   - justificacion: [Delimitación del contraste, impacto en la pregunta, min. 30-40 palabras]
 
-**FORMATO PARA ES (array):**
-Generar 5-7 elementos que definan POSITIVAMENTE el alcance:
-- "Estudios empíricos sobre [tecnología] aplicados en [contexto]"
-- "Investigaciones publicadas entre ${yearStart} y ${yearEnd}"
-- "Artículos en journals revisados por pares"
-- "Aplicaciones en el área de ${area}"
-- etc.
+5. **¿Qué variables de resultado se miden?**
+   - presente: [Métricas de éxito específicas, min. 20-30 palabras]
+   - justificacion: [Por qué estas métricas, relación con objetivos, min. 30-40 palabras]
 
-**FORMATO PARA NO_ES (array):**
-Generar 5-7 elementos que definan LÍMITES NEGATIVOS:
-- "Estudios anteriores a ${yearStart} (contexto desactualizado)"
-- "Literatura gris (tesis, reportes técnicos no publicados)"
-- "Investigaciones en áreas fuera de ${area}"
-- "Artículos sin evidencia empírica"
-- etc.
+6. **¿Qué tipos de estudios se consideran válidos?**
+   - presente: [Diseño metodológico: empírico, experimental, casos de estudio, min. 20-30 palabras]
+   - justificacion: [Adecuación al área ${area}, rigor requerido, min. 30-40 palabras]
 
-**ELEMENTOS DE DELIMITACIÓN (7 preguntas):**
-Genera exactamente 7 elementos de análisis con RESPUESTAS FUNDAMENTADAS:
-- **Campo "presente"**: Mínimo 20-30 palabras, respuesta específica y detallada
-- **Campo "justificacion"**: Mínimo 30-40 palabras, explicación metodológica completa
+7. **¿Cuál es el rigor de la evidencia requerida?**
+   - presente: [Journals, conferencias indexadas, exclusión de literatura gris, min. 20-30 palabras]
+   - justificacion: [Estándares de calidad, impacto en validez de resultados, min. 30-40 palabras]
 
+**CRITERIOS DE INCLUSIÓN (ES) - 7 elementos mínimos:**
+Genera 7 criterios POSITIVOS que definan el alcance de la revisión:
+1. "Estudios que analicen [fenómeno/tecnología específica] en contextos de ${area}"
+2. "Investigaciones que utilicen [método/tecnología I] de forma operacionalizada"
+3. "Estudios que midan resultados en términos de [outcomes específicos]"
+4. "Artículos en journals revisados por pares o conferencias indexadas (IEEE, ACM, Springer, Elsevier)"
+5. "Publicaciones entre ${yearStart} y ${yearEnd}"
+6. "Estudios empíricos con datos cuantitativos o cualitativos verificables"
+7. "Investigaciones en inglés o español con acceso a texto completo"
+
+**CRITERIOS DE EXCLUSIÓN (NO ES) - 7 elementos mínimos:**
+Genera 7 límites NEGATIVOS claros:
+1. "Estudios anteriores a ${yearStart} que no reflejan el estado actual de la tecnología"
+2. "Literatura gris (tesis, reportes técnicos no publicados) que no cumplen estándares académicos"
+3. "Investigaciones en áreas fuera de ${area} que no son relevantes para el fenómeno"
+4. "Artículos sin evidencia empírica (opiniones, editoriales) que no aportan datos verificables"
+5. "Estudios que no analicen específicamente [intervención I]"
+6. "Investigaciones que no midan resultados cuantificables en [outcomes O]"
+7. "Publicaciones en idiomas distintos a inglés/español sin traducción disponible"
+
+**ESTRUCTURA DE MATRIZ DE SÍNTESIS:**
+Define las columnas que se usarán para extraer datos de cada estudio incluido:
 [
-  {
-    pregunta: "¿Qué fenómeno o tecnología se investiga específicamente?",
-    presente: "[respuesta detallada basada en título/descripción, min. 20-30 palabras]",
-    justificacion: "[por qué es relevante para la RSL, conexión con objetivos, min. 30-40 palabras]"
-  },
-  {
-    pregunta: "¿En qué contexto técnico o dominio se investiga?",
-    presente: "[contexto técnico/dominio específico, NO personas, min. 20-30 palabras]",
-    justificacion: "[relevancia del contexto técnico para ${area}, min. 30-40 palabras]"
-  },
-  {
-    pregunta: "¿Qué tipo de intervención o método se analiza?",
-    presente: "[método/tecnología con características distintivas, min. 20-30 palabras]",
-    justificacion: "[operacionalización, cómo se implementa, min. 30-40 palabras]"
-  },
-  {
-    pregunta: "¿Se compara con alguna alternativa?",
-    presente: "[sí/no y cuál, con detalles si aplica, min. 20-30 palabras]",
-    justificacion: "[relevancia de la comparación o ausencia, impacto en RSL, min. 30-40 palabras]"
-  },
-  {
-    pregunta: "¿Qué resultados o variables se miden?",
-    presente: "[outcomes medibles específicos, min. 20-30 palabras]",
-    justificacion: "[por qué estos outcomes, cómo se relacionan con objetivos, min. 30-40 palabras]"
-  },
-  {
-    pregunta: "¿Qué tipos de estudios se consideran válidos?",
-    presente: "[ej: experimentales, observacionales, casos de estudio - con detalles, min. 20-30 palabras]",
-    justificacion: "[adecuación al área ${area}, rigor metodológico requerido, min. 30-40 palabras]"
-  },
-  {
-    pregunta: "¿Qué tipo de evidencia se requiere?",
-    presente: "[ej: datos cuantitativos, análisis cualitativo - con especificaciones, min. 20-30 palabras]",
-    justificacion: "[coherencia metodológica, por qué este tipo de evidencia, min. 30-40 palabras]"
-  }
+  "Autor/Año",
+  "Propósito del estudio",
+  "Población/Contexto (P)",
+  "Intervención aplicada (I)",
+  "Comparador utilizado (C)",
+  "Metodología aplicada (diseño, muestra, instrumentos)",
+  "Resultados clave en Outcomes (O)",
+  "Métricas cuantitativas reportadas",
+  "Conclusiones principales",
+  "Limitaciones del estudio"
 ]
-
-**PREGUNTA REFINADA:**
-Construir pregunta PICO formal:
-"En [P], ¿la aplicación de [I], en comparación con [C], resulta en [O]?"
-
-O si no hay comparación:
-"En [P], ¿cuál es el efecto/impacto de [I] en [O]?"
 
 ═══════════════════════════════════════════════════════════════
 FORMATO JSON DE SALIDA (ESTRICTO)
 ═══════════════════════════════════════════════════════════════
 
 {
-  "titulo_propuesto": "[Título específico de máximo 20 palabras que incluya: fenómeno + contexto + 'revisión sistemática']",
+  "titulo_propuesto": "[Máximo 20 palabras: Fenómeno + Contexto + 'Revisión Sistemática']",
   "fase1_marco_pico": {
     "marco_pico": {
       "population": {
-        "descripcion": "[Estudios [tipo] sobre [fenómeno] en [contexto técnico/dominio]. NO INCLUIR edad, personas, profesiones como población principal. Mínimo 40 palabras.]",
-        "justificacion": "La población se define en términos de estudios/contextos técnicos conforme a metodología PRISMA 2020 y guías de revisiones sistemáticas en ingeniería, donde la unidad de análisis son publicaciones académicas, no sujetos humanos."
+        "descripcion": "[Estudios [tipo] sobre [fenómeno] en [contexto técnico]. NO personas. Mínimo 40 palabras.]",
+        "justificacion": "La población se define en términos de estudios/contextos técnicos conforme a metodología PRISMA 2020, donde la unidad de análisis son publicaciones académicas, no sujetos humanos."
       },
       "intervention": {
-        "descripcion": "[I operacionalizable, derivada del título. Mínimo 40 palabras.]",
-        "justificacion": "[Por qué esta intervención es relevante, cómo se operacionaliza en estudios, relación con ${area}]"
+        "descripcion": "[Tecnología/método operacionalizado con características distintivas. Mínimo 40 palabras.]",
+        "justificacion": "[Por qué esta intervención, cómo se operacionaliza, relación con ${area}. Mínimo 30 palabras.]"
       },
       "comparison": {
-        "descripcion": "[C explícita o 'No aplica'. Mínimo 30 palabras.]",
-        "justificacion": "[Relevancia de la comparación o justificación de su ausencia]"
+        "descripcion": "[Comparador específico o 'No se compara con intervención específica'. Mínimo 30 palabras.]",
+        "justificacion": "[Relevancia de la comparación o justificación de ausencia. Mínimo 30 palabras.]"
       },
       "outcomes": {
-        "descripcion": "[O medibles y observables. Mínimo 40 palabras.]",
-        "justificacion": "[Por qué estos outcomes, cómo se relacionan con objetivos de la revisión]"
+        "descripcion": "[Métricas medibles y observables específicas. Mínimo 40 palabras.]",
+        "justificacion": "[Por qué estos outcomes, cómo se relacionan con objetivos. Mínimo 30 palabras.]"
       }
-    }
+    },
+    "pregunta_contestable": "En [Estudios sobre P], ¿cómo influye [I] en comparación con [C] sobre los niveles de [O]?"
   },
   "fase2_matriz_es_no_es": {
-    "elementos": [
+    "analisis_critico": [
       {
-        "pregunta": "...",
-        "presente": "...",
-        "justificacion": "..."
+        "pregunta": "¿Qué fenómeno/tecnología se investiga específicamente?",
+        "presente": "[min. 20-30 palabras]",
+        "justificacion": "[min. 30-40 palabras]"
       }
       // ... 7 elementos total
     ],
-    "es": [
-      "Elemento ES 1 (dimensión: tema/tecnología)",
-      "Elemento ES 2 (dimensión: tipo de estudio)",
-      "Elemento ES 3 (dimensión: contexto técnico/dominio)",
-      "Elemento ES 4 (dimensión: dominio aplicación)",
-      "Elemento ES 5 (dimensión: tipo de evidencia)",
-      "Elemento ES 6 (adicional: rango temporal ${yearStart}-${yearEnd})",
-      "Elemento ES 7 (adicional específico del área ${area})"
+    "criterios_inclusion_es": [
+      "Criterio inclusión 1 (tema/tecnología)",
+      "Criterio inclusión 2 (método)",
+      "Criterio inclusión 3 (outcomes)",
+      "Criterio inclusión 4 (calidad fuente)",
+      "Criterio inclusión 5 (rango temporal ${yearStart}-${yearEnd})",
+      "Criterio inclusión 6 (tipo evidencia)",
+      "Criterio inclusión 7 (idioma/acceso)"
     ],
-    "no_es": [
-      "Elemento NO ES 1 (exclusión tema/tecnología fuera de alcance)",
-      "Elemento NO ES 2 (exclusión tipo de estudio no válido)",
-      "Elemento NO ES 3 (exclusión contexto técnico no aplicable)",
-      "Elemento NO ES 4 (exclusión dominio fuera de ${area})",
-      "Elemento NO ES 5 (exclusión tipo de evidencia no rigurosa)",
-      "Elemento NO ES 6 (exclusión temporal: antes de ${yearStart})",
-      "Elemento NO ES 7 (exclusión literatura gris o fuentes no académicas)"
+    "criterios_exclusion_no_es": [
+      "Criterio exclusión 1 (temporal)",
+      "Criterio exclusión 2 (literatura gris)",
+      "Criterio exclusión 3 (área no relacionada)",
+      "Criterio exclusión 4 (sin evidencia empírica)",
+      "Criterio exclusión 5 (sin intervención específica)",
+      "Criterio exclusión 6 (sin outcomes medibles)",
+      "Criterio exclusión 7 (idioma sin traducción)"
     ],
-    "pregunta_refinada": "En [estudios sobre contexto P], ¿[verbo investigativo] de [I] [comparación opcional] resulta en [O]?"
+    "estructura_matriz_sintesis": [
+      "Autor/Año",
+      "Propósito del estudio",
+      "Población/Contexto (P)",
+      "Intervención aplicada (I)",
+      "Comparador utilizado (C)",
+      "Metodología aplicada (diseño, muestra, instrumentos)",
+      "Resultados clave en Outcomes (O)",
+      "Métricas cuantitativas reportadas",
+      "Conclusiones principales",
+      "Limitaciones del estudio"
+    ]
   }
 }
 
@@ -285,24 +285,28 @@ VALIDACIÓN FINAL OBLIGATORIA
 ═══════════════════════════════════════════════════════════════
 
 Antes de enviar el JSON, VERIFICA:
+
+✅ **PREGUNTA CONTESTABLE:**
+   - ¿Puede responderse con los estudios delimitados por los criterios?
+   - ¿Los outcomes son medibles en estudios empíricos?
+   - ¿La intervención está suficientemente operacionalizada?
+
 ✅ **POBLACIÓN NO CONTIENE:**
-   - ❌ Edad (años, rango etario)
-   - ❌ Profesiones como sujeto principal ("desarrolladores", "ingenieros", "profesionales")
-   - ❌ Ubicación geográfica de personas
-   - ❌ Características demográficas
+   - ❌ Edad, profesiones como sujeto principal, ubicación geográfica de personas
    
 ✅ **POBLACIÓN SÍ CONTIENE:**
-   - ✅ Tipo de estudios (empíricos, evaluativos, etc.)
-   - ✅ Fenómeno tecnológico investigado
-   - ✅ Contexto técnico o dominio de aplicación
+   - ✅ Tipo de estudios, fenómeno tecnológico, contexto técnico
    - ✅ Justificación metodológica PRISMA 2020
 
-✅ Todos los elementos ES están reflejados en algún componente PICO
-✅ Todos los elementos NO ES justifican exclusiones futuras
-✅ Las 5 dimensiones mínimas están cubiertas en ES y NO ES
-✅ No hay términos ambiguos ("muy", "poco", "relevante" sin cuantificar)
-✅ La pregunta refinada puede responderse con los estudios delimitados
-✅ Cada componente PICO tiene descripción Y justificación
+✅ **CRITERIOS PREPARADOS PARA EXTRACCIÓN:**
+   - ¿Los criterios de inclusión permiten identificar estudios con datos extraíbles?
+   - ¿La estructura de matriz de síntesis cubre todas las dimensiones PICO?
+   - ¿Los outcomes están reflejados como columnas en la matriz?
+
+✅ **COHERENCIA INTERNA:**
+   - Todos los elementos de inclusión están reflejados en PICO
+   - Todos los elementos de exclusión justifican límites claros
+   - La pregunta contestable conecta P-I-C-O de forma lógica
 
 RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
 `.trim();

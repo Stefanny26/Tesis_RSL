@@ -30,7 +30,7 @@ class CreateProjectUseCase {
     // Si viene protocolo estructurado desde el wizard, crearlo automáticamente
     if (protocol) {
       try {
-        console.log('📋 Creando protocolo con criterios:', {
+        console.log('Creando protocolo con criterios:', {
           inclusionCount: protocol.inclusionCriteria?.length || 0,
           exclusionCount: protocol.exclusionCriteria?.length || 0,
           inclusionSample: protocol.inclusionCriteria?.[0],

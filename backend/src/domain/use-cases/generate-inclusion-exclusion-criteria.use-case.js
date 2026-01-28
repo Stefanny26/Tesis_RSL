@@ -24,17 +24,17 @@ class GenerateInclusionExclusionCriteriaUseCase {
       // REGLA METODOLÓGICA: Los criterios DEBEN basarse en el título de la RSL seleccionado
       const rslTitle = selectedTitle || projectTitle || 'Proyecto sin título';
       
-      console.log('🔍 Generando criterios de inclusión/exclusión...');
-      console.log('📋 Título RSL:', rslTitle.substring(0, 60) + '...');
-      console.log('⏰ Rango temporal para prompt: yearStart =', yearStart, ', yearEnd =', yearEnd);
+      console.log('Generando criterios de inclusión/exclusión...');
+      console.log('Título RSL:', rslTitle.substring(0, 60) + '...');
+      console.log('Rango temporal para prompt: yearStart =', yearStart, ', yearEnd =', yearEnd);
       
       if (specificType) {
-        console.log('🎯 Regenerando tipo específico:', specificType);
-        console.log('📂 Categoría específica:', categoryName || categoryIndex);
-        console.log('💡 Enfoque personalizado:', customFocus || 'predeterminado');
+        console.log('Regenerando tipo específico:', specificType);
+        console.log('Categoría específica:', categoryName || categoryIndex);
+        console.log('Enfoque personalizado:', customFocus || 'predeterminado');
       }
 
-      console.log('📝 Construyendo prompt con años:', { yearStart, yearEnd });
+      console.log('Construyendo prompt con años:', { yearStart, yearEnd });
 
       const prompt = this.buildPrompt({ 
         rslTitle,
@@ -61,7 +61,7 @@ class GenerateInclusionExclusionCriteriaUseCase {
       });
       text = completion.choices[0].message.content;
 
-      console.log('📄 Respuesta completa de IA:');
+      console.log('Respuesta completa de IA:');
       console.log(text);
       console.log('─────────────────────────────────────');
 
@@ -69,7 +69,7 @@ class GenerateInclusionExclusionCriteriaUseCase {
       const isSingleCriterion = categoryIndex !== undefined && categoryName;
       const criteria = this.parseResponse(text, isSingleCriterion);
 
-      console.log('✅ Criterios generados exitosamente');
+      console.log('Criterios generados exitosamente');
 
       return {
         success: true,
@@ -78,7 +78,7 @@ class GenerateInclusionExclusionCriteriaUseCase {
       };
 
     } catch (error) {
-      console.error('❌ Error generando criterios:', error);
+      console.error('Error generando criterios:', error);
       throw new Error(`Error generando criterios: ${error.message}`);
     }
   }
@@ -132,166 +132,89 @@ class GenerateInclusionExclusionCriteriaUseCase {
     }
 
     return `
-Eres un experto en metodología PRISMA/Cochrane para revisiones sistemáticas de literatura. Tu tarea: generar CRITERIOS DE INCLUSIÓN Y EXCLUSIÓN nivel protocolo reproducible.
+Eres un experto en Metodología PRISMA 2020. Tu misión es generar la tabla de Criterios de Elegibilidad (Inclusión/Exclusión) para una Revisión Sistemática.
+
+REGLA DE ORO: Los criterios no son "opuestos". El criterio de Inclusión define la PERTINENCIA. El de Exclusión define el RUIDO o falta de CALIDAD/ACCESO.
 
 RESPONDE ÚNICAMENTE con la TABLA en formato de texto (sin markdown, sin JSON).
 
 ═══════════════════════════════════════════════════════════════
-PRINCIPIO METODOLÓGICO FUNDAMENTAL
+INSUMOS TÉCNICOS (DERIVACIÓN OBLIGATORIA)
 ═══════════════════════════════════════════════════════════════
 
-⚠️ REGLA CRÍTICA: Los criterios I/E DEBEN derivarse del TÍTULO DE LA RSL
+TÍTULO: "${title}"
 
-Secuencia obligatoria:
-Título → PICO → Definición de términos → Criterios I/E
-
-Los criterios NO se inventan, SE DERIVAN del título seleccionado.
-Todo lo que no esté explícito o implícito en el título no puede incluirse.
-
-═══════════════════════════════════════════════════════════════
-TÍTULO DE LA REVISIÓN SISTEMÁTICA (FUENTE ÚNICA)
-═══════════════════════════════════════════════════════════════
-
-"${title}"
-
-⚠️ IMPORTANTE: Los criterios DEBEN derivar directamente de este título.
-
-═══════════════════════════════════════════════════════════════
-REGLAS METODOLÓGICAS OBLIGATORIAS
-═══════════════════════════════════════════════════════════════
-
-⚠️ REGLA 1: DERIVACIÓN DIRECTA DEL PICO
-- Cada criterio DEBE mapearse a P, I, C u O
-- Si un criterio no deriva del PICO, NO DEBE EXISTIR
-
-⚠️ REGLA 2: CRITERIOS OPERACIONALES (NO AMBIGUOS)
-- Deben poder aplicarse objetivamente por dos revisores distintos
-- Deben producir el mismo resultado siempre
-- ❌ "Estudios relevantes" → ✅ "Estudios que analicen prácticas de desarrollo, desempeño o patrones arquitectónicos"
-
-⚠️ REGLA 3: EXCLUSIÓN CON JUSTIFICACIÓN EXPLÍCITA
-- Cada exclusión debe responder a:
-  • Incompatibilidad temática
-  • Incompatibilidad tecnológica
-  • Bajo nivel de evidencia
-  • Falta de aporte analítico
-  • Inviabilidad metodológica
-
-⚠️ REGLA 4: EVITAR SESGOS METODOLÓGICOS
-- Evitar sesgo de idioma (justificar si existe)
-- Evitar sesgo temporal injustificado
-- Evitar sesgo de publicación (considerar literatura gris)
-- Evitar sesgo de confirmación tecnológica
-
-═══════════════════════════════════════════════════════════════
-CONTEXTO DEL PROTOCOLO
-═══════════════════════════════════════════════════════════════
-
-TÉRMINOS DEL PROTOCOLO (derivados del título en Paso 4):
-
-🔬 TECNOLOGÍA/HERRAMIENTAS (alineado con PICO-I):
+TECNOLOGÍAS (I - Intervención):
 ${technologies.length ? technologies.map(t => `• ${t}`).join('\n') : '• No especificado'}
 
-🏥 DOMINIO DE APLICACIÓN (alineado con PICO-P):
+CONTEXTO (P - Población):
 ${domains.length ? domains.map(d => `• ${d}`).join('\n') : '• No especificado'}
 
-📚 TIPO DE ESTUDIO (diseño metodológico):
-${studyTypes.length ? studyTypes.map(s => `• ${s}`).join('\n') : '• No especificado'}
-
-🎯 FOCOS TEMÁTICOS (alineado con PICO-O):
-${themes.length ? themes.map(t => `• ${t}`).join('\n') : '• No especificado'}
+OUTCOMES (O - Resultados):
+${themes.length ? themes.map(t => `• ${t}`).join('\n') : '• Métricas de rendimiento/impacto'}
 
 COMPONENTES PICO:
 - P (Población): ${picoData?.population || 'No especificado'}
 - I (Intervención): ${picoData?.intervention || 'No especificado'}
 - C (Comparación): ${picoData?.comparison || 'N/A'}
-- O (Outcomes): ${picoData?.outcome || 'No especificado'}
+- O (Outcomes): ${picoData?.outcome || 'Métricas de rendimiento/impacto'}
+
+RANGO TEMPORAL: ${yearStart || 2019} - ${yearEnd || 2025}
 
 ═══════════════════════════════════════════════════════════════
-INSTRUCCIONES PARA GENERACIÓN
+INSTRUCCIONES DE REDACCIÓN ACADÉMICA
 ═══════════════════════════════════════════════════════════════
 
-Genera una TABLA con EXACTAMENTE 6 CATEGORÍAS:
+1. COBERTURA TEMÁTICA:
+   - Debe mencionar explícitamente la relación entre [I] y [P] del PICO
+   - Usar términos específicos del protocolo, no generalizaciones
 
-1. Cobertura temática
-2. Tecnologías abordadas
-3. Tipo de estudio
-4. Tipo de documento
-5. Rango temporal
-6. Idioma
+2. TECNOLOGÍAS ABORDADAS:
+   - No solo listar, sino especificar el ROL de la tecnología
+   - Ejemplo: "como arquitectura principal" o "en la capa de persistencia"
 
-Cada fila debe tener 3 columnas separadas por " | ":
+3. TIPO DE ESTUDIO:
+   - Priorizar: estudios empíricos, experimentales, casos de estudio, comparativas técnicas
+   - Excluir: opiniones, tutoriales sin validación, documentación conceptual
+
+4. EXCLUSIÓN DE CALIDAD:
+   - La exclusión debe enfocarse en:
+     * Falta de datos o metodología opaca
+     * Literatura gris o duplicidad
+     * Estudios tangenciales donde el tema no es central
+     * Tecnologías obsoletas o fuera del ecosistema
+
+5. RANGO TEMPORAL:
+   OBLIGATORIO: Usar exactamente los años ${yearStart || 2019}-${yearEnd || 2025}
+   Justificar la exclusión de estudios anteriores (relevancia tecnológica actual)
+
+6. IDIOMA:
+   - Inclusión: Inglés (idioma dominante en literatura técnica)
+   - Exclusión: Otros idiomas sin traducción técnica certificada o resumen detallado
+
+═══════════════════════════════════════════════════════════════
+FORMATO DE SALIDA (TABLA ESTRICTA)
+═══════════════════════════════════════════════════════════════
+
+Responde SOLO con la tabla usando el separador " | ". 6 filas obligatorias:
+
 Categoría | Criterio de Inclusión | Criterio de Exclusión
-
-FORMATO EXACTO (copia esta estructura):
-
-Cobertura temática | [criterio inclusión] | [criterio exclusión]
-Tecnologías abordadas | [criterio inclusión] | [criterio exclusión]
-Tipo de estudio | [criterio inclusión] | [criterio exclusión]
-Tipo de documento | [criterio inclusión] | [criterio exclusión]
-Rango temporal | [criterio inclusión] | [criterio exclusión]
-Idioma | [criterio inclusión] | [criterio exclusión]
+Cobertura temática | [Estudios que analizan [I] aplicados a [P] para [O]] | [Estudios donde el tema es tangencial o no aborda la relación técnica central]
+Tecnologías abordadas | [Uso específico de [tecnología] en el diseño o implementación] | [Tecnologías obsoletas o fuera del ecosistema definido en el protocolo]
+Tipo de estudio | [Investigaciones empíricas, estudios experimentales, comparativas técnicas y revisiones sistemáticas previas] | [Artículos de opinión, editoriales, tutoriales sin validación o discusiones conceptuales sin datos]
+Tipo de documento | [Artículos de revistas científicas (Journals) y conferencias indexadas (Peer-reviewed)] | [Blogs, white papers, libros de texto o documentación oficial de proveedores]
+Rango temporal | [Publicaciones realizadas entre ${yearStart || 2019} y ${yearEnd || 2025}] | [Estudios publicados antes de ${yearStart || 2019} o sin relevancia para el estado del arte actual]
+Idioma | [Artículos escritos en Inglés (idioma de la literatura técnica dominante)] | [Artículos en otros idiomas que no dispongan de traducción técnica certificada o resumen detallado]
 
 ═══════════════════════════════════════════════════════════════
-REGLAS DE REDACCIÓN (NIVEL EXPERTO)
+VALIDACIÓN FINAL
 ═══════════════════════════════════════════════════════════════
-
-✅ INCLUSIÓN: Debe mencionar EXPLÍCITAMENTE los términos del protocolo
-❌ EXCLUSIÓN: Debe ser el OPUESTO LÓGICO y JUSTIFICADO
-
-EJEMPLOS DE CRITERIOS BIEN REDACTADOS:
-
-1. Cobertura temática:
-   ✅ INCLUSIÓN: "Estudios que mencionen explícitamente [tecnología X] y [tecnología Y] en el título, resumen o palabras clave."
-   ✅ EXCLUSIÓN: "Publicaciones donde estos términos no aparecen o no están relacionados con el objetivo del estudio."
-
-2. Tecnologías abordadas:
-   ✅ INCLUSIÓN: "Uso de [tecnología específica] como [función específica] en aplicaciones [dominio] desarrolladas con [stack tecnológico]."
-   ✅ EXCLUSIÓN: "Estudios centrados en [tecnologías alternativas], bases [tipo diferente] o tecnologías fuera del ecosistema [especificar]."
-
-3. Tipo de estudio:
-   ✅ INCLUSIÓN: "Estudios empíricos, estudios de caso, análisis de desempeño, evaluaciones arquitectónicas o comparativas técnicas."
-   ✅ EXCLUSIÓN: "Artículos puramente introductorios, tutoriales, opiniones o documentación técnica sin análisis sistemático."
-
-4. Tipo de documento:
-   ✅ INCLUSIÓN: "Artículos revisados por pares publicados en journals o conferencias indexadas."
-   ✅ EXCLUSIÓN: "Blogs, white papers, tutoriales, documentación oficial y literatura gris."
-
-5. Rango temporal:
-   ⚠️ **OBLIGATORIO USAR ESTOS AÑOS EXACTOS**:
-   ✅ INCLUSIÓN: "Publicaciones entre ${yearStart && yearEnd ? `${yearStart} y ${yearEnd}` : '2019 y 2025'}."
-   ✅ EXCLUSIÓN: "Estudios previos a ${yearStart || '2019'} o sin relevancia tecnológica contemporánea."
-   ⚠️ **NO USES OTROS AÑOS DIFERENTES A ${yearStart || '2019'}-${yearEnd || '2025'}**
-
-6. Idioma:
-   ✅ INCLUSIÓN: "Publicaciones en inglés." [Justificación implícita: idioma dominante en literatura técnica]
-   ✅ EXCLUSIÓN: "Publicaciones en otros idiomas sin traducción disponible."
-
-═══════════════════════════════════════════════════════════════
-VALIDACIÓN AUTOMÁTICA (CHECKLIST)
-═══════════════════════════════════════════════════════════════
-
-⚠️ **VERIFICACIÓN FINAL DE AÑOS**: 
-   Años recibidos: yearStart=${yearStart}, yearEnd=${yearEnd}
-   Texto generado debe usar: ${yearStart || '2019'}-${yearEnd || '2025'}
 
 Antes de generar, verifica:
-✓ ¿Cada criterio se deriva del PICO o términos del protocolo?
-✓ ¿Puede aplicarse sin interpretación subjetiva?
-✓ ¿Cada exclusión tiene justificación explícita?
-✓ ¿Permite que otro investigador replique el estudio?
-✓ ¿Está alineado con PRISMA Item 5 y 6?
-
-═══════════════════════════════════════════════════════════════
-AHORA GENERA LA TABLA PARA ESTE PROYECTO
-═══════════════════════════════════════════════════════════════
-
-INSTRUCCIÓN FINAL:
-1. Analiza los términos del protocolo arriba
-2. Mapea cada categoría a PICO: Cobertura→(I), Tecnologías→(I), Tipo estudio→metodología, Focos→(O)
-3. Genera criterios ESPECÍFICOS que mencionen los términos del protocolo
-4. Asegura que cada exclusión sea el opuesto lógico y justificado
-5. Responde SOLO con la tabla en formato texto (6 filas, 3 columnas separadas por " | ")
+- Cada criterio de INCLUSIÓN menciona términos específicos del protocolo
+- Cada criterio de EXCLUSIÓN justifica POR QUÉ se descarta (no solo niega la inclusión)
+- Los años son exactamente ${yearStart || 2019}-${yearEnd || 2025}
+- La tabla tiene 6 filas con 3 columnas separadas por " | "
 
 GENERA LA TABLA AHORA:
 `.trim();
@@ -316,10 +239,10 @@ CONTEXTO DEL PROTOCOLO
 PROYECTO: "${projectTitle}"
 
 TÉRMINOS DEL PROTOCOLO:
-🔬 Tecnología: ${technologies.join(', ')}
-🏥 Dominio: ${domains.join(', ')}
-📚 Tipo estudio: ${studyTypes.join(', ')}
-🎯 Focos: ${themes.join(', ')}
+- Tecnología: ${technologies.join(', ')}
+- Dominio: ${domains.join(', ')}
+- Tipo estudio: ${studyTypes.join(', ')}
+- Focos: ${themes.join(', ')}
 
 PICO:
 - P: ${picoData?.population || 'No especificado'}
@@ -363,65 +286,61 @@ GENERA LA TABLA AHORA:
    */
   buildSingleCriterionPrompt({ technologies, domains, studyTypes, themes, picoData, projectTitle, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd }) {
     const typeLabel = specificType === 'inclusion' ? 'INCLUSIÓN' : 'EXCLUSIÓN';
+    const isInclusion = specificType === 'inclusion';
 
     return `
-Eres un experto en metodología PRISMA. Genera ÚNICAMENTE un criterio de ${typeLabel} para la categoría "${categoryName}".
+Eres un revisor metodológico de la metodología PRISMA 2020.
+Tarea: Redactar UN SOLO criterio de ${typeLabel} para la categoría "${categoryName}".
 
-CONTEXTO DEL PROTOCOLO:
-🔬 Tecnología: ${technologies.join(', ')}
-🏥 Dominio: ${domains.join(', ')}
-📚 Tipo estudio: ${studyTypes.join(', ')}
-🎯 Focos: ${themes.join(', ')}
+CONTEXTO PARA COHERENCIA:
+- Tecnología central: ${technologies.join(', ')}
+- Dominio/Contexto: ${domains.join(', ')}
+- Focos temáticos: ${themes.join(', ')}
+- PICO-I: ${picoData?.intervention || 'N/A'}
+- PICO-P: ${picoData?.population || 'N/A'}
+- PICO-O: ${picoData?.outcome || 'N/A'}
+- Rango temporal: ${yearStart || 2019} a ${yearEnd || 2025}
 
-PICO: P=${picoData?.population || 'N/A'}, I=${picoData?.intervention || 'N/A'}, O=${picoData?.outcome || 'N/A'}
+ENFOQUE SOLICITADO POR EL USUARIO:
+"${customFocus}"
 
-CATEGORÍA: "${categoryName}"
-TIPO: ${typeLabel}
-${customFocus ? `ENFOQUE: "${customFocus}"` : ''}
+REGLAS DE ORO PARA EL CRITERIO:
+1. Sé ultra-específico. Evita palabras como "relevante" o "importante".
+2. Si es INCLUSIÓN: Describe la característica técnica que DEBE estar presente.
+3. Si es EXCLUSIÓN: Describe el motivo por el cual un estudio, aunque parezca tratar el tema, debe ser descartado (ej: falta de rigor, escala inadecuada, tipo de documento).
+4. No uses más de 25 palabras.
+5. El criterio de EXCLUSIÓN NO debe ser simplemente "No cumplir el de inclusión", sino justificar técnicamente POR QUÉ se descarta.
 
-INSTRUCCIONES SEGÚN CATEGORÍA:
+INSTRUCCIONES SEGÚN CATEGORÍA "${categoryName}":
 
 ${categoryName.toLowerCase().includes('cobertura') ? `
-- Mencionar EXPLÍCITAMENTE tecnologías: ${technologies.join(', ')}
-- Contexto/dominios: ${domains.join(', ')}
-- ${specificType === 'inclusion' ? '✅ "Estudios que mencionen explícitamente [tecnologías] en [dominios]"' : '❌ "Publicaciones donde estos términos no aparecen"'}
+- Mencionar explícitamente la relación entre ${technologies.join(', ')} y ${domains.join(', ')}
+- ${isInclusion ? 'INCLUSIÓN: Estudios que analicen [I] aplicados a [P] para [O]' : 'EXCLUSIÓN: Estudios donde el tema es tangencial o no aborda la relación técnica central'}
 ` : ''}
 
 ${categoryName.toLowerCase().includes('tecnolog') ? `
-- Especificar tecnologías CONCRETAS: ${technologies.join(', ')}
-- Dominios: ${domains.join(', ')}
-- ${specificType === 'inclusion' ? '✅ "Uso de [tecnología X] como [función] en [dominio]"' : '❌ "Estudios centrados en otras tecnologías fuera del ecosistema"'}
-` : ''}
-
-${categoryName.toLowerCase().includes('dominio') ? `
-- Referirse al contexto poblacional: ${domains.join(', ')}
-- Alineado con PICO-P: ${picoData?.population || 'población'}
-- ${specificType === 'inclusion' ? '✅ "Aplicaciones [tipo] en entornos [dominio]"' : '❌ "Aplicaciones en contextos no relacionados"'}
+- Especificar el ROL de la tecnología (ej: "como arquitectura principal")
+- ${isInclusion ? 'INCLUSIÓN: Uso específico de [tecnología] en el diseño o implementación' : 'EXCLUSIÓN: Tecnologías obsoletas o fuera del ecosistema definido en el protocolo'}
 ` : ''}
 
 ${categoryName.toLowerCase().includes('tipo de estudio') ? `
-- Tipos definidos: ${studyTypes.join(', ')}
-- ${specificType === 'inclusion' ? '✅ "Estudios empíricos, casos, análisis comparativos"' : '❌ "Tutoriales sin análisis sistemático"'}
+- ${isInclusion ? 'INCLUSIÓN: Investigaciones empíricas, experimentales, comparativas técnicas' : 'EXCLUSIÓN: Artículos de opinión, tutoriales sin validación, discusiones conceptuales sin datos'}
 ` : ''}
 
 ${categoryName.toLowerCase().includes('documento') ? `
-- ${specificType === 'inclusion' ? '✅ "Artículos revisados por pares en journals/conferencias indexadas"' : '❌ "Blogs, tutoriales, literatura gris"'}
+- ${isInclusion ? 'INCLUSIÓN: Artículos de revistas científicas y conferencias indexadas (peer-reviewed)' : 'EXCLUSIÓN: Blogs, white papers, libros de texto o documentación oficial de proveedores'}
 ` : ''}
 
 ${categoryName.toLowerCase().includes('temporal') ? `
-- Rango: ${yearStart && yearEnd ? `${yearStart}-${yearEnd}` : '2019-2025'}
-- ${specificType === 'inclusion' ? `✅ "Publicaciones entre ${yearStart || 2019} y ${yearEnd || 2025}"` : `❌ "Estudios previos a ${yearStart || 2019}"`}
+- OBLIGATORIO: Usar exactamente ${yearStart || 2019}-${yearEnd || 2025}
+- ${isInclusion ? `INCLUSIÓN: Publicaciones realizadas entre ${yearStart || 2019} y ${yearEnd || 2025}` : `EXCLUSIÓN: Estudios publicados antes de ${yearStart || 2019} o sin relevancia para el estado del arte actual`}
 ` : ''}
 
 ${categoryName.toLowerCase().includes('idioma') ? `
-- ${specificType === 'inclusion' ? '✅ "Publicaciones en inglés"' : '❌ "Artículos en otros idiomas sin traducción"'}
+- ${isInclusion ? 'INCLUSIÓN: Artículos en Inglés (idioma dominante en literatura técnica)' : 'EXCLUSIÓN: Artículos en otros idiomas sin traducción técnica certificada o resumen detallado'}
 ` : ''}
 
-${categoryName.toLowerCase().includes('acceso') || categoryName.toLowerCase().includes('texto completo') ? `
-- ${specificType === 'inclusion' ? '✅ "Artículos con acceso completo al texto"' : '❌ "Estudios sin acceso completo o solo resumen"'}
-` : ''}
-
-RESPONDE SOLO CON EL CRITERIO (texto plano, máximo 2-3 líneas):
+RESPONDE SOLO CON EL TEXTO DEL CRITERIO (máximo 25 palabras):
 `;
   }
 
@@ -429,8 +348,8 @@ RESPONDE SOLO CON EL CRITERIO (texto plano, máximo 2-3 líneas):
    * Parsea la respuesta de la IA en formato tabla o criterio único
    */
   parseResponse(text, isSingleCriterion = false) {
-    console.log('🔍 Parseando respuesta de criterios...');
-    console.log('📄 Texto completo:', text.substring(0, 500));
+    console.log('Parseando respuesta de criterios...');
+    console.log('Texto completo:', text.substring(0, 500));
 
     // Si es un solo criterio, retornarlo directamente
     if (isSingleCriterion) {
@@ -438,7 +357,7 @@ RESPONDE SOLO CON EL CRITERIO (texto plano, máximo 2-3 líneas):
         .replace(/^["']|["']$/g, '') // Quitar comillas al inicio/final
         .replace(/^\*\*|\*\*$/g, ''); // Quitar markdown bold
       
-      console.log('✅ Criterio único parseado:', cleanedText);
+      console.log('Criterio único parseado:', cleanedText);
       return { singleCriterion: cleanedText };
     }
 
@@ -487,23 +406,23 @@ RESPONDE SOLO CON EL CRITERIO (texto plano, máximo 2-3 líneas):
               inclusion: inclusion,
               exclusion: exclusion
             });
-            console.log(`✅ Criterio parseado: ${category}`);
+            console.log(`Criterio parseado: ${category}`);
           }
         }
       }
     }
 
-    console.log(`📊 Total criterios parseados: ${criteria.length}`);
+    console.log(`Total criterios parseados: ${criteria.length}`);
 
     // Si no se encontró formato de tabla, intentar buscar las 6 categorías directamente
     if (criteria.length === 0) {
-      console.warn('⚠️  No se encontró formato de tabla estándar, buscando categorías directamente...');
+      console.warn('No se encontró formato de tabla estándar, buscando categorías directamente...');
       return this.parseByCategories(text);
     }
 
     // Asegurar que haya exactamente 6 categorías (nivel protocolo PRISMA)
     if (criteria.length < 6) {
-      console.warn(`⚠️  Solo se encontraron ${criteria.length} categorías, buscando las faltantes...`);
+      console.warn(`Solo se encontraron ${criteria.length} categorías, buscando las faltantes...`);
       const foundCategories = new Set(criteria.map(c => c.category.toLowerCase()));
       
       const defaultCategories = [
@@ -587,7 +506,7 @@ RESPONDE SOLO CON EL CRITERIO (texto plano, máximo 2-3 líneas):
              !trimmed.match(/^[\|:\-\s]+$/); // No es separador
     });
 
-    console.log(`🔎 Encontradas ${rows.length} filas de tabla`);
+    console.log(`Encontradas ${rows.length} filas de tabla`);
 
     for (const category of categories) {
       // Buscar la fila que contiene esta categoría
@@ -612,14 +531,14 @@ RESPONDE SOLO CON EL CRITERIO (texto plano, máximo 2-3 líneas):
               inclusion: columns[1],
               exclusion: columns[2]
             });
-            console.log(`✅ Categoría encontrada: ${category.name}`);
+            console.log(`Categoría encontrada: ${category.name}`);
             break;
           }
         }
       }
     }
 
-    console.log(`📊 Total categorías encontradas: ${criteria.length}`);
+    console.log(`Total categorías encontradas: ${criteria.length}`);
 
     // Si aún no tenemos 6, agregar valores predeterminados
     if (criteria.length < 6) {

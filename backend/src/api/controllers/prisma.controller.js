@@ -2,10 +2,8 @@ const PrismaItemRepository = require('../../infrastructure/repositories/prisma-i
 const ProtocolRepository = require('../../infrastructure/repositories/protocol.repository');
 const ProjectRepository = require('../../infrastructure/repositories/project.repository');
 const ReferenceRepository = require('../../infrastructure/repositories/reference.repository');
-const GeneratePrismaContentUseCase = require('../../domain/use-cases/generate-prisma-content.use-case');
 const ExtractFullTextDataUseCase = require('../../domain/use-cases/extract-fulltext-data.use-case');
 const GeneratePrismaContextUseCase = require('../../domain/use-cases/generate-prisma-context.use-case');
-const CompletePrismaItemsUseCase = require('../../domain/use-cases/complete-prisma-items.use-case');
 const CompletePrismaByBlocksUseCase = require('../../domain/use-cases/complete-prisma-by-blocks.use-case');
 const AIService = require('../../infrastructure/services/ai.service');
 
@@ -136,64 +134,7 @@ class PrismaController {
     }
   }
 
-  /**
-   * POST /api/projects/:projectId/prisma/generate
-   * Generar contenido automatizado para todos los ítems PRISMA
-   */
-  async generateContent(req, res) {
-    try {
-      const { projectId } = req.params;
 
-      // Verificar permisos
-      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
-      if (!isOwner) {
-        return res.status(403).json({
-          success: false,
-          message: 'No tienes permiso para generar contenido PRISMA'
-        });
-      }
-
-      console.log(`🔄 Generando contenido PRISMA automatizado para proyecto: ${projectId}`);
-
-      // Ejecutar caso de uso
-      const generateUseCase = new GeneratePrismaContentUseCase(
-        this.protocolRepository,
-        null, // referenceRepository (no necesario por ahora)
-        null  // screeningRepository (no necesario por ahora)
-      );
-
-      const generatedItems = await generateUseCase.execute(projectId);
-
-      // Guardar todos los ítems en batch
-      const savedItems = await this.prismaItemRepository.upsertBatch(generatedItems);
-
-      console.log(`✅ Generados y guardados ${savedItems.length} ítems PRISMA`);
-
-      // Obtener estadísticas actualizadas
-      const stats = await this.prismaItemRepository.getComplianceStats(projectId);
-
-      res.status(200).json({
-        success: true,
-        message: `Se generó contenido automatizado para ${savedItems.length} ítems PRISMA`,
-        data: {
-          items: savedItems.map(item => item.toJSON()),
-          stats: {
-            total: parseInt(stats.total) || 27,
-            completed: parseInt(stats.completed) || 0,
-            automated: parseInt(stats.automated) || 0,
-            human: parseInt(stats.human) || 0,
-            hybrid: parseInt(stats.hybrid) || 0
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error generando contenido PRISMA:', error);
-      res.status(500).json({
-        success: false,
-        message: `Error al generar contenido PRISMA: ${error.message}`
-      });
-    }
-  }
 
   /**
    * PUT /api/projects/:projectId/prisma/:itemNumber
@@ -476,59 +417,7 @@ class PrismaController {
     }
   }
 
-  /**
-   * POST /api/projects/:projectId/prisma/complete-items
-   * Completar ítems PRISMA automáticamente
-   */
-  async completeItems(req, res) {
-    try {
-      const { projectId } = req.params;
 
-      // Verificar permisos
-      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
-      if (!isOwner) {
-        return res.status(403).json({
-          success: false,
-          message: 'No tienes permiso para completar ítems PRISMA'
-        });
-      }
-
-      // Crear use cases
-      const generateContextUseCase = new GeneratePrismaContextUseCase({
-        protocolRepository: this.protocolRepository,
-        referenceRepository: this.referenceRepository,
-        projectRepository: this.projectRepository
-      });
-
-      const extractFullTextUseCase = new ExtractFullTextDataUseCase({
-        referenceRepository: this.referenceRepository,
-        aiService: new AIService(req.userId)
-      });
-
-      const completeItemsUseCase = new CompletePrismaItemsUseCase({
-        protocolRepository: this.protocolRepository,
-        aiService: new AIService(req.userId),
-        generatePrismaContextUseCase: generateContextUseCase,
-        extractFullTextDataUseCase: extractFullTextUseCase
-      });
-
-      const result = await completeItemsUseCase.execute(projectId);
-
-      res.status(200).json({
-        success: true,
-        data: result,
-        message: result.message
-      });
-
-    } catch (error) {
-      console.error('❌ Error completando ítems PRISMA:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error al completar ítems PRISMA',
-        error: error.message
-      });
-    }
-  }
 
   /**
    * POST /api/projects/:projectId/prisma/complete-by-blocks
