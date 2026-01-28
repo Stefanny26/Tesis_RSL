@@ -31,11 +31,6 @@ class GetApiUsageStatsUseCase {
           dailyTokenLimit: 200000,
           model: 'GPT-4o-mini'
         },
-        gemini: {
-          dailyRequestLimit: 1500,
-          dailyTokenLimit: 1000000,
-          model: 'gemini-2.0-flash-exp'
-        },
         embeddings: {
           model: 'all-MiniLM-L6-v2'
         }
@@ -43,7 +38,6 @@ class GetApiUsageStatsUseCase {
 
       // Calcular uso por proveedor
       const chatgptUsage = usage.filter(u => u.provider === 'chatgpt');
-      const geminiUsage = usage.filter(u => u.provider === 'gemini');
       const embeddingsUsage = usage.filter(u => u.provider === 'embeddings');
 
       const buildProviderStats = (providerUsage, providerLimits, providerName) => {
@@ -79,7 +73,6 @@ class GetApiUsageStatsUseCase {
 
       const summary = {
         chatgpt: buildProviderStats(chatgptUsage, limits.chatgpt, 'ChatGPT'),
-        gemini: buildProviderStats(geminiUsage, limits.gemini, 'Gemini'),
         embeddings: {
           provider: 'Embeddings',
           model: limits.embeddings.model,

@@ -1,15 +1,11 @@
 const OpenAI = require('openai');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Ajv = require('ajv');
 const ajv = new Ajv({ allErrors: true, strict: false });
 
 class GenerateProtocolAnalysisUseCase {
-  constructor({ openaiApiKey = process.env.OPENAI_API_KEY, geminiApiKey = process.env.GEMINI_API_KEY } = {}) {
+  constructor({ openaiApiKey = process.env.OPENAI_API_KEY } = {}) {
     if (openaiApiKey) {
       this.openai = new OpenAI({ apiKey: openaiApiKey });
-    }
-    if (geminiApiKey) {
-      this.gemini = new GoogleGenerativeAI(geminiApiKey);
     }
     this.outputSchema = {
       type: 'object',
@@ -330,27 +326,6 @@ RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
     return this.normalizeText(res);
   }
 
-  async generateWithGemini(prompt) {
-    if (!this.gemini) throw new Error('Gemini no configurado');
-    const model = this.gemini.getGenerativeModel({ 
-      model: 'gemini-2.0-flash-exp',
-      systemInstruction: 'Eres un experto en metodología PRISMA/Cochrane para revisiones sistemáticas en Ingeniería y Tecnología. REGLA CRÍTICA: La POBLACIÓN en RSL de ingeniería son ESTUDIOS o CONTEXTOS TECNOLÓGICOS, NUNCA personas (edad, profesiones, ubicación geográfica).'
-    });
-    const result = await this.retry(async () => {
-      const r = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt + '. Responde ÚNICAMENTE con JSON válido, sin texto adicional.' }] }],
-        generationConfig: { 
-          temperature: 0.6, // Aumentado de 0.3 a 0.6 para mayor especificidad
-          maxOutputTokens: 10000, // Aumentado para prompt más largo
-          responseMimeType: 'application/json' 
-        }
-      });
-      const response = await r.response;
-      return await response.text();
-    }, 3, 500);
-    return this.normalizeText(result);
-  }
-
   async parseAndValidateJson(rawText, correctionFn = null) {
     const cleaned = this.normalizeText(rawText);
     try {
@@ -381,10 +356,12 @@ RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
    * @param {string} params.area - Área de conocimiento (opcional)
    * @param {number} params.yearStart - Año inicial del rango temporal (opcional, default: 2019)
    * @param {number} params.yearEnd - Año final del rango temporal (opcional, default: 2025)
-   * @param {string} params.aiProvider - Proveedor de IA ('chatgpt' o 'gemini', default: 'chatgpt')
+   * @param {string} params.aiProvider - Proveedor de IA (default: 'chatgpt')
    */
   async execute({ title, description, area, yearStart, yearEnd, aiProvider = 'chatgpt' } = {}) {
     if (!title || !description) throw new Error('Titulo y descripcion requeridos');
+    if (!this.openai) throw new Error('No hay proveedor de IA configurado (OpenAI)');
+    
     console.log('🔬 Generando análisis de protocolo...');
     console.log('   Proveedor:', aiProvider);
     console.log('   Área:', area || 'No especificada');
@@ -392,56 +369,22 @@ RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
     
     const prompt = this.buildPrompt({ title, description, area, yearStart, yearEnd });
     const chatgptCaller = async (p) => await this.generateWithChatGPT(p);
-    const geminiCaller = async (p) => await this.generateWithGemini(p);
-    let raw, usedProvider = aiProvider;
+    
+    let raw;
     try {
-      if (aiProvider === 'chatgpt' && this.openai) {
-        raw = await chatgptCaller(prompt);
-      } else if (aiProvider === 'gemini' && this.gemini) {
-        raw = await geminiCaller(prompt);
-      } else if (this.openai) {
-        // Fallback a ChatGPT si el proveedor solicitado no está disponible
-        usedProvider = 'chatgpt';
-        raw = await chatgptCaller(prompt);
-      } else if (this.gemini) {
-        // Fallback a Gemini si ChatGPT no está disponible
-        usedProvider = 'gemini';
-        raw = await geminiCaller(prompt);
-      } else {
-        throw new Error('No hay proveedores de IA configurados');
-      }
-    } catch (firstErr) {
-      console.error(`❌ Error en ${aiProvider}:`, firstErr.message);
-      console.error('Detalles del error:', firstErr);
-      
-      // Intentar con el otro proveedor disponible
-      if (aiProvider === 'chatgpt' && this.gemini) { 
-        console.log('⚠️  ChatGPT falló, intentando con Gemini...');
-        usedProvider = 'gemini'; 
-        raw = await geminiCaller(prompt); 
-      } else if (aiProvider === 'gemini' && this.openai) {
-        console.log('⚠️  Gemini falló, intentando con ChatGPT...');
-        usedProvider = 'chatgpt';
-        raw = await chatgptCaller(prompt);
-      } else {
-        throw firstErr;
-      }
+      raw = await chatgptCaller(prompt);
+    } catch (error) {
+      console.error(`❌ Error en ChatGPT:`, error.message);
+      throw error;
     }
-    const parseResult = await this.parseAndValidateJson(raw, this.openai ? chatgptCaller : geminiCaller);
+    
+    const parseResult = await this.parseAndValidateJson(raw, chatgptCaller);
     if (!parseResult.ok) {
-      if (usedProvider === 'chatgpt' && this.gemini) {
-        const altRaw = await geminiCaller(prompt);
-        const altParse = await this.parseAndValidateJson(altRaw, chatgptCaller);
-        if (altParse.ok) return { success: true, data: altParse.value, usedProvider: 'gemini' };
-      } else if (usedProvider === 'gemini' && this.openai) {
-        const altRaw = await chatgptCaller(prompt);
-        const altParse = await this.parseAndValidateJson(altRaw, geminiCaller);
-        if (altParse.ok) return { success: true, data: altParse.value, usedProvider: 'chatgpt' };
-      }
       throw new Error('No se pudo obtener JSON valido');
     }
-    console.log('Analisis generado con', usedProvider);
-    return { success: true, data: parseResult.value, usedProvider };
+    
+    console.log('Analisis generado con chatgpt');
+    return { success: true, data: parseResult.value, usedProvider: 'chatgpt' };
   }
 }
 

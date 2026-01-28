@@ -1,5 +1,4 @@
 const OpenAI = require('openai');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
  * Caso de uso: Generar título basado en pregunta de investigación
@@ -7,16 +6,11 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
  */
 class GenerateTitleFromQuestionUseCase {
   constructor() {
-    // Inicializar OpenAI/ChatGPT (PRIORIDAD 1)
+    // Inicializar OpenAI/ChatGPT
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
       });
-    }
-    
-    // Inicializar Gemini (PRIORIDAD 2)
-    if (process.env.GEMINI_API_KEY) {
-      this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     }
   }
 
@@ -25,23 +19,14 @@ class GenerateTitleFromQuestionUseCase {
       throw new Error('Pregunta de investigación es requerida');
     }
 
+    if (!this.openai) {
+      throw new Error('No hay proveedor de IA configurado');
+    }
+
     const prompt = this.buildPrompt(researchQuestion);
 
     try {
-      let result;
-      
-      if (aiProvider === 'chatgpt' && this.openai) {
-        result = await this.generateWithChatGPT(prompt);
-      } else if (aiProvider === 'gemini' && this.gemini) {
-        result = await this.generateWithGemini(prompt);
-      } else if (this.openai) {
-        result = await this.generateWithChatGPT(prompt);
-      } else if (this.gemini) {
-        result = await this.generateWithGemini(prompt);
-      } else {
-        throw new Error('No hay proveedores de IA configurados');
-      }
-
+      const result = await this.generateWithChatGPT(prompt);
       return {
         success: true,
         data: result
@@ -109,31 +94,6 @@ Responde SOLO con JSON válido, sin texto adicional.`;
     });
 
     return JSON.parse(completion.choices[0].message.content);
-  }
-
-  async generateWithGemini(prompt) {
-    if (!this.gemini) {
-      throw new Error('Gemini API key no configurada');
-    }
-
-    const model = this.gemini.getGenerativeModel({ 
-      model: "models/gemini-2.5-pro",
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2000,
-        responseMimeType: "application/json"
-      }
-    });
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text().trim();
-    
-    if (text.startsWith('```json')) {
-      text = text.replace(/^```json\n/, '').replace(/\n```$/, '');
-    }
-    
-    return JSON.parse(text);
   }
 }
 

@@ -13,14 +13,10 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
  */
 class GenerateProtocolJustificationUseCase {
   constructor({ 
-    openaiApiKey = process.env.OPENAI_API_KEY, 
-    geminiApiKey = process.env.GEMINI_API_KEY 
+    openaiApiKey = process.env.OPENAI_API_KEY
   } = {}) {
     if (openaiApiKey) {
       this.openai = new OpenAI({ apiKey: openaiApiKey });
-    }
-    if (geminiApiKey) {
-      this.gemini = new GoogleGenerativeAI(geminiApiKey);
     }
   }
 
@@ -33,33 +29,16 @@ class GenerateProtocolJustificationUseCase {
     console.log(`   Área: ${area}`);
     console.log(`   Rango temporal: ${yearStart} - ${yearEnd}`);
 
+    if (!this.openai) {
+      throw new Error('No hay proveedor de IA configurado');
+    }
+
     try {
-      let result;
-      
-      // Intentar con el proveedor especificado
-      if (aiProvider === 'chatgpt' && this.openai) {
-        result = await this._generateWithChatGPT({ title, description, area, yearStart, yearEnd, pico, matrixData });
-      } else if (aiProvider === 'gemini' && this.gemini) {
-        result = await this._generateWithGemini({ title, description, area, yearStart, yearEnd, pico, matrixData });
-      } else {
-        throw new Error(`Proveedor ${aiProvider} no disponible`);
-      }
-
-      console.log(`✅ Justificación generada exitosamente con ${aiProvider}`);
+      const result = await this._generateWithChatGPT({ title, description, area, yearStart, yearEnd, pico, matrixData });
+      console.log(`✅ Justificación generada exitosamente con chatgpt`);
       return result;
-
     } catch (error) {
-      console.error(`❌ Error con ${aiProvider}:`, error.message);
-      
-      // Fallback automático
-      if (aiProvider === 'chatgpt' && this.gemini) {
-        console.log('🔄 Intentando fallback a Gemini...');
-        return await this._generateWithGemini({ title, description, area, yearStart, yearEnd, pico, matrixData });
-      } else if (aiProvider === 'gemini' && this.openai) {
-        console.log('🔄 Intentando fallback a ChatGPT...');
-        return await this._generateWithChatGPT({ title, description, area, yearStart, yearEnd, pico, matrixData });
-      }
-      
+      console.error(`❌ Error con chatgpt:`, error.message);
       throw error;
     }
   }
@@ -89,39 +68,6 @@ class GenerateProtocolJustificationUseCase {
 
     const text = completion.choices[0].message.content.trim();
     return JSON.parse(text);
-  }
-
-  /**
-   * Genera justificación usando Gemini
-   */
-  async _generateWithGemini({ title, description, area, yearStart, yearEnd, pico, matrixData }) {
-    const model = this.gemini.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
-      systemInstruction: 'Eres un experto en metodología PRISMA/Cochrane especializado en redacción de justificaciones académicas para protocolos de revisión sistemática.',
-      generationConfig: {
-        temperature: 0.6,
-        maxOutputTokens: 8000,
-        responseMimeType: "application/json"
-      }
-    });
-
-    const prompt = this._buildPrompt({ title, description, area, yearStart, yearEnd, pico, matrixData });
-
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }]
-    });
-
-    const response = await result.response;
-    let text = response.text().trim();
-    
-    // Limpiar markdown si existe
-    if (text.startsWith('```json')) {
-      text = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-    } else if (text.startsWith('```')) {
-      text = text.replace(/^```\n?/, '').replace(/\n?```$/, '');
-    }
-    
-    return JSON.parse(text.trim());
   }
 
   /**

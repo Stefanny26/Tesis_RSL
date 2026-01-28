@@ -1,5 +1,4 @@
 const OpenAI = require('openai');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
  * Use Case: Generador de Criterios de Inclusión y Exclusión
@@ -9,16 +8,11 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
  */
 class GenerateInclusionExclusionCriteriaUseCase {
   constructor() {
-    // Inicializar OpenAI/ChatGPT (PRIORIDAD 1)
+    // Inicializar OpenAI/ChatGPT
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
       });
-    }
-    
-    // Inicializar Gemini (PRIORIDAD 2)
-    if (process.env.GEMINI_API_KEY) {
-      this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     }
   }
 
@@ -56,21 +50,16 @@ class GenerateInclusionExclusionCriteriaUseCase {
       });
       
       let text;
-      if (aiProvider === 'chatgpt' && this.openai) {
-        const completion = await this.openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7
-        });
-        text = completion.choices[0].message.content;
-      } else if (this.gemini) {
-        const model = this.gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        text = response.text();
-      } else {
+      if (!this.openai) {
         throw new Error('No hay proveedor de IA configurado');
       }
+      
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7
+      });
+      text = completion.choices[0].message.content;
 
       console.log('📄 Respuesta completa de IA:');
       console.log(text);

@@ -1,18 +1,12 @@
 const OpenAI = require('openai');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 class GenerateTitlesUseCase {
   constructor() {
-    // Inicializar OpenAI/ChatGPT (PRIORIDAD 1)
+    // Inicializar OpenAI/ChatGPT
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
       });
-    }
-    
-    // Inicializar Gemini (PRIORIDAD 3)
-    if (process.env.GEMINI_API_KEY) {
-      this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     }
   }
 
@@ -28,55 +22,23 @@ class GenerateTitlesUseCase {
     try {
       console.log('📝 Generando 5 títulos con validación Cochrane...');
       
+      if (!this.openai) {
+        throw new Error('No hay proveedor de IA configurado');
+      }
+      
       // Construir contexto del proyecto
       const context = this._buildContext(matrixData, picoData);
       
       // Construir prompt para el AI
       const prompt = this._buildPrompt(context);
       
-      // Llamar al servicio de IA correspondiente con fallback automático
+      // Llamar al servicio de IA
       let response;
-      let usedProvider = aiProvider;
-      
       try {
-        if (aiProvider === 'chatgpt' && this.openai) {
-          response = await this._generateWithChatGPT(prompt);
-        } else if (aiProvider === 'gemini' && this.gemini) {
-          response = await this._generateWithGemini(prompt);
-        } else if (this.openai) {
-          response = await this._generateWithChatGPT(prompt);
-          usedProvider = 'chatgpt';
-        } else if (this.gemini) {
-          response = await this._generateWithGemini(prompt);
-          usedProvider = 'gemini';
-        } else {
-          throw new Error('No hay proveedores de IA configurados');
-        }
+        response = await this._generateWithChatGPT(prompt);
       } catch (error) {
-        console.error(`❌ Error con ${aiProvider}:`, error.message);
-        
-        // Fallback chain: chatgpt → gemini
-        if (aiProvider === 'chatgpt' && this.gemini) {
-          console.log('🔄 Intentando fallback a Gemini...');
-          try {
-            response = await this._generateWithGemini(prompt);
-            usedProvider = 'gemini';
-            console.log('✅ Fallback a Gemini exitoso');
-          } catch (geminiError) {
-            throw new Error(`Todos los proveedores fallaron. ChatGPT: ${error.message}. Gemini: ${geminiError.message}`);
-          }
-        } else if (aiProvider === 'gemini' && this.openai) {
-          console.log('🔄 Intentando fallback a ChatGPT...');
-          try {
-            response = await this._generateWithChatGPT(prompt);
-            usedProvider = 'chatgpt';
-            console.log('✅ Fallback a ChatGPT exitoso');
-          } catch (chatError) {
-            throw new Error(`Todos los proveedores fallaron. Gemini: ${error.message}. ChatGPT: ${chatError.message}`);
-          }
-        } else {
-          throw error;
-        }
+        console.error(`❌ Error con ChatGPT:`, error.message);
+        throw error;
       }
       
       // Log de respuesta cruda para debugging
@@ -85,13 +47,13 @@ class GenerateTitlesUseCase {
       // Parsear respuesta
       const titles = this._parseResponse(response);
       
-      console.log(`✅ Generados ${titles.length} títulos exitosamente con ${usedProvider}`);
+      console.log(`✅ Generados ${titles.length} títulos exitosamente con chatgpt`);
       
       return {
         success: true,
         data: {
           titles,
-          provider: usedProvider
+          provider: 'chatgpt'
         }
       };
     } catch (error) {
@@ -127,48 +89,6 @@ class GenerateTitlesUseCase {
 
     const content = completion.choices[0].message.content;
     return JSON.parse(content);
-  }
-
-  /**
-   * Genera títulos usando Gemini
-   */
-  async _generateWithGemini(prompt) {
-    if (!this.gemini) {
-      throw new Error('Gemini API key no configurada');
-    }
-
-    const model = this.gemini.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp",
-      systemInstruction: "Eres un experto en metodología PRISMA/Cochrane con especialización en redacción de títulos académicos para revisiones sistemáticas. Generas títulos rigurosos, específicos y directamente usables."
-    });
-
-    const fullPrompt = `${prompt}
-
-CRÍTICO: 
-- Responde ÚNICAMENTE con JSON válido
-- Usa SOLO comillas dobles normales (")
-- NO uses markdown ni bloques de código`;
-
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-      generationConfig: {
-        temperature: 0.5, // Aumentado de 0.35 a 0.5
-        maxOutputTokens: 10000, // Aumentado para respuestas más completas
-        responseMimeType: "application/json"
-      }
-    });
-    
-    const response = await result.response;
-    let text = response.text().trim();
-    
-    // Limpiar markdown si existe
-    if (text.startsWith('```json')) {
-      text = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-    } else if (text.startsWith('```')) {
-      text = text.replace(/^```\n?/, '').replace(/\n?```$/, '');
-    }
-    
-    return JSON.parse(text.trim());
   }
 
   /**
