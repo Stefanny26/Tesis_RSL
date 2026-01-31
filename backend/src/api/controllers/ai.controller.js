@@ -1421,7 +1421,6 @@ module.exports = {
   generateProtocolJustification,
   screenReference,
   screenReferencesBatch,
-  refineSearchString,
   generateTitles,
   generateSearchStrategies,
   screenReferenceEmbeddings,
