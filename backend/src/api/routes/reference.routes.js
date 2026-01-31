@@ -123,7 +123,7 @@ router.post(
 router.post(
   '/:id/upload-pdf',
   authMiddleware,
-  fulltextUpload.single('pdf'),
+  pdfUpload.single('pdf'),
   uploadPdf
 );
 
