@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback, useRef } from "react"
 import { useWizard } from "../wizard-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,8 @@ export function TitlesStep() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState<number>(-1)
   const [editingIndex, setEditingIndex] = useState<number>(-1)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const handleGenerateTitles = async () => {
     if (!data.pico.population || !data.pico.intervention) {
@@ -100,6 +102,30 @@ export function TitlesStep() {
     updateData({ selectedTitle: data.generatedTitles[index].title })
   }
 
+  // Auto-save debounced function
+  const autoSaveTitles = useCallback(async (titles: typeof data.generatedTitles) => {
+    if (!data.projectId) return
+
+    try {
+      setSaveStatus('saving')
+      await apiClient.updateProtocol(data.projectId, {
+        generatedTitles: titles
+      })
+      setSaveStatus('saved')
+      
+      // Reset to idle after 2 seconds
+      setTimeout(() => setSaveStatus('idle'), 2000)
+    } catch (error) {
+      console.error('Error saving titles:', error)
+      setSaveStatus('idle')
+      toast({
+        variant: "destructive",
+        title: "Error al guardar",
+        description: "No se pudieron guardar los cambios automáticamente."
+      })
+    }
+  }, [data.projectId, toast])
+
   const handleUpdateTitle = (index: number, field: 'title' | 'spanishTitle', value: string) => {
     const updatedTitles = [...data.generatedTitles]
     updatedTitles[index] = { ...updatedTitles[index], [field]: value }
@@ -109,6 +135,14 @@ export function TitlesStep() {
     if (selectedIndex === index && field === 'title') {
       updateData({ selectedTitle: value })
     }
+
+    // Auto-save con debounce de 1 segundo
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      autoSaveTitles(updatedTitles)
+    }, 1000)
   }
 
   const getComplianceBadge = (compliance: string) => {
@@ -172,7 +206,21 @@ export function TitlesStep() {
       {data.generatedTitles.length > 0 && (
         <>
           <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold">Selecciona un título</h3>
+            <div className="flex items-center gap-4">
+              <h3 className="text-xl font-semibold">Selecciona un título</h3>
+              {saveStatus === 'saving' && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Guardando...
+                </div>
+              )}
+              {saveStatus === 'saved' && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Guardado ✓
+                </div>
+              )}
+            </div>
             <Button
               variant="outline"
               onClick={handleGenerateTitles}

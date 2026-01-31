@@ -42,7 +42,7 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
       }
     })
     setPdfUrls(initialPdfUrls)
-    console.log(`📁 Cargados ${Object.keys(initialPdfUrls).length} PDFs existentes`, {
+    console.log(`📁 Cargados ${Object.keys(initialPdfUrls).length} archivos de resultados existentes`, {
       totalRefs: references.length,
       withFullText: references.filter(r => r.fullTextAvailable).length,
       pdfUrls: Object.keys(initialPdfUrls)
@@ -50,10 +50,11 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
   }, [references])
 
   const handleFileUpload = async (referenceId: string, file: File) => {
-    if (!file.type.includes('pdf')) {
+    const validTypes = ['application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    if (!validTypes.some(type => file.type.includes(type.split('/')[1]))) {
       toast({
         title: "Archivo inválido",
-        description: "Solo se permiten archivos PDF",
+        description: "Se permiten archivos PDF, TXT, DOC o DOCX con los resultados del estudio",
         variant: "destructive"
       })
       return
@@ -64,7 +65,7 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
     try {
       const apiClient = new ApiClient()
       
-      console.log(`📤 Subiendo PDF para referencia ${referenceId}...`)
+      console.log(`📤 Subiendo archivo de resultados para referencia ${referenceId}...`)
       const result = await apiClient.uploadPdf(referenceId, file)
       
       // Construir URL completa para visualización
@@ -78,7 +79,7 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
       console.log(`✅ PDF subido exitosamente: ${pdfUrl}`)
 
       toast({
-        title: "✅ PDF cargado",
+        title: "✅ Resultados cargados",
         description: `Archivo "${file.name}" subido exitosamente`
       })
 
@@ -149,8 +150,8 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
   const handleExtractRQS = async (ref: Reference) => {
     if (!pdfUrls[ref.id]) {
       toast({
-        title: "PDF no disponible",
-        description: "Primero debes cargar el PDF completo",
+        title: "Archivo no disponible",
+        description: "Primero debes cargar los resultados del texto completo",
         variant: "destructive"
       })
       return
@@ -162,8 +163,8 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
       const apiClient = new ApiClient()
       
       toast({
-        title: "🤖 Analizando PDF con IA...",
-        description: "Extrayendo datos estructurados para RQS"
+        title: "🤖 Analizando archivo con IA...",
+        description: "Extrayendo datos estructurados de los resultados para RQS"
       })
 
       await apiClient.extractSingleRQS(projectId, ref.id)
@@ -202,15 +203,33 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
 
   return (
     <div className="space-y-6">
+      {/* Aviso informativo */}
+      <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+        <CardContent className="p-4">
+          <div className="flex gap-3">
+            <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                💡 Carga de Resultados del Texto Completo
+              </p>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                Para evitar archivos pesados, en lugar de cargar el PDF completo, carga un archivo con los <strong>resultados clave del estudio</strong> (objetivos, metodología, hallazgos principales, conclusiones). 
+                Estos datos se utilizarán para el análisis y generación del artículo final.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Barra de progreso general */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Progreso de Carga de PDFs</CardTitle>
+          <CardTitle className="text-lg">Progreso de Carga de Resultados</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
-              {referencesWithPdf} de {references.length} artículos con PDF
+              {referencesWithPdf} de {references.length} artículos con resultados cargados
             </span>
             <span className="font-semibold">{progress.toFixed(0)}%</span>
           </div>
@@ -270,17 +289,17 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
                         )}
                       </div>
 
-                      {/* Estado del PDF */}
+                      {/* Estado de los resultados */}
                       <div className="flex items-center gap-2">
                         {hasPdf ? (
                           <Badge variant="default" className="bg-green-600">
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            PDF Cargado
+                            Resultados Cargados
                           </Badge>
                         ) : (
                           <Badge variant="secondary">
                             <AlertCircle className="h-3 w-3 mr-1" />
-                            Sin PDF
+                            Sin Resultados
                           </Badge>
                         )}
                         
@@ -298,7 +317,7 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
                         <label>
                           <Input
                             type="file"
-                            accept="application/pdf"
+                            accept="application/pdf,.txt,.doc,.docx"
                             className="hidden"
                             disabled={isUploading}
                             onChange={(e) => {
@@ -316,7 +335,7 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
                           >
                             <span>
                               <Upload className="h-4 w-4 mr-2" />
-                              {isUploading ? 'Subiendo...' : 'Cargar PDF'}
+                              {isUploading ? 'Subiendo...' : 'Cargar Resultados'}
                             </span>
                           </Button>
                         </label>
@@ -328,7 +347,7 @@ export function FullTextReview({ references, projectId, onReferencesChange }: Fu
                             onClick={() => window.open(pdfUrls[ref.id], '_blank')}
                           >
                             <Download className="h-4 w-4 mr-2" />
-                            Ver PDF
+                            Ver Archivo
                           </Button>
                           <Button
                             size="sm"

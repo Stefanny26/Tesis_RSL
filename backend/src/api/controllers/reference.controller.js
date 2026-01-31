@@ -520,7 +520,7 @@ const exportReferencesToFile = async (req, res) => {
 
 /**
  * POST /api/references/:id/upload-pdf
- * Subir PDF de texto completo
+ * Subir archivo de resultados de texto completo
  */
 const uploadPdf = async (req, res) => {
   try {
@@ -529,20 +529,22 @@ const uploadPdf = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'No se proporcionó ningún archivo PDF'
+        message: 'No se proporcionó ningún archivo'
       });
     }
 
-    console.log(`📄 Subiendo PDF para referencia ${id}...`);
+    console.log(`📄 Subiendo archivo de resultados para referencia ${id}...`);
+    console.log(`   Tipo: ${req.file.mimetype}`);
+    console.log(`   Nombre: ${req.file.originalname}`);
 
     // Construir URL absoluta del archivo apuntando al backend
     const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL?.replace('3000', '3001') || 'http://localhost:3001';
-    const pdfUrl = `${backendUrl}/uploads/pdfs/${req.file.filename}`;
+    const fileUrl = `${backendUrl}/uploads/fulltext-results/${req.file.filename}`;
 
     // Actualizar la referencia en la base de datos
     const updated = await referenceRepository.update(id, {
       fullTextAvailable: true,
-      fullTextUrl: pdfUrl
+      fullTextUrl: fileUrl
     });
 
     if (!updated) {
@@ -556,18 +558,18 @@ const uploadPdf = async (req, res) => {
       });
     }
 
-    console.log(`✅ PDF subido exitosamente: ${pdfUrl}`);
+    console.log(`✅ Archivo subido exitosamente: ${fileUrl}`);
 
     res.status(200).json({
       success: true,
-      message: 'PDF subido exitosamente',
+      message: 'Archivo de resultados subido exitosamente',
       data: {
         reference: updated.toJSON(),
-        pdfUrl
+        pdfUrl: fileUrl // Mantener el nombre pdfUrl por compatibilidad
       }
     });
   } catch (error) {
-    console.error('❌ Error subiendo PDF:', error);
+    console.error('❌ Error subiendo archivo:', error);
     
     // Eliminar archivo si existe
     if (req.file && req.file.path) {
@@ -581,22 +583,22 @@ const uploadPdf = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message || 'Error al subir el PDF'
+      message: error.message || 'Error al subir el archivo de resultados'
     });
   }
 };
 
 /**
  * DELETE /api/references/:id/pdf
- * Eliminar PDF de una referencia
+ * Eliminar archivo de resultados de una referencia
  */
 const deletePdf = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log(`🗑️  Eliminando PDF de referencia ${id}...`);
+    console.log(`🗑️  Eliminando archivo de resultados de referencia ${id}...`);
 
-    // Obtener la referencia para conseguir la URL del PDF
+    // Obtener la referencia para conseguir la URL del archivo
     const reference = await referenceRepository.findById(id);
 
     if (!reference) {
@@ -610,7 +612,9 @@ const deletePdf = async (req, res) => {
     if (reference.fullTextUrl) {
       const path = require('path');
       const fs = require('fs');
-      const filePath = path.join(__dirname, '../../../', reference.fullTextUrl);
+      // Extraer la ruta relativa del archivo desde la URL
+      const filename = reference.fullTextUrl.split('/').pop();
+      const filePath = path.join(__dirname, '../../../uploads/fulltext-results', filename);
       
       try {
         if (fs.existsSync(filePath)) {

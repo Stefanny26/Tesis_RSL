@@ -34,9 +34,8 @@ export function ProposalStep() {
 
       <Alert className="border-blue-200 dark:border-blue-800">
         <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertDescription className="text-foreground">
-          No necesitas tener todo definido ahora. Solo proporciona una descripción básica 
-          y el asistente te ayudará a estructurar tu protocolo completo.
+        <AlertDescription className="text-sm text-foreground leading-relaxed">
+          Puedes escribir desde una idea general hasta una descripción más detallada — mientras más claro y específico sea tu tema, y cuanto más detalle incluyas, mejor podré ayudarte a estructurar y desarrollar tu investigación. No te preocupes si aún no lo tienes todo definido, puedes empezar con una idea general y el asistente te guiará paso a paso para mejorarla y darle forma académica.
         </AlertDescription>
       </Alert>
 

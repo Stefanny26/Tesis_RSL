@@ -979,12 +979,44 @@ ${convertMarkdownToLatex(currentVersion.content.declarations)}
 
             {/* Center: Main Content Area (Article Editor) */}
             <div className="lg:col-span-9">
-              {currentVersion && (
+              {currentVersion && currentVersion.id !== 'v1-temp' ? (
                 <ArticleEditor
                   version={currentVersion}
                   onContentChange={handleContentChange}
                   disabled={isGenerating}
                 />
+              ) : (
+                <Card className="border-dashed">
+                  <CardContent className="flex flex-col items-center justify-center py-16 space-y-4">
+                    <div className="rounded-full bg-muted p-6">
+                      <FileText className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                    <div className="text-center space-y-2">
+                      <h3 className="text-lg font-semibold">No hay contenido generado aún</h3>
+                      <p className="text-sm text-muted-foreground max-w-md">
+                        Haz clic en "Generar Borrador Completo" para crear automáticamente todas las secciones del artículo científico basándote en tu protocolo y resultados de cribado.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleGenerateFullArticle}
+                      disabled={isGenerating || !status?.canGenerate}
+                      size="lg"
+                      className="mt-4"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Generando artículo...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-5 w-5" />
+                          Generar Borrador Completo
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </div>

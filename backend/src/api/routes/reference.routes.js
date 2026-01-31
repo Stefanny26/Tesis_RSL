@@ -117,13 +117,13 @@ router.post(
 
 /**
  * @route   POST /api/references/:id/upload-pdf
- * @desc    Subir PDF de texto completo para una referencia
+ * @desc    Subir archivo de resultados de texto completo para una referencia
  * @access  Private
  */
 router.post(
   '/:id/upload-pdf',
   authMiddleware,
-  pdfUpload.single('pdf'),
+  fulltextUpload.single('pdf'),
   uploadPdf
 );
 

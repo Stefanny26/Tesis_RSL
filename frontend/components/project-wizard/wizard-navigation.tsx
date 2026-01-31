@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useWizard } from "./wizard-context"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, ArrowRight, X } from "lucide-react"
@@ -33,8 +34,10 @@ export function WizardNavigation({
   nextLabel = "Siguiente",
   isLastStep = false
 }: WizardNavigationProps) {
-  const { currentStep, setCurrentStep, totalSteps } = useWizard()
+  const { currentStep, setCurrentStep, totalSteps, clearDataAfterStep } = useWizard()
   const router = useRouter()
+  const [showBackConfirmation, setShowBackConfirmation] = React.useState(false)
+  const [pendingBackStep, setPendingBackStep] = React.useState<number | null>(null)
 
   const handleNext = async () => {
     if (onNext) {
@@ -47,13 +50,31 @@ export function WizardNavigation({
   }
 
   const handleBack = () => {
-    if (onBack) {
-      onBack()
-    }
+    // Si estamos en un paso que tiene datos generados, mostrar confirmación
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+      setPendingBackStep(currentStep - 1)
+      setShowBackConfirmation(true)
+    }
+  }
+
+  const confirmBack = () => {
+    if (pendingBackStep !== null) {
+      // Limpiar datos generados después del paso al que volvemos
+      clearDataAfterStep(pendingBackStep)
+      
+      if (onBack) {
+        onBack()
+      }
+      setCurrentStep(pendingBackStep)
+      setShowBackConfirmation(false)
+      setPendingBackStep(null)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
+  }
+
+  const cancelBack = () => {
+    setShowBackConfirmation(false)
+    setPendingBackStep(null)
   }
 
   const handleCancel = () => {
@@ -98,6 +119,41 @@ export function WizardNavigation({
           </Button>
         )}
       </div>
+
+      {/* Confirmation Dialog for Going Back */}
+      <AlertDialog open={showBackConfirmation} onOpenChange={setShowBackConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Volver al paso anterior?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Si vuelves atrás, se eliminarán los datos generados en los pasos posteriores.
+              </p>
+              <p className="font-semibold text-foreground">
+                Por ejemplo, si vuelves al paso de Propuesta, se borrarán:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Marco PICO generado</li>
+                <li>Títulos generados</li>
+                <li>Criterios de inclusión/exclusión</li>
+                <li>Y todos los demás datos posteriores</li>
+              </ul>
+              <p className="text-amber-600 dark:text-amber-400 font-medium mt-2">
+                Esta acción no se puede deshacer.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelBack}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmBack}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sí, volver y borrar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {!isLastStep && (
         <Button

@@ -136,6 +136,7 @@ interface WizardContextType {
   data: WizardData
   updateData: (updates: Partial<WizardData>) => void
   resetData: () => void
+  clearDataAfterStep: (step: number) => void
   currentStep: number
   setCurrentStep: (step: number) => void
   totalSteps: number
@@ -301,10 +302,115 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
     setCurrentStep(1)
   }
 
+  // Función para limpiar datos generados después de un paso específico
+  const clearDataAfterStep = async (targetStep: number) => {
+    const updates: Partial<WizardData> = {}
+    
+    // Paso 1: Propuesta - limpiar todo lo posterior
+    if (targetStep === 1) {
+      updates.pico = { population: "", intervention: "", comparison: "", outcome: "" }
+      updates.matrixIsNot = { is: [], isNot: [] }
+      updates.matrixTable = []
+      updates.generatedTitles = []
+      updates.selectedTitle = ""
+      updates.protocolJustification = ""
+      updates.protocolTerms = { tecnologia: [], dominio: [], tipoEstudio: [], focosTematicos: [] }
+      updates.confirmedTerms = { tecnologia: new Set(), dominio: new Set(), tipoEstudio: new Set(), focosTematicos: new Set() }
+      updates.discardedTerms = { tecnologia: new Set(), dominio: new Set(), tipoEstudio: new Set(), focosTematicos: new Set() }
+      updates.inclusionCriteria = []
+      updates.exclusionCriteria = []
+      updates.searchPlan = {
+        databases: [],
+        temporalRange: { start: 2019, end: new Date().getFullYear() },
+        searchQueries: [],
+        uploadedFiles: []
+      }
+      updates.prismaItems = []
+    }
+    
+    // Paso 2: PICO + Matriz - limpiar títulos y todo lo posterior
+    if (targetStep === 2) {
+      updates.generatedTitles = []
+      updates.selectedTitle = ""
+      updates.protocolJustification = ""
+      updates.protocolTerms = { tecnologia: [], dominio: [], tipoEstudio: [], focosTematicos: [] }
+      updates.confirmedTerms = { tecnologia: new Set(), dominio: new Set(), tipoEstudio: new Set(), focosTematicos: new Set() }
+      updates.discardedTerms = { tecnologia: new Set(), dominio: new Set(), tipoEstudio: new Set(), focosTematicos: new Set() }
+      updates.inclusionCriteria = []
+      updates.exclusionCriteria = []
+      updates.searchPlan = {
+        databases: [],
+        temporalRange: { start: 2019, end: new Date().getFullYear() },
+        searchQueries: [],
+        uploadedFiles: []
+      }
+      updates.prismaItems = []
+    }
+    
+    // Paso 3: Títulos - limpiar definición del protocolo y criterios
+    if (targetStep === 3) {
+      updates.protocolTerms = { tecnologia: [], dominio: [], tipoEstudio: [], focosTematicos: [] }
+      updates.confirmedTerms = { tecnologia: new Set(), dominio: new Set(), tipoEstudio: new Set(), focosTematicos: new Set() }
+      updates.discardedTerms = { tecnologia: new Set(), dominio: new Set(), tipoEstudio: new Set(), focosTematicos: new Set() }
+      updates.inclusionCriteria = []
+      updates.exclusionCriteria = []
+      updates.searchPlan = {
+        databases: [],
+        temporalRange: { start: 2019, end: new Date().getFullYear() },
+        searchQueries: [],
+        uploadedFiles: []
+      }
+      updates.prismaItems = []
+    }
+    
+    // Paso 4: Definición - limpiar criterios I/E
+    if (targetStep === 4) {
+      updates.inclusionCriteria = []
+      updates.exclusionCriteria = []
+      updates.searchPlan = {
+        databases: [],
+        temporalRange: { start: 2019, end: new Date().getFullYear() },
+        searchQueries: [],
+        uploadedFiles: []
+      }
+      updates.prismaItems = []
+    }
+    
+    // Paso 5: Criterios I/E - limpiar plan de búsqueda
+    if (targetStep === 5) {
+      updates.searchPlan = {
+        databases: [],
+        temporalRange: { start: 2019, end: new Date().getFullYear() },
+        searchQueries: [],
+        uploadedFiles: []
+      }
+      updates.prismaItems = []
+    }
+    
+    // Paso 6: Búsqueda - limpiar PRISMA
+    if (targetStep === 6) {
+      updates.prismaItems = []
+    }
+    
+    // Actualizar el estado local
+    setData(prev => ({ ...prev, ...updates }))
+    
+    // Si hay un projectId, actualizar también en el backend
+    if (data.projectId) {
+      try {
+        await apiClient.updateProtocol(data.projectId, updates)
+        console.log('✅ Datos limpiados en el servidor')
+      } catch (error) {
+        console.error('❌ Error limpiando datos en el servidor:', error)
+      }
+    }
+  }
+
   const contextValue = useMemo(() => ({
     data,
     updateData,
     resetData,
+    clearDataAfterStep,
     currentStep,
     setCurrentStep,
     totalSteps

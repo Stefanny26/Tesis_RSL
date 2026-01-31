@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Sparkles, Loader2, RefreshCw } from "lucide-react"
+import { Sparkles, Loader2, RefreshCw, Pencil } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 
@@ -257,13 +257,16 @@ export function CriteriaStep() {
                   <TableCell className="font-semibold bg-muted/50 text-foreground">Cobertura Temática</TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.inclusionCriteria[0] || ''}
-                        onChange={(e) => updateCriterion('inclusion', 0, e.target.value)}
-                        placeholder="Ej: Estudios que mencionen explícitamente MongoDB..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.inclusionCriteria[0] || ''}
+                          onChange={(e) => updateCriterion('inclusion', 0, e.target.value)}
+                          placeholder="Ej: Estudios que mencionen explícitamente MongoDB..."
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -278,13 +281,16 @@ export function CriteriaStep() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.exclusionCriteria[0] || ''}
-                        onChange={(e) => updateCriterion('exclusion', 0, e.target.value)}
-                        placeholder="Ej: Publicaciones donde estos términos no aparecen..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.exclusionCriteria[0] || ''}
+                          onChange={(e) => updateCriterion('exclusion', 0, e.target.value)}
+                          placeholder="Ej: Publicaciones donde estos términos no aparecen..."
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -302,13 +308,16 @@ export function CriteriaStep() {
                   <TableCell className="font-semibold bg-muted/50 text-foreground">Tecnologías Abordadas</TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.inclusionCriteria[1] || ''}
-                        onChange={(e) => updateCriterion('inclusion', 1, e.target.value)}
-                        placeholder="Ej: Uso de Mongoose como ODM..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.inclusionCriteria[1] || ''}
+                          onChange={(e) => updateCriterion('inclusion', 1, e.target.value)}
+                          placeholder="Ej: Uso de Mongoose como ODM..."
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -323,13 +332,16 @@ export function CriteriaStep() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.exclusionCriteria[1] || ''}
-                        onChange={(e) => updateCriterion('exclusion', 1, e.target.value)}
-                        placeholder="Ej: Investigaciones centradas en otros ODM..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.exclusionCriteria[1] || ''}
+                          onChange={(e) => updateCriterion('exclusion', 1, e.target.value)}
+                          placeholder="Ej: Investigaciones centradas en otros ODM..."
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -347,13 +359,16 @@ export function CriteriaStep() {
                   <TableCell className="font-semibold bg-muted/50 text-foreground">Tipo de Estudio</TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.inclusionCriteria[2] || ''}
-                        onChange={(e) => updateCriterion('inclusion', 2, e.target.value)}
-                        placeholder="Ej: Estudios relevantes para el análisis de prácticas..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.inclusionCriteria[2] || ''}
+                          onChange={(e) => updateCriterion('inclusion', 2, e.target.value)}
+                          placeholder="Ej: Estudios relevantes para el análisis de prácticas..."
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -368,13 +383,16 @@ export function CriteriaStep() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.exclusionCriteria[2] || ''}
-                        onChange={(e) => updateCriterion('exclusion', 2, e.target.value)}
-                        placeholder="Ej: Artículos puramente descriptivos..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.exclusionCriteria[5] || ''}
+                          onChange={(e) => updateCriterion('exclusion', 5, e.target.value)}
+                          placeholder="Ej: Artículos en otros idiomas..."
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -392,13 +410,16 @@ export function CriteriaStep() {
                   <TableCell className="font-semibold bg-muted/50 text-foreground">Tipo de Documento</TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.inclusionCriteria[3] || ''}
-                        onChange={(e) => updateCriterion('inclusion', 3, e.target.value)}
-                        placeholder="Ej: Artículos publicados en journals..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.inclusionCriteria[3] || ''}
+                          onChange={(e) => updateCriterion('inclusion', 3, e.target.value)}
+                          placeholder="Ej: Publicaciones académicas rigurosas..."
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -437,13 +458,16 @@ export function CriteriaStep() {
                   <TableCell className="font-semibold bg-muted/50 text-foreground">Rango Temporal</TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.inclusionCriteria[4] || ''}
-                        onChange={(e) => updateCriterion('inclusion', 4, e.target.value)}
-                        placeholder="Ej: Publicaciones entre 2019 y 2025..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.inclusionCriteria[4] || ''}
+                          onChange={(e) => updateCriterion('inclusion', 4, e.target.value)}
+                          placeholder={`Ej: Trabajos publicados desde ${data.yearStart || '20XX'}...`}
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -458,13 +482,16 @@ export function CriteriaStep() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.exclusionCriteria[4] || ''}
-                        onChange={(e) => updateCriterion('exclusion', 4, e.target.value)}
-                        placeholder="Ej: Estudios anteriores a 2019..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.exclusionCriteria[4] || ''}
+                          onChange={(e) => updateCriterion('exclusion', 4, e.target.value)}
+                          placeholder={`Ej: Publicaciones anteriores a ${data.yearStart || '20XX'}...`}
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -482,13 +509,16 @@ export function CriteriaStep() {
                   <TableCell className="font-semibold bg-muted/50 text-foreground">Idioma</TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.inclusionCriteria[5] || ''}
-                        onChange={(e) => updateCriterion('inclusion', 5, e.target.value)}
-                        placeholder="Ej: Publicaciones en inglés..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.inclusionCriteria[5] || ''}
+                          onChange={(e) => updateCriterion('inclusion', 5, e.target.value)}
+                          placeholder="Ej: Artículos en inglés o español..."
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -503,13 +533,16 @@ export function CriteriaStep() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-2">
-                      <Textarea
-                        value={data.exclusionCriteria[5] || ''}
-                        onChange={(e) => updateCriterion('exclusion', 5, e.target.value)}
-                        placeholder="Ej: Artículos en otros idiomas..."
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={data.exclusionCriteria[3] || ''}
+                          onChange={(e) => updateCriterion('exclusion', 3, e.target.value)}
+                          placeholder="Ej: Publicaciones sin revisión por pares..."
+                          rows={3}
+                          className="resize-none pr-10"
+                        />
+                        <Pencil className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
