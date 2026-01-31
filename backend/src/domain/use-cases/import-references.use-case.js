@@ -91,7 +91,7 @@ class ImportReferencesUseCase {
 
             // Crear la referencia
             console.log(`   Insertando en BD...`);
-            const reference = await this.referenceRepository.create({}
+            const reference = await this.referenceRepository.create({
               ...refData,
               projectId: projectId,
               screeningStatus: refData.screeningStatus || 'pending',
