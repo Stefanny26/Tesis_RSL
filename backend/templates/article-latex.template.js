@@ -91,48 +91,140 @@ ${escapeLatex(articleData.abstract || 'This systematic review examines... Follow
 
 % -------------------- 1. INTRODUCTION --------------------
 % 📏 10–15% del artículo
-% 📌 Contenido: Contexto/Importancia/Problema/Justificación/Objetivo/RQs
-\\section{Introduction}
-${convertMarkdownToLatex(articleData.introduction || '')}
+% 📌 Estructura: Contextualización → Importancia → Vacíos → Variables → Estado actual → Justificación → Objetivos
+\\section{INTRODUCCIÓN}
 
-% -------------------- 2. METHODS --------------------
-% 📌 Sección más crítica metodológicamente - PRISMA 2020 compliant
-\\section{Methods}
+% CONTEXTUALIZACIÓN GENERAL DEL TEMA
+${convertMarkdownToLatex(articleData.introduction || `[Tu contexto general sobre el tema de investigación]
+
+% IMPORTANCIA DEL PROBLEMA
+El problema de investigación es relevante porque [razones de importancia].
+
+% VACÍOS EXISTENTES EN LA LITERATURA
+A pesar de los avances en el área, existen vacíos significativos en la literatura científica relacionados con [describir vacíos].
+
+% VARIABLES PRINCIPALES
+Las variables principales consideradas en este estudio incluyen [enumerar variables].
+
+% ESTADO ACTUAL DEL CONOCIMIENTO
+El estado actual del conocimiento sugiere que [describir estado actual].
+
+% JUSTIFICACIÓN DE LA REVISIÓN SISTEMÁTICA
+Esta revisión sistemática se justifica por la necesidad de [explicar justificación].
+
+% OBJETIVO GENERAL
+El objetivo general de esta revisión es [describir objetivo general].
+
+% OBJETIVOS ESPECÍFICOS
+Los objetivos específicos son:
+\\begin{itemize}
+    \\item [Objetivo específico 1]
+    \\item [Objetivo específico 2]
+    \\item [Objetivo específico 3]
+\\end{itemize}`)}
+
+% -------------------- 2. METHODOLOGÍA --------------------
+% 📌 Sección PRISMA 2020 compliant con estructura clara
+\\section{METODOLOGÍA}
+
+\\subsection{Tipo de estudio}
+El presente trabajo corresponde a una revisión sistemática de la literatura, desarrollada conforme a las directrices establecidas en la guía PRISMA 2020, con el propósito de garantizar un proceso estructurado, transparente y reproducible.
+
+\\subsection{Estrategia de búsqueda}
+La búsqueda sistemática de literatura científica se realizó en las siguientes bases de datos académicas:
 
 ${generateMethodsSection(articleData.methods || '')}
 
-% -------------------- 3. RESULTS --------------------
-% 📌 Aquí VA TODO lo visual: PRISMA diagram + gráfico de codo + tablas
-\\section{Results}
+% -------------------- 3. RESULTADOS --------------------
+% 📌 PRISMA diagram + Caracterización + Análisis RQS + Síntesis
+\\section{RESULTADOS}
 
 ${generateResultsSection(articleData.results || '')}
 
-% -------------------- 4. DISCUSSION --------------------
-% 📏 Interpretación, no repetición
-% 📌 NO tablas nuevas, NO figuras nuevas
-\\section{Discussion}
-${convertMarkdownToLatex(articleData.discussion || '')}
+% -------------------- 4. DISCUSIÓN --------------------
+% 📏 Interpretación crítica de hallazgos, comparación con literatura, implicaciones
+% 📌 NO repetir resultados, NO tablas nuevas
+\\section{DISCUSIÓN}
 
-% -------------------- 5. CONCLUSIONS --------------------
-% 📏 Breve y contundente
-% 📌 Responde: ¿Qué se aprendió? ¿Por qué importa? ¿Qué sigue?
-\\section{Conclusions}
-${convertMarkdownToLatex(articleData.conclusions || '')}
+${convertMarkdownToLatex(articleData.discussion || `Los hallazgos de esta revisión sistemática revelan [describe interpretación de hallazgos principales].
+
+Al comparar estos resultados con la literatura previa, se observa [describir concordancia o discrepancia con otros estudios]. Por ejemplo, [Autor et al., año] reportan hallazgos similares en [contexto], lo cual refuerza [argumento]. Sin embargo, [Autor et al., año] presentan evidencia contradictoria respecto a [aspecto específico], lo que sugiere que [explicación posible].
+
+Las implicaciones prácticas de estos resultados incluyen [describir aplicabilidad en contextos reales]. En particular, [hallazgo específico] podría [describir impacto potencial].
+
+Desde una perspectiva teórica, estos hallazgos [describir contribución al conocimiento]. La [tendencia/patrón observado] sugiere que [interpretación teórica], lo cual [relevancia para la teoría/campo de estudio].
+
+Es importante considerar que [contexto o matices que afectan la interpretación]. Además, [mencionar factores que puedan explicar variabilidad en hallazgos].`)}
+
+% -------------------- 5. LIMITACIONES --------------------
+% 📌 Reconocer debilidades metodológicas, sesgos potenciales, restricciones
+\\section{LIMITACIONES}
+
+${convertMarkdownToLatex(articleData.limitations || `Esta revisión sistemática presenta las siguientes limitaciones que deben considerarse al interpretar los hallazgos:
+
+\\begin{itemize}
+    \\item \\textbf{Sesgo de publicación:} La búsqueda se limitó a bases de datos académicas, lo que podría excluir estudios con resultados negativos o literatura gris relevante.
+    
+    \\item \\textbf{Restricción idiomática:} Solo se incluyeron estudios publicados en [idiomas considerados], lo cual podría sesgar los resultados hacia literatura de ciertas regiones geográficas.
+    
+    \\item \\textbf{Heterogeneidad metodológica:} La diversidad en diseños de estudio, poblaciones y métricas reportadas limitó la posibilidad de realizar meta-análisis cuantitativos, obligando a una síntesis narrativa.
+    
+    \\item \\textbf{Calidad metodológica variable:} Algunos estudios incluidos presentaron puntuaciones RQS moderadas o bajas, lo cual afecta la confiabilidad de sus conclusiones.
+    
+    \\item \\textbf{Sesgo de selección:} A pesar del uso de IA para priorización, el proceso de cribado humano puede estar sujeto a interpretación subjetiva de criterios de inclusión/exclusión.
+\\end{itemize}
+
+Estas limitaciones sugieren que los resultados deben interpretarse con cautela y considerarse como una síntesis del estado actual del conocimiento, sujeta a refinamiento conforme nueva evidencia esté disponible.`)}
+
+% -------------------- 6. CONCLUSIONES Y LÍNEAS FUTURAS --------------------
+% 📏 Síntesis concisa + Recomendaciones + Direcciones futuras
+% 📌 Responde: ¿Qué se aprendió? ¿Qué implicaciones tiene? ¿Qué falta investigar?
+\\section{CONCLUSIONES Y LÍNEAS FUTURAS}
+
+${convertMarkdownToLatex(articleData.conclusions || `Esta revisión sistemática, desarrollada conforme a las directrices PRISMA 2020, permitió alcanzar los siguientes hallazgos principales:
+
+\\begin{itemize}
+    \\item [Conclusión 1: Hallazgo clave relacionado con objetivo específico 1]
+    \\item [Conclusión 2: Hallazgo clave relacionado con objetivo específico 2]
+    \\item [Conclusión 3: Hallazgo clave relacionado con objetivo específico 3]
+\\end{itemize}
+
+Estos hallazgos evidencian que [sintetizar mensaje principal de la revisión]. La evidencia actual sugiere [implicación teórica o práctica principal].
+
+\\textbf{Implicaciones prácticas:} Los resultados pueden orientar [describir aplicación práctica] y apoyar la toma de decisiones en [contexto específico].
+
+\\textbf{Líneas futuras de investigación:}
+
+Considerando las limitaciones identificadas y los vacíos detectados en la literatura, se recomienda:
+
+\\begin{itemize}
+    \\item Realizar estudios primarios con mayor rigor metodológico en [área específica identificada como deficiente].
+    \\item Desarrollar meta-análisis cuantitativos cuando haya mayor homogeneidad en [aspecto metodológico].
+    \\item Investigar el impacto de [variable/factor no suficientemente explorado] en [outcome de interés].
+    \\item Expandir la evidencia hacia [contextos/poblaciones subrepresentadas].
+    \\item Replicar revisiones sistemáticas incluyendo literatura gris y estudios en [idiomas adicionales].
+\\end{itemize}
+
+En conclusión, esta revisión contribuye a [describir aporte al campo] y establece una base sólida para futuras investigaciones en [tema principal].`)}
 
 % -------------------- DECLARATIONS --------------------
-\\section*{Funding}
-This research received no external funding.
+% ⚠️ Opcional: Se puede omitir si el journal no lo requiere
+\\section*{Financiamiento}
+Esta investigación no recibió financiamiento externo.
 
-\\section*{Conflict of Interest}
-The authors declare no conflict of interest.
+\\section*{Conflicto de intereses}
+Los autores declaran no tener conflictos de intereses.
 
-\\section*{Registration and Protocol}
-${convertMarkdownToLatex(articleData.declarations || 'The review protocol was not registered.')}
+\\section*{Registro del protocolo}
+${convertMarkdownToLatex(articleData.declarations || 'El protocolo de esta revisión no fue registrado previamente en plataformas de registro internacional.')}
 
-\\section*{Data Availability}
-Data are available upon reasonable request from the corresponding author.
+\\section*{Disponibilidad de datos}
+Los datos están disponibles previa solicitud razonable al autor de correspondencia.
 
-% -------------------- REFERENCES --------------------
+% -------------------- 7. REFERENCIAS --------------------
+% 📌 Formato APA o IEEE según requerimiento del journal
+\\section{REFERENCIAS}
+
 \\begin{thebibliography}{${(articleData.references || []).length}}
 ${generateBibliography(articleData.references || [])}
 \\end{thebibliography}
@@ -211,52 +303,82 @@ Se utilizó un enfoque híbrido de cribado asistido por IA. Las referencias desc
     return latex;
   }
 
-  // Estructura por defecto PRISMA compliant
-  return `\\subsection{Diseño de la revisión}
-Esta revisión sistemática se realizó siguiendo las directrices PRISMA 2020.
+  // Estructura PRISMA 2020 compliant con subsecciones 2.3-2.7 según estructura académica
+  return `
+\\subsection{Criterios de inclusión y exclusión}
 
-\\subsection{Criterios de elegibilidad}
-Los estudios fueron incluidos si cumplían los siguientes criterios PICO:
+% ---- CRITERIOS DE INCLUSIÓN ----
+Los estudios incluidos en la revisión debían cumplir los siguientes criterios:
 
 \\begin{itemize}
-    \\item \\textbf{Population (P):} [Describe población]
-    \\item \\textbf{Intervention (I):} [Describe intervención/tecnología]
-    \\item \\textbf{Comparison (C):} [Describe comparación si aplica]
-    \\item \\textbf{Outcome (O):} [Describe resultados de interés]
+    \\item \\textbf{Criterio de inclusión 1:} [Describe criterio específico]
+    \\item \\textbf{Criterio de inclusión 2:} [Describe criterio específico]
+    \\item \\textbf{Criterio de inclusión 3:} [Describe criterio específico]
+    \\item \\textbf{Criterio de inclusión 4:} [Describe criterio específico]
 \\end{itemize}
 
-\\subsection{Fuentes de información y estrategia de búsqueda}
-Se realizaron búsquedas sistemáticas en las siguientes bases de datos académicas: IEEE Xplore, Scopus, ACM Digital Library, Web of Science.
+% ---- CRITERIOS DE EXCLUSIÓN ----
+Paralelamente, los criterios de exclusión fueron:
 
-\\subsection{Proceso de selección}
-Se eliminaron duplicados usando herramientas automatizadas. Los títulos y resúmenes fueron cribados independientemente por dos revisores usando análisis de relevancia semántica.
+\\begin{itemize}
+    \\item \\textbf{Criterio de exclusión 1:} [Describe criterio específico]
+    \\item \\textbf{Criterio de exclusión 2:} [Describe criterio específico]
+    \\item \\textbf{Criterio de exclusión 3:} [Describe criterio específico]
+\\end{itemize}
 
 \\subsection{Priorización mediante Inteligencia Artificial}
 
-Se utilizó análisis semántico asistido por IA para priorizar estudios. La Figura~\\ref{fig:codo} muestra la distribución de puntajes de relevancia.
+Con el propósito de optimizar el proceso de cribado y reducir el esfuerzo manual, se implementó un enfoque híbrido que combina análisis semántico asistido por IA con revisión humana experta.
+
+Las referencias obtenidas de las bases de datos fueron procesadas mediante un modelo de similitud semántica que asigna un puntaje de relevancia en el rango [0, 1], donde valores cercanos a 1 indican alta relevancia con respecto a los criterios de inclusión definidos.
+
+La Figura~\\ref{fig:codo} presenta la distribución de estos puntajes ordenados de mayor a menor (curva de scree plot), permitiendo identificar el punto de inflexión (\\textit{knee point}) óptimo que equilibra la maximización de estudios relevantes recuperados y la minimización del volumen de referencias a revisar manualmente.
 
 \\begin{figure}[H]
 \\centering
-% NOTA: Si scree_plot.png no existe, comentar la siguiente l\u00ednea y descomentar el placeholder
-\\includegraphics[width=0.8\\\\textwidth]{scree_plot.png}
-% \\fbox{\\parbox{0.8\\textwidth}{\\centering Placeholder: scree\\_plot.png}}
-\\caption{Distribución de puntajes de relevancia con punto de inflexión identificado.}
+\\includegraphics[width=0.85\\textwidth]{scree_plot.png}
+\\caption{Scree plot: distribución de puntajes de relevancia semántica ordenados decrecientemente. La línea vertical roja señala el punto de inflexión utilizado como umbral de corte para priorizar la revisión manual.}
 \\label{fig:codo}
 \\end{figure}
 
+Este enfoque permitió priorizar los estudios con mayor probabilidad de cumplir los criterios de elegibilidad, incrementando la eficiencia del proceso de cribado sin comprometer la exhaustividad de la revisión.
+
 \\subsection{Extracción de datos}
-La extracción se realizó usando un esquema RQS estructurado que incluye características del estudio, población, intervenciones, resultados y limitaciones.
 
-\\subsection{Evaluación del riesgo de sesgo}
-Se realizó una evaluación cualitativa del riesgo de sesgo considerando diseño del estudio, transparencia metodológica y conflictos de interés.
+La extracción de datos se realizó utilizando un formulario estructurado diseñado específicamente para capturar información relevante de los estudios incluidos. Los datos extraídos comprendieron:
 
-\\subsection{Síntesis de datos}
-Debido a la heterogeneidad metodológica, se realizó una síntesis narrativa estructurada.`;
+\\begin{itemize}
+    \\item \\textbf{Características generales:} autor(es), año de publicación, país, tipo de estudio
+    \\item \\textbf{Características metodológicas:} diseño, población/muestra, intervención evaluada
+    \\item \\textbf{Resultados principales:} métricas, outcomes, hallazgos clave
+    \\item \\textbf{Limitaciones reportadas:} sesgos, restricciones del estudio
+\\end{itemize}
+
+La extracción fue realizada por [número] revisores de forma independiente, resolviéndose las discrepancias mediante consenso o consulta a un tercer evaluador.
+
+\\subsection{Evaluación de calidad metodológica (RQS)}
+
+Para garantizar la rigurosidad de los estudios incluidos, se aplicó una evaluación de calidad utilizando un esquema de \\textbf{Research Quality Score (RQS)}. Este instrumento permite valorar dimensiones críticas como:
+
+\\begin{itemize}
+    \\item Claridad en los objetivos y diseño del estudio
+    \\item Adecuación de la metodología empleada
+    \\item Transparencia en el reporte de resultados
+    \\item Consideración de limitaciones y sesgos potenciales
+    \\item Relevancia y aplicabilidad de las conclusiones
+\\end{itemize}
+
+Los estudios se clasificaron en categorías de calidad (alta, moderada, baja) según su puntuación RQS total, lo cual permitió interpretar los hallazgos con mayor criticidad y contexto.
+
+\\subsection{Diagrama de flujo PRISMA}
+
+El proceso completo de búsqueda, cribado y selección de estudios se resume en el diagrama de flujo PRISMA presentado en la Figura~\\ref{fig:prisma} (Sección 3 - Resultados). Este diagrama ilustra de forma visual las etapas de identificación, cribado y elegibilidad, así como las razones específicas de exclusión en cada fase del proceso de revisión.`;
 }
 
+
 /**
- * Genera sección de Results con PRISMA diagram
- * El gráfico de codo (elbow) debe estar en Methods, no aquí
+ * Genera sección de Results con PRISMA diagram y subsecciones 3.1-3.3
+ * El gráfico de codo (elbow) debe estar en Methods 2.4, no aquí
  */
 function generateResultsSection(resultsContent) {
   // Si hay contenido markdown personalizado, usarlo
@@ -265,15 +387,14 @@ function generateResultsSection(resultsContent) {
     
     // Si no menciona PRISMA diagram, agregarlo al inicio
     if (!content.toLowerCase().includes('prisma') && !content.includes('figure')) {
-      content = `\\subsection{Selección de estudios}
-El proceso de selección de estudios se resume en la Figura~\\ref{fig:prisma}.
+      content = `\\subsection{Diagrama de flujo PRISMA}
+
+El proceso completo de identificación, cribado y selección de estudios se resume en el diagrama de flujo de la Figura~\\ref{fig:prisma}, elaborado conforme a las directrices PRISMA 2020.
 
 \\begin{figure}[H]
 \\centering
-% NOTA: Si prisma_diagram.png no existe, comentar la siguiente línea y descomentar el placeholder
-\\includegraphics[width=0.8\\textwidth]{prisma_diagram.png}
-% \\fbox{\\parbox{0.8\\textwidth}{\\centering Placeholder: prisma\\_diagram.png}}
-\\caption{Diagrama de flujo PRISMA 2020 del proceso de selección de estudios.}
+\\includegraphics[width=0.95\\textwidth]{prisma_diagram.png}
+\\caption{Diagrama de flujo PRISMA 2020 del proceso de revisión sistemática. Muestra las fases de identificación, cribado, elegibilidad e inclusión final, así como las razones específicas de exclusión en cada etapa.}
 \\label{fig:prisma}
 \\end{figure}
 
@@ -283,7 +404,57 @@ El proceso de selección de estudios se resume en la Figura~\\ref{fig:prisma}.
     return content;
   }
 
-  // Estructura por defecto
+  // Estructura por defecto con subsecciones 3.1-3.3 según estructura académica
+  return `
+% PRISMA DIAGRAM al inicio de Resultados  
+\\subsection{Diagrama de flujo PRISMA}
+
+El proceso completo de identificación, cribado y selección de estudios se resume en el diagrama de flujo de la Figura~\\ref{fig:prisma}, elaborado conforme a las directrices PRISMA 2020.
+
+\\begin{figure}[H]
+\\centering
+\\includegraphics[width=0.95\\textwidth]{prisma_diagram.png}
+\\caption{Diagrama de flujo PRISMA 2020 del proceso de revisión sistemática. Muestra las fases de identificación, cribado, elegibilidad e inclusión final de estudios, con desglose detallado por base de datos académica y razones específicas de exclusión en cada etapa.}
+\\label{fig:prisma}
+\\end{figure}
+
+La búsqueda inicial identificó un total de [N] registros en las bases de datos consultadas, de los cuales [N] fueron eliminados por duplicación. Tras el cribado de [N] títulos y resúmenes, se seleccionaron [N] artículos para revisión de texto completo. Finalmente, [N] estudios cumplieron todos los criterios de inclusión y fueron incluidos en la síntesis cualitativa.
+
+\\subsection{Caracterización general de los estudios}
+
+Los [N] estudios incluidos fueron publicados entre [año] y [año], con una mayor concentración en los últimos [X] años, reflejando el interés creciente en el tema. En términos geográficos, la mayoría de los estudios provienen de [países/regiones principales].
+
+En cuanto al diseño metodológico, se observó que [X\\%] correspondieron a [tipo de estudio], [X\\%] a [tipo de estudio], y el resto a [otros diseños]. Las poblaciones estudiadas variaron desde [describe poblaciones].
+
+La Tabla~\\ref{tab:caracteristicas} resume las características generales de los estudios incluidos.
+
+% NOTA: Esta tabla debe ser generada automáticamente desde los datos RQS
+% Placeholder para la tabla de características
+
+\\subsection{Análisis de calidad metodológica (RQS)}
+
+La evaluación de calidad metodológica mediante el esquema RQS reveló que [X\\%] de los estudios alcanzaron una puntuación alta (> [umbral]), [X\\%] una puntuación moderada ([rango]), y [X\\%] una puntuación baja (< [umbral]).
+
+Los criterios con mayor cumplimiento fueron [criterios], mientras que las principales debilidades metodológicas se detectaron en [criterios con bajo cumplimiento], particularmente relacionadas con [describe deficiencias comunes].
+
+% NOTA: Esta tabla debe ser generada automáticamente desde los datos RQS
+% Placeholder para tabla de evaluación RQS
+
+\\subsection{Síntesis de resultados principales}
+
+El análisis narrativo de los estudios incluidos permitió identificar los siguientes hallazgos clave:
+
+\\begin{itemize}
+    \\item \\textbf{Hallazgo 1:} [Describe hallazgo principal]
+    \\item \\textbf{Hallazgo 2:} [Describe hallazgo principal]
+    \\item \\textbf{Hallazgo 3:} [Describe hallazgo principal]
+\\end{itemize}
+
+Se observó que [describe tendencias, patrones o inconsistencias]. Las métricas más frecuentemente reportadas fueron [lista métricas], con valores que oscilaron entre [rangos].
+
+% NOTA: Esta tabla debe ser generada automáticamente desde los datos RQS
+% Placeholder para tabla de síntesis de evidencia`;
+}
   return `\\subsection{Selección de estudios}
 El proceso de selección de estudios se resume en la Figura~\\ref{fig:prisma}.
 

@@ -10,39 +10,135 @@ import { Eye, Edit } from "lucide-react"
 import { useState } from "react"
 import type { Components } from 'react-markdown'
 
-// Componentes de Markdown extraídos para evitar redefiniciones
+/* ── Estilo académico global (Times New Roman / serif) ── */
+const serifFont = "'Times New Roman', 'Noto Serif', Georgia, serif"
+
+// Componentes de Markdown — diseño académico tipo journal
 const MarkdownImage = ({ node, ...props }: any) => (
-  <img
-    {...props}
-    alt={props.alt || 'Imagen del artículo'}
-    className="max-w-full h-auto my-4 rounded-lg shadow-lg border border-muted"
-    loading="lazy"
-  />
+  <figure className="my-5 text-center">
+    <img
+      {...props}
+      alt={props.alt || 'Imagen del artículo'}
+      className="max-w-[90%] h-auto mx-auto border border-border rounded"
+      loading="lazy"
+    />
+  </figure>
 )
 
 const MarkdownTable = ({ node, ...props }: any) => (
-  <div className="overflow-x-auto my-4">
-    <table {...props} className="min-w-full border-collapse border border-gray-300" />
+  <div className="overflow-x-auto my-6">
+    <table
+      {...props}
+      className="min-w-full border-collapse border-t-2 border-b-2 border-foreground/50"
+      style={{
+        fontFamily: serifFont,
+        fontSize: '10pt',
+      }}
+    />
   </div>
 )
 
+const MarkdownTableHead = ({ node, ...props }: any) => (
+  <thead {...props} className="border-b border-foreground/50" />
+)
+
 const MarkdownTableHeader = ({ node, ...props }: any) => (
-  <th 
-    {...props} 
+  <th
+    {...props}
     scope="col"
-    className="border border-gray-300 px-4 py-2 bg-gray-100 dark:bg-gray-800 font-semibold text-left" 
+    className="px-3 py-1.5 font-bold text-left text-foreground"
+    style={{ fontFamily: serifFont, fontSize: '10pt' }}
   />
 )
 
 const MarkdownTableCell = ({ node, ...props }: any) => (
-  <td {...props} className="border border-gray-300 px-4 py-2" />
+  <td
+    {...props}
+    className="px-3 py-1.5 text-foreground"
+    style={{ fontFamily: serifFont, fontSize: '10pt' }}
+  />
+)
+
+const MarkdownTableRow = ({ node, ...props }: any) => {
+  // Determine if this is inside <tbody> to apply alternating row shading
+  const isBody = !(props.children && Array.isArray(props.children) && props.children.some?.((c: any) => c?.type === MarkdownTableHeader))
+  return (
+    <tr
+      {...props}
+      style={isBody ? { backgroundColor: undefined } : undefined}
+      className={isBody ? "even:bg-muted/50" : ""}
+    />
+  )
+}
+
+const MarkdownHeading2 = ({ node, ...props }: any) => (
+  <h2
+    {...props}
+    className="text-base font-bold mt-6 mb-2 text-foreground"
+    style={{ fontFamily: serifFont, fontSize: '13pt' }}
+  />
+)
+
+const MarkdownHeading3 = ({ node, ...props }: any) => (
+  <h3
+    {...props}
+    className="text-sm font-bold mt-4 mb-1.5 text-foreground"
+    style={{ fontFamily: serifFont, fontSize: '12pt', fontStyle: 'italic' }}
+  />
+)
+
+const MarkdownHeading4 = ({ node, ...props }: any) => (
+  <h4
+    {...props}
+    className="text-sm font-semibold mt-3 mb-1 text-foreground"
+    style={{ fontFamily: serifFont, fontSize: '11pt' }}
+  />
+)
+
+const MarkdownParagraph = ({ node, ...props }: any) => (
+  <p
+    {...props}
+    className="mb-2 text-foreground"
+    style={{
+      fontFamily: serifFont,
+      fontSize: '12pt',
+      lineHeight: '1.6',
+      textAlign: 'justify',
+      textIndent: '1.5em',
+    }}
+  />
+)
+
+const MarkdownListItem = ({ node, ...props }: any) => (
+  <li
+    {...props}
+    className="mb-1 text-foreground"
+    style={{ fontFamily: serifFont, fontSize: '11pt', lineHeight: '1.5' }}
+  />
+)
+
+const MarkdownEmphasis = ({ node, ...props }: any) => (
+  <em {...props} style={{ fontFamily: serifFont }} />
+)
+
+const MarkdownStrong = ({ node, ...props }: any) => (
+  <strong {...props} style={{ fontFamily: serifFont }} />
 )
 
 const markdownComponents: Components = {
   img: MarkdownImage,
   table: MarkdownTable,
+  thead: MarkdownTableHead,
   th: MarkdownTableHeader,
   td: MarkdownTableCell,
+  tr: MarkdownTableRow,
+  h2: MarkdownHeading2,
+  h3: MarkdownHeading3,
+  h4: MarkdownHeading4,
+  p: MarkdownParagraph,
+  li: MarkdownListItem,
+  em: MarkdownEmphasis,
+  strong: MarkdownStrong,
 }
 
 interface ArticleEditorProps {
@@ -67,12 +163,19 @@ export function ArticleEditor({ version, onContentChange, disabled = false }: Ar
 
   return (
     <Card className="w-full shadow-sm">
-      <ScrollArea className="h-[calc(100vh-180px)] p-6 bg-white dark:bg-zinc-950">
-        <div className="max-w-5xl mx-auto space-y-6 pb-12 px-8">
-          {/* Document Header */}
-          <div id="section-title" className="text-center border-b pb-4 mb-4 scroll-mt-6">
-            <h1 className="text-xl font-bold tracking-tight mb-1">{version.title}</h1>
-            <p className="text-muted-foreground text-[10px]">Versión {version.version} • {new Date(version.createdAt).toLocaleDateString()}</p>
+      <ScrollArea className="h-[calc(100vh-180px)] p-6">
+        <div className="max-w-5xl mx-auto space-y-4 pb-12 px-12" style={{ fontFamily: serifFont }}>
+          {/* Document Header — estilo académico */}
+          <div id="section-title" className="text-center border-b-2 border-border pb-4 mb-6 scroll-mt-6">
+            <h1
+              className="font-bold tracking-tight mb-2 text-foreground"
+              style={{ fontFamily: serifFont, fontSize: '16pt', lineHeight: '1.3' }}
+            >
+              {version.title}
+            </h1>
+            <p className="text-muted-foreground" style={{ fontFamily: serifFont, fontSize: '10pt' }}>
+              Versión {version.version} • {new Date(version.createdAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
           </div>
 
           {sections.map((section) => (
@@ -82,11 +185,15 @@ export function ArticleEditor({ version, onContentChange, disabled = false }: Ar
               className="scroll-mt-6 space-y-2"
             >
               <div className="flex items-center justify-between">
-                <Label htmlFor={section.key} className="text-sm font-semibold text-primary">
+                <Label
+                  htmlFor={section.key}
+                  className="font-bold text-primary uppercase tracking-wide"
+                  style={{ fontFamily: serifFont, fontSize: '13pt' }}
+                >
                   {section.label}
                 </Label>
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                  <span className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full" style={{ fontFamily: 'sans-serif' }}>
                     {(version.content[section.key] || '').split(/\s+/).filter(w => w.length > 0).length} palabras
                   </span>
                   <Button
@@ -115,7 +222,7 @@ export function ArticleEditor({ version, onContentChange, disabled = false }: Ar
                   style={{ minHeight: `${section.rows * 1.3}em` }}
                 />
               ) : (
-                <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-justify prose-p:leading-relaxed prose-li:text-sm prose-img:rounded-lg prose-img:shadow-md min-h-[60px] p-4 rounded-md bg-muted/10 hover:bg-muted/20 transition-colors border border-transparent hover:border-muted">
+                <div className="max-w-none min-h-[60px] p-4 rounded-sm border border-border hover:border-muted-foreground/30 transition-colors" style={{ fontFamily: serifFont }}>
                   {version.content[section.key] ? (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
@@ -124,7 +231,7 @@ export function ArticleEditor({ version, onContentChange, disabled = false }: Ar
                       {version.content[section.key]}
                     </ReactMarkdown>
                   ) : (
-                    <p className="text-muted-foreground italic text-sm">
+                    <p className="text-muted-foreground italic" style={{ fontFamily: serifFont, fontSize: '11pt' }}>
                       Haz clic en "Editar" para agregar contenido o usa "Generar Borrador Completo"
                     </p>
                   )}

@@ -64,18 +64,40 @@ const DATABASE_ICONS: Record<string, string> = {
 
 // URLs de búsqueda avanzada por base de datos
 const DATABASE_ADVANCED_SEARCH_URLS: Record<string, string> = {
-  scopus: "https://www.scopus.com/search/form.uri?display=advanced",
+  // Ingeniería y Tecnología
   ieee: "https://ieeexplore.ieee.org/search/advanced",
-  webofscience: "https://www.webofscience.com/wos/woscc/advanced-search",
-  pubmed: "https://pubmed.ncbi.nlm.nih.gov/advanced/",
-  sciencedirect: "https://www.sciencedirect.com/search/advanced",
   acm: "https://dl.acm.org/search/advanced",
+  scopus: "https://www.scopus.com/search/form.uri?display=advanced",
+  sciencedirect: "https://www.sciencedirect.com/search/advanced",
   springer: "https://link.springer.com/advanced-search",
-  google_scholar: "https://scholar.google.com/advanced_scholar_search",
   wiley: "https://onlinelibrary.wiley.com/advanced/search",
-  taylor: "https://www.tandfonline.com/action/advancedSearch",
+  webofscience: "https://www.webofscience.com/wos/woscc/advanced-search",
+  
+  // Medicina y Ciencias de la Salud
+  pubmed: "https://pubmed.ncbi.nlm.nih.gov/advanced/",
+  cinahl: "https://www.ebsco.com/products/research-databases/cinahl-database",
+  cochrane: "https://www.cochranelibrary.com/advanced-search",
+  embase: "https://www.embase.com/search/advanced",
+  lilacs: "https://lilacs.bvsalud.org/en/",
+  psycinfo: "https://www.apa.org/pubs/databases/psycinfo",
+  
+  // Ciencias Sociales y Humanidades
   eric: "https://eric.ed.gov/?advanced",
-  doaj: "https://doaj.org/search"
+  jstor: "https://www.jstor.org/action/doAdvancedSearch",
+  sage: "https://journals.sagepub.com/action/doSearch",
+  taylor: "https://www.tandfonline.com/action/advancedSearch",
+  econlit: "https://www.aeaweb.org/econlit",
+  sociological: "https://journals.sagepub.com/home/abs",
+  
+  // Arquitectura, Diseño y Urbanismo
+  avery: "https://library.columbia.edu/libraries/avery.html",
+  artbibliographies: "https://about.proquest.com/en/products-services/art_sales/",
+  designandapplied: "https://about.proquest.com/en/products-services/daai/",
+  
+  // Generales
+  google_scholar: "https://scholar.google.com/advanced_scholar_search",
+  doaj: "https://doaj.org/search",
+  arxiv: "https://arxiv.org/search/advanced"
 }
 
 // Nombres de áreas (para display)
@@ -295,7 +317,7 @@ export function SearchPlanStep() {
     }
 
     createProjectForReferences()
-  }, [queries.length, data.projectId, data.projectName, data.selectedTitle, queries])
+  }, [queries.length, data.projectId, data.projectName, data.selectedTitle])
 
   // Sincronizar con context
   useEffect(() => {
@@ -380,7 +402,13 @@ export function SearchPlanStep() {
       if (result?.queries && Array.isArray(result.queries)) {
         // Transformar la respuesta del backend
         const formattedQueries = result.queries.map((q: any) => {
-          const dbId = q.database.toLowerCase().replace(/\s+/g, '_')
+          // Buscar el ID correcto desde availableDatabases comparando el nombre
+          const matchedDb = availableDatabases.find(db => 
+            db.name.toLowerCase() === q.database.toLowerCase() ||
+            db.id.toLowerCase() === q.database.toLowerCase().replace(/\s+/g, '')
+          )
+          const dbId = matchedDb?.id || q.database.toLowerCase().replace(/\s+/g, '_')
+          
           const formatted = {
             databaseId: dbId,
             databaseName: q.database,
@@ -391,7 +419,7 @@ export function SearchPlanStep() {
             estimatedResults: null,
             status: null,
             resultCount: null,
-            hasAPI: availableDatabases.find(db => db.id === dbId)?.hasAPI || false
+            hasAPI: matchedDb?.hasAPI || false
           }
           console.log('📝 Query formateada:', formatted)
           return formatted

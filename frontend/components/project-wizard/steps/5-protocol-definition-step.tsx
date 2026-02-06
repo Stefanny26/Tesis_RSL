@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Sparkles, Loader2, Wrench, Microscope, Focus, Check, X, Pencil, RefreshCw } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 
@@ -67,6 +67,11 @@ export function ProtocolDefinitionStep() {
     focosTematicos: data.protocolTerms?.focosTematicos || []
   }
 
+  // Sincronizar estados locales con el contexto del wizard
+  useEffect(() => {
+    updateData({ confirmedTerms, discardedTerms })
+  }, [confirmedTerms, discardedTerms])
+
   const toggleConfirmTerm = (field: keyof typeof protocolTerms, index: number) => {
     setConfirmedTerms(prev => {
       const newSet = new Set(prev[field])
@@ -75,19 +80,14 @@ export function ProtocolDefinitionStep() {
       } else {
         newSet.add(index)
       }
-      const newConfirmed = { ...prev, [field]: newSet }
-      // Guardar en el contexto del wizard
-      updateData({ confirmedTerms: newConfirmed })
-      return newConfirmed
+      return { ...prev, [field]: newSet }
     })
     
     // Si confirmamos un término, quitarlo de descartados
     setDiscardedTerms(prev => {
       const newSet = new Set(prev[field])
       newSet.delete(index)
-      const newDiscarded = { ...prev, [field]: newSet }
-      updateData({ discardedTerms: newDiscarded })
-      return newDiscarded
+      return { ...prev, [field]: newSet }
     })
   }
 
@@ -176,20 +176,14 @@ export function ProtocolDefinitionStep() {
       } else {
         newSet.add(index)
       }
-      const newDiscarded = { ...prev, [field]: newSet }
-      // Guardar en el contexto del wizard
-      updateData({ discardedTerms: newDiscarded })
-      return newDiscarded
+      return { ...prev, [field]: newSet }
     })
     
     // Si descartamos un término, quitarlo de confirmados
     setConfirmedTerms(prev => {
       const newSet = new Set(prev[field])
       newSet.delete(index)
-      const newConfirmed = { ...prev, [field]: newSet }
-      // Guardar en el contexto del wizard
-      updateData({ confirmedTerms: newConfirmed })
-      return newConfirmed
+      return { ...prev, [field]: newSet }
     })
   }
 

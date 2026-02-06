@@ -23,7 +23,9 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { FileDown, Loader2, AlertCircle, ClipboardCheck, Database, Copy, Trash2, CheckCircle2, Brain, TrendingUp } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Loader2, AlertCircle, ClipboardCheck, Database, Copy, Trash2, CheckCircle2, Brain, TrendingUp, ClipboardPaste, Save } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ScreeningPage({ params }: { params: { id: string } }) {
@@ -59,6 +61,10 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
   const [selectedForFullText, setSelectedForFullText] = useState<Set<string>>(new Set())
   const [screeningFinalized, setScreeningFinalized] = useState(false)
   const [isFinalizingScreening, setIsFinalizingScreening] = useState(false)
+  const [pasteDialogOpen, setPasteDialogOpen] = useState(false)
+  const [pasteRefId, setPasteRefId] = useState<string | null>(null)
+  const [pasteText, setPasteText] = useState('')
+  const [isSavingPaste, setIsSavingPaste] = useState(false)
 
   const toggleAnalysis = (refId: string) => {
     const newExpanded = new Set(expandedAnalysis)
@@ -70,26 +76,31 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
     setExpandedAnalysis(newExpanded)
   }
 
-  // Cargar referencias del proyecto y protocolo (search queries)
+  // Cargar referencias del proyecto y protocolo (search queries) - EN PARALELO
   useEffect(() => {
     async function loadData() {
       setIsLoading(true)
       setError(null)
       try {
-        // Cargar datos del proyecto
-        const projectData = await apiClient.getProject(params.id)
-        setProject(projectData)
+        console.log('🔄 Cargando datos del proyecto en paralelo...')
         
-        // Cargar TODAS las referencias (sin límite de paginación para screening)
-        console.log('🔄 Cargando TODAS las referencias del proyecto...')
-        const refData = await apiClient.getAllReferences(params.id)
+        // Cargar proyecto, referencias y protocolo en paralelo (3 llamadas simultáneas)
+        const [projectData, refData, protocol] = await Promise.all([
+          apiClient.getProject(params.id),
+          apiClient.getAllReferences(params.id),
+          apiClient.getProtocol(params.id).catch(err => {
+            console.log("No se pudo cargar el protocolo (probablemente no existe aún)")
+            return null
+          })
+        ])
+        
         console.log(`✅ Referencias cargadas: ${refData.references?.length || 0}`)
+        setProject(projectData)
         setReferences(refData.references || [])
         setStats(refData.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
 
-        // Cargar protocolo para obtener search queries, keyTerms y resultados de cribado
-        try {
-          const protocol = await apiClient.getProtocol(params.id)
+        // Procesar protocolo si existe
+        if (protocol) {
           if (protocol?.searchPlan?.searchQueries) {
             setSearchQueries(protocol.searchPlan.searchQueries)
           }
@@ -114,8 +125,6 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
           if (protocol?.screeningFinalized) {
             setScreeningFinalized(protocol.screeningFinalized)
           }
-        } catch (protocolErr) {
-          console.log("No se pudo cargar el protocolo (probablemente no existe aún)")
         }
       } catch (err: any) {
         console.error("Error cargando datos:", err)
@@ -1146,7 +1155,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                               <ul className="list-disc ml-5 mt-2 space-y-1">
                                 <li>Revise el <strong>análisis de IA</strong> haciendo clic en "Ver análisis completo de IA"</li>
                                 <li>Confirme la inclusión o cambie el estado según su criterio experto</li>
-                                <li>Si necesita revisar el texto completo, cargue el PDF del artículo</li>
+                                <li>Cargue los <strong>resultados encontrados</strong> del artículo para el análisis</li>
                               </ul>
                             </AlertDescription>
                           </Alert>
@@ -1334,68 +1343,13 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                                           variant="outline"
                                           disabled={screeningFinalized}
                                           onClick={() => {
-                                            const input = document.createElement('input')
-                                            input.type = 'file'
-                                            input.accept = '.pdf'
-                                            input.onchange = async (e: any) => {
-                                              const file = e.target.files?.[0]
-                                              if (!file) return
-                                              
-                                              if (file.size > 10 * 1024 * 1024) {
-                                                toast({
-                                                  title: "Archivo muy grande",
-                                                  description: "El PDF no debe superar 10MB",
-                                                  variant: "destructive"
-                                                })
-                                                return
-                                              }
-                                              
-                                              try {
-                                                toast({
-                                                  title: "Subiendo PDF...",
-                                                  description: `Cargando ${file.name}`
-                                                })
-                                                
-                                                await apiClient.uploadPdf(ref.id, file)
-                                                
-                                                toast({
-                                                  title: "PDF cargado exitosamente",
-                                                  description: "Analizando contenido con IA..."
-                                                })
-                                                
-                                                // Análisis automático con IA
-                                                try {
-                                                  console.log('🤖 Iniciando análisis automático de PDF...')
-                                                  await apiClient.extractSingleRQS(params.id, ref.id)
-                                                  console.log('✅ Análisis completado exitosamente')
-                                                  
-                                                  toast({
-                                                    title: "✅ Análisis completado",
-                                                    description: "Los datos RQS han sido extraídos exitosamente"
-                                                  })
-                                                } catch (analysisError: any) {
-                                                  console.error('⚠️ Error en análisis automático:', analysisError)
-                                                  toast({
-                                                    title: "Advertencia",
-                                                    description: "PDF subido, pero el análisis automático falló. Puedes intentarlo manualmente más tarde.",
-                                                    variant: "default"
-                                                  })
-                                                }
-                                                
-                                                await reloadReferences()
-                                              } catch (error) {
-                                                toast({
-                                                  title: "Error al subir PDF",
-                                                  description: "Intente nuevamente",
-                                                  variant: "destructive"
-                                                })
-                                              }
-                                            }
-                                            input.click()
+                                            setPasteRefId(ref.id)
+                                            setPasteText('')
+                                            setPasteDialogOpen(true)
                                           }}
                                         >
-                                          <FileDown className="h-4 w-4 mr-2" />
-                                          {ref.fullTextPath ? 'Cambiar PDF' : 'Cargar PDF completo'}
+                                          <ClipboardPaste className="h-4 w-4 mr-2" />
+                                          {ref.fullTextPath ? 'Cambiar Resultados' : 'Cargar Resultados'}
                                         </Button>
                                         
                                         <Button 
@@ -1509,6 +1463,32 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                 // Esto incluye tanto las auto-excluidas por IA como las excluidas manualmente por el usuario
                 const excludedInPhase1 = classifiedRefs.length - selectedForReview.length
                 
+                // Build databases list from ACTUAL imported references by source
+                const databaseCounts: Record<string, number> = {}
+                references.forEach((ref) => {
+                  const source = ref.source || 'Unknown'
+                  databaseCounts[source] = (databaseCounts[source] || 0) + 1
+                })
+                
+                console.log('🔍 DEBUG - Database Counts:', databaseCounts)
+                console.log('🔍 DEBUG - Sample reference sources:', references.slice(0, 3).map(r => ({ title: r.title?.substring(0, 30), source: r.source })))
+                
+                const databases = Object.entries(databaseCounts).map(([name, hits]) => ({
+                  name,
+                  hits
+                }))
+                
+                console.log('🔍 DEBUG - Databases array for PRISMA:', databases)
+                
+                // Collect exclusion reasons from excluded references
+                const exclusionReasons: Record<string, number> = {}
+                excludedManual.forEach((ref) => {
+                  if (ref.exclusionReason) {
+                    const reason = ref.exclusionReason.trim()
+                    exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1
+                  }
+                })
+                
                 const prismaStats = {
                   identified: totalRefs,
                   duplicates: 0,
@@ -1517,7 +1497,9 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                   excludedTitleAbstract: excludedInPhase1,
                   fullTextAssessed: selectedForReview.length,
                   excludedFullText: excludedManual.length,
-                  includedFinal: includedRefs.length
+                  includedFinal: includedRefs.length,
+                  databases: databases.length > 0 ? databases : undefined,
+                  exclusionReasons: Object.keys(exclusionReasons).length > 0 ? exclusionReasons : undefined
                 }
 
                 return (
@@ -1642,6 +1624,89 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
         onKeepReference={handleKeepReference}
         isProcessing={isDetectingDuplicates}
       />
+
+      {/* Diálogo para pegar resultados de texto completo */}
+      <Dialog open={pasteDialogOpen} onOpenChange={(open) => {
+        if (!isSavingPaste) {
+          setPasteDialogOpen(open)
+          if (!open) { setPasteText(''); setPasteRefId(null) }
+        }
+      }}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Cargar Resultados del Texto Completo</DialogTitle>
+            <DialogDescription>
+              Copia y pega los resultados clave del artículo: objetivos, metodología, hallazgos principales y conclusiones.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              placeholder="Pega aquí los resultados del artículo...&#10;&#10;Ejemplo:&#10;- Objetivo: ...&#10;- Metodología: ...&#10;- Resultados principales: ...&#10;- Conclusiones: ..."
+              rows={14}
+              className="resize-none font-mono text-sm"
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              {pasteText.length > 0 ? `${pasteText.length} caracteres` : 'Sin contenido'}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setPasteDialogOpen(false); setPasteText(''); setPasteRefId(null) }}
+              disabled={isSavingPaste}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!pasteRefId || !pasteText.trim()) return
+                setIsSavingPaste(true)
+                try {
+                  const blob = new Blob([pasteText], { type: 'text/plain' })
+                  const file = new File([blob], `resultados-${pasteRefId}.txt`, { type: 'text/plain' })
+                  
+                  toast({ title: "Guardando resultados...", description: "Subiendo texto al servidor" })
+                  await apiClient.uploadPdf(pasteRefId, file)
+                  
+                  toast({ title: "✅ Resultados guardados", description: "Analizando contenido con IA..." })
+                  
+                  try {
+                    await apiClient.extractSingleRQS(params.id, pasteRefId)
+                    toast({ title: "✅ Análisis completado", description: "Los datos RQS han sido extraídos exitosamente" })
+                  } catch {
+                    toast({ title: "Advertencia", description: "Resultados guardados, pero el análisis automático falló.", variant: "default" })
+                  }
+                  
+                  await reloadReferences()
+                  setPasteDialogOpen(false)
+                  setPasteText('')
+                  setPasteRefId(null)
+                } catch {
+                  toast({ title: "Error al guardar", description: "No se pudieron guardar los resultados", variant: "destructive" })
+                } finally {
+                  setIsSavingPaste(false)
+                }
+              }}
+              disabled={isSavingPaste || !pasteText.trim()}
+            >
+              {isSavingPaste ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Resultados
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

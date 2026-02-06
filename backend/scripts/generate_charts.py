@@ -1,260 +1,435 @@
 import sys
 import json
 import os
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+import matplotlib.patheffects as pe
 import pandas as pd
 import argparse
+
+# ─── Estilo académico global (similar a revistas científicas) ───
+plt.rcParams.update({
+    'font.family': 'serif',
+    'font.serif': ['Times New Roman', 'DejaVu Serif', 'Georgia', 'serif'],
+    'font.size': 10,
+    'axes.titlesize': 12,
+    'axes.labelsize': 11,
+    'xtick.labelsize': 10,
+    'ytick.labelsize': 10,
+    'legend.fontsize': 9,
+    'figure.dpi': 300,
+    'savefig.dpi': 300,
+    'axes.linewidth': 0.8,
+    'grid.linewidth': 0.5,
+    'lines.linewidth': 1.2,
+    'lines.markersize': 5,
+})
 
 def ensure_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
 def draw_prisma(data, output_path):
-    _, ax = plt.subplots(figsize=(10, 8))
+    """
+    PRISMA 2020 Flow Diagram — Based on Page et al., 2021 standard.
+    Colored header, phase labels, and detailed database breakdown.
+    """
+    print(f"🔍 DEBUG Python - Received data keys: {data.keys()}", file=sys.stderr)
+    print(f"🔍 DEBUG Python - databases value: {data.get('databases', [])}", file=sys.stderr)
+    print(f"🔍 DEBUG Python - identified value: {data.get('identified', 0)}", file=sys.stderr)
+    
+    fig, ax = plt.subplots(figsize=(11, 12))
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 100)
     ax.axis('off')
 
-    # Color scheme
-    box_color = '#e6f2ff'
-    edge_color = '#0066cc'
+    # ─── PRISMA 2020 Color Palette ───
+    HEADER_COLOR = '#f4d03f'  # Yellow/gold header
+    PHASE_IDENTIFICATION = '#5dade2'  # Blue
+    PHASE_SCREENING = '#5dade2'  # Blue
+    PHASE_INCLUDED = '#5dade2'  # Blue
+    BOX_MAIN = '#abebc6'  # Light green for main flow
+    BOX_EXCLUDED = '#fadbd8'  # Light pink for exclusions
+    BOX_EDGE = '#34495e'  # Dark gray edges
+    ARROW_COLOR = '#2c3e50'
 
-    # Helper to draw box
-    def draw_box(x, y, width, height, text, label=None):
-        rect = patches.FancyBboxPatch((x, y), width, height, boxstyle="round,pad=0.5", 
-                                      linewidth=1, edgecolor=edge_color, facecolor=box_color)
+    def draw_box(x, y, w, h, text, bg_color='#ffffff', fontsize=8, align='center'):
+        """Draw a rectangular box with text."""
+        rect = FancyBboxPatch((x, y), w, h, boxstyle="square,pad=0",
+                              linewidth=1.0, edgecolor=BOX_EDGE, facecolor=bg_color)
         ax.add_patch(rect)
-        ax.text(x + width/2, y + height/2, text, ha='center', va='center', fontsize=9, wrap=True)
-        if label:
-             ax.text(x - 5, y + height/2, label, ha='right', va='center', fontsize=10, fontweight='bold', rotation=90)
+        # Split text by newlines and draw each line
+        lines = text.split('\n')
+        if len(lines) == 1:
+            ax.text(x + w/2, y + h/2, text, ha='center', va='center',
+                    fontsize=fontsize, family='serif', wrap=True)
+        else:
+            # Calculate vertical spacing
+            line_spacing = fontsize * 0.30  # Proper spacing based on font size
+            total_text_height = len(lines) * line_spacing
+            # Center the text block vertically in the box
+            start_y = y + h/2 + total_text_height/2 - line_spacing/2
+            
+            for i, line in enumerate(lines):
+                ha = 'left' if align == 'left' else 'center'
+                x_pos = x + 2 if align == 'left' else x + w/2
+                y_pos = start_y - i * line_spacing
+                ax.text(x_pos, y_pos, line, ha=ha, va='center',
+                        fontsize=fontsize, family='serif')
 
-    # Helper to draw arrow
+    def draw_header(x, y, w, h, text):
+        """Draw yellow header bar."""
+        rect = FancyBboxPatch((x, y), w, h, boxstyle="square,pad=0",
+                              linewidth=1.2, edgecolor=BOX_EDGE, facecolor=HEADER_COLOR)
+        ax.add_patch(rect)
+        ax.text(x + w/2, y + h/2, text, ha='center', va='center',
+                fontsize=9, fontweight='bold', family='serif')
+
+    def draw_phase_label(x, y, w, h, label, color):
+        """Draw colored phase label on the left side."""
+        rect = FancyBboxPatch((x, y), w, h, boxstyle="square,pad=0",
+                              linewidth=1.0, edgecolor=BOX_EDGE, facecolor=color)
+        ax.add_patch(rect)
+        ax.text(x + w/2, y + h/2, label, ha='center', va='center',
+                fontsize=9, fontweight='bold', family='serif',
+                rotation=90, color='white')
+
     def draw_arrow(x1, y1, x2, y2):
+        """Draw a downward arrow."""
         ax.annotate("", xy=(x2, y2), xytext=(x1, y1),
-                    arrowprops=dict(arrowstyle="->", color=edge_color, lw=1.5))
+                    arrowprops=dict(arrowstyle="-|>", color=ARROW_COLOR,
+                                    lw=1.5, mutation_scale=15))
 
-    # Data extraction
+    # ─── Data extraction ───
     identified = data.get('identified', 0)
+    databases = data.get('databases', [])  # List of {name, hits}
     duplicates = data.get('duplicates', 0)
     screened = data.get('screened', 0)
     excluded = data.get('excluded', 0)
     retrieved = data.get('retrieved', 0)
     not_retrieved = data.get('not_retrieved', 0)
     assessed = data.get('assessed', 0)
-    excluded_reasons = data.get('excluded_reasons', {})  # dict of reason: count
+    excluded_reasons = data.get('excluded_reasons', {})
     included = data.get('included', 0)
-
-    # Layout
-    # Identification
-    draw_box(35, 85, 30, 10, f"Records identified from:\nDatabases (n = {identified})")
     
-    # Arrow to Screening
-    draw_arrow(50, 85, 50, 75)
+    print(f"🔍 DEBUG draw_prisma - identified: {identified}", file=sys.stderr)
+    print(f"🔍 DEBUG draw_prisma - databases: {databases}", file=sys.stderr)
+    print(f"🔍 DEBUG draw_prisma - len(databases): {len(databases)}", file=sys.stderr)
+    print(f"🔍 DEBUG draw_prisma - screened: {screened}", file=sys.stderr)
+    print(f"🔍 DEBUG draw_prisma - excluded: {excluded}", file=sys.stderr)
+    print(f"🔍 DEBUG draw_prisma - assessed: {assessed}", file=sys.stderr)
+    print(f"🔍 DEBUG draw_prisma - included: {included}", file=sys.stderr)
 
-    # Duplicates removed (Side box)
-    draw_box(70, 78, 25, 8, f"Records removed before screening:\nDuplicate records (n = {duplicates})")
-    # Connect manually or imply flow? Prisma 2020 usually has identification -> screening
-    # Just draw standard flow
+    # ─── Layout constants ───
+    PHASE_X, PHASE_W = 2, 7
+    MAIN_X, MAIN_W = 14, 34
+    EXCL_X, EXCL_W = 62, 32
+    CENTER = MAIN_X + MAIN_W / 2
+    GAP = 6
+
+    y = 94  # Start from top
+
+    # ═══════ YELLOW HEADER ═══════
+    draw_header(MAIN_X, y, MAIN_W, 3, 'Identification of new studies via databases and registers')
+    y -= 4
+
+    # ═══════ IDENTIFICATION PHASE ═══════
+    # Calculate height based on number of databases
+    id_box_h = max(10, 5 + len(databases) * 1.2)
+    draw_phase_label(PHASE_X, y - id_box_h, PHASE_W, id_box_h + 3, 'Identification', PHASE_IDENTIFICATION)
     
-    # Screening
-    draw_box(35, 65, 30, 10, f"Records screened\n(n = {screened})")
-    draw_arrow(50, 65, 50, 55)
+    # Main identification box with database breakdown
+    id_text_lines = []
+    if databases and len(databases) > 0:
+        id_text_lines.append('Records identified from:')
+        for db in databases:
+            db_name = db.get('name', 'Unknown')
+            db_hits = db.get('hits', 0)
+            id_text_lines.append(f'  {db_name} (n = {db_hits})')
+    else:
+        id_text_lines.append('Records identified from')
+        id_text_lines.append('database searches')
+    id_text_lines.append(f'\nTotal records (n = {identified})')
     
-    # Excluded
-    draw_box(70, 65, 25, 8, f"Records excluded\n(n = {excluded})")
-    draw_arrow(65, 70, 70, 70) # from identification flow to excluded? typical PRISMA shows screening -> excluded
+    draw_box(MAIN_X, y - id_box_h, MAIN_W, id_box_h, '\n'.join(id_text_lines), 
+             bg_color=BOX_MAIN, fontsize=7.5, align='left')
     
-    draw_arrow(65, 70, 70, 70) # Arrow from screening box to excluded box
-    ax.annotate("", xy=(70, 70), xytext=(65, 70), arrowprops=dict(arrowstyle="->", color=edge_color, lw=1.5))
+    # Records removed before screening (side box)
+    removed_h = 8
+    removed_y = y - id_box_h/2 - removed_h/2
+    removed_text = 'Records removed before screening:\n\n'
+    removed_text += f'  Duplicate records (n = {duplicates})\n'
+    # removed_text += f'  Records marked as ineligible (n = 0)\n'
+    # removed_text += f'  Other reasons (n = 0)'
+    draw_box(EXCL_X, removed_y, EXCL_W, removed_h, removed_text, 
+             bg_color=BOX_EXCLUDED, fontsize=7, align='left')
+    
+    # Arrow from identification to removed box
+    ax.plot([MAIN_X + MAIN_W, EXCL_X], [y - id_box_h/2, removed_y + removed_h/2],
+            color=ARROW_COLOR, linewidth=1.2)
+    
+    y -= id_box_h + GAP
+    draw_arrow(CENTER, y + GAP - 1, CENTER, y + 1)
 
-    # Retrieval
-    draw_box(35, 45, 30, 10, f"Reports sought for retrieval\n(n = {retrieved})")
-    draw_arrow(50, 45, 50, 35)
+    # ═══════ SCREENING PHASE ═══════
+    scr_h = 8
+    draw_phase_label(PHASE_X, y - scr_h, PHASE_W, scr_h + 3, 'Screening', PHASE_SCREENING)
+    
+    scr_text = f'Records screened\n(title and abstract)\n(n = {screened})'
+    draw_box(MAIN_X, y - scr_h, MAIN_W, scr_h, scr_text, bg_color=BOX_MAIN, fontsize=8)
+    
+    # Excluded records (side)
+    exc_scr_h = 6
+    exc_scr_y = y - scr_h/2 - exc_scr_h/2
+    exc_text = f'Records excluded\n(n = {excluded})'
+    draw_box(EXCL_X, exc_scr_y, EXCL_W, exc_scr_h, exc_text, 
+             bg_color=BOX_EXCLUDED, fontsize=7.5)
+    ax.plot([MAIN_X + MAIN_W, EXCL_X], [y - scr_h/2, exc_scr_y + exc_scr_h/2],
+            color=ARROW_COLOR, linewidth=1.2)
+    
+    y -= scr_h + GAP
+    draw_arrow(CENTER, y + GAP - 1, CENTER, y + 1)
 
-    # Not retrieved
-    draw_box(70, 45, 25, 8, f"Reports not retrieved\n(n = {not_retrieved})")
-    ax.annotate("", xy=(70, 50), xytext=(65, 50), arrowprops=dict(arrowstyle="->", color=edge_color, lw=1.5))
+    # ═══════ REPORTS SOUGHT FOR RETRIEVAL ═══════
+    retr_h = 7
+    retr_text = f'Reports sought for retrieval\n(n = {retrieved})'
+    draw_box(MAIN_X, y - retr_h, MAIN_W, retr_h, retr_text, bg_color=BOX_MAIN, fontsize=8)
+    
+    # Not retrieved (side)
+    if not_retrieved > 0:
+        nr_h = 5
+        nr_y = y - retr_h/2 - nr_h/2
+        nr_text = f'Reports not retrieved\n(n = {not_retrieved})'
+        draw_box(EXCL_X, nr_y, EXCL_W, nr_h, nr_text, 
+                 bg_color=BOX_EXCLUDED, fontsize=7.5)
+        ax.plot([MAIN_X + MAIN_W, EXCL_X], [y - retr_h/2, nr_y + nr_h/2],
+                color=ARROW_COLOR, linewidth=1.2)
+    
+    y -= retr_h + GAP
+    draw_arrow(CENTER, y + GAP - 1, CENTER, y + 1)
 
-    # Eligibility
-    draw_box(35, 25, 30, 10, f"Reports assessed for eligibility\n(n = {assessed})")
-    draw_arrow(50, 25, 50, 15)
+    # ═══════ ELIGIBILITY (Reports assessed) ═══════
+    assess_h = 7
+    assess_text = f'Reports assessed for eligibility\n(n = {assessed})'
+    draw_box(MAIN_X, y - assess_h, MAIN_W, assess_h, assess_text, bg_color=BOX_MAIN, fontsize=8)
+    
+    # Excluded with reasons (side)
+    total_exc = assessed - included
+    exc_reasons_lines = []
+    
+    if excluded_reasons and len(excluded_reasons) > 0:
+        # Format: Excluded (n=X) then list reasons
+        exc_reasons_lines.append(f'Reports excluded (n = {total_exc})')
+        exc_reasons_lines.append('')  # blank line
+        for reason, count in excluded_reasons.items():
+            exc_reasons_lines.append(f'  {reason} (n = {count})')
+    else:
+        if total_exc > 0:
+            exc_reasons_lines.append(f'Reports excluded\n(n = {total_exc})')
+    
+    exc_ft_h = max(7, len(exc_reasons_lines) * 1.3 + 3)
+    exc_ft_y = y - assess_h/2 - exc_ft_h/2
+    draw_box(EXCL_X, exc_ft_y, EXCL_W, exc_ft_h, '\n'.join(exc_reasons_lines),
+             bg_color=BOX_EXCLUDED, fontsize=7, align='left')
+    ax.plot([MAIN_X + MAIN_W, EXCL_X], [y - assess_h/2, exc_ft_y + exc_ft_h/2],
+            color=ARROW_COLOR, linewidth=1.2)
+    
+    y -= assess_h + GAP
+    draw_arrow(CENTER, y + GAP - 1, CENTER, y + 1)
 
-    # Excluded reasons
-    reasons_text = "Reports excluded:\n" + "\n".join(f"{k} (n={v})" for k, v in excluded_reasons.items())
-    draw_box(70, 20, 25, 15, reasons_text)
-    ax.annotate("", xy=(70, 30), xytext=(65, 30), arrowprops=dict(arrowstyle="->", color=edge_color, lw=1.5))
+    # ═══════ INCLUDED ═══════
+    inc_h = 8
+    draw_phase_label(PHASE_X, y - inc_h, PHASE_W, inc_h + 3, 'Included', PHASE_INCLUDED)
+    
+    # Two boxes side by side for included studies
+    inc_left_w = MAIN_W / 2 - 1
+    inc1_text = f'New studies included\nin review\n(n = {included})'
+    draw_box(MAIN_X, y - inc_h, inc_left_w, inc_h, inc1_text, bg_color=BOX_MAIN, fontsize=8)
+    
+    inc2_text = f'Reports of new\nincluded studies\n(n = {included})'
+    draw_box(MAIN_X + inc_left_w + 2, y - inc_h, inc_left_w, inc_h, inc2_text, 
+             bg_color=BOX_MAIN, fontsize=8)
 
-    # Included
-    draw_box(35, 5, 30, 10, f"Studies included in review\n(n = {included})")
+    # ─── Adjust visible area ───
+    ax.set_ylim(y - inc_h - 3, 98)
 
-    ax.set_title("PRISMA 2020 Flow Diagram", fontsize=14, fontweight='bold')
-    plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    # ─── Title ───
+    plt.suptitle('PRISMA 2020 Flow Diagram', fontsize=13, fontweight='bold',
+                 family='serif', y=0.98)
+    plt.figtext(0.5, 0.96, 'Study selection process according to Page et al. (2021)',
+                ha='center', fontsize=8, fontstyle='italic', family='serif', color='#555555')
+
+    plt.tight_layout(rect=[0, 0.01, 1, 0.95])
+    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close()
 
 def draw_scree(data, output_path):
+    """
+    Priority Screening Score Distribution (Scree/Elbow Plot).
+    Academic journal style: serif fonts, clean axes, minimal colors.
+    """
     scores = sorted(data.get('scores', []), reverse=True)
+
     if not scores:
         print("⚠️  No hay scores disponibles para generar scree plot", file=sys.stderr)
-        # Crear imagen placeholder
-        _, ax = plt.subplots(figsize=(12, 6))
-        ax.text(0.5, 0.5, 'No hay datos de relevancia disponibles\nPara generar el gráfico scree plot', 
-                ha='center', va='center', fontsize=14, color='gray')
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
-        ax.axis('off')
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.text(0.5, 0.5, 'No hay datos de relevancia disponibles',
+                ha='center', va='center', fontsize=12, color='#666666', family='serif')
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
+        plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
         plt.close()
         return
-    
+
     if len(scores) < 3:
-        print(f"⚠️  Insuficientes scores ({len(scores)}) para generar scree plot - se requieren al menos 3", file=sys.stderr)
-        # Crear imagen placeholder con advertencia
-        _, ax = plt.subplots(figsize=(12, 6))
-        ax.text(0.5, 0.5, f'Datos insuficientes ({len(scores)} puntos)\nSe requieren al menos 3 referencias con relevancia', 
-                ha='center', va='center', fontsize=14, color='orange')
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
-        ax.axis('off')
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        print(f"⚠️  Insuficientes scores ({len(scores)})", file=sys.stderr)
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.text(0.5, 0.5, f'Datos insuficientes ({len(scores)} puntos)\nSe requieren al menos 3 referencias',
+                ha='center', va='center', fontsize=12, color='#996600', family='serif')
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
+        plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
         plt.close()
         return
 
     df = pd.DataFrame({'Rank': list(range(1, len(scores) + 1)), 'Score': scores})
-    
-    _, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(df['Rank'], df['Score'], marker='o', linestyle='-', color='#0066cc', markersize=4)
-    
-    ax.set_xlabel('Rank')
-    ax.set_ylabel('Relevance Score')
-    ax.set_title('Priority Screening Score Distribution (Elbow Plot)')
-    ax.grid(True, linestyle='--', alpha=0.7)
-    
-    # Calculate Median
-    median_score = float(df['Score'].median())
-    ax.axhline(y=median_score, color='#d97706', linestyle='--', alpha=0.8, label=f'Mediana: {median_score:.1%}')
 
-    # Calculate Elbow (Knee) using distance method
-    # Line from First (1, max) to Last (n, min)
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    # ─── Main line plot ───
+    ax.plot(df['Rank'], df['Score'], 'o-', color='#333333', markersize=4,
+            markerfacecolor='#333333', markeredgecolor='#333333', linewidth=1.2,
+            label='Puntaje de relevancia', zorder=3)
+
+    # ─── Fill under curve (very subtle) ───
+    ax.fill_between(df['Rank'], df['Score'], color='#cccccc', alpha=0.3, zorder=1)
+
+    # ─── Median ───
+    median_score = float(df['Score'].median())
+    ax.axhline(y=median_score, color='#666666', linestyle='--', linewidth=0.8,
+               alpha=0.8, label=f'Mediana: {median_score:.1%}', zorder=2)
+
+    # ─── Elbow (Knee) detection ───
     x1, y1 = 1, scores[0]
     x2, y2 = len(scores), scores[-1]
-    
-    max_dist = -1
-    elbow_idx = -1
-    
-    # Standard line equation coeff: Ax + By + C = 0
-    # (y1 - y2)x + (x2 - x1)y + (x1*y2 - x2*y1) = 0
     A = y1 - y2
     B = x2 - x1
     C = x1 * y2 - x2 * y1
     denominator = (A*A + B*B) ** 0.5
-    
+
+    elbow_idx = -1
     if denominator != 0:
+        max_dist = -1
         for i, score in enumerate(scores):
-            x0 = i + 1
-            y0 = score
-            dist = abs(A*x0 + B*y0 + C) / denominator
+            dist = abs(A*(i+1) + B*score + C) / denominator
             if dist > max_dist:
                 max_dist = dist
                 elbow_idx = i + 1
-    
+
     if elbow_idx != -1:
-        ax.axvline(x=elbow_idx, color='#9333ea', linestyle='--', alpha=0.8, label='Codo (Elbow)')
-        # Add text annotation
-        ax.text(elbow_idx, min(scores) + (max(scores)-min(scores))*0.1, 'Codo', color='#9333ea', 
-                ha='right', va='bottom', rotation=90, fontweight='bold')
-                
-    # Fill area under curve
-    ax.fill_between(df['Rank'], df['Score'], color='#0066cc', alpha=0.1)
+        ax.axvline(x=elbow_idx, color='#333333', linestyle=':', linewidth=1.0,
+                   alpha=0.7, label=f'Punto de corte (codo): rank {elbow_idx}', zorder=2)
+        # Annotation arrow
+        elbow_score = scores[elbow_idx - 1]
+        ax.annotate(f'Codo\n(rank = {elbow_idx})',
+                    xy=(elbow_idx, elbow_score),
+                    xytext=(elbow_idx + max(1, len(scores)*0.08), elbow_score + 0.05),
+                    fontsize=8, family='serif', fontstyle='italic',
+                    arrowprops=dict(arrowstyle='->', color='#333333', lw=0.8),
+                    ha='left', va='bottom')
 
-    # Calculate quantiles
-    top_10_idx = int(len(scores) * 0.1)
-    if top_10_idx < 1: top_10_idx = 1
-    
-    top_25_idx = int(len(scores) * 0.25)
-    if top_25_idx < 1: top_25_idx = 1
-    
+    # ─── Quantile lines ───
+    top_10_idx = max(1, int(len(scores) * 0.1))
+    top_25_idx = max(1, int(len(scores) * 0.25))
+
     if top_10_idx <= len(scores):
-        score_10 = scores[top_10_idx-1]
-        ax.axhline(y=score_10, color='r', linestyle='--', alpha=0.5, label=f'Top 10% (> {score_10:.2f})')
-        
+        s10 = scores[top_10_idx - 1]
+        ax.axhline(y=s10, color='#999999', linestyle='-.', linewidth=0.7,
+                   alpha=0.6, label=f'Top 10% (≥ {s10:.2f})')
+
     if top_25_idx <= len(scores):
-        score_25 = scores[top_25_idx-1]
-        ax.axhline(y=score_25, color='g', linestyle='--', alpha=0.5, label=f'Top 25% (> {score_25:.2f})')
+        s25 = scores[top_25_idx - 1]
+        ax.axhline(y=s25, color='#999999', linestyle=':', linewidth=0.7,
+                   alpha=0.6, label=f'Top 25% (≥ {s25:.2f})')
 
-    ax.legend(loc='lower left', fontsize='small')
+    # ─── Axes formatting ───
+    ax.set_xlabel('Rango de referencia', fontsize=11, family='serif')
+    ax.set_ylabel('Puntaje de relevancia', fontsize=11, family='serif')
+    ax.set_title('Distribución de puntajes de cribado por prioridad (Scree Plot)',
+                 fontsize=12, fontweight='bold', family='serif', pad=12)
+
+    # Academic grid style
+    ax.grid(True, linestyle='-', linewidth=0.3, alpha=0.4, color='#cccccc')
+    ax.set_axisbelow(True)
+
+    # Clean spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_linewidth(0.8)
+    ax.spines['bottom'].set_linewidth(0.8)
+
+    # Legend
+    ax.legend(loc='upper right', frameon=True, framealpha=0.9,
+              edgecolor='#cccccc', fontsize=8, fancybox=False)
+
     plt.tight_layout()
-    plt.savefig(output_path, dpi=300)
+    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close()
-
+    
 def draw_search_table(data, output_path):
-    # Data structure: list of {name, hits, searchString}
+    """
+    Search Strategy Table — Academic style with serif fonts and clean borders.
+    """
     if not data:
         return
 
-    # Prepare data for table
-    table_data = []
-    # Columns: Source, Hits, Search String
-    col_labels = ['Source', 'Hits', 'Search String']
-    
     import textwrap
-    
+
+    table_data = []
+    col_labels = ['Fuente', 'Resultados', 'Cadena de búsqueda']
+
     for item in data:
-        name = item.get('name', 'Unknown')
+        name = item.get('name', 'Desconocido')
         hits = item.get('hits', 0)
         query = item.get('searchString', '') or 'N/A'
-        
-        # Wrap query text
-        wrapped_query = textwrap.fill(query, width=60)
-        
+        wrapped_query = textwrap.fill(query, width=55)
         table_data.append([name, hits, wrapped_query])
-    
+
     if not table_data:
         return
 
-    # Create figure
-    # Dynamic height based on number of rows and text lines
-    # Estimate height:
-    fig_height = max(4, len(table_data) * 1.5 + 2)  # approximate
-    
-    _, ax = plt.subplots(figsize=(12, fig_height))
+    fig_height = max(3, len(table_data) * 1.2 + 2)
+    fig, ax = plt.subplots(figsize=(10, fig_height))
     ax.axis('off')
     ax.axis('tight')
-    
-    # Add title
-    ax.set_title("Chart 1: Data sources and search strategy results", fontsize=14, fontweight='bold', pad=20)
-    
-    # Create table
-    table = ax.table(cellText=table_data, colLabels=col_labels, loc='center', cellLoc='left', colLoc='left')
-    
-    # Styling
+
+    ax.set_title("Tabla 1. Fuentes de datos y resultados de la estrategia de búsqueda",
+                 fontsize=11, fontweight='bold', family='serif', pad=15)
+
+    table = ax.table(cellText=table_data, colLabels=col_labels,
+                     loc='center', cellLoc='left', colLoc='left')
+
     table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1, 1.5) # Scale height
-    
-    # Adjust column widths
-    # Source (small), Hits (small), Query (large)
-    # Cells are accessed by (row, col)
-    # Columns are 0, 1, 2
-    
-    # Iterate over cells to set column widths manually if needed, or rely on auto
-    # Let's set column widths explicitly
+    table.set_fontsize(9)
+    table.scale(1, 1.4)
+
     col_widths = [0.15, 0.1, 0.75]
     for key, cell in table.get_celld().items():
         row, col = key
+        cell.set_edgecolor('#333333')
+        cell.set_linewidth(0.5)
         if col >= 0:
             cell.set_width(col_widths[col])
-            
-        # Header formatting
         if row == 0:
-            cell.set_text_props(weight='bold')
-            cell.set_facecolor('#f0f0f0')
+            cell.set_text_props(weight='bold', family='serif')
+            cell.set_facecolor('#e8e8e8')
+        else:
+            cell.set_text_props(family='serif')
+            cell.set_facecolor('#ffffff' if row % 2 == 1 else '#f5f5f5')
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close()
 
 def main():

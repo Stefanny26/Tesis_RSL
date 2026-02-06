@@ -8,6 +8,47 @@ class ImportReferencesUseCase {
   }
 
   /**
+   * Detecta la base de datos de origen desde el nombre del archivo o metadatos
+   * @param {string} filename - Nombre del archivo
+   * @param {Object} ref - Objeto de referencia parseado
+   * @returns {string} - Nombre de la base de datos
+   */
+  detectDatabaseSource(filename, ref = {}) {
+    const lowerFilename = filename.toLowerCase();
+    
+    // Detección por nombre de archivo
+    if (lowerFilename.includes('ieee')) return 'IEEE Xplore';
+    if (lowerFilename.includes('scopus')) return 'Scopus';
+    if (lowerFilename.includes('acm')) return 'ACM Digital Library';
+    if (lowerFilename.includes('pubmed') || lowerFilename.includes('.nb ib')) return 'PubMed';
+    if (lowerFilename.includes('wos') || lowerFilename.includes('webofscience') || lowerFilename.endsWith('.ciw')) return 'Web of Science';
+    if (lowerFilename.includes('springer')) return 'Springer';
+    if (lowerFilename.includes('sciencedirect') || lowerFilename.includes('elsevier')) return 'ScienceDirect';
+    if (lowerFilename.includes('arxiv')) return 'arXiv';
+    
+    // Detección por metadatos de la referencia (para CSV normalizado)
+    if (ref.database) return ref.database;
+    
+    // Detección por identificadores únicos
+    if (ref.externalId) {
+      const id = String(ref.externalId).toLowerCase();
+      if (id.startsWith('2-s2.0-')) return 'Scopus'; // Scopus EID format
+      if (id.match(/^\d{8}$/)) return 'PubMed'; // PMID format
+      if (id.startsWith('wos:')) return 'Web of Science';
+      if (id.length === 7 && !isNaN(id)) return 'IEEE Xplore'; // IEEE Document ID
+    }
+    
+    // Detección por formato de DOI o estructuras específicas
+    if (ref.doi && ref.doi.includes('10.1109')) return 'IEEE Xplore';
+    if (ref.doi && ref.doi.includes('10.1145')) return 'ACM Digital Library';
+    if (ref.doi && ref.doi.includes('10.1007')) return 'Springer';
+    if (ref.doi && ref.doi.includes('101016')) return 'ScienceDirect';
+    
+    // Por defecto
+    return null;
+  }
+
+  /**
    * Ejecuta la importación de referencias
    * @param {string} projectId - ID del proyecto
    * @param {Array} files - Archivos subidos (req.files)
@@ -91,9 +132,15 @@ class ImportReferencesUseCase {
 
             // Crear la referencia
             console.log(`   Insertando en BD...`);
+            
+            // Detectar database source
+            const detectedSource = this.detectDatabaseSource(file.originalname, refData);
+            console.log(`   Detected source: ${detectedSource || 'Unknown'}`);
+            
             const reference = await this.referenceRepository.create({
               ...refData,
               projectId: projectId,
+              source: detectedSource || refData.database || refData.source || null,  // Map database → source
               screeningStatus: refData.screeningStatus || 'pending',
               importedFrom: file.originalname,
               importedAt: new Date()
@@ -467,7 +514,9 @@ class ImportReferencesUseCase {
         abstract: '',
         keywords: [],
         url: '',
-        type: 'article'
+        type: 'article',
+        database: null,  // Add database field
+        externalId: null  // Add externalId field
       };
 
       for (const line of lines) {
@@ -525,6 +574,13 @@ class ImportReferencesUseCase {
             break;
           case 'TY': // Type of reference
             ref.type = this.mapRISType(cleanValue);
+            break;
+          case 'DB': // Database name
+            ref.database = cleanValue;
+            break;
+          case 'AN': // Accession Number / External ID
+          case 'ID':
+            ref.externalId = cleanValue;
             break;
         }
       }
@@ -584,7 +640,9 @@ class ImportReferencesUseCase {
         doi: '',
         abstract: '',
         keywords: '',
-        url: ''
+        url: '',
+        database: null,  // Add database field
+        externalId: null  // Add externalId field
       };
 
       // Parsear campos
@@ -628,6 +686,14 @@ class ImportReferencesUseCase {
             break;
           case 'url':
             ref.url = cleanValue;
+            break;
+          case 'database':
+          case 'source':
+            ref.database = cleanValue;
+            break;
+          case 'eprint':
+          case 'id':
+            ref.externalId = cleanValue;
             break;
         }
       }

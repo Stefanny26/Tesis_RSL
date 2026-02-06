@@ -95,14 +95,14 @@ export function generateArticleHTML(version: ArticleVersion): string {
   <h1>${version.title}</h1>
   
   <div class="metadata">
-    <p>Versión ${version.version}</p>
-    <p>${new Date(version.createdAt).toLocaleDateString('es-ES', { 
+    <p>Version ${version.version}</p>
+    <p>${new Date(version.createdAt).toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
     })}</p>
     <p>${version.createdBy}</p>
-    <p>${version.wordCount.toLocaleString()} palabras</p>
+    <p>${version.wordCount.toLocaleString()} words</p>
   </div>
 
   ${version.content.abstract ? `

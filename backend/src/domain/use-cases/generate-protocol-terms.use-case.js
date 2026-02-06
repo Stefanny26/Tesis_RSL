@@ -256,11 +256,19 @@ Solo 1 término: ["Web Development"] → Debe generar 3-4
 **Objetivo:** Definir las VARIABLES/RESULTADOS que se extraerán para llenar la Matriz de Síntesis.
 
 **Reglas obligatorias:**
-- Debe derivar del componente [O] del PICO: "${O}"
-- Generar 3-5 focos que respondan: "¿Qué se mide/evalúa?"
+- Debe derivar del componente [ O] del PICO: "${O}"
+- **OBLIGATORIO: Generar SIEMPRE 3-5 focos** que respondan: "¿Qué se mide/evalúa?"
 - Son las COLUMNAS de la futura Matriz de Síntesis
 - Deben permitir comparar hallazgos entre autores
-- NO introducir objetivos no presentes en título/PICO-O
+- Si PICO-O no es claro, inferir del título qué aspectos son evaluables (eficiencia, calidad, rendimiento, usabilidad, impacto, etc.)
+
+**¿Qué incluir en thematicFocus?**
+- Métricas de RENDIMIENTO: Eficiencia, Velocidad, Throughput, Latencia
+- Métricas de CALIDAD: Precisión, Exactitud, Confiabilidad, Robustez
+- Aspectos de USABILIDAD: Facilidad de uso, Experiencia de usuario, Curva de aprendizaje
+- Factores de ADOPCIÓN: Viabilidad, Costos, Escalabilidad, Mantenibilidad
+- IMPACTO: Productividad, Satisfacción, Mejoras medibles, ROI
+- DESAFÍOS: Limitaciones identificadas, Barreras de implementación
 
 **Conexión con Matriz de Síntesis:**
 Los términos aquí se convertirán en columnas como:
@@ -270,18 +278,28 @@ Los términos aquí se convertirán en columnas como:
 - "[Foco 2]: Rendimiento del Modelo"
 - "[Foco 3]: Desafíos de Implementación"
 
-**Ejemplo correcto:**
+**Ejemplo correcto 1:**
 Título: "Early Detection of Cardiovascular Diseases using ML"
 PICO-O: "Precisión diagnóstica, rendimiento de modelos, viabilidad clínica"
-ThematicFocus (3-5 términos):
+ThematicFocus (4 términos):
   "Precisión Diagnóstica - Diagnostic Accuracy"
   "Rendimiento de Modelos - Model Performance"
   "Viabilidad Clínica - Clinical Feasibility"
   "Interpretabilidad de Resultados - Results Interpretability"
 
+**Ejemplo correcto 2:**
+Título: "Machine Learning for Web Development"
+PICO-O: "Mejoras en productividad, calidad del código"
+ThematicFocus (4 términos) - INFERIDOS del contexto de desarrollo:
+  "Productividad del Desarrollador - Developer Productivity"
+  "Calidad del Código - Code Quality"
+  "Eficiencia del Desarrollo - Development Efficiency"
+  "Mantenibilidad del Software - Software Maintainability"
+
 **Ejemplo INCORRECTO:**
 "Desarrollo de Software" → Es DOMINIO (applicationDomain)
 Términos no medibles: "Impacto general", "Avances recientes"
+**Array vacío [] → NUNCA dejar vacío, siempre inferir 3-5 términos**
 
 ═══════════════════════════════════════════════════════════════
 VALIDACIÓN DE COHERENCIA CRUZADA (AUTOMÁTICA)
@@ -386,10 +404,28 @@ Analiza el TÍTULO y el PICO. Genera términos que:
 2. Permitan construir búsquedas booleanas efectivas
 3. Faciliten llenar una Matriz de Síntesis (Autor, Método, Resultados)
 
+**⚠️ REGLA CRÍTICA PARA thematicFocus:**
+- **NUNCA dejes el array thematicFocus vacío []**
+- **OBLIGATORIO: Genera 3-5 términos SIEMPRE**
+- Si PICO-O es vago, infiere del TÍTULO qué aspectos son medibles:
+  * Tecnologías → mide su "Rendimiento", "Eficiencia", "Precisión"
+  * Metodologías → mide su "Efectividad", "Aplicabilidad", "Desafíos"
+  * Procesos → mide su "Productividad", "Calidad", "Costos"
+
 **REGLAS FINALES:**
 - NO inventes conceptos fuera del alcance del título "${title}"
 - Máximo 5 palabras por término
+- **technologies**: 4-5 términos
+- **applicationDomain**: 3-4 términos
+- **thematicFocus**: 3-5 términos (OBLIGATORIO, nunca vacío)
 - Solo JSON. Sin explicaciones.
+
+**FORMATO JSON REQUERIDO (verifica que thematicFocus NO esté vacío):**
+{
+  "technologies": ["Término 1", "Término 2", "Término 3", "Término 4"],
+  "applicationDomain": ["Dominio 1", "Dominio 2", "Dominio 3"],
+  "thematicFocus": ["Foco 1", "Foco 2", "Foco 3", "Foco 4"]
+}
 
 RESPONDE SOLO CON EL JSON. NADA MÁS.
 `.trim();
@@ -588,6 +624,18 @@ RESPONDE SOLO CON EL JSON. NADA MÁS.
     for (const key of Object.keys(terms)) {
       if (terms[key].length === 0) {
         console.warn(`Categoría ${key} vacía - El investigador debe definir términos manualmente`);
+        
+        // ⚠️ EXCEPCIÓN CRÍTICA: thematicFocus nunca debe estar vacío
+        // Si la IA no generó términos, sugerir términos genéricos basados en contexto académico
+        if (key === 'thematicFocus') {
+          console.warn('⚠️ FALLBACK ACTIVADO: Generando thematicFocus genéricos para evitar array vacío');
+          terms[key] = [
+            "Rendimiento - Performance",
+            "Eficiencia - Efficiency",
+            "Efectividad - Effectiveness"
+          ];
+          console.warn('ℹ️ Se agregaron términos genéricos. El investigador DEBE revisarlos y personalizarlos según su PICO-O');
+        }
       }
     }
 

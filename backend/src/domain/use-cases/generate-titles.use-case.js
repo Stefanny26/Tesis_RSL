@@ -132,22 +132,72 @@ CONTEXTO DEL PROTOCOLO (Insumos Reales)
 ${context}
 
 ═══════════════════════════════════════════════════════════════
-REGLAS DE ORO DE REDACCIÓN ACADÉMICA
+REGLAS DE ORO DE REDACCIÓN ACADÉMICA (Actualizado con énfasis en PICO completo)
 ═══════════════════════════════════════════════════════════════
-1. PRISMA COMPLIANCE (Ítem 1): Aunque el sistema sabe que es una RSL, el título final DEBE sugerir la naturaleza del estudio (ej: "A Systematic Review", "A Scoping Review" o "Evidence Synthesis"). Esto es vital para la indexación en Scopus/WoS.
-2. PRECISIÓN TÉCNICA: Sustituir términos genéricos por específicos. 
-   - NO: "Inteligencia Artificial" -> SÍ: "Deep Reinforcement Learning" o "Convolutional Neural Networks".
-   - NO: "Impacto en salud" -> SÍ: "Tasa de diagnóstico erróneo" o "Latencia en la respuesta".
-3. PROHIBICIÓN DE "BUZZWORDS": Prohibido usar: "Moderno", "Avanzado", "Reciente", "Estudio sobre", "Análisis de".
-4. LONGITUD: Entre 12 y 18 palabras.
+1. PRISMA COMPLIANCE (Ítem 1): El título DEBE incluir explícitamente la naturaleza del estudio (ej: "A Systematic Review", "A Scoping Review" o "Evidence Synthesis"). Obligatorio para indexación Scopus/WoS.
+
+2. INCLUSIÓN EXPLÍCITA DEL OUTCOME (O): **CRÍTICO** - El título DEBE incluir el resultado/outcome específico que se evaluará:
+   - ❌ NO: "Machine Learning in Healthcare" (sin outcome)
+   - ❌ NO: "ML for Healthcare Impact" (outcome vago)
+   - ✅ SÍ: "ML for Diagnostic Accuracy in Healthcare" (outcome específico)
+   - ✅ SÍ: "ML for Reducing Hospital Readmission Rates" (outcome medible)
+   
+   **Ejemplos de Outcomes Concretos por Área:**
+   - Salud: "Diagnostic Accuracy", "Treatment Response Rate", "Patient Mortality Reduction"
+   - Software: "Development Time", "Code Quality", "Bug Detection Rate"
+   - Educación: "Learning Outcomes", "Academic Performance", "Student Engagement"
+   - Manufactura: "Production Efficiency", "Defect Rate", "Energy Consumption"
+
+3. INTEGRACIÓN DEL COMPARATOR (C) cuando exista: Si PICO incluye C (Comparison), el título DEBE reflejarlo:
+   - Formato: "[I] vs. [C] for [Outcome] in [P]: A Comparative Review"
+   - Ejemplo: "Deep Learning vs. Traditional ML for Fraud Detection in Banking: A Systematic Review"
+   - Si NO hay C explícito, omitir la comparación del título
+
+4. PRECISIÓN TÉCNICA: Sustituir términos genéricos por específicos:
+   - NO: "Inteligencia Artificial" -> SÍ: "Deep Reinforcement Learning" o "Convolutional Neural Networks"
+   - NO: "Impacto" / "Mejora" -> SÍ: Outcome medible específico (ver punto 2)
+   
+5. PROHIBICIÓN DE "BUZZWORDS": Prohibido usar: "Moderno", "Avanzado", "Reciente", "Impacto general", "Mejora", "Estudio sobre", "Análisis de".
+
+6. LONGITUD: Entre 12 y 18 palabras.
 
 ═══════════════════════════════════════════════════════════════
-PATRONES DE ESTRUCTURA (Selecciona uno por cada título)
+PATRONES DE ESTRUCTURA ACTUALIZADOS (Incluyen P-I-C-O completo)
 ═══════════════════════════════════════════════════════════════
-A. [Intervención/Tecnología] for [Población/Problema]: A Systematic Mapping Study.
-B. [Resultado/Outcome] of [Tecnología] in [Contexto]: A Systematic Review of the Literature.
-C. [Tecnología A] vs. [Tecnología B] for [Problema]: A Comparative Evidence Synthesis.
-D. Current Trends and Future Challenges in [Tecnología] for [Dominio]: A Scoping Review.
+**REGLA FUNDAMENTAL: Todos los patrones DEBEN incluir el Outcome (O) de manera explícita y medible.**
+
+**Patrón A (Sin Comparison)**: 
+[Intervención/Tecnología] for [Outcome Específico] in [Población/Contexto]: A Systematic Review
+Ejemplo: "Machine Learning Algorithms for Diagnostic Accuracy in Cardiovascular Diseases: A Systematic Review"
+- I: Machine Learning Algorithms
+- O: Diagnostic Accuracy (outcome concreto)
+- P: Cardiovascular Diseases
+- Naturaleza: Systematic Review
+
+**Patrón B (Con énfasis en Outcome)**: 
+[Outcome Específico] of [Intervención] in [Población]: A Systematic Review
+Ejemplo: "Energy Efficiency of Cloud Computing Architectures in Data Centers: A Systematic Review"
+- O: Energy Efficiency (outcome medible)
+- I: Cloud Computing Architectures
+- P: Data Centers
+- Natural  eza: Systematic Review
+
+**Patrón C (Con Comparison explícita)**:
+[Intervención A] vs. [Intervención B] for [Outcome] in [Población]: A Comparative Evidence Synthesis
+Ejemplo: "Agile vs. Waterfall for Project Delivery Time in Software Startups: A Comparative Review"
+- I: Agile
+- C: Waterfall
+- O: Project Delivery Time (outcome medible)
+- P: Software Startups
+- Naturaleza: Comparative Review
+
+**Patrón D (Scoping - exploratorio)**:
+[Outcome/Efectos] of [Intervención] in [Población]: Evidence Mapping and Future Directions
+Ejemplo: "Security Vulnerabilities of IoT Devices in Smart Homes: A Scoping Review"
+- O: Security Vulnerabilities (outcome específico)
+- I: IoT Devices
+- P: Smart Homes
+- Naturaleza: Scoping Review
 
 ═══════════════════════════════════════════════════════════════
 INSTRUCCIONES PARA LA JUSTIFICACIÓN (Peer-Review Style)
@@ -233,39 +283,71 @@ CRITERIOS DE COMPLIANCE
 - Sin estructura PICO identificable
 
 ═══════════════════════════════════════════════════════════════
-EJEMPLOS REFERENCIALES DE TÍTULOS VÁLIDOS
+EJEMPLOS REFERENCIALES DE TÍTULOS VÁLIDOS (Actualizados con PICO completo)
 ═══════════════════════════════════════════════════════════════
 
-CORRECTO (Patrón A, full compliance):
-"Machine Learning Techniques for Fraud Detection in Digital Financial Transactions: A Systematic Review"
-- Fenómeno: Machine Learning Techniques
-- Población: Digital Financial Transactions
-- Enfoque: Fraud Detection
+**CORRECTO** (Patrón A, full compliance - Outcome explícito):
+"Machine Learning Algorithms for Fraud Detection Accuracy in Digital Banking: A Systematic Review"
+- I (Intervención): Machine Learning Algorithms
+- O (Outcome): Fraud Detection Accuracy (medible)
+- P (Población): Digital Banking
 - Naturaleza: Systematic Review (explícito)
-- Palabras: 13
-
-CORRECTO (Patrón C, full compliance):
-"Blockchain vs. Centralized Databases for Electronic Health Records: A Comparative Evidence Synthesis"
-- Comparación explícita
-- Población: Electronic Health Records
-- Outcome: Comparative Evidence
-- Naturaleza: Evidence Synthesis (explícito)
 - Palabras: 12
+- ✅ Outcome concreto y medible
 
-INCORRECTO (ambiguo, low compliance):
-"Artificial Intelligence: A Review"
+**CORRECTO** (Patrón B, full compliance - Outcome primero):
+"Energy Efficiency of Blockchain Consensus Mechanisms in Cryptocurrency Networks: A Systematic Review"
+- O (Outcome): Energy Efficiency (medible)
+- I (Intervención): Blockchain Consensus Mechanisms
+- P (Población): Cryptocurrency Networks
+- Naturaleza: Systematic Review
+- Palabras: 12
+- ✅ Outcome específico y cuantificable
+
+**CORRECTO** (Patrón C, full compliance - Con Comparison):
+"Microservices vs. Monolithic Architectures for Deployment Velocity in Cloud Applications: A Comparative Review"
+- I (Intervención): Microservices
+- C (Comparator): Monolithic Architectures
+- O (Outcome): Deployment Velocity (tiempo medible)
+- P (Población): Cloud Applications
+- Naturaleza: Comparative Review
+- Palabras: 13
+- ✅ Comparison explícita + Outcome concreto
+
+**CORRECTO** (Patrón D, full compliance - Scoping con Outcome):
+"Security Vulnerabilities of Internet of Things Devices in Smart Home Environments: A Scoping Review"
+- O (Outcome): Security Vulnerabilities (medible)
+- I (Intervención): Internet of Things Devices
+- P (Población): Smart Home Environments
+- Naturaleza: Scoping Review
+- Palabras: 14
+- ✅ Outcome específico (vulnerabilidades de seguridad)
+
+**INCORRECTO** (Outcome vago, low compliance):
+"Artificial Intelligence for Healthcare Improvement: A Review"
+❌ Problemas:
+- "Improvement" es demasiado vago (¿qué se mejora?)
+- No especifica outcome medible (¿diagnóstico? ¿costos? ¿tiempos?)
 - Fenómeno: demasiado amplio ("AI")
-- Sin población específica
-- Sin enfoque metodológico
-- Palabras: 4 (muy corto)
-- No especifica tipo de revisión
+- Palabras: 7 (muy corto)
+- Sin outcome concreto
 
-INCORRECTO (buzzwords, low compliance):
+**INCORRECTO** (Sin Outcome, low compliance):
+"Machine Learning in Web Development: A Systematic Review"
+❌ Problemas:
+- NO indica QUÉ se evalúa/mide (falta O)
+- ¿Evalúa velocidad? ¿calidad? ¿costos? ¿productividad?
+- Título incompleto sin outcome
+- Debe especificar: "ML for Development Time Reduction" o "ML for Code Quality"
+
+**INCORRECTO** (buzzwords + outcome vago, low compliance):
 "Advanced Analysis of Modern IoT Impact in Smart Cities"
+❌ Problemas:
 - "Advanced" y "Modern" son buzzwords prohibidos
-- "impacto" sin especificar EN QUÉ
+- "Impact" sin especificar EN QUÉ (outcome vago)
 - "análisis" es genérico
 - No menciona naturaleza del estudio
+- Debe especificar outcome: "Energy Consumption", "Traffic Flow Optimization", etc.
 
 ═══════════════════════════════════════════════════════════════
 SALIDA ESPERADA (JSON ESTRICTO):
@@ -299,19 +381,81 @@ SALIDA ESPERADA (JSON ESTRICTO):
 }
 
 ═══════════════════════════════════════════════════════════════
-INSTRUCCIONES FINALES
+INSTRUCCIONES FINALES (Actualizado con verificación PICO completa)
 ═══════════════════════════════════════════════════════════════
 
+**ANTES DE GENERAR, VERIFICA EL CONTEXTO PICO:**
+${context}
+
+**ANÁLISIS OBLIGATORIO DEL CONTEXTO:**
+1. ¿El PICO tiene "Outcomes" (O) definido? 
+   - SI: Úsalo literalmente en el título
+   - NO: Infiere un outcome medible del contexto (eficiencia, calidad, velocidad, precisión, costo, etc.)
+
+2. ¿El PICO tiene "Comparison" (C) definido?
+   - SI: Usa Patrón C ([I] vs. [C] for [O] in [P])
+   - NO: Usa Patrón A o B
+
+3. ¿La Población (P) es específica?
+   - Úsala tal cual sin generalizaciones
+
+4. ¿La Intervención (I) es técnica?
+   - Evita términos vagos ("IA", "ML" sin especificar tipo)
+
+**CHECKLIST DE VALIDACIÓN POR TÍTULO:**
+Para cada uno de los 5 títulos, verifica:
+- [ ] ¿Incluye la Población (P) específica del PICO?
+- [ ] ¿Incluye la Intervención (I) específica del PICO?
+- [ ] **[CRÍTICO]** ¿Incluye el Outcome (O) de manera concreta y medible?
+- [ ] Si hay Comparison (C), ¿está incluida en el título?
+- [ ] ¿Indica explícitamente la naturaleza del estudio? (Systematic Review, Scoping Review, etc.)
+- [ ] ¿Tiene entre 12-18 palabras?
+- [ ] ¿Evita buzzwords prohibidos?
+
+**INSTRUCCIONES DE GENERACIÓN:**
 1. Genera EXACTAMENTE 5 títulos DISTINTOS y NO REDUNDANTES
 2. PRIORIZA full compliance (mínimo 4 de 5 deben ser "full")
-3. Usa información del CONTEXTO DEL PROTOCOLO para derivar componentes
-4. Si falta información en el contexto, infiere de manera razonable pero NUNCA uses placeholders genéricos
-5. Cada título debe ser DIRECTAMENTE USABLE como título oficial del protocolo
-6. CRÍTICO: Cada título DEBE incluir explícitamente la naturaleza del estudio (A Systematic Review, A Scoping Review, etc.) - Esto es OBLIGATORIO para cumplir PRISMA 2020 Ítem 1
-7. CRÍTICO: Cada título DEBE tener una justificación de 30-50 palabras (campo "justification" OBLIGATORIO) explicando el RESEARCH GAP
-8. Responde ÚNICAMENTE con JSON válido, sin texto adicional
+3. **OBLIGATORIO**: Cada título DEBE incluir el Outcome (O) de manera específica
+4. Si PICO tiene Comparison (C), AL MENOS 1 título debe usar Patrón C (A vs. B)
+5. Usa información del CONTEXTO DEL PROTOCOLO para derivar componentes
+6. Si falta Outcome en el contexto, infiere uno medible y relevante (NO uses "impacto general" o "mejora")
+7. Cada título debe ser DIRECTAMENTE USABLE como título oficial del protocolo
+8. **CRÍTICO**: Cada título DEBE incluir explícitamente la naturaleza del estudio (A Systematic Review, A Scoping Review, etc.) - OBLIGATORIO para PRISMA 2020 Ítem 1
+9. **CRÍTICO**: Cada título DEBE tener una justificación de 30-50 palabras (campo "justification" OBLIGATORIO) explicando el RESEARCH GAP
+10. Responde ÚNICAMENTE con JSON válido, sin texto adicional
 
-GENERA LOS 5 TÍTULOS AHORA:`;
+**FORMATO JSON - ACTUALIZADO CON VALIDACIÓN PICO:**
+{
+  "titles": [
+    {
+      "title": "Title in English (Academic English only)",
+      "spanishTitle": "Traducción académica",
+      "justification": "Explicación técnica (30-50 palabras)",
+      "spanishJustification": "Misma explicación",
+      "cochraneCompliance": "full",
+      "wordCount": 15,
+      "pattern": "A",
+      "components": {
+        "population": "[Extraído de PICO-P]",
+        "intervention": "[Extraído de PICO-I]",
+        "comparator": "[Extraído de PICO-C o null]",
+        "outcome": "[Extraído de PICO-O - OBLIGATORIO, debe ser específico y medible]",
+        "naturaleza": "Systematic Review / Scoping Review"
+      },
+      "validation": {
+        "explicitReview": true,
+        "clearPhenomenon": true,
+        "hasPopulation": true,
+        "hasOutcome": true,  ← NUEVO: Validar que outcome esté presente
+        "isSpecific": true,
+        "lengthOK": true
+      }
+    }
+    // ... total 5
+  ]
+}
+
+GENERA LOS 5 TÍTULOS AHORA CON OUTCOME EXPLÍCITO EN CADA UNO:`;
   }
 
   /**
@@ -355,10 +499,29 @@ GENERA LOS 5 TÍTULOS AHORA:`;
           console.warn(`Compliance inválido para título ${index + 1}, usando 'partial'`);
         }
         
-        // Validar components (nuevo)
+        // Validar components (actualizado con validación de outcome)
         const components = item.components || {};
-        if (!components.population || !components.intervention || !components.outcome) {
-          console.warn(`Título ${index + 1} falta components PICO requeridos`);
+        
+        // CRÍTICO: Validar que todos los componentes PICO estén presentes
+        const missingComponents = [];
+        if (!components.population) missingComponents.push('population');
+        if (!components.intervention) missingComponents.push('intervention');
+        if (!components.outcome) missingComponents.push('outcome'); // NUEVO: Outcome es obligatorio
+        
+        if (missingComponents.length > 0) {
+          console.warn(`Título ${index + 1} falta components PICO requeridos: ${missingComponents.join(', ')}`);
+        }
+        
+        // Validar que el outcome no sea genérico o vago
+        if (components.outcome) {
+          const vagueOutcomes = ['impacto', 'impact', 'mejora', 'improvement', 'resultados', 'results', 'efectos', 'effects'];
+          const isVagueOutcome = vagueOutcomes.some(vague => 
+            components.outcome.toLowerCase().includes(vague) && components.outcome.split(' ').length <= 2
+          );
+          
+          if (isVagueOutcome) {
+            console.warn(`Título ${index + 1} tiene outcome vago: "${components.outcome}" - debe ser más específico (ej: "diagnostic accuracy", "energy efficiency", "development time")`);
+          }
         }
         
         // Validar justification (OBLIGATORIO)
@@ -383,10 +546,12 @@ GENERA LOS 5 TÍTULOS AHORA:`;
           components: {
             population: components.population || 'unspecified',
             intervention: components.intervention || 'unspecified',
-            comparator: components.comparator || null,
-            outcome: components.outcome || 'unspecified'
+            comparator: components.comparator || components.comparison || null, // Soportar ambos nombres
+            outcome: components.outcome || 'unspecified' // CRÍTICO: Outcome debe estar presente
           },
-          wordCount: wordCount
+          wordCount: wordCount,
+          // Agregar flag de validación para outcome
+          hasExplicitOutcome: components.outcome && components.outcome !== 'unspecified' && components.outcome.length > 3
         };
       });
       
@@ -396,7 +561,14 @@ GENERA LOS 5 TÍTULOS AHORA:`;
         console.warn(`Solo ${fullCount} títulos tienen 'full' compliance, se esperaban al menos 3`);
       }
       
-      console.log(`Validación exitosa: ${validatedTitles.length} títulos, ${fullCount} con full compliance`);
+      // NUEVA VALIDACIÓN: Verificar que al menos 4 títulos tengan outcomes explícitos
+      const withExplicitOutcome = validatedTitles.filter(t => t.hasExplicitOutcome).length;
+      if (withExplicitOutcome < 4) {
+        console.warn(`⚠️ Solo ${withExplicitOutcome} títulos tienen outcome explícito, se esperaban al menos 4`);
+        console.warn(`⚠️ Recordatorio: Los títulos deben incluir outcomes específicos y medibles (ej: "diagnostic accuracy", "development time", "energy efficiency")`);
+      }
+      
+      console.log(`Validación exitosa: ${validatedTitles.length} títulos, ${fullCount} con full compliance, ${withExplicitOutcome} con outcome explícito`);
       
       return validatedTitles.slice(0, 5); // Retornar máximo 5
       

@@ -44,6 +44,35 @@ class GenerateArticleFromPrismaUseCase {
   }
 
   /**
+   * Translate text to Academic English using AI (only if it contains Spanish)
+   */
+  async translateToEnglish(text) {
+    if (!text || text.trim() === '' || text === 'undefined') return text;
+    
+    // Quick heuristic: check if text likely contains Spanish
+    const spanishIndicators = /[áéíóúñ¿¡]|(\b(de|del|los|las|una|que|para|con|por|como|más|está|sobre|entre|desde|hasta|según|esta|estos|estas|también|además|mediante|incluyendo|dentro|siendo|hacia|donde|cual|cada|sino|aunque|puede|deben|tienen|puede|esto|implementación|análisis|evaluación|supervisión|detección|prevención|tecnología|estudio|estudios|contexto|sistema|sistemas|inteligencia|artificial|cultivos|cultivo|agricultura|datos|modelos|rendimiento|aprendizaje|automático|investigación|comparación|intervención|población|resultado|resultados|búsqueda|desarrollo|aplicación|metodología)\b)/i;
+    
+    if (!spanishIndicators.test(text)) return text;
+    
+    try {
+      const prompt = `Translate the following text to formal Academic English. Preserve all technical terms, acronyms, and proper nouns. Return ONLY the translated text, nothing else.
+
+Text to translate:
+${text}`;
+
+      const response = await this.aiService.generateText(
+        'You are a professional academic translator. Translate Spanish text to formal Academic English suitable for a Q1 journal publication.',
+        prompt,
+        'chatgpt'
+      );
+      return response.trim();
+    } catch (error) {
+      console.warn('⚠️ Translation failed, using original text:', error.message);
+      return text;
+    }
+  }
+
+  /**
    * Re-clasifica estudios RQS basándose en keywords
    * (Solución rápida sin re-extraer datos)
    */
@@ -164,6 +193,12 @@ class GenerateArticleFromPrismaUseCase {
             hits: sq.resultsCount || 0,
             searchString: sq.query || sq.apiQuery || 'N/A'
           }));
+          
+          console.log('🔍 DEBUG - prismaContext.screening.referencesBySource:', 
+            prismaContext.screening.referencesBySource);
+          console.log('🔍 DEBUG - Generated searchData:', searchData);
+          console.log('🔍 DEBUG - Passing to generateCharts...');
+          
           chartPaths = await this.pythonGraphService.generateCharts(prismaContext.screening, scores, searchData);
         }
       } catch (err) {
@@ -261,49 +296,49 @@ class GenerateArticleFromPrismaUseCase {
    * ABSTRACT PROFESIONAL con estructura estándar de revistas Q1
    */
   async generateProfessionalAbstract(prismaMapping, prismaContext, rqsStats) {
-    const prompt = `Actúa como un investigador senior redactando para una revista Q1. Genera un abstract estructurado siguiendo el formato IMRAD estricto.
+    const prompt = `Act as a senior researcher writing for a Q1 journal. Generate a structured abstract following the strict IMRAD format. ALL output MUST be in Academic English.
 
-**DATOS CONCRETOS DISPONIBLES:**
+**CONCRETE DATA AVAILABLE:**
 
-CONTEXTO DEL ESTUDIO:
-- Objetivo: ${prismaMapping.introduction.objectives}
-- Período de búsqueda: ${prismaContext.protocol.temporalRange.start || '2023'} - ${prismaContext.protocol.temporalRange.end || '2025'}
-- Bases de datos: ${prismaContext.protocol.databases.map(db => db.name).join(', ')}
-- Total artículos identificados: ${prismaContext.screening.totalResults || 'N/A'}
-- Artículos tras cribado: ${prismaContext.screening.afterScreening || 'N/A'}
-- Estudios incluidos finales: ${prismaContext.screening.includedFinal || rqsStats.total}
+STUDY CONTEXT:
+- Objective: ${prismaMapping.introduction.objectives}
+- Search period: ${prismaContext.protocol.temporalRange.start || '2023'} - ${prismaContext.protocol.temporalRange.end || '2025'}
+- Databases: ${prismaContext.protocol.databases.map(db => db.name).join(', ')}
+- Total articles identified: ${prismaContext.screening.totalResults || 'N/A'}
+- Articles after screening: ${prismaContext.screening.afterScreening || 'N/A'}
+- Final included studies: ${prismaContext.screening.includedFinal || rqsStats.total}
 
-DATOS RQS PROCESADOS (${rqsStats.total} estudios):
-- Tipos de estudio: ${JSON.stringify(rqsStats.studyTypes)}
-- Distribución temporal: ${rqsStats.yearRange.min}-${rqsStats.yearRange.max}
-- Tecnologías principales: ${rqsStats.technologies.slice(0, 3).map(t => `${t.technology} (n=${t.count})`).join(', ')}
-- Contextos de aplicación: ${JSON.stringify(rqsStats.contexts)}
-- Cobertura RQ1: ${rqsStats.rqRelations.rq1.yes} directos, ${rqsStats.rqRelations.rq1.partial} parciales
-- Cobertura RQ2: ${rqsStats.rqRelations.rq2.yes} directos, ${rqsStats.rqRelations.rq2.partial} parciales
-- Cobertura RQ3: ${rqsStats.rqRelations.rq3.yes} directos, ${rqsStats.rqRelations.rq3.partial} parciales
+PROCESSED RQS DATA (${rqsStats.total} studies):
+- Study types: ${JSON.stringify(rqsStats.studyTypes)}
+- Temporal distribution: ${rqsStats.yearRange.min}-${rqsStats.yearRange.max}
+- Main technologies: ${rqsStats.technologies.slice(0, 3).map(t => `${t.technology} (n=${t.count})`).join(', ')}
+- Application contexts: ${JSON.stringify(rqsStats.contexts)}
+- RQ1 coverage: ${rqsStats.rqRelations.rq1.yes} direct, ${rqsStats.rqRelations.rq1.partial} partial
+- RQ2 coverage: ${rqsStats.rqRelations.rq2.yes} direct, ${rqsStats.rqRelations.rq2.partial} partial
+- RQ3 coverage: ${rqsStats.rqRelations.rq3.yes} direct, ${rqsStats.rqRelations.rq3.partial} partial
 
-**ESTRUCTURA OBLIGATORIA (150-250 palabras - ESTÁNDAR EDITORIAL IEEE/Elsevier/Springer):**
+**MANDATORY STRUCTURE (150-250 words - IEEE/Elsevier/Springer EDITORIAL STANDARD):**
 
-**Background**: 2-3 frases estableciendo el problema y gap de investigación específico.
+**Background**: 2-3 sentences establishing the problem and specific research gap.
 
-**Objective**: Declaración explícita del objetivo de la revisión sistemática.
+**Objective**: Explicit statement of the systematic review objective.
 
-**Methods**: Indica bases de datos, período, términos de búsqueda, criterios PICO, proceso de selección (incluyendo números: identificados → cribados → incluidos), extracción RQS, y tipo de síntesis (narrativa/cuantitativa).
+**Methods**: Indicate databases, period, search terms, PICO criteria, selection process (including numbers: identified → screened → included), RQS extraction, and type of synthesis (narrative/quantitative).
 
-**Results**: Reporta número final de estudios, distribución por tipo de estudio (con números), tecnologías más estudiadas (con frecuencias), principales hallazgos cuantitativos, y patrones identificados. SÉ ESPECÍFICO con datos numéricos.
+**Results**: Report final number of studies, distribution by study type (with numbers), most studied technologies (with frequencies), main quantitative findings, and identified patterns. BE SPECIFIC with numerical data.
 
-**Conclusions**: Síntesis de implicaciones principales y recomendaciones para práctica/investigación futura.
+**Conclusions**: Synthesis of main implications and recommendations for practice/future research.
 
-**REQUISITOS DE CALIDAD:**
-- Usa SOLO datos proporcionados arriba, NO inventes cifras
-- Incluye números específicos (n=X, Y%, etc.)
-- Lenguaje académico formal en español
-- Tercera persona impersonal
-- Sin abreviaturas no definidas
-- Coherencia total entre secciones
-- **CRÍTICO: Mantener entre 150-250 palabras (estándar editorial universal)**
+**QUALITY REQUIREMENTS:**
+- Use ONLY the data provided above, DO NOT invent figures
+- Include specific numbers (n=X, Y%, etc.)
+- Formal Academic English
+- Third person impersonal
+- No undefined abbreviations
+- Total coherence between sections
+- **CRITICAL: Keep between 150-250 words (universal editorial standard)**
 
-Genera SOLO el texto del abstract sin encabezados de sección:`;
+Generate ONLY the abstract text without section headers. ALL text MUST be in English:`;
 
     const response = await this.aiService.generateText(
       this.getEnhancedSystemPrompt(),
@@ -332,29 +367,29 @@ Genera SOLO el texto del abstract sin encabezados de sección:`;
    * KEYWORDS profesionales (obligatorio en journals IEEE/Elsevier/Springer/MDPI)
    */
   async generateKeywords(prismaContext, rqsStats) {
-    const prompt = `Genera palabras clave (keywords) para un artículo científico de revisión sistemática.
+    const prompt = `Generate keywords for a systematic review scientific article. ALL output MUST be in English.
 
-**CONTEXTO DEL ESTUDIO:**
-- Objetivo: ${prismaContext.protocol.objective}
-- Tecnologías principales: ${rqsStats.technologies.slice(0, 5).map(t => t.technology).join(', ')}
-- Contextos: ${Object.keys(rqsStats.contexts).join(', ')}
-- Tipo de estudio: Revisión sistemática de literatura
+**STUDY CONTEXT:**
+- Objective: ${prismaContext.protocol.objective}
+- Main technologies: ${rqsStats.technologies.slice(0, 5).map(t => t.technology).join(', ')}
+- Contexts: ${Object.keys(rqsStats.contexts).join(', ')}
+- Study type: Systematic literature review
 
-**REQUISITOS EDITORIALES ESTRICTOS:**
-- Generar EXACTAMENTE entre 3 y 6 palabras clave
-- Deben reflejar: tecnología, dominio de aplicación, y método
-- Evitar palabras genéricas como "revisión", "análisis" (a menos que sean muy específicas)
-- Usar términos indexables en bases académicas (IEEE Xplore, Scopus, Web of Science)
-- Preferir términos en inglés cuando sean estándar internacional (ej: Machine Learning, IoT)
-- Separar con punto y coma
-- Capitalización: Primera letra mayúscula o todas minúsculas según convención del término
+**STRICT EDITORIAL REQUIREMENTS:**
+- Generate EXACTLY between 3 and 6 keywords
+- Must reflect: technology, application domain, and method
+- Avoid generic words like "review", "analysis" (unless very specific)
+- Use indexable terms in academic databases (IEEE Xplore, Scopus, Web of Science)
+- Use standard English academic terms
+- Separate with semicolons
+- Capitalization: First letter uppercase or all lowercase per term convention
 
-**EJEMPLOS DE BUENAS KEYWORDS:**
-- Machine Learning; Ciberseguridad; Internet de las Cosas; Blockchain; Revisión Sistemática
-- Cloud Computing; DevOps; Metodología Ágil; Calidad de Software
-- Inteligencia Artificial; Detección de Anomalías; Seguridad Industrial
+**EXAMPLES OF GOOD KEYWORDS:**
+- Machine Learning; Cybersecurity; Internet of Things; Blockchain; Systematic Review
+- Cloud Computing; DevOps; Agile Methodology; Software Quality
+- Artificial Intelligence; Anomaly Detection; Industrial Security
 
-Genera SOLO la lista de palabras clave separadas por punto y coma, sin numeración ni formato adicional:`;
+Generate ONLY the list of keywords separated by semicolons, without numbering or additional formatting:`;
 
     const response = await this.aiService.generateText(
       this.getEnhancedSystemPrompt(),
@@ -385,42 +420,43 @@ Genera SOLO la lista de palabras clave separadas por punto y coma, sin numeraci�
   async generateProfessionalIntroduction(prismaMapping, prismaContext, rqsEntries) {
     const referencesList = rqsEntries.map((e, i) => `[${i + 1}] ${e.author} (${e.year}): ${e.title}`).join('\n');
 
-    const prompt = `Redacta una introducción académica profesional para una revisión sistemática en revista científica.
+    const prompt = `Write a professional academic introduction for a systematic review in a scientific journal. ALL output MUST be in Academic English. If source data below is in Spanish, translate it into English and integrate it naturally.
 
-**CONTENIDO PRISMA DISPONIBLE:**
+**PRISMA CONTENT AVAILABLE:**
 
-Justificación (PRISMA #3):
+Rationale (PRISMA #3):
 ${prismaMapping.introduction.rationale}
 
-Objetivos (PRISMA #4):
+Objectives (PRISMA #4):
 ${prismaMapping.introduction.objectives}
 
-Protocolo PICO:
-- Population: ${prismaContext.protocol.pico.population}
-- Intervention: ${prismaContext.protocol.pico.intervention}
-- Comparison: ${prismaContext.protocol.pico.comparison}
-- Outcome: ${prismaContext.protocol.pico.outcome}
+PICO Protocol:
+- Population: ${prismaContext.protocol.pico.population || 'Not specified'}
+- Intervention: ${prismaContext.protocol.pico.intervention || 'Not specified'}
+- Comparison: ${prismaContext.protocol.pico.comparison || 'No specific comparison defined'}
+- Outcome: ${prismaContext.protocol.pico.outcomes || 'Not explicitly defined'}
 
-Preguntas de Investigación:
+Research Questions:
 ${prismaContext.protocol.researchQuestions.map((rq, i) => `RQ${i + 1}: ${rq}`).join('\n')}
 
-**ESTUDIOS INCLUIDOS (USAR PARA CITAS):**
+**INCLUDED STUDIES (USE FOR CITATIONS):**
 ${referencesList}
 
-**ESTRUCTURA REQUERIDA (800-1000 palabras):**
+**REQUIRED STRUCTURE (800-1000 words):**
 
-1. **Párrafo 1-2 (Contexto)**: Establece el estado actual del campo.
-2. **Párrafo 3-4 (Gap y Literatura)**: Cita los estudios incluidos usando SU NÚMERO entre corchetes [X] cuando sea relevante para mostrar qué se ha hecho (y qué falta).
-3. **Párrafo 5 (Objetivos)**: Declara el objetivo de esta revisión.
-4. **Párrafo 6 (Contribución)**: Explica el aporte.
+1. **Paragraphs 1-2 (Context)**: Establish the current state of the field.
+2. **Paragraphs 3-4 (Gap & Literature)**: Cite included studies using THEIR NUMBER in brackets [X] when relevant to show what has been done (and what is missing).
+3. **Paragraph 5 (Objectives)**: State the objective of this review.
+4. **Paragraph 6 (Contribution)**: Explain the contribution.
 
-**ESTILO DE REDACCIÓN:**
-- Tercera persona impersonal
-- ESTRICTO: Usa formato de citas numerado [1], [2] correspondiente a la lista provista.
-- NO inventes citas ni autores.
-- Lenguaje académico formal en español.
+**WRITING STYLE:**
+- Third person impersonal
+- STRICT: Use numbered citation format [1], [2] corresponding to the provided list.
+- DO NOT invent citations or authors.
+- Formal Academic English.
+- If any source data is in Spanish, translate and integrate it naturally into English prose.
 
-Genera SOLO el texto de la introducción en español:`;
+Generate ONLY the introduction text in English:`;
 
     const response = await this.aiService.generateText(
       this.getEnhancedSystemPrompt(),
@@ -448,7 +484,7 @@ Genera SOLO el texto de la introducción en español:`;
     if (charts.scree) {
       screePlot = `
 ![Priority Screening Score Distribution](${charts.scree})
-*Figura 1. Distribución de puntajes de relevancia semántica (Scree Plot).*
+*Figure 1. Distribution of semantic relevance scores (Scree Plot).*
 `;
     }
 
@@ -462,114 +498,129 @@ Genera SOLO el texto de la introducción en español:`;
         return `| ${dbName} | ${searchStr} |`;
       }).join('\n');
 
-      searchChart = `| Base de Datos | Cadena de Búsqueda |
+      searchChart = `| Database | Search String |
 |---------------|-------------------|
 ${tableRows}`;
     } else if (databases.length > 0) {
       const tableRows = databases.map(db => {
         const dbName = db.name || db || 'N/A';
-        const searchStr = db.query || db.searchString || 'Ver protocolo';
+        const searchStr = db.query || db.searchString || 'See protocol';
         return `| ${dbName} | ${searchStr} |`;
       }).join('\n');
 
-      searchChart = `| Base de Datos | Cadena de Búsqueda |
+      searchChart = `| Database | Search String |
 |---------------|-------------------|
 ${tableRows}`;
     }
 
     const screeSection = screePlot ? `
-## 2.4 Priorización mediante Inteligencia Artificial
+## 2.4 Prioritization through Artificial Intelligence
 
-Se utilizó un enfoque híbrido de cribado asistido por IA. Las referencias descargadas fueron analizadas semánticamente para generar un puntaje de relevancia (0-1). La Figura 1 muestra la distribución de estos puntajes, permitiendo identificar el punto de corte óptimo para maximizar la recuperación de estudios relevantes minimizando el esfuerzo de revisión manual.
+A hybrid AI-assisted screening approach was employed. The downloaded references were semantically analyzed to generate a relevance score (0-1). Figure 1 shows the distribution of these scores, enabling the identification of the optimal cut-off point to maximize the retrieval of relevant studies while minimizing manual review effort.
 ${screePlot}
 ` : '';
 
-    return `## 2.1 Diseño de la revisión
+    // Translate PICO and PRISMA items from Spanish to English
+    console.log('🔄 Translating PICO and PRISMA content to English...');
+    const [picoPopulation, picoIntervention, picoComparison, picoOutcome,
+           eligibilityCriteria, selectionProcess, riskOfBias, synthesisMethod] = await Promise.all([
+      this.translateToEnglish(prismaContext.protocol.pico.population || 'Not specified'),
+      this.translateToEnglish(prismaContext.protocol.pico.intervention || 'Not specified'),
+      this.translateToEnglish(prismaContext.protocol.pico.comparison || 'No specific comparison defined'),
+      this.translateToEnglish(prismaContext.protocol.pico.outcomes || 'Not explicitly defined'),
+      this.translateToEnglish(prismaMapping.methods.eligibilityCriteria),
+      this.translateToEnglish(prismaMapping.methods.selectionProcess),
+      this.translateToEnglish(prismaMapping.methods.riskOfBias),
+      this.translateToEnglish(prismaMapping.methods.synthesisMethod),
+    ]);
+    console.log('✅ Translation completed');
 
-Esta revisión sistemática se realizó siguiendo las directrices PRISMA 2020 (Preferred Reporting Items for Systematic Reviews and Meta-Analyses) [1]. El protocolo fue definido a priori antes de iniciar la búsqueda bibliográfica.
+    return `## 2.1 Study Design
 
-## 2.2 Criterios de elegibilidad
+This systematic review was conducted following the PRISMA 2020 (Preferred Reporting Items for Systematic Reviews and Meta-Analyses) guidelines [1]. The protocol was defined a priori before initiating the bibliographic search.
 
-${prismaMapping.methods.eligibilityCriteria}
+## 2.2 Eligibility Criteria
 
-Los criterios se definieron siguiendo el marco PICO:
-- **Population (P)**: ${prismaContext.protocol.pico.population}
-- **Intervention (I)**: ${prismaContext.protocol.pico.intervention}
-- **Comparison (C)**: ${prismaContext.protocol.pico.comparison}
-- **Outcome (O)**: ${prismaContext.protocol.pico.outcome}
+${eligibilityCriteria}
 
-## 2.3 Fuentes de información y estrategia de búsqueda
+The criteria were defined following the PICO framework:
+- **Population (P)**: ${picoPopulation}
+- **Intervention (I)**: ${picoIntervention}
+- **Comparison (C)**: ${picoComparison}
+- **Outcome (O)**: ${picoOutcome}
 
-La búsqueda se centró en identificar estudios relevantes publicados entre ${prismaContext.protocol.temporalRange.start || '2023'} y ${prismaContext.protocol.temporalRange.end || '2025'}. Se seleccionaron ${databases.length} bases de datos académicas clave en el campo de las ciencias de la computación: ${dbNames}. La búsqueda inicial arrojó un total de ${prismaContext.screening.totalResults || 0} artículos. La Tabla 1 detalla las bases de datos consultadas, el número de resultados y las cadenas de búsqueda específicas utilizadas.
+## 2.3 Information Sources and Search Strategy
+
+The search focused on identifying relevant studies published between ${prismaContext.protocol.temporalRange.start || '2023'} and ${prismaContext.protocol.temporalRange.end || '2025'}. A total of ${databases.length} key academic databases in the field of computer science were selected: ${dbNames}. The initial search yielded a total of ${prismaContext.screening.totalResults || 0} articles. Table 1 details the databases consulted, the number of results, and the specific search strings used.
 
 ${searchChart}
 
-Las estrategias completas para todas las bases de datos se encuentran disponibles en el material suplementario.
+The complete strategies for all databases are available in the supplementary material.
 
 ${screeSection}
 
-## 2.5 Proceso de selección
+## 2.5 Selection Process
 
-${prismaMapping.methods.selectionProcess}
+${selectionProcess}
 
-El proceso siguió tres fases:
-1. **Eliminación de duplicados**: Se utilizó el gestor bibliográfico ${prismaContext.screening.method || 'software especializado'} para identificar y eliminar referencias duplicadas.
-2. **Cribado por título y resumen**: Dos revisores independientes evaluaron los títulos y resúmenes de forma independiente. Los desacuerdos se resolvieron mediante consenso o, cuando fue necesario, mediante la consulta a un tercer revisor.
-3. **Revisión de texto completo**: Los artículos que pasaron el cribado inicial fueron recuperados en texto completo y evaluados contra los criterios de elegibilidad completos.
+The process followed three phases:
+1. **Duplicate removal**: The bibliographic manager ${prismaContext.screening.method || 'specialized software'} was used to identify and remove duplicate references.
+2. **Title and abstract screening**: Two independent reviewers evaluated titles and abstracts independently. Disagreements were resolved through consensus or, when necessary, by consulting a third reviewer.
+3. **Full-text review**: Articles that passed the initial screening were retrieved in full text and evaluated against the complete eligibility criteria.
 
-## 2.6 Extracción de datos mediante esquema RQS
+## 2.6 Data Extraction Using the RQS Schema
 
-Los datos se extrajeron utilizando un esquema RQS (Research Question Schema) estructurado y estandarizado, diseñado específicamente para esta revisión. El esquema RQS incluyó los siguientes campos:
+Data were extracted using a structured and standardized RQS (Research Question Schema) specifically designed for this review. The RQS schema included the following fields:
 
-**Identificación del estudio:**
-- Autor principal y año de publicación
-- Título completo
-- Fuente de publicación (revista, conferencia)
-- DOI o identificador único
+**Study identification:**
+- Lead author and year of publication
+- Full title
+- Publication source (journal, conference)
+- DOI or unique identifier
 
-**Clasificación metodológica:**
-- Tipo de estudio (empírico, caso de estudio, experimento, simulación, revisión)
-- Diseño de investigación
-- Contexto de aplicación (industrial, empresarial, académico, experimental, mixto)
+**Methodological classification:**
+- Study type (empirical, case study, experiment, simulation, review)
+- Research design
+- Application context (industrial, enterprise, academic, experimental, mixed)
 
-**Caracterización técnica:**
-- Tecnología o método principal evaluado
-- Herramientas y frameworks utilizados
-- Métricas de evaluación reportadas
+**Technical characterization:**
+- Main technology or method evaluated
+- Tools and frameworks used
+- Reported evaluation metrics
 
-**Relación con preguntas de investigación:**
-- Evaluación de pertinencia para RQ1 (directa/parcial/no)
-- Evaluación de pertinencia para RQ2 (directa/parcial/no)
-- Evaluación de pertinencia para RQ3 (directa/parcial/no)
-- Evidencia clave extraída
-- Citas textuales relevantes (con página)
+**Relationship with research questions:**
+- Pertinence assessment for RQ1 (direct/partial/none)
+- Pertinence assessment for RQ2 (direct/partial/none)
+- Pertinence assessment for RQ3 (direct/partial/none)
+- Key extracted evidence
+- Relevant textual quotations (with page)
 
-**Evaluación de calidad:**
-- Limitaciones declaradas por los autores
-- Riesgo de sesgo (bajo/moderado/alto)
-- Calidad metodológica (alta/media/baja)
+**Quality assessment:**
+- Limitations declared by the authors
+- Risk of bias (low/moderate/high)
+- Methodological quality (high/medium/low)
 
-La extracción fue asistida por inteligencia artificial (Claude Sonnet 4) para acelerar el proceso, pero **todos los datos fueron validados manualmente** por el investigador principal. Se extrajeron datos de **${rqsEntries.length} estudios** que cumplieron los criterios de inclusión.
+Data extraction was assisted by artificial intelligence (Claude Sonnet 4) to accelerate the process, but **all data were manually validated** by the principal investigator. Data were extracted from **${rqsEntries.length} studies** that met the inclusion criteria.
 
-Para garantizar la consistencia, se realizó una extracción piloto con 3 estudios antes de proceder con el conjunto completo. Los datos extraídos se almacenaron en una base de datos estructurada compatible con análisis estadístico.
+To ensure consistency, a pilot extraction was conducted with 3 studies before proceeding with the complete set. The extracted data were stored in a structured database compatible with statistical analysis.
 
-## 2.7 Evaluación del riesgo de sesgo
+## 2.7 Risk of Bias Assessment
 
-${prismaMapping.methods.riskOfBias}
+${riskOfBias}
 
-Se aplicó una evaluación cualitativa de la calidad metodológica considerando:
-- Adecuación del diseño de investigación
-- Transparencia en el reporte de métodos
-- Suficiencia de datos para responder las RQs
-- Declaración explícita de limitaciones
+A qualitative assessment of methodological quality was applied considering:
+- Adequacy of research design
+- Transparency in method reporting
+- Sufficiency of data to answer the RQs
+- Explicit declaration of limitations
 
-## 2.8 Síntesis de datos
+## 2.8 Data Synthesis
 
-${prismaMapping.methods.synthesisMethod}
+${synthesisMethod}
 
-Dada la heterogeneidad metodológica de los estudios incluidos (diferentes diseños, contextos, y métricas), se realizó una **síntesis narrativa estructurada** en lugar de un meta-análisis cuantitativo. 
+Given the methodological heterogeneity of the included studies (different designs, contexts, and metrics), a **structured narrative synthesis** was performed instead of a quantitative meta-analysis.
 
-La síntesis se organizó en torno a las tres preguntas de investigación, integrando los hallazgos de forma temática. Se calcularon estadísticas descriptivas para caracterizar los estudios incluidos (distribuciones de frecuencia, rangos temporales, tecnologías predominantes) y se identificaron patrones recurrentes en los hallazgos.`;
+The synthesis was organized around the three research questions, integrating findings thematically. Descriptive statistics were calculated to characterize the included studies (frequency distributions, temporal ranges, predominant technologies) and recurrent patterns in the findings were identified.`;
   }
 
   /**
@@ -579,50 +630,63 @@ La síntesis se organizó en torno a las tres preguntas de investigación, integ
     // Generar análisis RQS detallado
     const rqsAnalysis = await this.generateDetailedRQSAnalysis(rqsEntries, rqsStats, prismaContext);
 
-    const rq1Synthesis = rqsEntries.length > 0 ? await this.synthesizeRQ1Findings(rqsEntries, prismaContext) : 'No se identificaron estudios que abordaran esta pregunta.';
-    const rq2Synthesis = rqsEntries.length > 0 ? await this.synthesizeRQ2Findings(rqsEntries, prismaContext) : 'No se identificaron estudios que abordaran esta pregunta.';
-    const rq3Synthesis = rqsEntries.length > 0 ? await this.synthesizeRQ3Findings(rqsEntries, prismaContext) : 'No se identificaron estudios que abordaran esta pregunta.';
+    const rq1Synthesis = rqsEntries.length > 0 ? await this.synthesizeRQ1Findings(rqsEntries, prismaContext) : 'No studies were identified that addressed this question.';
+    const rq2Synthesis = rqsEntries.length > 0 ? await this.synthesizeRQ2Findings(rqsEntries, prismaContext) : 'No studies were identified that addressed this question.';
+    const rq3Synthesis = rqsEntries.length > 0 ? await this.synthesizeRQ3Findings(rqsEntries, prismaContext) : 'No studies were identified that addressed this question.';
 
-    return `## 3.1 Selección de estudios
+    // Translate PRISMA items and RQs that may be in Spanish
+    console.log('🔄 Translating Results PRISMA content to English...');
+    const rqs = prismaContext.protocol.researchQuestions || [];
+    const [studySelection, riskOfBiasResults,
+           rq1Label, rq2Label, rq3Label] = await Promise.all([
+      this.translateToEnglish(prismaMapping.results.studySelection),
+      this.translateToEnglish(prismaMapping.results.riskOfBiasResults),
+      this.translateToEnglish(rqs[0] || 'First research question'),
+      this.translateToEnglish(rqs[1] || 'Second research question'),
+      this.translateToEnglish(rqs[2] || 'Third research question'),
+    ]);
+    console.log('✅ Results translation completed');
 
-${prismaMapping.results.studySelection}
+    return `## 3.1 Study Selection
 
-La Figura 2 presenta el diagrama de flujo PRISMA completo del proceso de selección. La búsqueda inicial identificó **${prismaContext.screening.totalResults || 'N/A'} registros** a través de las bases de datos consultadas. Tras la eliminación de duplicados (n=${prismaContext.screening.duplicatesRemoved || 'N/A'}), se cribaron **${prismaContext.screening.afterScreening || 'N/A'} registros únicos** por título y resumen.
+${studySelection}
 
-De estos, **${prismaContext.screening.fullTextRetrieved || 'N/A'} artículos** fueron recuperados para evaluación de texto completo. Finalmente, **${rqsStats.total} estudios** cumplieron todos los criterios de inclusión y fueron incluidos en la síntesis cualitativa.
+Figure 2 presents the complete PRISMA flow diagram of the selection process. The initial search identified **${prismaContext.screening.totalResults || 'N/A'} records** across the consulted databases. After duplicate removal (n=${prismaContext.screening.duplicatesRemoved || 'N/A'}), **${prismaContext.screening.afterScreening || 'N/A'} unique records** were screened by title and abstract.
 
-${charts.prisma ? `![PRISMA 2020 Flow Diagram](${charts.prisma})` : '**[FIGURA 2: Diagrama de flujo PRISMA 2020]**'}
-*Figura 2. Diagrama de flujo PRISMA 2020 del proceso de selección de estudios.*
+Of these, **${prismaContext.screening.fullTextRetrieved || 'N/A'} articles** were retrieved for full-text evaluation. Finally, **${rqsStats.total} studies** met all inclusion criteria and were included in the qualitative synthesis.
 
-## 3.2 Características de los estudios incluidos
+${charts.prisma ? `![PRISMA 2020 Flow Diagram](${charts.prisma})` : '**[FIGURE 2: PRISMA 2020 Flow Diagram]**'}
+*Figure 2. PRISMA 2020 flow diagram of the study selection process.*
 
-${rqsAnalysis || prismaMapping.results.studyCharacteristics || 'Los estudios incluidos se analizaron según el esquema RQS (Research Question Schema) para extraer datos estructurados relevantes a las preguntas de investigación.'}
+## 3.2 Characteristics of Included Studies
 
-## 3.3 Riesgo de sesgo en los estudios incluidos
+${rqsAnalysis || prismaMapping.results.studyCharacteristics || 'The included studies were analyzed according to the RQS (Research Question Schema) to extract structured data relevant to the research questions.'}
 
-${prismaMapping.results.riskOfBiasResults}
+## 3.3 Risk of Bias in Included Studies
 
-La Tabla 4 presenta la evaluación cualitativa del riesgo de sesgo para cada estudio incluido. La mayoría de los estudios (${rqsStats.qualityDistribution?.medium || 0} de ${rqsStats.total}) presentaron un riesgo de sesgo **moderado**, principalmente debido a limitaciones metodológicas menores o falta de detalles en la descripción de procedimientos.
+${riskOfBiasResults}
+
+Table 4 presents the qualitative risk of bias assessment for each included study. The majority of studies (${rqsStats.qualityDistribution?.medium || 0} of ${rqsStats.total}) presented a **moderate** risk of bias, primarily due to minor methodological limitations or insufficient detail in procedure descriptions.
 
 ${this.generateTable3Professional(rqsEntries)}
 
-## 3.4 Síntesis de resultados por pregunta de investigación
+## 3.4 Synthesis of Results by Research Question
 
-### 3.4.1 RQ1: ${prismaContext.protocol.researchQuestions[0] || 'Primera pregunta de investigación'}
+### 3.4.1 RQ1: ${rq1Label}
 
-De los ${rqsStats.total} estudios incluidos, **${rqsStats.rqRelations.rq1.yes} estudios** abordaron directamente esta pregunta, mientras que **${rqsStats.rqRelations.rq1.partial} estudios adicionales** la abordaron de forma parcial.
+Of the ${rqsStats.total} included studies, **${rqsStats.rqRelations.rq1.yes} studies** directly addressed this question, while **${rqsStats.rqRelations.rq1.partial} additional studies** addressed it partially.
 
 ${rq1Synthesis}
 
-### 3.4.2 RQ2: ${prismaContext.protocol.researchQuestions[1] || 'Segunda pregunta de investigación'}
+### 3.4.2 RQ2: ${rq2Label}
 
-Para la segunda pregunta de investigación, **${rqsStats.rqRelations.rq2.yes} estudios** proporcionaron evidencia directa, y **${rqsStats.rqRelations.rq2.partial} estudios** evidencia parcial.
+For the second research question, **${rqsStats.rqRelations.rq2.yes} studies** provided direct evidence, and **${rqsStats.rqRelations.rq2.partial} studies** provided partial evidence.
 
 ${rq2Synthesis}
 
-### 3.4.3 RQ3: ${prismaContext.protocol.researchQuestions[2] || 'Tercera pregunta de investigación'}
+### 3.4.3 RQ3: ${rq3Label}
 
-Respecto a la tercera pregunta, **${rqsStats.rqRelations.rq3.yes} estudios** aportaron datos relevantes directamente, mientras que **${rqsStats.rqRelations.rq3.partial} estudios** contribuyeron parcialmente.
+Regarding the third question, **${rqsStats.rqRelations.rq3.yes} studies** contributed relevant data directly, while **${rqsStats.rqRelations.rq3.partial} studies** contributed partially.
 
 ${rq3Synthesis}`;
   }
@@ -631,47 +695,48 @@ ${rq3Synthesis}`;
    * Análisis RQS detallado y profesional con estadísticas
    */
   async generateDetailedRQSAnalysis(rqsEntries, rqsStats, prismaContext) {
-    const prompt = `Genera un análisis descriptivo académico profesional de las características de los ${rqsStats.total} estudios incluidos.
+    const prompt = `Generate a professional academic descriptive analysis of the characteristics of the ${rqsStats.total} included studies. ALL output MUST be in Academic English. If any source data is in Spanish, translate it into English.
 
 **DATOS ESTADÍSTICOS REALES (NO INVENTES NADA):**
 
-Distribución por tipo de estudio:
+Distribution by study type:
 ${Object.entries(rqsStats.studyTypes).map(([type, count]) => `- ${type}: n=${count} (${((count / rqsStats.total) * 100).toFixed(1)}%)`).join('\n')}
 
-Distribución por contexto de aplicación:
+Distribution by application context:
 ${Object.entries(rqsStats.contexts).map(([context, count]) => `- ${context}: n=${count} (${((count / rqsStats.total) * 100).toFixed(1)}%)`).join('\n')}
 
-Distribución temporal:
-- Rango: ${rqsStats.yearRange.min}-${rqsStats.yearRange.max}
-- Por año: ${JSON.stringify(rqsStats.yearDistribution)}
+Temporal distribution:
+- Range: ${rqsStats.yearRange.min}-${rqsStats.yearRange.max}
+- By year: ${JSON.stringify(rqsStats.yearDistribution)}
 
-Tecnologías más estudiadas (top 5):
+Most studied technologies (top 5):
 ${rqsStats.technologies.slice(0, 5).map((t, i) => `${i + 1}. ${t.technology}: n=${t.count} (${((t.count / rqsStats.total) * 100).toFixed(1)}%)`).join('\n')}
 
-Cobertura de preguntas de investigación:
-- RQ1: ${rqsStats.rqRelations.rq1.yes} directos (${((rqsStats.rqRelations.rq1.yes / rqsStats.total) * 100).toFixed(1)}%), ${rqsStats.rqRelations.rq1.partial} parciales (${((rqsStats.rqRelations.rq1.partial / rqsStats.total) * 100).toFixed(1)}%)
-- RQ2: ${rqsStats.rqRelations.rq2.yes} directos (${((rqsStats.rqRelations.rq2.yes / rqsStats.total) * 100).toFixed(1)}%), ${rqsStats.rqRelations.rq2.partial} parciales (${((rqsStats.rqRelations.rq2.partial / rqsStats.total) * 100).toFixed(1)}%)
-- RQ3: ${rqsStats.rqRelations.rq3.yes} directos (${((rqsStats.rqRelations.rq3.yes / rqsStats.total) * 100).toFixed(1)}%), ${rqsStats.rqRelations.rq3.partial} parciales (${((rqsStats.rqRelations.rq3.partial / rqsStats.total) * 100).toFixed(1)}%)
+Research question coverage:
+- RQ1: ${rqsStats.rqRelations.rq1.yes} direct (${((rqsStats.rqRelations.rq1.yes / rqsStats.total) * 100).toFixed(1)}%), ${rqsStats.rqRelations.rq1.partial} partial (${((rqsStats.rqRelations.rq1.partial / rqsStats.total) * 100).toFixed(1)}%)
+- RQ2: ${rqsStats.rqRelations.rq2.yes} direct (${((rqsStats.rqRelations.rq2.yes / rqsStats.total) * 100).toFixed(1)}%), ${rqsStats.rqRelations.rq2.partial} partial (${((rqsStats.rqRelations.rq2.partial / rqsStats.total) * 100).toFixed(1)}%)
+- RQ3: ${rqsStats.rqRelations.rq3.yes} direct (${((rqsStats.rqRelations.rq3.yes / rqsStats.total) * 100).toFixed(1)}%), ${rqsStats.rqRelations.rq3.partial} partial (${((rqsStats.rqRelations.rq3.partial / rqsStats.total) * 100).toFixed(1)}%)
 
-**INSTRUCCIONES DE REDACCIÓN:**
+**WRITING INSTRUCTIONS:**
 
-Genera 2-3 párrafos académicos (400-500 palabras total) que:
+Generate 2-3 academic paragraphs (400-500 words total) that:
 
-1. **Párrafo 1**: Describe la distribución de tipos de estudio y contextos, destacando los predominantes. Usa los porcentajes exactos proporcionados.
+1. **Paragraph 1**: Describe the distribution of study types and contexts, highlighting the predominant ones. Use the exact percentages provided.
 
-2. **Párrafo 2**: Analiza la distribución temporal y las tecnologías más estudiadas. Menciona las frecuencias exactas y reflexiona sobre qué indica esta concentración.
+2. **Paragraph 2**: Analyze the temporal distribution and most studied technologies. Mention exact frequencies and reflect on what this concentration indicates.
 
-3. **Párrafo 3**: Sintetiza la cobertura de las RQs y explica qué significa para responder las preguntas de investigación.
+3. **Paragraph 3**: Synthesize the RQ coverage and explain what it means for answering the research questions.
 
-**REQUISITOS:**
-- USA SOLO LOS DATOS PROPORCIONADOS (números exactos, porcentajes calculados)
-- NO inventes estudios, autores ni hallazgos adicionales
-- Tercera persona impersonal
-- Lenguaje académico formal en español
-- Incluye referencias a "Tabla 2" y "Tabla 3" donde corresponda
-- Conecta las observaciones con el objetivo de la revisión
+**REQUIREMENTS:**
+- USE ONLY THE DATA PROVIDED (exact numbers, calculated percentages)
+- DO NOT invent studies, authors, or additional findings
+- Third person impersonal
+- Formal Academic English
+- Include references to "Table 2" and "Table 3" where appropriate
+- Connect observations with the objective of the review
+- If any source data labels are in Spanish, translate them to English
 
-Responde SOLO con los párrafos de análisis:`;
+Respond ONLY with the analysis paragraphs in English:`;
 
     const response = await this.aiService.generateText(
       this.getEnhancedSystemPrompt(),
@@ -679,7 +744,7 @@ Responde SOLO con los párrafos de análisis:`;
       'chatgpt'
     );
 
-    return `### 3.2.1 Análisis descriptivo basado en datos RQS
+    return `### 3.2.1 Descriptive analysis based on RQS data
 
 ${response}
 
@@ -695,29 +760,30 @@ ${this.generateTable2Professional(rqsEntries)}`;
     const relevantStudies = rqsEntries.filter(e => e.rq1Relation === 'yes' || e.rq1Relation === 'partial');
 
     if (relevantStudies.length === 0) {
-      return "No se identificaron estudios que abordaran directamente esta pregunta de investigación.";
+      return "No studies were identified that directly addressed this research question.";
     }
 
-    const prompt = `Sintetiza los hallazgos de ${relevantStudies.length} estudios que respondieron a: "${prismaContext.protocol.researchQuestions[0]}"
+    const prompt = `Synthesize the findings of ${relevantStudies.length} studies that answered: "${prismaContext.protocol.researchQuestions[0]}"
 
-**EVIDENCIA EXTRAÍDA DE LOS ESTUDIOS:**
+**EVIDENCE EXTRACTED FROM STUDIES:**
 ${relevantStudies.map((study, i) => `
-Estudio S${i + 1} (${study.author}, ${study.year}):
-- Tecnología: ${study.technology}
-- Evidencia clave: ${study.keyEvidence}
-- Métricas: ${JSON.stringify(study.metrics || {})}
-- Relación con RQ1: ${study.rq1Relation}
+Study S${i + 1} (${study.author}, ${study.year}):
+- Technology: ${study.technology}
+- Key evidence: ${study.keyEvidence}
+- Metrics: ${JSON.stringify(study.metrics || {})}
+- Relation with RQ1: ${study.rq1Relation}
 `).join('\n')}
 
-**INSTRUCCIONES:**
-Genera 2 párrafos (300-400 palabras) que:
-1. Identifiquen patrones comunes en los hallazgos
-2. Comparen enfoques o resultados cuando sea relevante
-3. Destaquen hallazgos consistentes vs. contradictorios
-4. Referencien estudios específicos usando "S1", "S2", etc.
-5. NO inventen datos no mencionados arriba
+**INSTRUCTIONS:**
+Generate 2 paragraphs (300-400 words) that:
+1. Identify common patterns in the findings
+2. Compare approaches or results when relevant
+3. Highlight consistent vs. contradictory findings
+4. Reference specific studies using "S1", "S2", etc.
+5. DO NOT invent data not mentioned above
+6. If source evidence is in Spanish, translate and integrate it into English prose
 
-Tercera persona, español académico, solo texto:`;
+Third person, formal Academic English, text only:`;
 
     const response = await this.aiService.generateText(
       this.getEnhancedSystemPrompt(),
@@ -735,18 +801,18 @@ Tercera persona, español académico, solo texto:`;
     const relevantStudies = rqsEntries.filter(e => e.rq2Relation === 'yes' || e.rq2Relation === 'partial');
 
     if (relevantStudies.length === 0) {
-      return "No se identificaron estudios que abordaran directamente esta pregunta de investigación.";
+      return "No studies were identified that directly addressed this research question.";
     }
 
-    const prompt = `Sintetiza los hallazgos de ${relevantStudies.length} estudios para: "${prismaContext.protocol.researchQuestions[1]}"
+    const prompt = `Synthesize the findings of ${relevantStudies.length} studies for: "${prismaContext.protocol.researchQuestions[1]}"
 
-**EVIDENCIA:**
+**EVIDENCE:**
 ${relevantStudies.map((study, i) => `
 S${i + 1} (${study.author}, ${study.year}): ${study.keyEvidence}
-Tecnología: ${study.technology} | Contexto: ${study.context}
+Technology: ${study.technology} | Context: ${study.context}
 `).join('\n')}
 
-Genera 2 párrafos (300-400 palabras), tercera persona, español:`;
+Generate 2 paragraphs (300-400 words), third person, formal Academic English. If source evidence is in Spanish, translate it naturally:`;
 
     const response = await this.aiService.generateText(
       this.getEnhancedSystemPrompt(),
@@ -764,18 +830,18 @@ Genera 2 párrafos (300-400 palabras), tercera persona, español:`;
     const relevantStudies = rqsEntries.filter(e => e.rq3Relation === 'yes' || e.rq3Relation === 'partial');
 
     if (relevantStudies.length === 0) {
-      return "No se identificaron estudios que abordaran directamente esta pregunta de investigación.";
+      return "No studies were identified that directly addressed this research question.";
     }
 
-    const prompt = `Sintetiza los hallazgos de ${relevantStudies.length} estudios para: "${prismaContext.protocol.researchQuestions[2]}"
+    const prompt = `Synthesize the findings of ${relevantStudies.length} studies for: "${prismaContext.protocol.researchQuestions[2]}"
 
-**EVIDENCIA:**
+**EVIDENCE:**
 ${relevantStudies.map((study, i) => `
 S${i + 1} (${study.author}, ${study.year}): ${study.keyEvidence}
-Limitaciones: ${study.limitations}
+Limitations: ${study.limitations}
 `).join('\n')}
 
-Genera 2 párrafos (300-400 palabras), tercera persona, español:`;
+Generate 2 paragraphs (300-400 words), third person, formal Academic English. If source evidence is in Spanish, translate it naturally:`;
 
     const response = await this.aiService.generateText(
       this.getEnhancedSystemPrompt(),
@@ -791,36 +857,36 @@ Genera 2 párrafos (300-400 palabras), tercera persona, español:`;
    */
   generateTable1Professional(rqsEntries) {
     return `
-**Tabla 2. Características generales de los estudios incluidos en la revisión sistemática**
+**Table 2. General characteristics of studies included in the systematic review**
 
-| ID | Autor (Año) | Tipo de estudio | Contexto | Tecnología principal | Publicación |
+| ID | Author (Year) | Study Type | Context | Main Technology | Publication |
 |----|-------------|-----------------|----------|---------------------|-------------|
 ${rqsEntries.map((entry, i) => {
       const id = `S${i + 1}`;
       const author = `${entry.author} (${entry.year})`;
       const type = this.translateStudyType(entry.studyType);
       const context = this.translateContext(entry.context);
-      const tech = (entry.technology || 'No especificado').substring(0, 40);
+      const tech = (entry.technology || 'Not specified').substring(0, 40);
       const source = entry.title ? entry.title.substring(0, 30) + '...' : 'N/A';
       return `| ${id} | ${author} | ${type} | ${context} | ${tech} | ${source} |`;
     }).join('\n')}
 
-*Nota: Los estudios se identifican como S1-S${rqsEntries.length} para facilitar su referencia en el análisis.*
+*Note: Studies are identified as S1-S${rqsEntries.length} for ease of reference in the analysis.*
 `;
   }
 
   generateTable2Professional(rqsEntries) {
     return `
-**Tabla 3. Síntesis de resultados principales y métricas reportadas**
+**Table 3. Synthesis of main results and reported metrics**
 
-| ID | Evidencia clave | Métricas principales | RQ1 | RQ2 | RQ3 | Calidad |
+| ID | Key Evidence | Main Metrics | RQ1 | RQ2 | RQ3 | Quality |
 |----|----------------|---------------------|-----|-----|-----|---------|
 ${rqsEntries.map((entry, i) => {
       const id = `S${i + 1}`;
-      const evidence = (entry.keyEvidence || 'No reportado').substring(0, 60) + '...';
+      const evidence = (entry.keyEvidence || 'Not reported').substring(0, 60) + '...';
 
-      // Métricas
-      let metrics = 'No reportadas';
+      // Metrics
+      let metrics = 'Not reported';
       if (entry.metrics && Object.keys(entry.metrics).length > 0) {
         const metricsList = Object.entries(entry.metrics)
           .slice(0, 2)
@@ -851,9 +917,9 @@ ${rqsEntries.map((entry, i) => {
 
   generateTable3Professional(rqsEntries) {
     return `
-**Tabla 4. Evaluación del riesgo de sesgo y calidad metodológica**
+**Table 4. Risk of bias and methodological quality assessment**
 
-| ID | Diseño adecuado | Datos suficientes | Limitaciones reportadas | Transparencia | Riesgo global |
+| ID | Adequate Design | Sufficient Data | Limitations Reported | Transparency | Overall Risk |
 |----|----------------|-------------------|------------------------|---------------|---------------|
 ${rqsEntries.map((entry, i) => {
       const id = `S${i + 1}`;
@@ -863,42 +929,42 @@ ${rqsEntries.map((entry, i) => {
       const hasMetrics = entry.metrics && Object.keys(entry.metrics).length > 0;
       const hasEvidence = entry.keyEvidence && entry.keyEvidence.length > 50;
 
-      const design = entry.studyType === 'review' ? 'Parcial' : 'Adecuado';
+      const design = entry.studyType === 'review' ? 'Partial' : 'Adequate';
       
       const getDataQuality = () => {
-        if (hasMetrics && hasEvidence) return 'Suficientes';
-        if (hasEvidence) return 'Parciales';
-        return 'Insuficientes';
+        if (hasMetrics && hasEvidence) return 'Sufficient';
+        if (hasEvidence) return 'Partial';
+        return 'Insufficient';
       };
       const dataQuality = getDataQuality();
       
-      const limitationsReported = hasLimitations ? 'Sí' : 'No';
+      const limitationsReported = hasLimitations ? 'Yes' : 'No';
       
       const getTransparency = () => {
-        if (hasLimitations && hasMetrics) return 'Alta';
-        if (hasEvidence) return 'Media';
-        return 'Baja';
+        if (hasLimitations && hasMetrics) return 'High';
+        if (hasEvidence) return 'Medium';
+        return 'Low';
       };
       const transparency = getTransparency();
 
-      // Calcular riesgo global
+      // Calculate global risk
       let riskScore = 0;
-      if (design === 'Adecuado') riskScore++;
-      if (dataQuality === 'Suficientes') riskScore++;
+      if (design === 'Adequate') riskScore++;
+      if (dataQuality === 'Sufficient') riskScore++;
       if (hasLimitations) riskScore++;
       if (hasMetrics) riskScore++;
 
       const getGlobalRisk = (score) => {
-        if (score >= 3) return 'Bajo';
-        if (score === 2) return 'Moderado';
-        return 'Alto';
+        if (score >= 3) return 'Low';
+        if (score === 2) return 'Moderate';
+        return 'High';
       };
       const globalRisk = getGlobalRisk(riskScore);
 
       return `| ${id} | ${design} | ${dataQuality} | ${limitationsReported} | ${transparency} | ${globalRisk} |`;
     }).join('\n')}
 
-*Nota: La evaluación se realizó considerando la adecuación del diseño de investigación, suficiencia de datos para responder las RQs, reconocimiento explícito de limitaciones, y transparencia en el reporte metodológico.*
+*Note: The assessment was conducted considering the adequacy of the research design, sufficiency of data to answer the RQs, explicit acknowledgment of limitations, and transparency in methodological reporting.*
 `;
   }
 
@@ -908,70 +974,71 @@ ${rqsEntries.map((entry, i) => {
   async generateProfessionalDiscussion(prismaMapping, prismaContext, rqsStats, rqsEntries) {
     const referencesList = rqsEntries.map((e, i) => `[${i + 1}] ${e.author} (${e.year})`).join('\n');
 
-    const prompt = `Redacta una sección de DISCUSIÓN académica profesional integrando los hallazgos de esta revisión sistemática.
+    const prompt = `Write a professional academic DISCUSSION section integrating the findings of this systematic review. ALL output MUST be in Academic English.
 
-**ESTUDIOS CONSULTADOS (Referenciar usando [N]):**
+**STUDIES CONSULTED (Reference using [N]):**
 ${referencesList}
 
-**HALLAZGOS PRINCIPALES PARA DISCUTIR:**
+**KEY FINDINGS TO DISCUSS:**
 
-Datos generales:
-- Total de estudios incluidos: ${rqsStats.total}
-- Distribución de tipos: ${JSON.stringify(rqsStats.studyTypes)}
-- Contextos principales: ${JSON.stringify(rqsStats.contexts)}
-- Rango temporal: ${rqsStats.yearRange.min}-${rqsStats.yearRange.max}
-- Tecnologías dominantes: ${rqsStats.technologies.slice(0, 3).map(t => t.technology).join(', ')}
+General data:
+- Total included studies: ${rqsStats.total}
+- Type distribution: ${JSON.stringify(rqsStats.studyTypes)}
+- Main contexts: ${JSON.stringify(rqsStats.contexts)}
+- Temporal range: ${rqsStats.yearRange.min}-${rqsStats.yearRange.max}
+- Dominant technologies: ${rqsStats.technologies.slice(0, 3).map(t => t.technology).join(', ')}
 
-Cobertura de RQs:
-- RQ1: ${rqsStats.rqRelations.rq1.yes + rqsStats.rqRelations.rq1.partial} estudios
-- RQ2: ${rqsStats.rqRelations.rq2.yes + rqsStats.rqRelations.rq2.partial} estudios
-- RQ3: ${rqsStats.rqRelations.rq3.yes + rqsStats.rqRelations.rq3.partial} estudios
+RQ Coverage:
+- RQ1: ${rqsStats.rqRelations.rq1.yes + rqsStats.rqRelations.rq1.partial} studies
+- RQ2: ${rqsStats.rqRelations.rq2.yes + rqsStats.rqRelations.rq2.partial} studies
+- RQ3: ${rqsStats.rqRelations.rq3.yes + rqsStats.rqRelations.rq3.partial} studies
 
-Interpretación PRISMA base:
+Base PRISMA interpretation:
 ${prismaMapping.discussion.interpretation}
 
-**ESTRUCTURA REQUERIDA (800-1000 palabras):**
+**REQUIRED STRUCTURE (800-1000 words):**
 
-**Párrafos 1-2 (Interpretación de hallazgos principales):**
-- Interpreta los patrones identificados en los resultados
-- Conecta con el objetivo original de la revisión
-- Destaca hallazgos más significativos o sorprendentes
-- Compara distribuciones observadas (tipos, contextos, tecnologías)
+**Paragraphs 1-2 (Interpretation of main findings):**
+- Interpret patterns identified in results
+- Connect with the original objective of the review
+- Highlight most significant or surprising findings
+- Compare observed distributions (types, contexts, technologies)
 
-**Párrafos 3-4 (Implicaciones):**
-- Implicaciones para la práctica profesional
-- Implicaciones para la investigación futura
-- Qué significan estos hallazgos para el campo
-- Cómo abordan (o no) el gap identificado en la introducción
+**Paragraphs 3-4 (Implications):**
+- Implications for professional practice
+- Implications for future research
+- What these findings mean for the field
+- How they address (or not) the gap identified in the introduction
 
-**Párrafo 5 (Fortalezas de la revisión):**
-- Menciona fortalezas metodológicas (PRISMA 2020, RQS estructurado, etc.)
-- Cobertura temporal y de bases de datos
-- Proceso de selección riguroso
+**Paragraph 5 (Strengths of the review):**
+- Mention methodological strengths (PRISMA 2020, structured RQS, etc.)
+- Temporal coverage and database coverage
+- Rigorous selection process
 
-**Párrafos 6-7 (Limitaciones):**
-- Limitaciones metodológicas de ESTA revisión
-- Heterogeneidad de estudios incluidos
-- Limitaciones en la síntesis (ej: imposibilidad de meta-análisis)
-- Sesgos potenciales (ej: publicación, idioma)
-- Número limitado de estudios si aplica
+**Paragraphs 6-7 (Limitations):**
+- Methodological limitations of THIS review
+- Heterogeneity of included studies
+- Limitations in synthesis (e.g., impossibility of meta-analysis)
+- Potential biases (e.g., publication, language)
+- Limited number of studies if applicable
 
-**Párrafo 8 (Direcciones futuras):**
-- Necesidades de investigación identificadas
-- Gaps que persisten
-- Recomendaciones específicas para futuros estudios
+**Paragraph 8 (Future directions):**
+- Identified research needs
+- Persistent gaps
+- Specific recommendations for future studies
 
-**REQUISITOS DE REDACCIÓN:**
-- Tercera persona impersonal
-- Tiempos verbales apropiados (pasado para hallazgos, presente para interpretaciones)
-- Lenguaje académico formal en español
-- Sin bullet points (prosa continua)
-- NO inventes estudios o hallazgos no mencionados
-- Sé crítico pero constructivo
-- Conecta con la literatura existente conceptualmente (sin citar estudios no incluidos)
-- Balance entre confianza en hallazgos y humildad epistémica
+**WRITING REQUIREMENTS:**
+- Third person impersonal
+- Appropriate verb tenses (past for findings, present for interpretations)
+- Formal Academic English
+- No bullet points (continuous prose)
+- DO NOT invent unmentioned studies or findings
+- Be critical but constructive
+- Connect with existing literature conceptually (without citing non-included studies)
+- Balance between confidence in findings and epistemic humility
+- If source data is in Spanish, translate and integrate naturally
 
-Genera SOLO el texto de la discusión:`;
+Generate ONLY the discussion text in English:`;
 
     const response = await this.aiService.generateText(
       this.getEnhancedSystemPrompt(),
@@ -986,54 +1053,55 @@ Genera SOLO el texto de la discusión:`;
    * CONCLUSIONES PROFESIONALES concisas y accionables
    */
   async generateProfessionalConclusions(prismaMapping, prismaContext, rqsStats) {
-    const prompt = `Redacta una sección de CONCLUSIONES académica concisa que sintetice los hallazgos principales de esta revisión sistemática.
+    const prompt = `Write an academic CONCLUSIONS section that synthesizes the main findings of this systematic review. ALL output MUST be in Academic English.
 
-**CONTEXTO:**
+**CONTEXT:**
 
-Objetivo cumplido:
+Fulfilled objective:
 ${prismaContext.protocol.objective}
 
-Preguntas de investigación respondidas:
+Research questions answered:
 ${prismaContext.protocol.researchQuestions.map((rq, i) => `RQ${i + 1}: ${rq}`).join('\n')}
 
-Datos clave de la revisión:
-- Estudios incluidos: ${rqsStats.total}
-- Período: ${rqsStats.yearRange.min}-${rqsStats.yearRange.max}
-- Bases de datos: ${prismaContext.protocol.databases.map(db => db.name).join(', ')}
-- Tecnologías identificadas: ${rqsStats.technologies.slice(0, 3).map(t => t.technology).join(', ')}
+Key review data:
+- Included studies: ${rqsStats.total}
+- Period: ${rqsStats.yearRange.min}-${rqsStats.yearRange.max}
+- Databases: ${prismaContext.protocol.databases.map(db => db.name).join(', ')}
+- Technologies identified: ${rqsStats.technologies.slice(0, 3).map(t => t.technology).join(', ')}
 
-Cobertura de RQs:
-- RQ1: ${rqsStats.rqRelations.rq1.yes + rqsStats.rqRelations.rq1.partial} estudios relevantes
-- RQ2: ${rqsStats.rqRelations.rq2.yes + rqsStats.rqRelations.rq2.partial} estudios relevantes
-- RQ3: ${rqsStats.rqRelations.rq3.yes + rqsStats.rqRelations.rq3.partial} estudios relevantes
+RQ Coverage:
+- RQ1: ${rqsStats.rqRelations.rq1.yes + rqsStats.rqRelations.rq1.partial} relevant studies
+- RQ2: ${rqsStats.rqRelations.rq2.yes + rqsStats.rqRelations.rq2.partial} relevant studies
+- RQ3: ${rqsStats.rqRelations.rq3.yes + rqsStats.rqRelations.rq3.partial} relevant studies
 
-**ESTRUCTURA REQUERIDA (150-300 palabras - ESTÁNDAR EDITORIAL):**
+**REQUIRED STRUCTURE (150-300 words - EDITORIAL STANDARD):**
 
-**Párrafo 1 (Síntesis de hallazgos):**
-Sintetiza en 3-4 frases los hallazgos principales que responden a las RQs.
+**Paragraph 1 (Findings synthesis):**
+Synthesize in 3-4 sentences the main findings that answer the RQs.
 
-**Párrafo 2 (Respuesta al objetivo):**
-Declara explícitamente cómo esta revisión cumplió (o no) con su objetivo inicial.
+**Paragraph 2 (Response to objective):**
+Explicitly state how this review fulfilled (or not) its initial objective.
 
-**Párrafo 3 (Implicaciones prácticas):**
-Menciona 2-3 implicaciones concretas para profesionales del área.
+**Paragraph 3 (Practical implications):**
+Mention 2-3 concrete implications for practitioners in the field.
 
-**Párrafo 4 (Direcciones futuras):**
-Recomienda 2-3 líneas específicas de investigación futura basadas en gaps identificados.
+**Paragraph 4 (Future directions):**
+Recommend 2-3 specific lines of future research based on identified gaps.
 
-**Párrafo 5 (Mensaje final):**
-Cierra con una declaración sobre la contribución de esta revisión al campo.
+**Paragraph 5 (Final message):**
+Close with a statement about the contribution of this review to the field.
 
-**ESTILO:**
-- **CRÍTICO: Mantener entre 150-300 palabras TOTALES (estándar editorial universal)**
-- Conciso pero completo
-- Tercera persona impersonal
-- Sin referencias a tablas o figuras
-- Sin nuevos datos (solo síntesis)
-- Tono conclusivo pero no especulativo
-- Español académico formal
+**STYLE:**
+- **CRITICAL: Keep between 150-300 words TOTAL (universal editorial standard)**
+- Concise but complete
+- Third person impersonal
+- No references to tables or figures
+- No new data (synthesis only)
+- Conclusive but not speculative tone
+- Formal Academic English
+- If any source data is in Spanish, translate it naturally
 
-Genera SOLO el texto de conclusiones:`;
+Generate ONLY the conclusions text in English:`;
 
     const response = await this.aiService.generateText(
       this.getEnhancedSystemPrompt(),
@@ -1041,12 +1109,14 @@ Genera SOLO el texto de conclusiones:`;
       'chatgpt'
     );
 
-    // Limpiar títulos duplicados que la IA pueda generar al inicio
+    // Clean duplicate titles that AI may generate at the beginning
     let cleanedResponse = response.trim();
     
-    // Eliminar títulos en negrita o headers al inicio del texto
+    // Remove bold titles or headers at the beginning of text
     cleanedResponse = cleanedResponse.replace(/^#+\s*Conclusiones\s*\n*/i, '');
     cleanedResponse = cleanedResponse.replace(/^\*\*Conclusiones\*\*\s*\n*/i, '');
+    cleanedResponse = cleanedResponse.replace(/^#+\s*Conclusions\s*\n*/i, '');
+    cleanedResponse = cleanedResponse.replace(/^\*\*Conclusions\*\*\s*\n*/i, '');
     
     // Validación de longitud según estándares editoriales
     const wordCount = cleanedResponse.split(/\s+/).filter(w => w.length > 0).length;
@@ -1067,9 +1137,9 @@ Genera SOLO el texto de conclusiones:`;
    * REFERENCIAS profesionales con citas formateadas
    */
   generateProfessionalReferences(prismaContext, rqsEntries) {
-    return `Esta revisión sistemática sintetizó evidencia de **${rqsEntries.length} estudios primarios** que cumplieron los criterios de inclusión establecidos en el protocolo PRISMA 2020.
+    return `This systematic review synthesized evidence from **${rqsEntries.length} primary studies** that met the inclusion criteria established in the PRISMA 2020 protocol.
 
-### Estudios incluidos en la síntesis
+### Studies Included in the Synthesis
 
 ${rqsEntries.map((entry, i) => {
       const id = i + 1;
@@ -1077,17 +1147,17 @@ ${rqsEntries.map((entry, i) => {
       return `[${id}] ${citation}`;
     }).join('\n\n')}
 
-### Disponibilidad de datos y materiales
+### Data and Materials Availability
 
-Los datos completos extraídos mediante el esquema RQS, incluyendo las evaluaciones de calidad individuales, las estrategias de búsqueda detalladas para cada base de datos, y el formulario de extracción de datos, están disponibles bajo solicitud razonable al autor correspondiente.
+The complete data extracted through the RQS schema, including individual quality assessments, detailed search strategies for each database, and the data extraction form, are available upon reasonable request to the corresponding author.
 
-Las búsquedas bibliográficas se ejecutaron en las siguientes bases de datos: ${prismaContext.protocol.databases.map(db => db.name).join(', ')}, durante el período comprendido entre ${prismaContext.protocol.temporalRange.start || '2023'} y ${prismaContext.protocol.temporalRange.end || '2025'}.
+Bibliographic searches were conducted in the following databases: ${prismaContext.protocol.databases.map(db => db.name).join(', ')}, during the period between ${prismaContext.protocol.temporalRange.start || '2023'} and ${prismaContext.protocol.temporalRange.end || '2025'}.
 
-### Referencias metodológicas
+### Methodological References
 
 **PRISMA 2020:** Page MJ, McKenzie JE, Bossuyt PM, et al. The PRISMA 2020 statement: an updated guideline for reporting systematic reviews. BMJ 2021;372:n71. doi: 10.1136/bmj.n71
 
-Los autores declaran que se han seguido estrictamente las directrices PRISMA 2020 en todas las fases de esta revisión sistemática.`;
+The authors declare that the PRISMA 2020 guidelines have been strictly followed in all phases of this systematic review.`;
   }
 
   /**
@@ -1107,7 +1177,7 @@ Los autores declaran que se han seguido estrictamente las directrices PRISMA 202
     if (entry.doi) {
       citation += ` doi: ${entry.doi}`;
     } else if (entry.url) {
-      citation += ` Disponible en: ${entry.url}`;
+      citation += ` Available at: ${entry.url}`;
     }
 
     return citation;
@@ -1348,69 +1418,69 @@ Los autores declaran que se han seguido estrictamente las directrices PRISMA 202
    * Generar declaraciones finales profesionales
    */
   generateDeclarations(prismaContext) {
-    return `### Registro y protocolo
+    return `### Registration and Protocol
 
-El protocolo de esta revisión sistemática se definió y documentó completamente antes de la fase de selección de estudios, siguiendo las directrices PRISMA 2020. El protocolo incluyó criterios de elegibilidad predefinidos (PICO), estrategia de búsqueda completa, métodos de extracción de datos mediante esquema RQS estructurado, y plan de síntesis narrativa. El protocolo no fue registrado prospectivamente en una base de datos pública (ej. PROSPERO).
+The protocol for this systematic review was fully defined and documented before the study selection phase, following the PRISMA 2020 guidelines. The protocol included predefined eligibility criteria (PICO), a complete search strategy, data extraction methods using a structured RQS schema, and a narrative synthesis plan. The protocol was not prospectively registered in a public database (e.g., PROSPERO).
 
-### Financiamiento
+### Funding
 
-Esta investigación no recibió financiamiento específico de agencias públicas, comerciales o sin fines de lucro. El trabajo fue desarrollado como parte de actividades académicas institucionales.
+This research received no specific funding from public, commercial, or non-profit agencies. The work was developed as part of institutional academic activities.
 
-### Conflictos de interés
+### Conflicts of Interest
 
-Los autores declaran no tener conflictos de interés relacionados con esta investigación. No existen relaciones financieras o personales que pudieran influir inapropiadamente en el trabajo reportado.
+The authors declare no conflicts of interest related to this research. There are no financial or personal relationships that could inappropriately influence the reported work.
 
-### Disponibilidad de datos y materiales
+### Data and Materials Availability
 
-Los datos extraídos mediante el esquema RQS, las evaluaciones de calidad metodológica de los estudios incluidos, y las estrategias de búsqueda completas para cada base de datos están disponibles bajo solicitud razonable al autor correspondiente. Todos los estudios incluidos en esta revisión son publicaciones de acceso público citadas en la sección de Referencias.
+The data extracted through the RQS schema, the methodological quality assessments of included studies, and the complete search strategies for each database are available upon reasonable request to the corresponding author. All studies included in this review are publicly accessible publications cited in the References section.
 
-### Contribuciones de los autores
+### Author Contributions
 
-Todos los autores contribuyeron sustancialmente a la concepción del estudio, la interpretación de datos, y la redacción crítica del manuscrito. Todos los autores aprobaron la versión final y están de acuerdo con todos los aspectos del trabajo.
+All authors contributed substantially to the study conception, data interpretation, and critical manuscript revision. All authors approved the final version and agree with all aspects of the work.
 
-### Uso de inteligencia artificial
+### Use of Artificial Intelligence
 
-Esta revisión utilizó herramientas de inteligencia artificial de forma asistida y transparente para:
-- **Cribado inicial**: Análisis de similitud semántica para priorizar artículos en fase de cribado
-- **Extracción de datos**: Asistencia en la estructuración de datos mediante esquema RQS
-- **Redacción**: Asistencia en la organización y redacción del manuscrito
+This review utilized artificial intelligence tools in an assisted and transparent manner for:
+- **Initial screening**: Semantic similarity analysis to prioritize articles during the screening phase
+- **Data extraction**: Assistance in data structuring through the RQS schema
+- **Writing**: Assistance in manuscript organization and drafting
 
-**Todas las decisiones metodológicas críticas** (criterios de inclusión/exclusión, evaluación de calidad, interpretación de hallazgos, y conclusiones) fueron realizadas y validadas manualmente por los investigadores. El uso de IA se declara de forma transparente siguiendo principios éticos de integridad en la investigación científica y las recomendaciones de journals sobre el uso responsable de tecnologías de IA en publicaciones académicas.
+**All critical methodological decisions** (inclusion/exclusion criteria, quality assessment, interpretation of findings, and conclusions) were made and manually validated by the researchers. The use of AI is transparently declared following ethical principles of research integrity and journal recommendations on the responsible use of AI technologies in academic publications.
 
-### Agradecimientos
+### Acknowledgments
 
-Los autores agradecen a las instituciones que facilitaron el acceso a las bases de datos bibliográficas utilizadas en esta revisión.`;
+The authors gratefully acknowledge the institutions that provided access to the bibliographic databases used in this review.`;
   }
 
   /**
    * System prompt mejorado para generación académica profesional
    */
   getEnhancedSystemPrompt() {
-    return `Eres un investigador senior especializado en revisiones sistemáticas, con experiencia en redacción académica para revistas científicas de alto impacto (Q1/Q2).
+    return `You are a senior researcher specialized in systematic reviews, with experience writing academic papers for high-impact scientific journals (Q1/Q2).
 
-**TU ROL:**
-- Redactar contenido académico profesional siguiendo estándares PRISMA 2020
-- Usar SOLO datos proporcionados explícitamente (nunca inventar cifras, estudios o autores)
-- Mantener rigor metodológico y transparencia epistémica
-- Escribir en español académico formal
+**YOUR ROLE:**
+- Write professional academic content following PRISMA 2020 standards
+- Use ONLY explicitly provided data (never invent figures, studies, or authors)
+- Maintain methodological rigor and epistemic transparency
+- Write in formal Academic English
 
-**ESTÁNDARES DE REDACCIÓN:**
-- Tercera persona impersonal
-- Tiempos verbales apropiados (pasado para métodos/resultados, presente para interpretaciones)
-- Estructura IMRaD estricta
-- Prosa continua (sin bullet points salvo en tablas)
-- Citas cuando corresponda (usando [X] o "Estudio SX")
-- Reconocer limitaciones honestamente
+**WRITING STANDARDS:**
+- Third person impersonal
+- Appropriate verb tenses (past for methods/results, present for interpretations)
+- Strict IMRaD structure
+- Continuous prose (no bullet points except in tables)
+- Citations where appropriate (using [X] or "Study SX")
+- Acknowledge limitations honestly
 
-**PROHIBICIONES ABSOLUTAS:**
-- NO inventar datos, estudios, autores o hallazgos no mencionados
-- NO usar lenguaje especulativo sin fundamento
-- NO hacer afirmaciones causales sin evidencia
-- NO citar estudios no incluidos en la revisión
-- NO usar primera persona o lenguaje coloquial
+**ABSOLUTE PROHIBITIONS:**
+- DO NOT invent data, studies, authors, or unmentioned findings
+- DO NOT use speculative language without evidence
+- DO NOT make causal claims without evidence
+- DO NOT cite studies not included in the review
+- DO NOT use first person or colloquial language
 
-**PRINCIPIO RECTOR:**
-Una revisión sistemática de calidad es transparente sobre qué sabe, qué no sabe, y por qué.`;
+**GUIDING PRINCIPLE:**
+A quality systematic review is transparent about what it knows, what it does not know, and why.`;
   }
 
   /**
@@ -1418,36 +1488,36 @@ Una revisión sistemática de calidad es transparente sobre qué sabe, qué no s
    */
   translateStudyType(type) {
     const translations = {
-      'empirical': 'Empírico',
-      'case_study': 'Caso de estudio',
+      'empirical': 'Empirical',
+      'case_study': 'Case Study',
       'experiment': 'Experimental',
-      'simulation': 'Simulación',
-      'review': 'Revisión',
-      'survey': 'Encuesta',
-      'other': 'Otro'
+      'simulation': 'Simulation',
+      'review': 'Review',
+      'survey': 'Survey',
+      'other': 'Other'
     };
-    return translations[type] || type || 'No especificado';
+    return translations[type] || type || 'Not specified';
   }
 
   translateContext(context) {
     const translations = {
       'industrial': 'Industrial',
-      'enterprise': 'Empresarial',
-      'academic': 'Académico',
+      'enterprise': 'Enterprise',
+      'academic': 'Academic',
       'experimental': 'Experimental',
-      'mixed': 'Mixto',
-      'other': 'Otro'
+      'mixed': 'Mixed',
+      'other': 'Other'
     };
-    return translations[context] || context || 'No especificado';
+    return translations[context] || context || 'Not specified';
   }
 
   translateQuality(quality) {
     const translations = {
-      'high': 'Alta',
-      'medium': 'Media',
-      'low': 'Baja'
+      'high': 'High',
+      'medium': 'Medium',
+      'low': 'Low'
     };
-    return translations[quality] || 'Media';
+    return translations[quality] || 'Medium';
   }
 
   /**

@@ -59,9 +59,19 @@ class GeneratePrismaContextUseCase {
       ).length;
 
       // Referencias excluidas en texto completo (si aplica)
-      const excludedFullText = allReferences.filter(ref =>
+      const excludedFullTextRefs = allReferences.filter(ref =>
         ref.screeningStatus === 'fulltext_excluded'
-      ).length;
+      );
+      const excludedFullText = excludedFullTextRefs.length;
+
+      // Recopilar razones de exclusión en texto completo
+      const exclusionReasons = {};
+      excludedFullTextRefs.forEach(ref => {
+        if (ref.exclusionReason) {
+          const reason = ref.exclusionReason.trim();
+          exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1;
+        }
+      });
 
       // Referencias finales incluidas
       const finalIncluded = allReferences.filter(ref =>
@@ -75,7 +85,22 @@ class GeneratePrismaContextUseCase {
       // 7. Analizar datos extraídos de PDFs (si existen)
       const fullTextAnalysis = await this.analyzeFullTextData(allReferences);
 
-      // 8. Construir PRISMA Context Object
+      // 8. Calcular referencias por fuente (source) para PRISMA diagram
+      const referencesBySource = allReferences.reduce((acc, ref) => {
+        const source = (ref.source || 'Unknown').trim();
+        acc[source] = (acc[source] || 0) + 1;
+        return acc;
+      }, {});
+      
+      console.log('🔍 DEBUG - referencesBySource calculated:', referencesBySource);
+      console.log('🔍 DEBUG - Sample reference sources from DB:', 
+        allReferences.slice(0, 3).map(r => ({ 
+          title: r.title?.substring(0, 30), 
+          source: r.source 
+        }))
+      );
+
+      // 9. Construir PRISMA Context Object
       const prismaContext = {
         project: {
           id: project.id,
@@ -120,7 +145,11 @@ class GeneratePrismaContextUseCase {
           excludedTitleAbstract: excludedTitleAbstract,
           fullTextAssessed: includedAfterScreening,
           excludedFullText: excludedFullText,
+          exclusionReasons: exclusionReasons,
           includedFinal: finalIncluded,
+
+          // Referencias reales por fuente (para PRISMA diagram)
+          referencesBySource: referencesBySource,
 
           // ✅ CORRECCIÓN: Agregar campos que faltan para evitar N/A
           totalResults: allReferences.length,
@@ -230,13 +259,21 @@ class GeneratePrismaContextUseCase {
    * Formatea bases de datos para PRISMA Context
    */
   formatDatabases(databases, allReferences = []) {
-    // Calcular hits por source
+    // Calcular hits por source REAL (referencias importadas)
     const hitsBySource = allReferences.reduce((acc, ref) => {
-      // Normalizar source para coincidir con nombres de DB
       const source = (ref.source || 'Unknown').trim();
       acc[source] = (acc[source] || 0) + 1;
       return acc;
     }, {});
+
+    // Si no hay bases de datos configuradas, devolver solo las fuentes reales
+    if (!databases || databases.length === 0) {
+      return Object.entries(hitsBySource).map(([name, hits]) => ({
+        name,
+        searchString: null,
+        hits
+      }));
+    }
 
     return databases.map(db => {
       let name = 'Unknown';
@@ -250,7 +287,6 @@ class GeneratePrismaContextUseCase {
       }
 
       // Intentar coincidir source con nombre de DB (case insensitive partial match)
-      // O simplemente usar el nombre exacto si coincide
       let hits = hitsBySource[name] || 0;
 
       // Si no hay match exacto, buscar keys que contengan el nombre o viceversa

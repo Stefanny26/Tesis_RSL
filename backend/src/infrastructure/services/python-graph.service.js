@@ -22,16 +22,41 @@ class PythonGraphService {
      */
     async generateCharts(prismaData, screeScores, searchStrategy) {
         return new Promise((resolve, reject) => {
+            // Build databases list: prioritize referencesBySource (real imported refs), fallback to searchStrategy
+            let databases = [];
+            
+            console.log('🔍 DEBUG - prismaData.referencesBySource:', prismaData.referencesBySource);
+            console.log('🔍 DEBUG - searchStrategy:', searchStrategy);
+            
+            if (prismaData.referencesBySource && Object.keys(prismaData.referencesBySource).length > 0) {
+                // Use REAL imported references
+                databases = Object.entries(prismaData.referencesBySource).map(([name, hits]) => ({
+                    name,
+                    hits
+                }));
+                console.log('✅ Using REAL imported references by source:', databases);
+            } else if (searchStrategy && searchStrategy.length > 0) {
+                // Fallback to search strategy
+                databases = searchStrategy.map(sq => ({
+                    name: sq.name || 'Unknown',
+                    hits: sq.hits || 0
+                }));
+                console.log('⚠️ Using search strategy (fallback):', databases);
+            } else {
+                console.error('❌ NO databases data available!');
+            }
+
             const inputData = {
                 prisma: {
                     identified: prismaData.identified || 0,
+                    databases: databases,
                     duplicates: prismaData.duplicatesRemoved || 0,
                     screened: prismaData.screenedTitleAbstract || 0,
                     excluded: prismaData.excludedTitleAbstract || 0,
                     retrieved: prismaData.fullTextRetrieved || ((prismaData.screenedTitleAbstract || 0) - (prismaData.excludedTitleAbstract || 0)),
-                    not_retrieved: 0, // Ajustar si tienes datos reales
+                    not_retrieved: 0,
                     assessed: prismaData.fullTextAssessed || 0,
-                    excluded_reasons: prismaData.exclusionReasons || {}, // Necesitas agregar esto al PRISMA context si no está
+                    excluded_reasons: prismaData.exclusionReasons || {},
                     included: prismaData.includedFinal || 0
                 },
                 scree: {
@@ -42,6 +67,7 @@ class PythonGraphService {
 
             console.log('📊 Datos enviados a Python:');
             console.log('   - PRISMA stats:', prismaData);
+            console.log('   - Databases/Sources:', databases);
             console.log('   - Scores disponibles:', screeScores?.length || 0);
             console.log('   - Primer score (ejemplo):', screeScores?.[0]);
             console.log('   - Search strategy queries:', searchStrategy?.length || 0);
@@ -63,6 +89,11 @@ class PythonGraphService {
             });
 
             pythonProcess.on('close', (code) => {
+                // SIEMPRE mostrar stderr para debug (incluso si exitoso)
+                if (stderr.trim()) {
+                    console.log('🐍 Python stderr output:', stderr);
+                }
+                
                 if (code !== 0) {
                     console.error('❌ Error generando gráficos (código de salida:', code, ')');
                     console.error('❌ STDERR:', stderr);

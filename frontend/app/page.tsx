@@ -104,10 +104,10 @@ export default function HomePage() {
 
           <Card>
             <CardHeader>
-              <Users className="h-10 w-10 mb-2 text-primary" />
-              <CardTitle>Revisión por Pares</CardTitle>
+              <FileText className="h-10 w-10 mb-2 text-primary" />
+              <CardTitle>Extracción Automática RQS</CardTitle>
               <CardDescription>
-                Flujo de trabajo colaborativo para validación dual de referencias según metodología Cochrane
+                Análisis de PDFs con IA para extraer datos de calidad metodológica (RQS), características de estudios y métricas reportadas
               </CardDescription>
             </CardHeader>
           </Card>
@@ -115,9 +115,9 @@ export default function HomePage() {
           <Card>
             <CardHeader>
               <BookOpen className="h-10 w-10 mb-2 text-primary" />
-              <CardTitle>Generación de Cadenas de Búsqueda</CardTitle>
+              <CardTitle>Generación de Artículo Científico</CardTitle>
               <CardDescription>
-                Asistente con IA para crear estrategias de búsqueda optimizadas para bases de datos académicas
+                Exportación automática a formato LaTeX/PDF siguiendo estructura IMRaD con diagramas PRISMA y tablas de resultados
               </CardDescription>
             </CardHeader>
           </Card>

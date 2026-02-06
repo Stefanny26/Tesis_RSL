@@ -22,22 +22,22 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     async function loadProject() {
       try {
         setIsLoading(true)
-        const data = await apiClient.getProject(params.id)
+        
+        // Cargar proyecto y protocolo en paralelo
+        const [data, protocol] = await Promise.all([
+          apiClient.getProject(params.id),
+          apiClient.getProtocol(params.id).catch(err => {
+            console.error("Error cargando protocolo:", err)
+            return null
+          })
+        ])
 
-        // Cargar protocolo completo
-        if (data.id) {
-          try {
-            const protocol = await apiClient.getProtocol(data.id)
-            console.log('🔍 Protocolo cargado completo:', protocol)
-            console.log('🔍 Search Strategy:', protocol?.searchStrategy)
-            console.log('🔍 Search String:', protocol?.searchStrategy?.searchString)
-            console.log('🔍 Databases:', protocol?.databases)
-            if (protocol) {
-              data.protocol = protocol
-            }
-          } catch (protocolErr) {
-            console.error("Error cargando protocolo:", protocolErr)
-          }
+        if (protocol) {
+          console.log('🔍 Protocolo cargado completo:', protocol)
+          console.log('🔍 Search Strategy:', protocol?.searchStrategy)
+          console.log('🔍 Search String:', protocol?.searchStrategy?.searchString)
+          console.log('🔍 Databases:', protocol?.databases)
+          data.protocol = protocol
         }
 
         setProject(data)
