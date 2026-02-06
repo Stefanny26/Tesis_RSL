@@ -41,6 +41,13 @@ export function PrismaCheckStep() {
   const [prismaData, setPrismaData] = useState<Record<string, { complies: boolean | null; evidence: string }>>({})
   const [isSaving, setIsSaving] = useState(false)
 
+  // Determinar qué bases de datos tienen referencias cargadas
+  const uploadedFiles = data.searchPlan?.uploadedFiles || []
+  const databasesWithRefs = new Set(uploadedFiles.map((f: any) => f.databaseId))
+  const allQueries = data.searchPlan?.searchQueries || []
+  const queriesWithRefs = allQueries.filter((q: any) => databasesWithRefs.has(q.databaseId))
+  const databasesCount = queriesWithRefs.length > 0 ? queriesWithRefs.length : (data.searchPlan?.databases?.length || 0)
+
   // Auto-evaluar cumplimiento PRISMA basado en datos del wizard
   useEffect(() => {
     const newPrismaData: Record<string, { complies: boolean | null; evidence: string }> = {}
@@ -112,35 +119,43 @@ export function PrismaCheckStep() {
         'google_scholar': 'Google Scholar'
       }
 
-      // Convertir IDs a nombres
-      const databaseNames = (data.searchPlan?.databases || []).map(dbId => {
-        // Si ya es un objeto con name, usar name
-        if (typeof dbId === 'object' && dbId !== null && 'name' in dbId) {
-          return dbId.name
-        }
-        // Si es string (ID), convertir a nombre
-        if (typeof dbId === 'string') {
-          return DATABASE_ID_TO_NAME[dbId] || dbId
-        }
-        return null
-      }).filter(name => name !== null)
+      // Solo incluir bases de datos que tienen referencias cargadas
+      const databaseNames = (data.searchPlan?.databases || [])
+        .filter(dbId => {
+          const id = typeof dbId === 'object' && dbId !== null && 'id' in dbId ? dbId.id : dbId
+          return databasesWithRefs.has(id)
+        })
+        .map(dbId => {
+          if (typeof dbId === 'object' && dbId !== null && 'name' in dbId) {
+            return dbId.name
+          }
+          if (typeof dbId === 'string') {
+            return DATABASE_ID_TO_NAME[dbId] || dbId
+          }
+          return null
+        }).filter(name => name !== null)
 
-      // Construir cadenas de búsqueda desde las queries
-      const searchQueries = data.searchPlan?.searchQueries || []
+      // Solo incluir queries de bases con referencias
+      const searchQueries = queriesWithRefs
       const firstQuery = searchQueries.length > 0 ? searchQueries[0] : null
       const searchString = firstQuery?.query || ''
 
-      // Mapear todas las queries con sus bases de datos
-      const queries = searchQueries.map(q => ({
-        database: q.databaseName || q.databaseId,
-        databaseId: q.databaseId,
-        query: q.query,
-        baseQuery: q.baseQuery,
-        hasAPI: q.hasAPI,
-        apiRequired: q.apiRequired,
-        status: q.status || 'pending',
-        resultsCount: 0
-      }))
+      // Mapear queries con conteo de refs importadas
+      const queries = searchQueries.map(q => {
+        const refsCount = uploadedFiles
+          .filter((f: any) => f.databaseId === q.databaseId)
+          .reduce((sum: number, f: any) => sum + (f.recordCount || 0), 0)
+        return {
+          database: q.databaseName || q.databaseId,
+          databaseId: q.databaseId,
+          query: q.query,
+          baseQuery: q.baseQuery,
+          hasAPI: q.hasAPI,
+          apiRequired: q.apiRequired,
+          status: q.status || 'pending',
+          resultsCount: refsCount
+        }
+      })
 
       const protocolData = {
         proposedTitle: titleToSave,
@@ -275,7 +290,7 @@ export function PrismaCheckStep() {
             <div className="p-4 rounded-lg border-2 border-primary/20">
               <div className="text-xs font-semibold text-muted-foreground uppercase">Bases de Datos</div>
               <div className="text-2xl font-bold text-foreground mt-2">
-                {data.searchPlan?.databases?.length || 0}
+                {databasesCount}
               </div>
             </div>
             <div className="p-4 rounded-lg border-2 border-primary/20">
@@ -432,25 +447,30 @@ export function PrismaCheckStep() {
           )}
 
           {/* ─── SECCIÓN: Bases de Datos y Cadenas de Búsqueda ─── */}
-          {(data.searchPlan?.searchQueries?.length ?? 0) > 0 && (
+          {queriesWithRefs.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 border-b pb-2">
                 <Database className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold text-base">Bases de Datos y Cadenas de Búsqueda</h3>
               </div>
               <div className="space-y-3">
-                {data.searchPlan?.searchQueries?.map((q: any) => (
+                {queriesWithRefs.map((q: any) => {
+                  const refsCount = uploadedFiles
+                    .filter((f: any) => f.databaseId === q.databaseId)
+                    .reduce((sum: number, f: any) => sum + (f.recordCount || 0), 0)
+                  return (
                   <div key={q.databaseId || q.databaseName} className="p-3 rounded-lg border border-border">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-semibold text-foreground">{q.databaseName || q.databaseId}</span>
-                      <Badge variant="outline" className="text-xs">{q.resultCount !== null && q.resultCount !== undefined ? `${q.resultCount} refs` : 'Pendiente'}</Badge>
+                      <Badge variant="secondary" className="text-xs">{refsCount} refs importadas</Badge>
                     </div>
                     <pre className="text-xs bg-muted/50 p-2 rounded border overflow-x-auto whitespace-pre-wrap font-mono text-foreground">{q.query}</pre>
                     {q.explanation && (
                       <p className="text-xs text-muted-foreground mt-1 italic">{q.explanation}</p>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}

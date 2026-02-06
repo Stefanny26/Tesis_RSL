@@ -164,7 +164,7 @@ class AIService {
     }
 
     const model = this.gemini.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.0-flash",
       systemInstruction: systemPrompt,
       generationConfig: {
         temperature: 0.3,

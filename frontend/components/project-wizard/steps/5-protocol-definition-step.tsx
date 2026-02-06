@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Sparkles, Loader2, Wrench, Microscope, Focus, Check, X, Pencil, RefreshCw } from "lucide-react"
+import { Sparkles, Loader2, Wrench, Microscope, Focus, Check, X, Pencil, Save, RefreshCw } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
@@ -85,6 +85,13 @@ export function ProtocolDefinitionStep() {
     
     // Si confirmamos un término, quitarlo de descartados
     setDiscardedTerms(prev => {
+      const newSet = new Set(prev[field])
+      newSet.delete(index)
+      return { ...prev, [field]: newSet }
+    })
+
+    // Salir de modo edición al confirmar
+    setEditingTerms(prev => {
       const newSet = new Set(prev[field])
       newSet.delete(index)
       return { ...prev, [field]: newSet }
@@ -181,6 +188,13 @@ export function ProtocolDefinitionStep() {
     
     // Si descartamos un término, quitarlo de confirmados
     setConfirmedTerms(prev => {
+      const newSet = new Set(prev[field])
+      newSet.delete(index)
+      return { ...prev, [field]: newSet }
+    })
+
+    // Salir de modo edición al descartar
+    setEditingTerms(prev => {
       const newSet = new Set(prev[field])
       newSet.delete(index)
       return { ...prev, [field]: newSet }
@@ -283,7 +297,7 @@ export function ProtocolDefinitionStep() {
           <p className="text-sm text-foreground">
             <strong>Instrucciones:</strong> Usa el botón <Check className="inline h-4 w-4 text-green-600" /> para confirmar términos que incluirás en tu protocolo, 
             y el botón <X className="inline h-4 w-4 text-red-600" /> para marcar términos como rechazados (se mostrarán tachados pero no se eliminarán). 
-            Debes confirmar al menos un término para continuar al siguiente paso.
+            Una vez confirmado o rechazado un término, no podrá editarse. Debes confirmar al menos un término para continuar al siguiente paso.
           </p>
         </div>
       </div>
@@ -380,9 +394,10 @@ export function ProtocolDefinitionStep() {
                     variant="ghost"
                     onClick={() => toggleEditMode('tecnologia', index)}
                     className="absolute top-1 right-1 h-7 w-7 p-0"
-                    title={isEditing ? "Cancelar edición" : "Editar término"}
+                    title={isEditing ? "Guardar edición" : "Editar término"}
+                    disabled={isConfirmed || isDiscarded}
                   >
-                    {isEditing ? <X className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
+                    {isEditing ? <Save className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
                   </Button>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -484,9 +499,10 @@ export function ProtocolDefinitionStep() {
                     variant="ghost"
                     onClick={() => toggleEditMode('dominio', index)}
                     className="absolute top-1 right-1 h-7 w-7 p-0"
-                    title={isEditing ? "Cancelar edición" : "Editar término"}
+                    title={isEditing ? "Guardar edición" : "Editar término"}
+                    disabled={isConfirmed || isDiscarded}
                   >
-                    {isEditing ? <X className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
+                    {isEditing ? <Save className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
                   </Button>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -588,9 +604,10 @@ export function ProtocolDefinitionStep() {
                     variant="ghost"
                     onClick={() => toggleEditMode('focosTematicos', index)}
                     className="absolute top-1 right-1 h-7 w-7 p-0"
-                    title={isEditing ? "Cancelar edición" : "Editar término"}
+                    title={isEditing ? "Guardar edición" : "Editar término"}
+                    disabled={isConfirmed || isDiscarded}
                   >
-                    {isEditing ? <X className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
+                    {isEditing ? <Save className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
                   </Button>
                 </div>
                 <div className="flex flex-col gap-1">

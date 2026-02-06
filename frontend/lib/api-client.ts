@@ -188,6 +188,14 @@ class ApiClient {
     return data.data
   }
 
+  async translateText(text: string, from: string, to: string): Promise<string> {
+    const data = await this.request('/api/ai/translate', {
+      method: 'POST',
+      body: JSON.stringify({ text, from, to }),
+    })
+    return data.data.translatedText
+  }
+
   async generateProtocolJustification(
     title: string,
     description: string,
@@ -787,6 +795,7 @@ class ApiClient {
 
   /**
    * Genera artículo científico completo desde PRISMA cerrado
+   * @param editedPICO - PICO editado por el usuario (opcional)
    */
   async generateArticle(projectId: string) {
     const data = await this.request(`/api/projects/${projectId}/article/generate`, {

@@ -29,15 +29,19 @@ class PythonGraphService {
             console.log('🔍 DEBUG - searchStrategy:', searchStrategy);
             
             if (prismaData.referencesBySource && Object.keys(prismaData.referencesBySource).length > 0) {
-                // Use REAL imported references
-                databases = Object.entries(prismaData.referencesBySource).map(([name, hits]) => ({
+                // Use REAL imported references (filtrar Unknown)
+                databases = Object.entries(prismaData.referencesBySource)
+                    .filter(([name]) => name !== 'Unknown')
+                    .map(([name, hits]) => ({
                     name,
                     hits
                 }));
                 console.log('✅ Using REAL imported references by source:', databases);
             } else if (searchStrategy && searchStrategy.length > 0) {
-                // Fallback to search strategy
-                databases = searchStrategy.map(sq => ({
+                // Fallback to search strategy — only include databases with hits > 0
+                databases = searchStrategy
+                    .filter(sq => (sq.hits || 0) > 0)
+                    .map(sq => ({
                     name: sq.name || 'Unknown',
                     hits: sq.hits || 0
                 }));

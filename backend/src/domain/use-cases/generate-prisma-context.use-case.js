@@ -305,7 +305,7 @@ class GeneratePrismaContextUseCase {
         searchString,
         hits
       };
-    });
+    }).filter(db => db.hits > 0); // Descartar bases de datos sin referencias cargadas
   }
 
   /**

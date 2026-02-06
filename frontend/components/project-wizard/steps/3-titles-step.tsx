@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Sparkles, Loader2, RefreshCw, CheckCircle2, Pencil, Check } from "lucide-react"
+import { Sparkles, Loader2, RefreshCw, CheckCircle2, Pencil, Save } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 
@@ -28,6 +28,8 @@ export function TitlesStep() {
   const [selectedIndex, setSelectedIndex] = useState<number>(-1)
   const [editingIndex, setEditingIndex] = useState<number>(-1)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [translatingIndex, setTranslatingIndex] = useState<number>(-1)
+  const [editedFields, setEditedFields] = useState<Set<string>>(new Set())
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const handleGenerateTitles = async () => {
@@ -131,6 +133,9 @@ export function TitlesStep() {
     updatedTitles[index] = { ...updatedTitles[index], [field]: value }
     updateData({ generatedTitles: updatedTitles })
     
+    // Track which field was edited
+    setEditedFields(prev => new Set(prev).add(field))
+    
     // Si es el título seleccionado, actualizamos también selectedTitle
     if (selectedIndex === index && field === 'title') {
       updateData({ selectedTitle: value })
@@ -143,6 +148,59 @@ export function TitlesStep() {
     saveTimeoutRef.current = setTimeout(() => {
       autoSaveTitles(updatedTitles)
     }, 1000)
+  }
+
+  const handleConfirmEdit = async (index: number) => {
+    const titleData = data.generatedTitles[index]
+    
+    // Determine what needs translation
+    const editedEN = editedFields.has('title')
+    const editedES = editedFields.has('spanishTitle')
+
+    if (editedEN || editedES) {
+      setTranslatingIndex(index)
+      try {
+        const updatedTitles = [...data.generatedTitles]
+
+        if (editedEN && titleData.title) {
+          // Translate EN → ES
+          const translatedES = await apiClient.translateText(titleData.title, 'en', 'es')
+          updatedTitles[index] = { ...updatedTitles[index], spanishTitle: translatedES }
+        }
+        
+        if (editedES && titleData.spanishTitle) {
+          // Translate ES → EN
+          const translatedEN = await apiClient.translateText(titleData.spanishTitle, 'es', 'en')
+          updatedTitles[index] = { ...updatedTitles[index], title: translatedEN }
+          // Update selectedTitle if this is the selected one
+          if (selectedIndex === index) {
+            updateData({ selectedTitle: translatedEN })
+          }
+        }
+
+        updateData({ generatedTitles: updatedTitles })
+        autoSaveTitles(updatedTitles)
+
+        toast({
+          title: "Traducción actualizada",
+          description: editedEN 
+            ? "El título en español se ha actualizado automáticamente." 
+            : "El título en inglés se ha actualizado automáticamente."
+        })
+      } catch (error: any) {
+        console.error('Error translating title:', error)
+        toast({
+          variant: "destructive",
+          title: "Error al traducir",
+          description: "No se pudo traducir automáticamente. Puedes editarlo manualmente."
+        })
+      } finally {
+        setTranslatingIndex(-1)
+      }
+    }
+
+    setEditingIndex(-1)
+    setEditedFields(new Set())
   }
 
   const getComplianceBadge = (compliance: string) => {
@@ -280,6 +338,11 @@ export function TitlesStep() {
                               className="text-base font-semibold resize-none"
                               onClick={(e) => e.stopPropagation()}
                             />
+                          ) : translatingIndex === index && editedFields.has('spanishTitle') ? (
+                            <div className="flex items-center gap-2 text-base font-semibold">
+                              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                              <span className="text-muted-foreground">Traduciendo...</span>
+                            </div>
                           ) : (
                             <p className="text-base font-semibold leading-relaxed">
                               {titleData.title}
@@ -304,6 +367,11 @@ export function TitlesStep() {
                               placeholder="Traducción en español..."
                               onClick={(e) => e.stopPropagation()}
                             />
+                          ) : translatingIndex === index && editedFields.has('title') ? (
+                            <div className="flex items-center gap-2 text-base">
+                              <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+                              <span className="text-muted-foreground">Traduciendo...</span>
+                            </div>
                           ) : (
                             <p className="text-base leading-relaxed text-muted-foreground">
                               {titleData.spanishTitle || 'Generando traducción...'}
@@ -335,13 +403,21 @@ export function TitlesStep() {
                         variant={isEditing ? "default" : "ghost"}
                         size="icon"
                         className="flex-shrink-0"
+                        disabled={translatingIndex === index}
                         onClick={(e) => {
                           e.stopPropagation()
-                          setEditingIndex(isEditing ? -1 : index)
+                          if (isEditing) {
+                            handleConfirmEdit(index)
+                          } else {
+                            setEditingIndex(index)
+                            setEditedFields(new Set())
+                          }
                         }}
                       >
-                        {isEditing ? (
-                          <Check className="h-4 w-4" />
+                        {translatingIndex === index ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : isEditing ? (
+                          <Save className="h-4 w-4" />
                         ) : (
                           <Pencil className="h-4 w-4" />
                         )}

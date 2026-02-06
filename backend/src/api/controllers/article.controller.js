@@ -110,7 +110,6 @@ class ArticleController {
         generatePrismaContextUseCase: generateContextUseCase
       });
 
-      // Generar artículo
       const result = await generateArticleUseCase.execute(projectId);
 
       // Transformar a formato esperado por frontend (claves en inglés)
@@ -444,6 +443,7 @@ class ArticleController {
       });
     }
   }
+
 }
 
 module.exports = ArticleController;

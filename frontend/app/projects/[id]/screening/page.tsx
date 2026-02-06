@@ -1473,7 +1473,9 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                 console.log('🔍 DEBUG - Database Counts:', databaseCounts)
                 console.log('🔍 DEBUG - Sample reference sources:', references.slice(0, 3).map(r => ({ title: r.title?.substring(0, 30), source: r.source })))
                 
-                const databases = Object.entries(databaseCounts).map(([name, hits]) => ({
+                const databases = Object.entries(databaseCounts)
+                  .filter(([name]) => name !== 'Unknown') // No mostrar fuentes desconocidas
+                  .map(([name, hits]) => ({
                   name,
                   hits
                 }))
@@ -1521,10 +1523,38 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                           onClick={async () => {
                             setIsFinalizingScreening(true)
                             try {
-                              // 1. Guardar estado de finalización en el protocolo
+                              // 0. Limpiar protocolo: descartar bases de datos sin referencias cargadas
+                              const databasesWithRefs: Record<string, number> = {}
+                              references.forEach((ref) => {
+                                const source = ref.source || 'Unknown'
+                                databasesWithRefs[source] = (databasesWithRefs[source] || 0) + 1
+                              })
+                              const activeDatabaseNames = Object.keys(databasesWithRefs)
+                              
+                              // Filtrar searchQueries y databases del protocolo
+                              const cleanedQueries = searchQueries.filter((q: any) => {
+                                const dbName = q.databaseName || q.databaseId || ''
+                                return activeDatabaseNames.some(name =>
+                                  name.toLowerCase().includes(dbName.toLowerCase()) ||
+                                  dbName.toLowerCase().includes(name.toLowerCase())
+                                )
+                              })
+                              const cleanedDatabases = activeDatabaseNames
+
+                              // 1. Guardar estado de finalización + bases de datos limpias
                               await apiClient.updateProtocol(params.id, {
                                 screeningFinalized: true,
-                                prismaUnlocked: true
+                                prismaUnlocked: true,
+                                databases: cleanedDatabases,
+                                searchQueries: cleanedQueries.map((q: any) => ({
+                                  ...q,
+                                  resultsCount: databasesWithRefs[
+                                    activeDatabaseNames.find(name =>
+                                      name.toLowerCase().includes((q.databaseName || q.databaseId || '').toLowerCase()) ||
+                                      (q.databaseName || q.databaseId || '').toLowerCase().includes(name.toLowerCase())
+                                    ) || ''
+                                  ] || q.resultsCount || 0
+                                }))
                               })
                               
                               setScreeningFinalized(true)

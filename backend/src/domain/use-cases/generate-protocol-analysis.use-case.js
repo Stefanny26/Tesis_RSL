@@ -122,17 +122,28 @@ Debes definir cada componente buscando **precisión absoluta y operacionalizaci�
 
 ⚖️ **C - COMPARISON (Comparador):**
 - Definición: Alternativa de intervención, métodos tradicionales, estándar de la industria o "sin intervención".
-- **Si NO aplica comparación:** Indicar explícitamente "No se compara con intervención específica" y **justificar por qué** (ej: enfoque exploratorio, no existe estándar de oro claro, naturaleza descriptiva de la revisión).
-- **Si SÍ aplica:** Ser específico (ej: "métodos tradicionales sin IA", "algoritmos clásicos", "enfoque manual").
-- **LONGITUD MÍNIMA: 30-50 palabras**
+- **REGLA CRÍTICA - DETECCIÓN DE COMPARACIONES IMPLÍCITAS:**
+  ⚠️ ANTES de concluir que no hay comparación, analiza CUIDADOSAMENTE el título y la descripción:
+  - Si el título contiene "vs", "versus", "frente a", "comparado con", "evaluation of", "analysis of X performance" → HAY comparación implícita. Extraerla obligatoriamente.
+  - Si el título menciona una tecnología específica (ej: "Mongoose", "React", "Docker") → El comparador es la alternativa natural: sin esa tecnología, enfoque manual, tecnologías competidoras o métodos tradicionales equivalentes.
+  - Si la descripción menciona "ventajas", "desventajas", "trade-offs", "beneficios" → Implica comparación con el estado previo o alternativas.
+  - Ejemplo: Título "Abstracción vs Performance en Mongoose ODM" → C = "Acceso directo a MongoDB sin capas de abstracción (driver nativo, consultas manuales) comparado con el uso de ODM/ORM que proporcionan abstracción"
+- **Si genuinamente NO aplica comparación** (muy raro): Indicar explícitamente y **justificar por qué** (ej: enfoque puramente exploratorio sin alternativas conocidas).
+- **Si SÍ aplica (caso más frecuente):** Ser específico (ej: "métodos tradicionales sin IA", "algoritmos clásicos", "enfoque manual", "sin la tecnología X").
+- **LONGITUD MÍNIMA: 40-60 palabras**
 
 🎯 **O - OUTCOMES (Resultados Medibles):**
 - Definición: Variables de resultado medibles y observables que se espera encontrar en los estudios.
-- **¿Qué impacto medible se espera obtener?** (rendimiento, precisión, latencia, usabilidad, tasa de error, tiempo de respuesta)
+- **REGLA CRÍTICA - COBERTURA COMPLETA DE DIMENSIONES:**
+  ⚠️ Analiza TODAS las dimensiones/aspectos/conceptos mencionados en el título Y la descripción. Cada dimensión DEBE tener al menos 2 métricas asociadas.
+  - Si el título menciona "Abstracción Y Performance" → Los outcomes DEBEN cubrir AMBAS dimensiones: métricas de abstracción (productividad del desarrollador, líneas de código, complejidad ciclomática, curva de aprendizaje) Y métricas de rendimiento (latencia, throughput, uso de memoria).
+  - Si el título menciona un solo concepto → Cubrir TODAS las facetas medibles de ese concepto (no solo las más obvias).
+  - Lista EXHAUSTIVA de métricas por dimensión encontrada, con unidades de medida cuando sea posible.
+- **¿Qué impacto medible se espera obtener?** (rendimiento, precisión, latencia, usabilidad, tasa de error, tiempo de respuesta, productividad, mantenibilidad, escalabilidad)
 - Deben ser **métricas específicas** que puedan extraerse de los estudios.
-- **LONGITUD MÍNIMA: 40-60 palabras** listando outcomes concretos, unidades de medida cuando sea posible.
+- **LONGITUD MÍNIMA: 60-100 palabras** listando outcomes concretos para CADA dimensión del título.
 
-**Ejemplo válido:** "Métricas de rendimiento del sistema medidas en: (1) precisión de clasificación (accuracy, F1-score), (2) tiempo de respuesta en milisegundos, (3) uso de recursos computacionales (CPU, memoria), (4) escalabilidad medida en throughput de peticiones por segundo."
+**Ejemplo válido:** "Métricas de rendimiento del sistema medidas en: (1) precisión de clasificación (accuracy, F1-score), (2) tiempo de respuesta en milisegundos, (3) uso de recursos computacionales (CPU, memoria), (4) escalabilidad medida en throughput de peticiones por segundo. Métricas de usabilidad: (5) productividad del desarrollador (líneas de código, tiempo de implementación), (6) mantenibilidad del código (complejidad ciclomática, acoplamiento)."
 
 **PREGUNTA CONTESTABLE:**
 Construir pregunta PICO formal que guíe toda la revisión:

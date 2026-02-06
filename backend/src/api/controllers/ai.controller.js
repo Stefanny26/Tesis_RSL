@@ -1416,6 +1416,63 @@ const generateProtocolJustification = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/ai/translate
+ * Traduce un texto entre inglés y español usando IA
+ */
+const translateText = async (req, res) => {
+  try {
+    const { text, from, to } = req.body;
+
+    if (!text || !from || !to) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere text, from y to (ej: "en", "es")'
+      });
+    }
+
+    const AIService = require('../../infrastructure/services/ai.service');
+    const aiService = new AIService(req.user?.id);
+
+    const langNames = { en: 'English', es: 'Spanish' };
+    const fromLang = langNames[from] || from;
+    const toLang = langNames[to] || to;
+
+    const systemPrompt = `You are a professional academic translator. Translate the following text from ${fromLang} to ${toLang}. 
+Rules:
+- Maintain the academic and formal tone
+- Keep technical terms accurate
+- Return ONLY the translated text, nothing else
+- Do not add quotes, explanations, or any extra text`;
+
+    const translatedText = await aiService.generateText(systemPrompt, text, 'chatgpt');
+
+    // Track API usage
+    await trackApiUsage({
+      userId: req.user?.id,
+      provider: 'chatgpt',
+      endpoint: '/api/ai/translate',
+      model: 'gpt-4o-mini',
+      success: true
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        translatedText: translatedText.trim(),
+        from,
+        to
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error traduciendo texto:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al traducir el texto'
+    });
+  }
+};
+
 module.exports = {
   generateProtocolAnalysis,
   generateProtocolJustification,
@@ -1437,6 +1494,7 @@ module.exports = {
   getSupportedDatabases,
   getDatabasesByResearchArea,
   detectArea,
+  translateText,
 };
 
 

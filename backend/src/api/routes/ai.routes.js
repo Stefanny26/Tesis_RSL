@@ -20,7 +20,8 @@ const {
   generateSearchQueries,
   getSupportedDatabases,
   getDatabasesByResearchArea,
-  detectArea
+  detectArea,
+  translateText
 } = require('../controllers/ai.controller');
 const { authMiddleware } = require('../../infrastructure/middlewares/auth.middleware');
 
@@ -242,6 +243,17 @@ router.post(
   '/detect-research-area',
   authMiddleware,
   detectArea
+);
+
+/**
+ * @route   POST /api/ai/translate
+ * @desc    Traducir texto entre inglés y español usando IA
+ * @access  Private (requiere JWT)
+ */
+router.post(
+  '/translate',
+  authMiddleware,
+  translateText
 );
 
 module.exports = router;

@@ -29,6 +29,7 @@ export interface WizardData {
   }
   matrixTable?: Array<{
     pregunta: string
+    contenido?: string
     presente: 'si' | 'no' | 'parcial'
     justificacion: string
   }>

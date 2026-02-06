@@ -1029,6 +1029,8 @@ ${convertMarkdownToLatex(currentVersion.content.declarations)}
         open={showPrismaDialog}
         onOpenChange={setShowPrismaDialog}
       />
+
+
     </div>
   )
 }

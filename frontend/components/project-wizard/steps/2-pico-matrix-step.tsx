@@ -5,7 +5,8 @@ import { useWizard } from "../wizard-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Sparkles, Loader2, Info } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Sparkles, Loader2, Info, Pencil, Save } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 
@@ -22,6 +23,57 @@ export function PicoMatrixStep() {
   const { data, updateData } = useWizard()
   const { toast } = useToast()
   const [isGenerating, setIsGenerating] = useState(false)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editValue, setEditValue] = useState("")
+
+  // Map index to PICO field key
+  const picoFieldMap: Record<number, keyof typeof data.pico> = {
+    0: 'population',
+    1: 'intervention',
+    2: 'comparison',
+    3: 'outcome'
+  }
+
+  const handleStartEdit = (index: number, currentValue: string) => {
+    setEditingIndex(index)
+    setEditValue(currentValue)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null)
+    setEditValue("")
+  }
+
+  const handleSaveEdit = (index: number) => {
+    const fieldKey = picoFieldMap[index]
+    if (!fieldKey) return
+
+    // Update PICO data
+    updateData({
+      pico: {
+        ...data.pico,
+        [fieldKey]: editValue
+      }
+    })
+
+    // Update matrixTable contenido
+    if (data.matrixTable) {
+      const updatedTable = [...data.matrixTable]
+      updatedTable[index] = {
+        ...updatedTable[index],
+        contenido: editValue
+      }
+      updateData({ matrixTable: updatedTable })
+    }
+
+    setEditingIndex(null)
+    setEditValue("")
+
+    toast({
+      title: "Campo actualizado",
+      description: `${fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1)} actualizado correctamente.`
+    })
+  }
 
   const handleGenerateWithAI = async () => {
     if (!data.projectName || !data.projectDescription) {
@@ -209,7 +261,7 @@ export function PicoMatrixStep() {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b-2 bg-muted">
-                      <th className="text-left p-4 font-semibold text-foreground w-1/4">
+                      <th className="text-left p-4 font-semibold text-foreground w-1/5">
                         Componente PICO
                       </th>
                       <th className="text-left p-4 font-semibold text-foreground w-1/3">
@@ -218,11 +270,17 @@ export function PicoMatrixStep() {
                       <th className="text-left p-4 font-semibold text-foreground w-5/12">
                         Justificación (Es / No Es)
                       </th>
+                      <th className="text-center p-4 font-semibold text-foreground w-16">
+                        Editar
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.matrixTable.map((elemento, index) => {
                       const { icon, label } = getPicoComponent(elemento.pregunta)
+                      const isEditing = editingIndex === index
+                      const picoValues = [data.pico.population, data.pico.intervention, data.pico.comparison, data.pico.outcome]
+                      const cellContent = elemento.contenido || picoValues[index] || ""
                       return (
                         <tr key={`pico-${label}-${index}`} className="border-b hover:bg-muted/30 transition-colors">
                           <td className="p-4 align-top">
@@ -238,9 +296,18 @@ export function PicoMatrixStep() {
                             </div>
                           </td>
                         <td className="p-4 align-top">
-                          <p className="text-sm leading-relaxed">
-                            {elemento.contenido || data.pico.population}
-                          </p>
+                          {isEditing ? (
+                            <Textarea
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="min-h-[100px] text-sm"
+                              autoFocus
+                            />
+                          ) : (
+                            <p className="text-sm leading-relaxed">
+                              {cellContent}
+                            </p>
+                          )}
                         </td>
                         <td className="p-4 align-top">
                           <div className="flex items-start gap-2">
@@ -264,6 +331,29 @@ export function PicoMatrixStep() {
                             </span>
                           </div>
                         </td>
+                        <td className="p-4 align-top text-center">
+                          {isEditing ? (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/30"
+                              onClick={() => handleSaveEdit(index)}
+                              title="Guardar"
+                            >
+                              <Save className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              onClick={() => handleStartEdit(index, cellContent)}
+                              title="Editar contenido"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </td>
                       </tr>
                       )
                     })}
@@ -279,6 +369,8 @@ export function PicoMatrixStep() {
                     El marco PICO se realizó integrando la matriz Es/No Es con otros marcos metodológicos, 
                     no solo PICO, para mejorar y validar el planteamiento de la pregunta de investigación según 
                     las guías <strong>PRISMA 2020</strong> y <strong>Cochrane</strong>.
+                    Puedes <strong>editar cada campo</strong> haciendo clic en el ícono de lápiz (✏️) si necesitas
+                    ajustar el contenido generado por la IA.
                   </p>
                 </AlertDescription>
               </Alert>
