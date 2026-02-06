@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ThemeSwitch } from "@/components/ui/theme-switch"
-import { Home, Save } from "lucide-react"
+import { Home } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 const stepNames = [
@@ -18,12 +18,7 @@ const stepNames = [
   "PRISMA y Confirmación"
 ]
 
-interface WizardHeaderProps {
-  onSaveDraft?: () => void
-  isSaving?: boolean
-}
-
-export function WizardHeader({ onSaveDraft, isSaving }: WizardHeaderProps) {
+export function WizardHeader() {
   const { currentStep, totalSteps, data } = useWizard()
   const router = useRouter()
   const progress = (currentStep / totalSteps) * 100
@@ -51,30 +46,7 @@ export function WizardHeader({ onSaveDraft, isSaving }: WizardHeaderProps) {
           </div>
           
           <div className="flex items-center gap-3">
-            {data.lastSaved && (
-              <span className="text-xs text-muted-foreground">
-                Guardado {new Date(data.lastSaved).toLocaleTimeString()}
-              </span>
-            )}
             <ThemeSwitch />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onSaveDraft}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <>
-                  <Save className="h-4 w-4 mr-2 animate-pulse" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Guardar borrador
-                </>
-              )}
-            </Button>
             <Badge variant="outline">
               Paso {currentStep} de {totalSteps}
             </Badge>

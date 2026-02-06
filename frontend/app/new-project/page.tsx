@@ -19,13 +19,6 @@ function WizardContent() {
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
 
-  const handleSaveDraft = () => {
-    toast({
-      title: "💾 Borrador guardado",
-      description: "El progreso se ha guardado localmente"
-    })
-  }
-
   const handleCreateProject = async () => {
     setIsSaving(true)
     try {
@@ -154,7 +147,7 @@ function WizardContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <WizardHeader onSaveDraft={handleSaveDraft} isSaving={isSaving} />
+      <WizardHeader />
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-24">{renderStep()}</div>
