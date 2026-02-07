@@ -105,15 +105,10 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           {/* Protocolo */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
+              <div>
                   <CardTitle>Protocolo de Investigación</CardTitle>
                   <CardDescription>Detalles completos del protocolo de revisión sistemática</CardDescription>
                 </div>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/projects/${params.id}/protocol`}>Editar Protocolo</Link>
-                </Button>
-              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {project.protocol ? (
