@@ -885,21 +885,22 @@ ${rqsEntries.map((entry, i) => {
       const id = `S${i + 1}`;
       const evidence = (entry.keyEvidence || 'Not reported').substring(0, 60) + '...';
 
-      // Metrics
-      let metrics = 'Not reported';
+      // Metrics - filtrar valores null, Unknown, N/A
+      let metrics = 'N/R';
       if (entry.metrics && Object.keys(entry.metrics).length > 0) {
-        const metricsList = Object.entries(entry.metrics)
+        const validMetrics = Object.entries(entry.metrics)
+          .filter(([k, v]) => v !== null && v !== undefined && v !== 'null' && v !== 'Unknown' && v !== 'N/A' && v !== '')
           .slice(0, 2)
           .map(([k, v]) => `${k}: ${v}`)
           .join('; ');
-        metrics = metricsList.substring(0, 40);
+        metrics = validMetrics.length > 0 ? validMetrics.substring(0, 40) : 'N/R';
       }
 
-      // RQ relations con símbolos LaTeX-compatibles
+      // RQ relations con símbolos Unicode
       const getRQSymbol = (relation) => {
-        if (relation === 'yes') return '$\\\\checkmark$';
-        if (relation === 'partial') return '$\\\\circ$';
-        return '$\\\\times$';
+        if (relation === 'yes') return '✓';
+        if (relation === 'partial') return '○';
+        return '✗';
       };
       const rq1 = getRQSymbol(entry.rq1Relation);
       const rq2 = getRQSymbol(entry.rq2Relation);
@@ -910,8 +911,8 @@ ${rqsEntries.map((entry, i) => {
       return `| ${id} | ${evidence} | ${metrics} | ${rq1} | ${rq2} | ${rq3} | ${quality} |`;
     }).join('\n')}
 
-*Leyenda: $\\checkmark$ = Relación directa, $\\circ$ = Relación parcial, $\\times$ = Sin relación directa*
-*Calidad: Evaluación cualitativa basada en transparencia metodológica y reporte de limitaciones*
+*Legend: ✓ = Direct relation, ○ = Partial relation, ✗ = No direct relation*
+*Quality: Qualitative assessment based on methodological transparency and reporting of limitations*
 `;
   }
 

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Eye, Edit } from "lucide-react"
 import { useState } from "react"
 import type { Components } from 'react-markdown'
+import { PrismaFlowDiagram } from "@/components/screening/prisma-flow-diagram"
 
 /* ── Estilo académico global (Times New Roman / serif) ── */
 const serifFont = "'Times New Roman', 'Noto Serif', Georgia, serif"
@@ -145,11 +146,27 @@ interface ArticleEditorProps {
   version: ArticleVersion
   onContentChange: (section: keyof ArticleVersion["content"], content: string) => void
   disabled?: boolean
+  prismaStats?: any
 }
 
-export function ArticleEditor({ version, onContentChange, disabled = false }: ArticleEditorProps) {
+export function ArticleEditor({ version, onContentChange, disabled = false, prismaStats }: ArticleEditorProps) {
   const [editingSection, setEditingSection] = useState<string | null>(null)
   
+  // Markdown components for Results section: replaces PRISMA chart images with React component
+  const resultsMarkdownComponents: Components = {
+    ...markdownComponents,
+    img: ({ node, ...props }: any) => {
+      if (prismaStats && props.alt?.toLowerCase().includes('prisma')) {
+        return (
+          <div className="my-6">
+            <PrismaFlowDiagram stats={prismaStats} />
+          </div>
+        )
+      }
+      return <MarkdownImage node={node} {...props} />
+    }
+  }
+
   const sections = [
     { key: "abstract" as const, label: "Resumen", rows: 6 },
     { key: "introduction" as const, label: "Introducción", rows: 10 },
@@ -226,7 +243,7 @@ export function ArticleEditor({ version, onContentChange, disabled = false }: Ar
                   {version.content[section.key] ? (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
-                      components={markdownComponents}
+                      components={section.key === 'results' ? resultsMarkdownComponents : markdownComponents}
                     >
                       {version.content[section.key]}
                     </ReactMarkdown>

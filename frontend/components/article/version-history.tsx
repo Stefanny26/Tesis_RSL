@@ -12,22 +12,14 @@ interface VersionHistoryProps {
   currentVersionId: string
   onSelectVersion: (versionId: string) => void
   onRestoreVersion: (versionId: string) => void
+  compact?: boolean
 }
 
-export function VersionHistory({ versions, currentVersionId, onSelectVersion, onRestoreVersion }: VersionHistoryProps) {
-  return (
-    <Card>
-      <CardHeader className="pb-3 pt-4 px-4">
-        <CardTitle className="flex items-center gap-1.5 text-base">
-          <Clock className="h-4 w-4" />
-          Historial de Versiones
-        </CardTitle>
-        <CardDescription className="text-xs">Todas las versiones guardadas de tu artículo</CardDescription>
-      </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <Accordion type="single" collapsible className="w-full">
-          {versions.map((version) => (
-            <AccordionItem key={version.id} value={version.id} className="border-b last:border-0">
+export function VersionHistory({ versions, currentVersionId, onSelectVersion, onRestoreVersion, compact = false }: VersionHistoryProps) {
+  const content = (
+    <Accordion type="single" collapsible className="w-full">
+      {versions.map((version) => (
+        <AccordionItem key={version.id} value={version.id} className="border-b last:border-0">
               <AccordionTrigger className="py-2 hover:no-underline">
                 <div className="flex items-center gap-1.5 text-left">
                   <Badge variant={version.id === currentVersionId ? "default" : "outline"} className="text-xs h-5">v{version.version}</Badge>
@@ -66,8 +58,25 @@ export function VersionHistory({ versions, currentVersionId, onSelectVersion, on
                 </div>
               </AccordionContent>
             </AccordionItem>
-          ))}
-        </Accordion>
+      ))}
+    </Accordion>
+  )
+
+  if (compact) {
+    return content
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3 pt-4 px-4">
+        <CardTitle className="flex items-center gap-1.5 text-base">
+          <Clock className="h-4 w-4" />
+          Historial de Versiones
+        </CardTitle>
+        <CardDescription className="text-xs">Todas las versiones guardadas de tu artículo</CardDescription>
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        {content}
       </CardContent>
     </Card>
   )

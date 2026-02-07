@@ -45,7 +45,10 @@ class GeneratePrismaContextUseCase {
 
       // 5. Contar referencias por estado
       const identified = allReferences.length;
-      const duplicates = 0; // Tu sistema ya maneja duplicados antes
+      const duplicates = allReferences.filter(ref =>
+        ref.screeningStatus === 'duplicate'
+      ).length;
+      const afterDuplicateRemoval = identified - duplicates;
 
       // Referencias excluidas en cribado inicial (título/resumen)
       const excludedTitleAbstract = allReferences.filter(ref =>
@@ -141,7 +144,7 @@ class GeneratePrismaContextUseCase {
           // Números PRISMA
           identified: identified,
           duplicatesRemoved: duplicates,
-          screenedTitleAbstract: identified,
+          screenedTitleAbstract: afterDuplicateRemoval,
           excludedTitleAbstract: excludedTitleAbstract,
           fullTextAssessed: includedAfterScreening,
           excludedFullText: excludedFullText,
@@ -151,9 +154,9 @@ class GeneratePrismaContextUseCase {
           // Referencias reales por fuente (para PRISMA diagram)
           referencesBySource: referencesBySource,
 
-          // ✅ CORRECCIÓN: Agregar campos que faltan para evitar N/A
-          totalResults: allReferences.length,
-          afterScreening: allReferences.length,
+          // Campos para el artículo
+          totalResults: identified,
+          afterScreening: afterDuplicateRemoval,
           fullTextRetrieved: allReferences.filter(r => r.screeningStatus === 'included' || r.screeningStatus === 'fulltext_included').length,
 
           // Datos del cribado híbrido si existen

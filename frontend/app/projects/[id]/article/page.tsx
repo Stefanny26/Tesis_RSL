@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Save, FileDown, Loader2, Lock, Sparkles, FileText, CheckCircle2, ExternalLink } from "lucide-react"
+import { Save, FileDown, Loader2, Sparkles, FileText, ExternalLink } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
@@ -37,6 +37,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showPrismaDialog, setShowPrismaDialog] = useState(false)
+  const [prismaStats, setPrismaStats] = useState<any>(null)
   const { toast } = useToast()
   const { user } = useAuth()
   const router = useRouter()
@@ -56,6 +57,61 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
       // Cargar estado del artículo
       const statusData = await apiClient.getArticleStatus(params.id)
       setStatus(statusData.data || statusData)
+
+      // Cargar stats de screening para diagrama PRISMA
+      try {
+        const refsData = await apiClient.getReferences(params.id, { limit: 10000 })
+        const allRefs = refsData?.references || []
+        const totalRefs = allRefs.length
+
+        // API devuelve campo "status" (no screeningStatus)
+        const getStatus = (r: any) => r.status || r.screeningStatus || r.screening_status || 'pending'
+
+        const duplicates = allRefs.filter((r: any) => getStatus(r) === 'duplicate').length
+        const excluded = allRefs.filter((r: any) => getStatus(r) === 'excluded').length
+        const included = allRefs.filter((r: any) => {
+          const st = getStatus(r)
+          return st === 'included' || st === 'fulltext_included'
+        }).length
+        const excludedFT = allRefs.filter((r: any) => getStatus(r) === 'fulltext_excluded').length
+        
+        // Databases
+        const dbMap: Record<string, number> = {}
+        allRefs.forEach((r: any) => {
+          const src = (r.source || 'Unknown').trim()
+          dbMap[src] = (dbMap[src] || 0) + 1
+        })
+        const databases = Object.entries(dbMap).map(([name, hits]) => ({ name, hits }))
+
+        // Exclusion reasons
+        const exclusionReasons: Record<string, number> = {}
+        allRefs.filter((r: any) => getStatus(r) === 'fulltext_excluded').forEach((r: any) => {
+          if (r.exclusionReason || r.exclusion_reason) {
+            const reason = (r.exclusionReason || r.exclusion_reason).trim()
+            exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1
+          }
+        })
+
+        // fullTextAssessed = los que NO fueron excluidos en título/abstract (no duplicados, no excluidos)
+        const afterDedup = totalRefs - duplicates
+        const screenedOut = excluded
+        const fullTextAssessed = afterDedup - screenedOut
+
+        setPrismaStats({
+          identified: totalRefs,
+          duplicates,
+          afterDedup,
+          screenedTitleAbstract: afterDedup,
+          excludedTitleAbstract: screenedOut,
+          fullTextAssessed,
+          excludedFullText: excludedFT,
+          includedFinal: included,
+          databases: databases.length > 0 ? databases : undefined,
+          exclusionReasons: Object.keys(exclusionReasons).length > 0 ? exclusionReasons : undefined
+        })
+      } catch (e) {
+        console.error('Error loading PRISMA stats for article:', e)
+      }
 
       // Cargar versiones guardadas del artículo
       try {
@@ -771,237 +827,136 @@ ${convertMarkdownToLatex(currentVersion.content.declarations)}
           {/* Project Header */}
           {project && <ProjectHeader project={project} />}
 
-          {/* Status Alert */}
-          {!status && (
-            <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
-              <Lock className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-sm text-yellow-800 dark:text-yellow-200">
-                Cargando estado del proyecto...
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {status && !status.canGenerate && (
-            <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
-              <Lock className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-sm text-yellow-800 dark:text-yellow-200">
-                {status.message}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {status && status.canGenerate && (
-            <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
-              <Sparkles className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800 dark:text-green-200 text-sm">
-                {status.message} Puede generar el artículo científico completo.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Top Section: 3 Bloques - PRISMA + Generador + Acciones */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Bloque 1: PRISMA Completado */}
-            <Card>
-              <CardHeader className="pb-2 pt-3">
-                <CardTitle className="flex items-center gap-1.5 text-sm">
-                  <CheckCircle2 className="h-4 w-4" />
-                  PRISMA Completado
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Checklist de directrices PRISMA 2020
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 py-2 pb-3">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Los ítems del checklist PRISMA 2020 se completan automáticamente al cerrar el proceso de cribado, 
-                  asegurando el cumplimiento de las directrices internacionales para revisiones sistemáticas.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowPrismaDialog(true)}
-                  className="w-full"
-                  size="sm"
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Ver PRISMA
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Bloque 2: Generar Artículo Completo */}
-            <Card>
-              <CardHeader className="pb-2 pt-3">
-                <CardTitle className="text-sm font-semibold">Generar Artículo Completo</CardTitle>
-                <CardDescription className="text-xs">
-                  Crea todas las secciones del artículo automáticamente
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 pt-2 pb-3">
-               
-                <Button
-                  onClick={handleGenerateFullArticle}
-                  disabled={isGenerating || !status?.canGenerate}
-                  className="w-full"
-                  size="sm"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generando...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generar Borrador Completo
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Bloque 3: Acciones */}
-            <Card>
-              <CardHeader >
-                <CardTitle className="text-sm font-semibold">Acciones</CardTitle>
-                <CardDescription className="text-xs">
-                  Gestiona y exporta tu artículo científico
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 ">
-                <Button
-                  variant="outline"
-                  onClick={handleExportLatex}
-                  disabled={!currentVersion || isGenerating}
-                  className="w-full"
-                  size="sm"
-                >
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Exportar LaTeX
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleExportReferences}
-                  disabled={!currentVersion || isGenerating}
-                  className="w-full"
-                  size="sm"
-                >
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Exportar Referencias JSON
-                </Button>
-                <Button onClick={handleSaveVersion} disabled={isGenerating || isSaving} className="w-full" size="sm">
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Guardar Versión
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* New Layout: Index (col-3) + Content (col-9) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* Left Sidebar: Index + Version History */}
-            <div className="lg:col-span-3 space-y-4">
-              <Card className="sticky top-6">
-                <CardHeader className="pb-2 pt-3">
-                  <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
-                    <FileText className="h-3 w-3" />
-                    Índice del Artículo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-0.5 py-2">
-                  <button
-                    onClick={() => document.getElementById('section-title')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
-                  >
-                    Título
-                  </button>
-                  <button
-                    onClick={() => document.getElementById('section-abstract')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
-                  >
-                    Resumen
-                  </button>
-                  <button
-                    onClick={() => document.getElementById('section-introduction')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
-                  >
-                    Introducción
-                  </button>
-                  <button
-                    onClick={() => document.getElementById('section-methods')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
-                  >
-                    Métodos
-                  </button>
-                  <button
-                    onClick={() => document.getElementById('section-results')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
-                  >
-                    Resultados
-                  </button>
-                  <button
-                    onClick={() => document.getElementById('section-discussion')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
-                  >
-                    Discusión
-                  </button>
-                  <button
-                    onClick={() => document.getElementById('section-conclusions')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
-                  >
-                    Conclusiones
-                  </button>
-                  <button
-                    onClick={() => document.getElementById('section-references')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-md transition-colors"
-                  >
-                    Referencias
-                  </button>
-                </CardContent>
-              </Card>
-
-              <VersionHistory
-                versions={versions}
-                currentVersionId={currentVersionId || ''}
-                onSelectVersion={setCurrentVersionId}
-                onRestoreVersion={handleRestoreVersion}
-              />
+          {/* Barra de estado + acciones */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border bg-card p-3">
+            {/* Left: PRISMA status */}
+            <div className="flex items-center gap-2">
+              {status && status.canGenerate ? (
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2 w-2 rounded-full bg-green-500" />
+                  <span className="text-sm text-green-700 dark:text-green-300 font-medium">{status.message}</span>
+                </div>
+              ) : status && !status.canGenerate ? (
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2 w-2 rounded-full bg-yellow-500" />
+                  <span className="text-sm text-yellow-700 dark:text-yellow-300 font-medium">{status.message}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Cargando estado...</span>
+                </div>
+              )}
             </div>
 
-            {/* Center: Main Content Area (Article Editor) */}
-            <div className="lg:col-span-9">
+            {/* Right: Action buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => setShowPrismaDialog(true)}>
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                PRISMA
+              </Button>
+              {currentVersion && currentVersion.id !== 'v1-temp' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateFullArticle}
+                  disabled={isGenerating || !status?.canGenerate}
+                >
+                  {isGenerating ? (
+                    <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Regenerando...</>
+                  ) : (
+                    <><Sparkles className="mr-1.5 h-3.5 w-3.5" />Regenerar</>
+                  )}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleExportLatex} disabled={!currentVersion || isGenerating}>
+                <FileDown className="mr-1.5 h-3.5 w-3.5" />
+                LaTeX
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportReferences} disabled={!currentVersion || isGenerating}>
+                <FileDown className="mr-1.5 h-3.5 w-3.5" />
+                Referencias
+              </Button>
+              <Button size="sm" onClick={handleSaveVersion} disabled={isGenerating || isSaving}>
+                {isSaving ? (
+                  <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Guardando...</>
+                ) : (
+                  <><Save className="mr-1.5 h-3.5 w-3.5" />Guardar</>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Layout: Sidebar índice + Contenido artículo */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Sidebar: Índice + Versiones (sticky) */}
+            <div className="lg:col-span-2">
+              <div className="lg:sticky lg:top-4 space-y-3">
+                {/* Índice del Artículo */}
+                <nav className="space-y-1">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">
+                    Índice
+                  </h3>
+                  {[
+                    { label: 'Título', id: 'section-title' },
+                    { label: 'Resumen', id: 'section-abstract' },
+                    { label: 'Introducción', id: 'section-introduction' },
+                    { label: 'Métodos', id: 'section-methods' },
+                    { label: 'Resultados', id: 'section-results' },
+                    { label: 'Discusión', id: 'section-discussion' },
+                    { label: 'Conclusiones', id: 'section-conclusions' },
+                    { label: 'Referencias', id: 'section-references' },
+                  ].map((section) => (
+                    <button
+                      key={section.id}
+                      onClick={() => document.getElementById(section.id)?.scrollIntoView({ behavior: 'smooth' })}
+                      className="w-full text-left px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-md transition-colors text-muted-foreground"
+                    >
+                      {section.label}
+                    </button>
+                  ))}
+                </nav>
+
+                {/* Historial de Versiones (compact) */}
+                <div className="border-t pt-3">
+                  <VersionHistory
+                    versions={versions}
+                    currentVersionId={currentVersionId || ''}
+                    onSelectVersion={setCurrentVersionId}
+                    onRestoreVersion={handleRestoreVersion}
+                    compact
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Article Content */}
+            <div className="lg:col-span-10">
               {currentVersion && currentVersion.id !== 'v1-temp' ? (
                 <ArticleEditor
                   version={currentVersion}
                   onContentChange={handleContentChange}
                   disabled={isGenerating}
+                  prismaStats={prismaStats}
                 />
               ) : (
-                <Card className="border-dashed">
-                  <CardContent className="flex flex-col items-center justify-center py-16 space-y-4">
-                    <div className="rounded-full bg-muted p-6">
-                      <FileText className="h-12 w-12 text-muted-foreground" />
+                <Card className="border-dashed border-2">
+                  <CardContent className="flex flex-col items-center justify-center py-20 space-y-6">
+                    <div className="rounded-full bg-muted/50 p-8">
+                      <FileText className="h-16 w-16 text-muted-foreground/50" />
                     </div>
                     <div className="text-center space-y-2">
-                      <h3 className="text-lg font-semibold">No hay contenido generado aún</h3>
-                      <p className="text-sm text-muted-foreground max-w-md">
-                        Haz clic en "Generar Borrador Completo" para crear automáticamente todas las secciones del artículo científico basándote en tu protocolo y resultados de cribado.
+                      <h3 className="text-xl font-semibold">No hay contenido generado aún</h3>
+                      <p className="text-sm text-muted-foreground max-w-lg">
+                        Genera automáticamente todas las secciones del artículo científico
+                        basándote en tu protocolo y resultados de cribado.
                       </p>
                     </div>
                     <Button
                       onClick={handleGenerateFullArticle}
                       disabled={isGenerating || !status?.canGenerate}
                       size="lg"
-                      className="mt-4"
+                      className="mt-2"
                     >
                       {isGenerating ? (
                         <>
