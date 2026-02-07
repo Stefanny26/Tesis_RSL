@@ -304,9 +304,9 @@ STUDY CONTEXT:
 - Objective: ${prismaMapping.introduction.objectives}
 - Search period: ${prismaContext.protocol.temporalRange.start || '2023'} - ${prismaContext.protocol.temporalRange.end || '2025'}
 - Databases: ${prismaContext.protocol.databases.map(db => db.name).join(', ')}
-- Total articles identified: ${prismaContext.screening.totalResults || 'N/A'}
-- Articles after screening: ${prismaContext.screening.afterScreening || 'N/A'}
-- Final included studies: ${prismaContext.screening.includedFinal || rqsStats.total}
+- Total articles identified: ${prismaContext.screening.totalResults ?? 'N/A'}
+- Articles after screening: ${prismaContext.screening.afterScreening ?? 'N/A'}
+- Final included studies: ${prismaContext.screening.includedFinal ?? rqsStats.total}
 
 PROCESSED RQS DATA (${rqsStats.total} studies):
 - Study types: ${JSON.stringify(rqsStats.studyTypes)}
@@ -651,9 +651,9 @@ The synthesis was organized around the three research questions, integrating fin
 
 ${studySelection}
 
-Figure 2 presents the complete PRISMA flow diagram of the selection process. The initial search identified **${prismaContext.screening.totalResults || 'N/A'} records** across the consulted databases. After duplicate removal (n=${prismaContext.screening.duplicatesRemoved || 'N/A'}), **${prismaContext.screening.afterScreening || 'N/A'} unique records** were screened by title and abstract.
+Figure 2 presents the complete PRISMA flow diagram of the selection process. The initial search identified **${prismaContext.screening.totalResults ?? 'N/A'} records** across the consulted databases. After duplicate removal (n=${prismaContext.screening.duplicatesRemoved ?? 'N/A'}), **${prismaContext.screening.afterScreening ?? 'N/A'} unique records** were screened by title and abstract.
 
-Of these, **${prismaContext.screening.fullTextRetrieved || 'N/A'} articles** were retrieved for full-text evaluation. Finally, **${rqsStats.total} studies** met all inclusion criteria and were included in the qualitative synthesis.
+Of these, **${prismaContext.screening.fullTextRetrieved ?? 'N/A'} articles** were retrieved for full-text evaluation. Finally, **${rqsStats.total} studies** met all inclusion criteria and were included in the qualitative synthesis.
 
 ${charts.prisma ? `![PRISMA 2020 Flow Diagram](${charts.prisma})` : '**[FIGURE 2: PRISMA 2020 Flow Diagram]**'}
 *Figure 2. PRISMA 2020 flow diagram of the study selection process.*
