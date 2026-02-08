@@ -36,12 +36,12 @@ export function CriteriaStep() {
   // Nombres de las categorías (nivel protocolo PRISMA)
   // Nombres de las categorías
   const categoryNames = [
-    'Cobertura Temática',
-    'Tecnologías Abordadas',
+    'Cobertura Temática (Contexto)',
+    'Tecnologías (Intervención)',
+    'Enfoque de Resultados (Outcomes)',
     'Tipo de Estudio',
     'Tipo de Documento',
-    'Rango Temporal',
-    'Idioma'
+    'Idioma y Temporalidad'
   ]
 
   const handleGenerateCriteria = async () => {

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Sparkles, Loader2, Wrench, Microscope, Focus, Check, X, Pencil, Save, RefreshCw } from "lucide-react"
+import { Sparkles, Loader2, Wrench, Microscope, Focus, Check, X, Pencil, Save, RefreshCw, Trash2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
@@ -58,6 +58,10 @@ export function ProtocolDefinitionStep() {
     tipoEstudio: new Set(),
     focosTematicos: new Set()
   })
+
+  // Estados para traducción y edición
+  const [translating, setTranslating] = useState<{section: string, index: number} | null>(null)
+  const [modifiedSide, setModifiedSide] = useState<{section: string, index: number, side: 'es'|'en'} | null>(null)
 
   // Inicializar valores por defecto si no existen
   const protocolTerms = {
@@ -166,6 +170,12 @@ export function ProtocolDefinitionStep() {
     })
   }
 
+  const handleTermChange = (section: keyof typeof protocolTerms, index: number, newValue: string, side: 'es' | 'en', originalOtherSide: string) => {
+     const newFullString = side === 'es' ? `${newValue} - ${originalOtherSide}` : `${originalOtherSide} - ${newValue}`
+     updateArrayField(section, index, newFullString)
+     setModifiedSide({ section, index, side })
+  }
+
   const addArrayItem = (field: keyof typeof protocolTerms) => {
     updateData({
       protocolTerms: {
@@ -201,7 +211,41 @@ export function ProtocolDefinitionStep() {
     })
   }
 
-  const toggleEditMode = (field: keyof typeof protocolTerms, index: number) => {
+  const toggleEditMode = async (field: keyof typeof protocolTerms, index: number) => {
+    const isCurrentlyEditing = editingTerms[field].has(index)
+
+    // Logica de guardado con traducción automática
+    if (isCurrentlyEditing && modifiedSide && modifiedSide.section === field && modifiedSide.index === index) {
+        const currentTerm = protocolTerms[field][index]
+        const parts = currentTerm.includes(' - ') ? currentTerm.split(' - ') : [currentTerm, '']
+        const esTerm = parts[0].trim()
+        const enTerm = parts.slice(1).join(' - ').trim()
+        
+        try {
+            setTranslating({ section: field, index })
+            let newFullString = currentTerm
+            
+            if (modifiedSide.side === 'es' && esTerm) {
+                toast({ title: "Traduciendo...", description: "Generando término en inglés..." })
+                const translated = await apiClient.translateText(esTerm, 'es', 'en')
+                newFullString = `${esTerm} - ${translated}`
+            } else if (modifiedSide.side === 'en' && enTerm) {
+                toast({ title: "Traduciendo...", description: "Generando término en español..." })
+                const translated = await apiClient.translateText(enTerm, 'en', 'es')
+                newFullString = `${translated} - ${enTerm}`
+            }
+            
+            updateArrayField(field, index, newFullString)
+            setModifiedSide(null)
+            toast({ title: "Guardado y traducido", duration: 2000 })
+        } catch (e) {
+            console.error(e)
+            toast({ variant: "destructive", title: "Error al traducir, pero se guardó el cambio manual." })
+        } finally {
+            setTranslating(null)
+        }
+    }
+
     setEditingTerms(prev => {
       const newSet = new Set(prev[field])
       if (newSet.has(index)) {
@@ -369,55 +413,110 @@ export function ProtocolDefinitionStep() {
             const isEditing = editingTerms.tecnologia.has(index)
             const isDiscarded = discardedTerms.tecnologia.has(index)
             const isConfirmed = confirmedTerms.tecnologia.has(index)
+            const isTranslating = translating?.section === 'tecnologia' && translating?.index === index
             
-            return (
-              <div key={index} className="flex gap-2">
-                <div className="flex-1 relative">
-                  <Textarea
-                    value={tech}
-                    onChange={(e) => updateArrayField('tecnologia', index, e.target.value)}
-                    placeholder="Ej: Object Document Mapping (ODM)"
-                    rows={2}
-                    disabled={!isEditing}
-                    className={`resize-none transition-all pr-12 disabled:opacity-100 ${
+            const parts = tech.includes(' - ') ? tech.split(' - ') : [tech, ''];
+            const esTerm = parts[0].trim();
+            const enTerm = parts.slice(1).join(' - ').trim();
+
+            const getFieldStyles = () => `resize-none transition-all disabled:opacity-100 font-medium ${
                       isDiscarded
-                        ? 'opacity-50 bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 line-through !text-red-600 dark:!text-red-400'
+                        ? 'opacity-50 bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 line-through text-red-600 dark:text-red-400'
                         : isConfirmed
-                        ? 'border-2 border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-950/30 !text-gray-900 dark:!text-gray-100' 
+                        ? 'border-2 border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-950/30 text-foreground' 
                         : !isEditing
-                        ? 'cursor-default bg-muted/50 dark:bg-gray-700 !text-gray-900 dark:!text-gray-200'
-                        : '!text-gray-900 dark:!text-gray-100'
-                    }`}
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => toggleEditMode('tecnologia', index)}
-                    className="absolute top-1 right-1 h-7 w-7 p-0"
-                    title={isEditing ? "Guardar edición" : "Editar término"}
-                    disabled={isConfirmed || isDiscarded}
-                  >
-                    {isEditing ? <Save className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
-                  </Button>
+                        ? 'cursor-default bg-muted/30 dark:bg-gray-800/50 border-transparent shadow-none text-foreground'
+                        : 'bg-background text-foreground'
+                    }`;
+
+            return (
+              <div key={index} className="flex gap-3 items-center group">
+                <div className={`flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-xl transition-all relative ${
+                  isConfirmed ? 'bg-green-50/50 border-green-200' : 
+                  isDiscarded ? 'bg-red-50/30 border-red-100' :
+                  'bg-card hover:shadow-md'
+                }`}>
+                   <div className="col-span-1 md:col-span-5 space-y-2">
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-yellow-400"></span> Español
+                      </Label>
+                      <Textarea
+                        value={esTerm}
+                        onChange={(e) => handleTermChange('tecnologia', index, e.target.value, 'es', enTerm)}
+                        placeholder="Término en Español"
+                        rows={2}
+                        disabled={!isEditing || isTranslating}
+                        className={getFieldStyles()}
+                      />
+                   </div>
+                   
+                   {/* Divider */}
+                   <div className="hidden md:flex col-span-1 items-center justify-center">
+                      <div className="h-full w-px bg-border/50"></div>
+                   </div>
+
+                   <div className="col-span-1 md:col-span-6 space-y-2 relative">
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-400"></span> Inglés (Search Query)
+                      </Label>
+                      <Textarea
+                        value={enTerm}
+                        onChange={(e) => handleTermChange('tecnologia', index, e.target.value, 'en', esTerm)}
+                        placeholder="English Term"
+                        rows={2}
+                        disabled={!isEditing || isTranslating}
+                        className={getFieldStyles()}
+                      />
+                   </div>
+                   
+                   {/* Edit Button */}
+                   <div className="absolute top-2 right-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => toggleEditMode('tecnologia', index)}
+                        className="h-8 w-8 hover:bg-muted rounded-full transition-opacity"
+                        title={isEditing ? "Guardar y traducir" : "Editar término"}
+                        disabled={isConfirmed || isDiscarded || isTranslating}
+                      >
+                        {isTranslating ? (
+                           <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : isEditing ? (
+                           <Save className="h-4 w-4 text-primary" />
+                        ) : (
+                           <Pencil className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                   </div>
                 </div>
-                <div className="flex flex-col gap-1">
+
+                {/* Actions */}
+                <div className="flex flex-col gap-2">
                   <Button
                     size="icon"
                     variant={isConfirmed ? "default" : "outline"}
                     onClick={() => toggleConfirmTerm('tecnologia', index)}
-                    className={isConfirmed ? "bg-green-600 hover:bg-green-700" : ""}
+                    className={`rounded-full h-10 w-10 shadow-sm transition-all ${
+                      isConfirmed 
+                      ? "bg-green-600 hover:bg-green-700 ring-2 ring-green-200 ring-offset-1" 
+                      : "border-2 hover:border-green-500 hover:text-green-600 hover:bg-green-50"
+                    }`}
                     title={isConfirmed ? "Término confirmado" : "Confirmar término"}
                   >
-                    <Check className="h-4 w-4" />
+                    <Check className="h-5 w-5" />
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={() => toggleDiscardTerm('tecnologia', index)}
-                    className={isDiscarded ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400" : "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"}
-                    title={isDiscarded ? "Restaurar término rechazado" : "Marcar como rechazado"}
+                    className={`rounded-full h-10 w-10 transition-all ${
+                      isDiscarded 
+                      ? "bg-red-100 text-red-700 ring-2 ring-red-200 ring-offset-1" 
+                      : "text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                    }`}
+                    title={isDiscarded ? "Restaurar término" : "Descartar término"}
                   >
-                    <X className="h-4 w-4" />
+                    <Trash2 className="h-5 w-5" />
                   </Button>
                 </div>
               </div>
@@ -474,55 +573,110 @@ export function ProtocolDefinitionStep() {
             const isEditing = editingTerms.dominio.has(index)
             const isDiscarded = discardedTerms.dominio.has(index)
             const isConfirmed = confirmedTerms.dominio.has(index)
+            const isTranslating = translating?.section === 'dominio' && translating?.index === index
             
-            return (
-              <div key={index} className="flex gap-2">
-                <div className="flex-1 relative">
-                  <Textarea
-                    value={domain}
-                    onChange={(e) => updateArrayField('dominio', index, e.target.value)}
-                    placeholder="Ej: Applications (en el contexto de Node.js, MongoDB...)"
-                    rows={2}
-                    disabled={!isEditing}
-                    className={`resize-none transition-all pr-12 disabled:opacity-100 ${
+            const parts = domain.includes(' - ') ? domain.split(' - ') : [domain, ''];
+            const esTerm = parts[0].trim();
+            const enTerm = parts.slice(1).join(' - ').trim();
+
+            const getFieldStyles = () => `resize-none transition-all disabled:opacity-100 font-medium ${
                       isDiscarded
-                        ? 'opacity-50 bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 line-through !text-red-600 dark:!text-red-400'
+                        ? 'opacity-50 bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 line-through text-red-600 dark:text-red-400'
                         : isConfirmed
-                        ? 'border-2 border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-950/30 !text-gray-900 dark:!text-gray-100' 
+                        ? 'border-2 border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-950/30 text-foreground' 
                         : !isEditing
-                        ? 'cursor-default bg-muted/50 dark:bg-gray-700 !text-gray-900 dark:!text-gray-200'
-                        : '!text-gray-900 dark:!text-gray-100'
-                    }`}
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => toggleEditMode('dominio', index)}
-                    className="absolute top-1 right-1 h-7 w-7 p-0"
-                    title={isEditing ? "Guardar edición" : "Editar término"}
-                    disabled={isConfirmed || isDiscarded}
-                  >
-                    {isEditing ? <Save className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
-                  </Button>
+                        ? 'cursor-default bg-muted/30 dark:bg-gray-800/50 border-transparent shadow-none text-foreground'
+                        : 'bg-background text-foreground'
+                    }`;
+
+            return (
+              <div key={index} className="flex gap-3 items-center group">
+                <div className={`flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-xl transition-all relative ${
+                  isConfirmed ? 'bg-green-50/50 border-green-200' : 
+                  isDiscarded ? 'bg-red-50/30 border-red-100' :
+                  'bg-card hover:shadow-md'
+                }`}>
+                   <div className="col-span-1 md:col-span-5 space-y-2">
+                       <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-400"></span> Español
+                      </Label>
+                      <Textarea
+                        value={esTerm}
+                        onChange={(e) => handleTermChange('dominio', index, e.target.value, 'es', enTerm)}
+                        placeholder="Término en Español"
+                        rows={2}
+                        disabled={!isEditing || isTranslating}
+                        className={getFieldStyles()}
+                      />
+                   </div>
+                   
+                   {/* Divider */}
+                   <div className="hidden md:flex col-span-1 items-center justify-center">
+                      <div className="h-full w-px bg-border/50"></div>
+                   </div>
+
+                   <div className="col-span-1 md:col-span-6 space-y-2 relative">
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-400"></span> Inglés (Search Query)
+                      </Label>
+                      <Textarea
+                        value={enTerm}
+                        onChange={(e) => handleTermChange('dominio', index, e.target.value, 'en', esTerm)}
+                        placeholder="English Term"
+                        rows={2}
+                        disabled={!isEditing || isTranslating}
+                        className={getFieldStyles()}
+                      />
+                   </div>
+                   
+                   {/* Edit Button */}
+                   <div className="absolute top-2 right-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => toggleEditMode('dominio', index)}
+                        className="h-8 w-8 hover:bg-muted rounded-full transition-opacity"
+                        title={isEditing ? "Guardar y traducir" : "Editar término"}
+                        disabled={isConfirmed || isDiscarded || isTranslating}
+                      >
+                       {isTranslating ? (
+                           <Loader2 className="h-4 w-4 animate-spin text-green-600" />
+                        ) : isEditing ? (
+                           <Save className="h-4 w-4 text-green-600" />
+                        ) : (
+                           <Pencil className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                   </div>
                 </div>
-                <div className="flex flex-col gap-1">
+
+                {/* Actions */}
+                <div className="flex flex-col gap-2">
                   <Button
                     size="icon"
                     variant={isConfirmed ? "default" : "outline"}
                     onClick={() => toggleConfirmTerm('dominio', index)}
-                    className={isConfirmed ? "bg-green-600 hover:bg-green-700" : ""}
+                    className={`rounded-full h-10 w-10 shadow-sm transition-all ${
+                      isConfirmed 
+                      ? "bg-green-600 hover:bg-green-700 ring-2 ring-green-200 ring-offset-1" 
+                      : "border-2 hover:border-green-500 hover:text-green-600 hover:bg-green-50"
+                    }`}
                     title={isConfirmed ? "Término confirmado" : "Confirmar término"}
                   >
-                    <Check className="h-4 w-4" />
+                    <Check className="h-5 w-5" />
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={() => toggleDiscardTerm('dominio', index)}
-                    className={isDiscarded ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400" : "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"}
-                    title={isDiscarded ? "Restaurar término rechazado" : "Marcar como rechazado"}
+                    className={`rounded-full h-10 w-10 transition-all ${
+                      isDiscarded 
+                      ? "bg-red-100 text-red-700 ring-2 ring-red-200 ring-offset-1" 
+                      : "text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                    }`}
+                    title={isDiscarded ? "Restaurar término" : "Descartar término"}
                   >
-                    <X className="h-4 w-4" />
+                    <Trash2 className="h-5 w-5" />
                   </Button>
                 </div>
               </div>
@@ -579,55 +733,110 @@ export function ProtocolDefinitionStep() {
             const isEditing = editingTerms.focosTematicos.has(index)
             const isDiscarded = discardedTerms.focosTematicos.has(index)
             const isConfirmed = confirmedTerms.focosTematicos.has(index)
+            const isTranslating = translating?.section === 'focosTematicos' && translating?.index === index
+            
+            const parts = focus.includes(' - ') ? focus.split(' - ') : [focus, ''];
+            const esTerm = parts[0].trim();
+            const enTerm = parts.slice(1).join(' - ').trim();
+
+            const getFieldStyles = () => `resize-none transition-all disabled:opacity-100 font-medium ${
+                      isDiscarded
+                        ? 'opacity-50 bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 line-through text-red-600 dark:text-red-400'
+                        : isConfirmed
+                        ? 'border-2 border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-950/30 text-foreground' 
+                        : !isEditing
+                        ? 'cursor-default bg-muted/30 dark:bg-gray-800/50 border-transparent shadow-none text-foreground'
+                        : 'bg-background text-foreground'
+                    }`;
             
             return (
-              <div key={index} className="flex gap-2">
-                <div className="flex-1 relative">
-                  <Textarea
-                    value={focus}
-                    onChange={(e) => updateArrayField('focosTematicos', index, e.target.value)}
-                    placeholder="Ej: Development Practices"
-                    rows={2}
-                    disabled={!isEditing}
-                    className={`resize-none transition-all pr-12 disabled:opacity-100 ${
-                      isDiscarded
-                        ? 'opacity-50 bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 line-through !text-red-600 dark:!text-red-400'
-                        : isConfirmed
-                        ? 'border-2 border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-950/30 !text-gray-900 dark:!text-gray-100' 
-                        : !isEditing
-                        ? 'cursor-default bg-muted/50 dark:bg-gray-700 !text-gray-900 dark:!text-gray-200'
-                        : '!text-gray-900 dark:!text-gray-100'
-                    }`}
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => toggleEditMode('focosTematicos', index)}
-                    className="absolute top-1 right-1 h-7 w-7 p-0"
-                    title={isEditing ? "Guardar edición" : "Editar término"}
-                    disabled={isConfirmed || isDiscarded}
-                  >
-                    {isEditing ? <Save className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
-                  </Button>
+              <div key={index} className="flex gap-3 items-center group">
+                <div className={`flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-xl transition-all relative ${
+                  isConfirmed ? 'bg-green-50/50 border-green-200' : 
+                  isDiscarded ? 'bg-red-50/30 border-red-100' :
+                  'bg-card hover:shadow-md'
+                }`}>
+                   <div className="col-span-1 md:col-span-5 space-y-2">
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-orange-400"></span> Español
+                      </Label>
+                      <Textarea
+                        value={esTerm}
+                        onChange={(e) => handleTermChange('focosTematicos', index, e.target.value, 'es', enTerm)}
+                        placeholder="Término en Español"
+                        rows={2}
+                        disabled={!isEditing || isTranslating}
+                        className={getFieldStyles()}
+                      />
+                   </div>
+                   
+                   {/* Divider */}
+                   <div className="hidden md:flex col-span-1 items-center justify-center">
+                      <div className="h-full w-px bg-border/50"></div>
+                   </div>
+
+                   <div className="col-span-1 md:col-span-6 space-y-2 relative">
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-400"></span> Inglés (Search Query)
+                      </Label>
+                      <Textarea
+                        value={enTerm}
+                        onChange={(e) => handleTermChange('focosTematicos', index, e.target.value, 'en', esTerm)}
+                        placeholder="English Term"
+                        rows={2}
+                        disabled={!isEditing || isTranslating}
+                        className={getFieldStyles()}
+                      />
+                   </div>
+                   
+                   {/* Edit Button */}
+                   <div className="absolute top-2 right-2">
+                       <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => toggleEditMode('focosTematicos', index)}
+                        className="h-8 w-8 hover:bg-muted rounded-full transition-opacity"
+                        title={isEditing ? "Guardar y traducir" : "Editar término"}
+                        disabled={isConfirmed || isDiscarded || isTranslating}
+                      >
+                         {isTranslating ? (
+                           <Loader2 className="h-4 w-4 animate-spin text-orange-600" />
+                        ) : isEditing ? (
+                           <Save className="h-4 w-4 text-orange-600" />
+                        ) : (
+                           <Pencil className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                   </div>
                 </div>
-                <div className="flex flex-col gap-1">
+
+                {/* Actions */}
+                <div className="flex flex-col gap-2">
                   <Button
                     size="icon"
                     variant={isConfirmed ? "default" : "outline"}
                     onClick={() => toggleConfirmTerm('focosTematicos', index)}
-                    className={isConfirmed ? "bg-green-600 hover:bg-green-700" : ""}
+                    className={`rounded-full h-10 w-10 shadow-sm transition-all ${
+                      isConfirmed 
+                      ? "bg-green-600 hover:bg-green-700 ring-2 ring-green-200 ring-offset-1" 
+                      : "border-2 hover:border-green-500 hover:text-green-600 hover:bg-green-50"
+                    }`}
                     title={isConfirmed ? "Término confirmado" : "Confirmar término"}
                   >
-                    <Check className="h-4 w-4" />
+                    <Check className="h-5 w-5" />
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={() => toggleDiscardTerm('focosTematicos', index)}
-                    className={isDiscarded ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400" : "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"}
-                    title={isDiscarded ? "Restaurar término rechazado" : "Marcar como rechazado"}
+                    className={`rounded-full h-10 w-10 transition-all ${
+                      isDiscarded 
+                      ? "bg-red-100 text-red-700 ring-2 ring-red-200 ring-offset-1" 
+                      : "text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                    }`}
+                    title={isDiscarded ? "Restaurar término" : "Descartar término"}
                   >
-                    <X className="h-4 w-4" />
+                    <Trash2 className="h-5 w-5" />
                   </Button>
                 </div>
               </div>

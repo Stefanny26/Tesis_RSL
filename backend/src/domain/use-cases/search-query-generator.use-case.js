@@ -121,64 +121,66 @@ TÉRMINOS DEL PROTOCOLO (ya confirmados por el investigador):
 RANGO TEMPORAL: ${yearStart && yearEnd ? `${yearStart}-${yearEnd}` : 'No especificado'}
 
 ═══════════════════════════════════════════════════════════════
-REGLAS DE BALANCEO AND/OR (CRÍTICAS — LEER ANTES DE GENERAR)
+REGLAS DE BALANCEO Y CONSISTENCIA (CRÍTICAS PARA SLR)
 ═══════════════════════════════════════════════════════════════
 
-⚠️ EL ERROR MÁS COMÚN: Saturar de OR cada bloque listando TODOS los sinónimos posibles.
-Más OR = Mayor sensibilidad PERO mucho ruido (resultados irrelevantes).
-Más AND = Mayor precisión PERO riesgo de perder estudios.
+⚠️ REGLA DE ORO: CONSISTENCIA CONCEPTUAL ABSOLUTA
+  Una SLR exige buscar LOS MISMOS conceptos en todas las bases. 
+  ❌ ERROR (Sesgo de Selección):
+     - IEEE: "Performance" OR "Latency"
+     - ACM: "Throughput" OR "Memory"
+     - Springer: "Productivity"
+  ✅ CORRECTO (Uniformidad):
+     - IEEE: ("Performance" OR "Throughput" OR "Efficiency")
+     - ACM: ("Performance" OR "Throughput" OR "Efficiency")
+     - Springer: ("Performance" OR "Throughput" OR "Efficiency")
+  
+  >> SELECCIONA UN ÚNICO CONJUNTO DE TÉRMINOS MAESTROS PARA I, P, y O.
+  >> ÚSALO EN TODAS LAS BASES (solo adaptando sintaxis o wildcards).
 
-REGLA 1 — MÁXIMO 3 TÉRMINOS OR POR BLOQUE:
-  Prioriza términos "paraguas" (hiperónimos) que engloban subcategorías.
-  ✅ CORRECTO: ("artificial intelligence" OR "machine learning")
-  ❌ INCORRECTO: ("AI" OR "artificial intelligence" OR "machine learning" OR "deep learning" OR "neural networks" OR "CNN" OR "random forest")
-  Razón: "machine learning" ya indexa estudios de DL, CNN, etc. en la mayoría de motores.
+REGLA 2: EVITAR AMBIGÜEDAD DE CONTEXTO
+  Si la Intervención (I) tiene nombres comunes (ej: "Mongoose", "Atom", "Spring"), el Bloque P (Contexto) es OBLIGATORIO para desambiguar.
+  ❌ Query débil: ("Mongoose") AND ("Performance") -> Trae zoología.
+  ✅ Query robusta: ("Mongoose") AND ("Node.js" OR "Backend") AND ("Performance") -> Contexto técnico asegurado.
 
-REGLA 2 — UN TÉRMINO CORE OBLIGATORIO POR BLOQUE:
-  Cada bloque debe tener un término altamente específico que NO se negocia.
-  ✅ CORRECTO: strawberry* AND ("machine learning" OR "computer vision")
-  ❌ INCORRECTO: (strawberry OR raspberry OR blueberry) AND (AI OR ML OR DL OR CNN OR sensor)
+REGLA 3: ESTRUCTURA DE BLOQUES - ESTRATEGIA DE MÁXIMO RECALL
+  1. Bloque I (Intervención/Tecnología):
+     - IMPORTANTE: Debes incluir TODOS los términos listados en "Términos Tecnología" arriba. NO FILTRES NADA.
+     - EXPANSIÓN OBLIGATORIA: Agrega abreviaturas (AI, ML, DL, CNN, IoT, NLP), sinónimos técnicos (Image Processing) y variaciones.
+     - FORMATO: ("Artificial Intelligence" OR "AI" OR "Machine Learning" OR "ML" OR "Deep Learning" OR "Neural Network*" OR "Computer Vision"...)
+     
+  2. Bloque P (Contexto/Dominio):
+     - Debes incluir TODOS los términos listados en "Términos Dominio".
+     - EXPANSIÓN: Nombres científicos (Fragaria, Mangifera), variaciones con Wildcards (Strawberr*, Farm*, Crop*).
+     - PRECISIÓN: Si el dominio es "Fresas", usa ("Strawberry" OR "Strawberr*" OR "Fragaria"). Evita términos demasiado genéricos solos como "Agriculture" si tienes específicos.
 
-REGLA 3 — USAR WILDCARDS (*) EN VEZ DE MÚLTIPLES OR:
-  Donde la base lo soporte (Scopus, WoS), usar truncamiento.
-  ✅ CORRECTO: agricultur* → captura: agriculture, agricultural
-  ❌ INCORRECTO: ("agriculture" OR "agricultural" OR "agriculturist")
-  Nota: IEEE Xplore NO soporta wildcards — allí usar los 2-3 términos más comunes.
+  3. Bloque O (Outcomes/Focos):
+     - Debes incluir TODOS los términos listados en "Focos Temáticos".
+     - COMBINACIÓN: Mezcla términos paraguas (Efficiency, Sustainability) CON métricas específicas (Yield, Detection Rate).
+     - WILDCARDS: (Econom*, Productiv*, Cost*).
 
-REGLA 4 — NO INCLUIR TÉRMINOS REDUNDANTES:
-  Si un término genérico ya cubre al específico, NO incluir ambos.
-  ✅ "machine learning" (ya incluye deep learning en indexación)
-  ❌ "machine learning" OR "deep learning" OR "neural networks" OR "supervised learning"
-  Excepción: Si el estudio se enfoca ESPECÍFICAMENTE en un subtipo (ej: solo CNN), sí usar el término específico.
-
-REGLA 5 — BLOQUE O (OUTCOMES) LIMITADO A 2 INDICADORES PRINCIPALES:
-  El bloque de resultados debe contener SOLO los outcomes más críticos y medibles.
-  ✅ CORRECTO: (yield OR "pest control")
-  ❌ INCORRECTO: (yield OR productivity OR effectiveness OR "pest reduction" OR "pesticide usage" OR performance)
-
-REGLA 6 — ELIMINAR TÉRMINOS QUE GENERAN RUIDO:
-  Si un término es demasiado genérico y el contexto ya está cubierto por otro bloque, eliminarlo.
-  ✅ Incluir: "strawberry cultivation" (específico)
-  ❌ Excluir: "agriculture" (demasiado amplio si ya tienes "strawberry")
+REGLA 4: EVITAR AMBIGÜEDAD Y SESGO DE IDIOMA
+  - TRADUCCIÓN: Si los términos provistos están en ESPAÑOL ("Inteligencia Artificial"), TRADÚCELOS al Inglés ("Artificial Intelligence") automáticamente.
+  - La query final debe estar 100% en INGLÉS (idioma universal de las bases de datos).
+  - CONECTORES: Usa paréntesis para agrupar sinónimos (OR). Une bloques con (AND).
+  - NO te limites a 3 términos. Una buena RSL usa 5-10 términos por bloque.
 
 ═══════════════════════════════════════════════════════════════
-PROCESO DE SELECCIÓN DE TÉRMINOS
+PROCESO DE GENERACIÓN
 ═══════════════════════════════════════════════════════════════
 
-Para cada bloque, sigue este proceso:
-1. De los términos del protocolo, identifica el TÉRMINO CORE (el más representativo)
-2. Agrega MÁXIMO 1-2 sinónimos directos o el nombre científico/técnico alternativo
-3. Si hay más de 3 opciones, elige los más usados en literatura académica indexada
-4. Usa wildcards (*) para cubrir variantes morfológicas (solo en bases que lo soporten)
-5. Los términos descartados deben mencionarse en EXPLANATION como "excluidos por redundancia"
+1. Define mentalmente la "QUERY MAESTRA":
+   (I_Terms) AND (P_Terms) AND (O_Terms)
+2. Aplica esa MISMA lógica a cada base solicitada.
+3. Solo modifica la SINTAXIS (comillas, paréntesis, wildcards), NUNCA los conceptos.
 
 ═══════════════════════════════════════════════════════════════
 ESTRUCTURA DE CADA QUERY
 ═══════════════════════════════════════════════════════════════
 
-(Bloque I: 2-3 términos tecnología) AND (Bloque P: 2-3 términos dominio) AND (Bloque O: 2 términos outcomes)
+(Bloque I) AND (Bloque P) AND (Bloque O)
 
-Resultado esperado: 2×2×2 = 8 a 3×3×2 = 18 combinaciones (NO más de 20).
+¡IMPORTANTE!: Las 3 partes son OBLIGATORIAS para evitar ambigüedad.
 
 ═══════════════════════════════════════════════════════════════
 SINTAXIS POR BASE DE DATOS
@@ -186,7 +188,7 @@ SINTAXIS POR BASE DE DATOS
 
 ${databases.map(db => {
   const dbLower = db.toLowerCase();
-  if (dbLower === 'ieee' || dbLower === 'ieee xplore') return `**IEEE Xplore:** Query directa SIN etiquetas de campo. NO soporta wildcards (*). Máximo 3 bloques AND, 3 términos OR c/u. Usar términos completos.${yearStart ? ' Filtro temporal en interfaz, NO en query.' : ''}`;
+  if (dbLower === 'ieee' || dbLower === 'ieee xplore') return `**IEEE Xplore:** Query directa SIN etiquetas de campo. NO soporta wildcards (*) en frases entre comillas. Usar términos completos. Agrupar con paréntesis.${yearStart ? ' Filtro temporal en interfaz, NO en query.' : ''}`;
   if (dbLower === 'scopus') return `**Scopus:** Formato TITLE-ABS-KEY((...bloques...)). Soporta wildcards (*). Paréntesis balanceados.${yearStart && yearEnd ? ` Agregar: AND PUBYEAR > ${yearStart - 1} AND PUBYEAR < ${yearEnd + 1}` : ''}`;
   if (dbLower === 'pubmed') return `**PubMed:** Usar [Title/Abstract]. Soporta wildcards (*). Considerar MeSH Terms si aplica.${yearStart ? ' Filtro temporal en interfaz.' : ''}`;
   if (dbLower === 'webofscience' || dbLower === 'web of science') return `**Web of Science:** Formato TS=((...bloques...)). Soporta wildcards (*).${yearStart && yearEnd ? ` Agregar: AND PY=(${yearStart}-${yearEnd})` : ''}`;

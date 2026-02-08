@@ -165,31 +165,39 @@ RANGO TEMPORAL: ${yearStart || 2019} - ${yearEnd || 2025}
 INSTRUCCIONES
 ═══════════════════════════════════════════════════════════════
 
-Genera 6 filas de criterios usando los datos del protocolo:
+Genera 6 filas de criterios alineados con la estrategia de búsqueda:
 
-1. COBERTURA TEMÁTICA: Relación entre [I] y [P] del PICO, usando términos del protocolo
-2. TECNOLOGÍAS ABORDADAS: Rol específico de la tecnología (usar términos confirmados)
-3. TIPO DE ESTUDIO: Inclusión=empíricos/experimentales. Exclusión=opiniones/tutoriales sin validación
-4. TIPO DE DOCUMENTO: Inclusión=journals/conferencias peer-reviewed. Exclusión=blogs/white papers
-5. RANGO TEMPORAL: OBLIGATORIO usar exactamente ${yearStart || 2019}-${yearEnd || 2025}
-6. IDIOMA: Inclusión=Inglés. Exclusión=otros sin traducción técnica
+1. COBERTURA TEMÁTICA (Contexto): 
+   - Inclusión: Estudios que relacionen [I] con [P] (Dominio).
+   - Exclusión: ¡CRÍTICO! Excluir estudios donde [I] aparece fuera del [Dominio] (Ej: Mongoose en Zoología vs API). Resolver Ambigüedad de Contexto.
+
+2. ENFOQUE DE LA SOLUCIÓN (Tecnologías):
+   - Inclusión: [I] y sus sinónimos/variantes validadas.
+   - Exclusión: Tecnologías similares pero no equivalentes.
+
+3. FOCO DE LOS RESULTADOS (Outcomes):
+   - Inclusión: Estudios que evalúen [Focos Temáticos] (incluyendo Umbrella Terms y Causas Raíz como 'Overhead', 'Abstracción', 'Trade-offs').
+   - Exclusión: Estudios puramente descriptivos sin evaluación de métricas de interés.
+
+4. TIPO DE ESTUDIO: Inclusión=empíricos/experimentales. Exclusión=opiniones/tutoriales sin validación.
+5. TIPO DE DOCUMENTO: Inclusión=journals/conferencias peer-reviewed. Exclusión=blogs/white papers.
+6. IDIOMA/TEMPORALIDAD: Inglés, Periodo ${yearStart || 2019}-${yearEnd || 2025}.
 
 REGLAS:
-- Criterios de INCLUSIÓN deben mencionar términos específicos del protocolo
-- Criterios de EXCLUSIÓN deben justificar POR QUÉ se descarta (no solo negar la inclusión)
-- Exclusión se enfoca en: falta de datos, metodología opaca, literatura gris, tema tangencial
+- Mantener consistencia con las Queries Generadas: Si buscamos "Performance", el criterio debe incluir "Evaluación de Performance".
+- Explicitar el contexto para filtrar el ruido.
 
 ═══════════════════════════════════════════════════════════════
 FORMATO DE SALIDA (TABLA con 6 filas, 3 columnas separadas por " | ")
 ═══════════════════════════════════════════════════════════════
 
 Categoría | Criterio de Inclusión | Criterio de Exclusión
-Cobertura temática | [...] | [...]
-Tecnologías abordadas | [...] | [...]
+Cobertura Temática (Contexto) | [...] | [...]
+Tecnologías (Intervención) | [...] | [...]
+Enfoque de Resultados (Outcomes) | [...] | [...]
 Tipo de estudio | [...] | [...]
 Tipo de documento | [...] | [...]
-Rango temporal | [...] | [...]
-Idioma | [...] | [...]
+Idioma y Temporalidad | [...] | [...]
 
 GENERA LA TABLA AHORA:
 `.trim();

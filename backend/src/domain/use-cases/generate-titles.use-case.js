@@ -139,9 +139,15 @@ REGLAS DE REDACCIÓN ACADÉMICA PARA TÍTULOS
 
 1. **PRISMA Ítem 1**: El título DEBE incluir la naturaleza del estudio: "A Systematic Review", "A Scoping Review" o "Evidence Synthesis".
 
-2. **Outcome (O) explícito**: El título DEBE incluir el outcome específico del PICO. 
-   - ❌ NO: "Machine Learning in Healthcare" (sin outcome)
-   - ✅ SÍ: "ML for Diagnostic Accuracy in Healthcare" (outcome del PICO)
+2. **Outcome (O) Sintetizado (Umbrella Term)**: 
+   - ⚠️ CRÍTICO: NO listes métricas individuales (e.g., "infestation rate", "yield", "cost").
+   - DEBES usar un término "paraguas" que englobe el impacto.
+   - Ejemplos de síntesis:
+     *   "Infestation rate + Crop yield" → "**Pest Control Effectiveness**" o "**Agricultural Productivity**"
+     *   "Latency + Throughput" → "**Performance**"
+     *   "Sensitivity + Specificity" → "**Diagnostic Accuracy**"
+     *   "Cost + Time" → "**Efficiency**"
+   - El título debe leerse fluido y académico, no como una lista de variables.
 
 3. **Comparador (C)**: Si el PICO tiene Comparison definida, al menos 1 título debe usar formato comparativo: "[I] vs. [C] for [O] in [P]"
 
@@ -149,7 +155,7 @@ REGLAS DE REDACCIÓN ACADÉMICA PARA TÍTULOS
 
 5. **Longitud**: Entre 12 y 18 palabras.
 
-6. **Precisión técnica**: Usar la terminología exacta del PICO, no genéricos.
+6. **Precisión técnica**: Usar la terminología exacta del PICO para P e I, pero términos paraguas para O.
 
 ═══════════════════════════════════════════════════════════════
 PATRONES DE ESTRUCTURA

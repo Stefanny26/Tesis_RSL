@@ -155,27 +155,32 @@ Matriz NO ES (Exclusión): ${isNotIncluded.length ? isNotIncluded.join(' | ') : 
 INSTRUCCIONES DE GENERACIÓN
 ═══════════════════════════════════════════════════════════════
 
+OBJETIVO: Maximizar la SENSIBILIDAD (Recall). Debemos encontrar TODOS los papers relevantes, incluso si usan terminología diferente.
+
 Genera 3 categorías de términos derivados del TÍTULO y del PICO ya validado:
 
-1. **technologies** (4-5 términos) — Basado en PICO-I: "${I}"
-   - Tecnología central del título + variantes/sinónimos académicos
-   - Solo extensiones directas de la intervención PICO
-   - NO incluir tecnologías no mencionadas en título/PICO
+1. **technologies** (6-10 términos) — Basado en PICO-I: "${I}"
+   - Tecnología central del título + SINÓNIMOS TÉCNICOS + HIPÓNIMOS (subtipos específicos).
+   - Ejemplo: Si es "AI", incluir "Machine Learning", "Deep Learning", "CNN", "Computer Vision".
+   - Ejemplo: Si es "Pest Control", incluir "IPM", "Phytosanitary Control".
+   - Objetivo: Maximizar RECALL. Que no se escape ningún paper por usar términos específicos.
 
-2. **applicationDomain** (3-4 términos) — Basado en PICO-P: "${P}"
-   - Contexto/sector/entorno DONDE se aplica (responde "¿Dónde?")
-   - SÍ incluir: sectores, industrias, entornos técnicos, poblaciones
-   - NO incluir variables medibles (eficiencia, calidad, rendimiento → van en thematicFocus)
-   - Regla: si el término describe un resultado medible → NO es dominio
+2. **applicationDomain** (4-6 términos) — Basado en PICO-P: "${P}"
+   - Contexto/sector/entorno DONDE se aplica.
+   - ¡CRÍTICO! Usar KEYWORDS CORTAS (1-2 palabras) para buscadores (Scopus/IEEE).
+   - ❌ EVITAR frases largas como "Interacción con...", "Uso de tecnologías de...", "Entornos de ejecución".
+   - ✅ PREFERIR términos directos: "Agriculture", "Crops", "Mango", "Horticulture".
+   - Incluir variantes científicas si aplica (ej: "Mangifera indica" para Mango).
+   - NO incluir variables medibles.
 
-3. **thematicFocus** (3-5 términos, OBLIGATORIO nunca vacío) — Basado en PICO-O: "${O}"
+3. **thematicFocus** (5-8 términos, OBLIGATORIO) — Basado en PICO-O: "${O}"
    - Variables/resultados medibles (responde "¿Qué se mide/evalúa?")
-   - Serán columnas de la futura Matriz de Síntesis
-   - Ejemplos válidos: rendimiento, precisión, eficiencia, usabilidad, impacto, desafíos
-   - Si PICO-O es vago, inferir del título qué aspectos son evaluables
+   - DEBE incluir TODOS los outcomes listados en PICO (infestación, rendimiento, pesticidas, costos).
+   - ADEMÁS incluir términos "Paraguas" (Efficiency, Effectiveness, Sustainability, Impact).
+   - Si es comparativo, incluir "Comparative analysis", "Trade-off".
 
 REGLA CLAVE: Resultado medible → thematicFocus. Contexto/lugar → applicationDomain.
-NO inventar conceptos fuera del alcance del título.
+Variedad de sinónimos y subtipos → technologies.
 
 ═══════════════════════════════════════════════════════════════
 FORMATO DE SALIDA (JSON ESTRICTO)
@@ -242,15 +247,15 @@ ENFOQUE PERSONALIZADO DEL USUARIO: ${customFocus}
 
 REGLAS PARA "${jsonKey}":
 ${jsonKey === 'technologies' ? `- Derivar de PICO-I: "${I}"
-- 4-5 términos: tecnología central + variantes/sinónimos académicos
-- Solo extensiones directas de la intervención, NO tecnologías no mencionadas` : ''}
+- 6-10 términos: tecnología central + SINÓNIMOS + SUBTIPOS ESPECÍFICOS (Hipónimos).
+- Objetivo Recall: incluir variantes técnicas (ej: AI -> ML, DL, CNN, SVM).` : ''}
 ${jsonKey === 'applicationDomain' ? `- Derivar de PICO-P: "${P}"
-- 3-4 términos: contexto/sector/entorno DONDE se aplica
-- NO incluir variables medibles (eficiencia, calidad → van en thematicFocus)
-- SÍ incluir: sectores, industrias, entornos técnicos, poblaciones` : ''}
+- 4-6 términos: contexto/sector/entorno DONDE se aplica.
+- ¡KEYWORDS CORTAS! (Agriculture, Crops, Mango).
+- Incluir nombres científicos (Mangifera indica).` : ''}
 ${jsonKey === 'thematicFocus' ? `- Derivar de PICO-O: "${O}"
-- 3-5 focos medibles que respondan "¿Qué se mide/evalúa?"
-- Serán columnas de la Matriz de Síntesis
+- 5-8 focos medibles que respondan "¿Qué se mide/evalúa?"
+- Incluir TODOS los outcomes del PICO + Umbrella Terms (Efficiency, Effectiveness) + Causas Raíz.
 - NUNCA dejar vacío` : ''}
 
 FORMATO JSON (devolver las 3 categorías, solo "${jsonKey}" será usada):
@@ -396,10 +401,10 @@ RESPONDE SOLO CON EL JSON. NADA MÁS.
         .map(t => String(t).trim())
         .filter(t => t.length > 2);
 
-      // Si tiene más de 6, truncar (límite metodológico)
-      if (terms[category].length > 6) {
-        console.warn(`Categoría ${category} tiene ${terms[category].length} términos, truncando a 6`);
-        terms[category] = terms[category].slice(0, 6);
+      // Si tiene más de 10, truncar (límite metodología ampliado para Recall)
+      if (terms[category].length > 10) {
+        console.warn(`Categoría ${category} tiene ${terms[category].length} términos, truncando a 10`);
+        terms[category] = terms[category].slice(0, 10);
       }
 
       // REGLA METODOLÓGICA: NO completar artificialmente
