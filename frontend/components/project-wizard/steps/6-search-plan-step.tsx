@@ -38,6 +38,107 @@ import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 import { ImportReferencesButton } from "@/components/screening/import-references-button"
 
+// Wrapper component para manejar la creación de proyecto temporal antes de la importación
+function ImportReferencesWrapper({ 
+  query, 
+  data, 
+  updateData, 
+  createTemporaryProjectForImport, 
+  setImportedCounts, 
+  importedCounts, 
+  toast 
+}: any) {
+  const [isCreatingProject, setIsCreatingProject] = useState(false)
+  
+  const handleImportClick = async () => {
+    if (data.projectId) {
+      // Proyecto ya existe, proceder normalmente
+      return
+    }
+    
+    // Crear proyecto temporal antes de la importación
+    setIsCreatingProject(true)
+    try {
+      await createTemporaryProjectForImport()
+    } catch (error) {
+      console.error('Error creando proyecto para importación:', error)
+      return // Abortar importación si falla crear proyecto
+    } finally {
+      setIsCreatingProject(false)
+    }
+  }
+  
+  const projectId = data.projectId
+  
+  return (
+    <div className="text-center">
+      {projectId ? (
+        <ImportReferencesButton
+          projectId={projectId}
+          size="sm"
+          showLabel={true}
+          onImportSuccess={(count: number, fileInfo?: any) => {
+            // Actualizar contador local
+            setImportedCounts((prev: any) => ({
+              ...prev,
+              [query.databaseId]: (prev[query.databaseId] || 0) + count
+            }))
+            
+            // Actualizar uploadedFiles en el context
+            const newUploadedFile = {
+              filename: fileInfo?.filename || `import_${query.databaseName}.csv`,
+              format: fileInfo?.format || 'csv',
+              recordCount: count,
+              uploadedAt: new Date().toISOString(),
+              databaseId: query.databaseId,
+              databaseName: query.databaseName,
+              data: []
+            }
+            
+            updateData({
+              searchPlan: {
+                ...data.searchPlan,
+                uploadedFiles: [
+                  ...(data.searchPlan?.uploadedFiles || []),
+                  newUploadedFile
+                ]
+              }
+            })
+            
+            toast({
+              title: "✅ Referencias importadas",
+              description: `${count} referencias cargadas de ${query.databaseName}`
+            })
+          }}
+          onClick={handleImportClick}
+        />
+      ) : (
+        <Button 
+          size="sm" 
+          variant="outline"
+          disabled={isCreatingProject}
+          onClick={async (e) => {
+            e.preventDefault()
+            await handleImportClick()
+          }}
+        >
+          {isCreatingProject ? (
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          ) : (
+            <Upload className="h-3 w-3 mr-1" />
+          )}
+          {isCreatingProject ? 'Preparando...' : 'Importar Referencias'}
+        </Button>
+      )}
+      {importedCounts[query.databaseId] > 0 && (
+        <div className="text-xs text-green-600 mt-1">
+          ✅ {importedCounts[query.databaseId]} referencias
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Mapa de iconos para bases de datos
 const DATABASE_ICONS: Record<string, string> = {
   scopus: "🔵",
@@ -248,71 +349,55 @@ export function SearchPlanStep() {
     }))
   }
 
-  // Crear proyecto temporal para permitir importar referencias
-  // Este proyecto se marca como temporal y se elimina si no se completa el wizard
-  useEffect(() => {
-    const createTemporaryProject = async () => {
-      // Solo crear si:
-      // 1. No existe projectId todavía
-      // 2. Tenemos datos mínimos necesarios
-      // 3. Tenemos queries generadas (usuario está listo para importar)
-      
-      console.log('🔍 Verificando condiciones para crear proyecto temporal:', {
-        hasProjectId: !!data.projectId,
-        hasProjectName: !!data.projectName,
-        hasSelectedTitle: !!data.selectedTitle,
-        queriesCount: queries.length
-      })
-
-      if (data.projectId) {
-        console.log('⏭️ Proyecto ya existe:', data.projectId)
-        return
-      }
-
-      if (!data.projectName || !data.selectedTitle) {
-        console.log('⏭️ Faltan datos del proyecto (nombre o título)')
-        return
-      }
-
-      if (queries.length === 0) {
-        console.log('⏭️ No hay queries generadas todavía')
-        return
-      }
-
-      try {
-        console.log('📝 Creando proyecto temporal para importación de referencias...')
-        
-        const projectData = {
-          title: `[TEMPORAL] ${data.projectName || data.selectedTitle}`,
-          description: `Proyecto temporal - ${data.projectDescription || `RSL: ${data.selectedTitle}`}`,
-          status: 'temporary' // Marcado como temporal
-        }
-
-        const result = await apiClient.createProject(projectData)
-        
-        if (result && result.data?.project?.id) {
-          console.log('✅ Proyecto temporal creado:', result.data.project.id)
-          updateData({ projectId: result.data.project.id })
-          
-          toast({
-            title: "✅ Proyecto temporal creado",
-            description: "Ahora puedes importar referencias. Recuerda completar el wizard para guardar definitivamente."
-          })
-        } else {
-          console.error('❌ No se recibió ID del proyecto:', result)
-        }
-      } catch (error: any) {
-        console.error('❌ Error creando proyecto temporal:', error)
-        toast({
-          title: "❌ Error al crear proyecto temporal",
-          description: error.message || "No se pudo habilitar la importación de referencias",
-          variant: "destructive"
-        })
-      }
+  // PROYECTO TEMPORAL: Solo se crea cuando se importan referencias realmente 
+  // NO crear proyecto automáticamente - evita borradores vacíos
+  const createTemporaryProjectForImport = async () => {
+    // Solo crear si no existe projectId y se van a importar referencias
+    if (data.projectId) {
+      console.log('⏭️ Proyecto ya existe:', data.projectId)
+      return data.projectId
     }
 
-    createTemporaryProject()
-  }, [queries.length, data.projectId, data.projectName, data.selectedTitle])
+    if (!data.projectName || !data.selectedTitle) {
+      console.log('⏭️ Faltan datos del proyecto (nombre o título)')
+      throw new Error('Faltan datos del proyecto para crear proyecto temporal')
+    }
+
+    try {
+      console.log('📝 Creando proyecto temporal para importación de referencias...')
+      
+      const projectData = {
+        title: `[TEMPORAL] ${data.projectName || data.selectedTitle}`,
+        description: `Proyecto temporal - ${data.projectDescription || `RSL: ${data.selectedTitle}`}`,
+        status: 'temporary' // Marcado como temporal
+      }
+
+      const result = await apiClient.createProject(projectData)
+      
+      if (result && result.data?.project?.id) {
+        console.log('✅ Proyecto temporal creado:', result.data.project.id)
+        updateData({ projectId: result.data.project.id })
+        
+        toast({
+          title: "✅ Proyecto temporal creado",
+          description: "Referencias importadas exitosamente. Completa el wizard para guardar definitivamente."
+        })
+        
+        return result.data.project.id
+      } else {
+        console.error('❌ No se recibió ID del proyecto:', result)
+        throw new Error('No se pudo crear el proyecto temporal')
+      }
+    } catch (error: any) {
+      console.error('❌ Error creando proyecto temporal:', error)
+      toast({
+        title: "❌ Error al crear proyecto temporal", 
+        description: error.message || "No se pudo habilitar la importación de referencias",
+        variant: "destructive"
+      })
+      throw error
+    }
+  }
 
   // Sincronizar con context
   useEffect(() => {
@@ -529,7 +614,7 @@ export function SearchPlanStep() {
 
   const handleConfirmedRegenerate = () => {
     setShowRegenerateDialog(false)
-    setEditedQueries(new Set()) // Limpiar ediciones
+    setEditedQueries(new Set())
     handleGenerateQueries()
   }
 
@@ -812,7 +897,16 @@ export function SearchPlanStep() {
                       )}
                     </TableCell>
                     <TableCell className="align-top text-center">
-                      {data.projectId ? (
+                      <ImportReferencesWrapper
+                        query={query}
+                        data={data}
+                        updateData={updateData}
+                        createTemporaryProjectForImport={createTemporaryProjectForImport}
+                        setImportedCounts={setImportedCounts}
+                        importedCounts={importedCounts}
+                        toast={toast}
+                      />
+                    </TableCell>
                         <ImportReferencesButton
                           projectId={data.projectId}
                           size="sm"
