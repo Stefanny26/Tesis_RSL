@@ -150,39 +150,89 @@ REGLA 3: ESTRUCTURA DE BLOQUES CON OR INTERNO - CRÍTICO PARA RSL COMPARATIVAS
   CADA BLOQUE contiene términos sinónimos/variaciones unidos con OR:
   
   1. Bloque I (Intervención/Tecnología Principal):
-     - Incluir TODOS los términos de "Términos Tecnología" + variaciones
-     - EXPANSIÓN: Abreviaturas (AI, ML, NLP), sinónimos técnicos, wildcards
-     - FORMATO: ("Mongoose" OR "Mongoose ODM" OR "Mongoose.js" OR "Mongoose Library")
-     - 5-7 variaciones por término clave
+     - Incluir TODOS los términos de "Términos Tecnología" + VARIACIONES + SINÓNIMOS CONCEPTUALES
+     - EXPANSIÓN DOBLE:
+       a) Variaciones sintácticas: Abreviaturas, versiones completas, nombres alternativos
+       b) Sinónimos conceptuales: Términos equivalentes usados en literatura académica
+     - EJEMPLO:
+       * Término original: "Mongoose"
+       * Variaciones: "Mongoose ODM", "Mongoose.js", "Mongoose Library" 
+       * Sinónimos conceptuales: "Object Document Mapper", "MongoDB ORM", "Node ODM"
+     - FORMATO: ("Mongoose" OR "Mongoose ODM" OR "Object Document Mapper" OR "MongoDB ORM")
+     - OBJETIVO: **MAXIMIZAR RECALL** - No perder papers que usen terminología alternativa
+     - 7-10 términos totales (variaciones + sinónimos)
      
   2. Bloque P (Contexto/Dominio):
-     - Incluir TODOS los términos de "Términos Dominio" + variaciones
-     - EXPANSIÓN: Wildcards (Backend*, Server-side*), nombres técnicos, contextos relacionados
-     - FORMATO: ("Node.js" OR "NodeJS" OR "Node Backend" OR "Server-side JavaScript")
-     - 3-5 variaciones
+     - Incluir TODOS los términos de "Términos Dominio" + VARIACIONES + SINÓNIMOS
+     - EXPANSIÓN DOBLE:
+       a) Variaciones: Wildcards (Backend*, Server-side*), nombres técnicos
+       b) Sinónimos: Contextos alternativos equivalentes
+     - EJEMPLO:
+       * Término: "Backend Development"
+       * Variaciones: "Backend", "Server-side Development"
+       * Sinónimos: "API Development", "Server Programming", "Web Services"
+     - FORMATO: ("Backend" OR "Server-side" OR "API Development" OR "Web Services")
+     - 5-7 términos totales
 
   3. Bloque C (Comparación) - CRÍTICO SI PICO-C EXISTE:
      - SI PICO-C está definido → OBLIGATORIO incluir este bloque
-     - Incluir la tecnología/método de comparación + variaciones
-     - FORMATO: ("Native Driver" OR "MongoDB Native Driver" OR "Native MongoDB" OR "MongoDB Driver")
-     - Ejemplo: Si comparas "Mongoose vs Native Driver" → ambos deben estar en la query
-     - 3-5 variaciones del término de comparación
-     - SIN ESTE BLOQUE: Traerás artículos solo de Mongoose, no comparativos
-     - CON ESTE BLOQUE: Solo artículos que mencionen ambas tecnologías (comparativos)
+     - Incluir tecnología/método de comparación + VARIACIONES + SINÓNIMOS CONCEPTUALES
+     - **SINÓNIMOS CONCEPTUALES SON CRÍTICOS AQUÍ** - Los autores usan terminología diversa
+     - EJEMPLO:
+       * Término: "Native Driver"
+       * Variaciones: "Native MongoDB Driver", "MongoDB Native"
+       * Sinónimos conceptuales: "Raw queries", "Direct access", "Direct MongoDB operations", "Low-level driver"
+     - FORMATO: ("Native Driver" OR "Raw queries" OR "Direct access" OR "Low-level driver")
+     - Ejemplo: Si comparas "Mongoose vs Native Driver" → ambos deben estar con sinónimos
+     - 7-10 términos (crítico para no perder estudios comparativos)
+     - SIN SINÓNIMOS: Perderás papers que comparen pero usen "Raw queries" en lugar de "Native Driver"
+     - CON SINÓNIMOS: Capturarás todos los estudios comparativos independientemente de terminología
 
   4. Bloque O (Outcomes/Focos/Métricas):
-     - Incluir TODOS los términos de "Focos Temáticos" + variaciones
-     - COMBINACIÓN: Términos paraguas (Performance, Efficiency) + métricas específicas (Latency, Throughput)
-     - FORMATO: ("Performance" OR "Throughput" OR "Response Time" OR "Latency" OR "Execution Time")
+     - Incluir TODOS los términos de "Focos Temáticos" + VARIACIONES + SINÓNIMOS
+     - ESTRATEGIA DE EXPANSIÓN:
+       a) Término paraguas (Performance, Efficiency)
+       b) Métricas específicas (Latency, Throughput) 
+       c) Sinónimos de métricas (Response Time = Latency, Speed = Performance)
+     - EJEMPLO:
+       * Paraguas: "Performance"
+       * Métricas: "Latency", "Throughput"
+       * Sinónimos: "Response Time", "Speed", "Execution Time", "Processing Time"
+     - FORMATO: ("Performance" OR "Latency" OR "Throughput" OR "Response Time" OR "Speed")
      - WILDCARDS: (Perform*, Efficien*, Productiv*)
-     - 5-7 variaciones
+     - 8-12 términos totales (paraguas + métricas + sinónimos)
 
-REGLA 4: TRADUCCIÓN Y EXPANSIÓN DE TÉRMINOS
-  - TRADUCCIÓN AUTOMÁTICA: Si los términos están en ESPAÑOL → traducir a INGLÉS
+REGLA 4: MAXIMIZAR SENSIBILIDAD (RECALL) CON SINÓNIMOS CONCEPTUALES
+  
+  ⚠️ **OBJETIVO PRIMARIO EN SLR: NO PERDER PAPERS RELEVANTES**
+  
+  En Revisiones Sistemáticas, es preferible tener 1000 resultados para filtrar manualmente (Screening)
+  que perder 50 papers relevantes por búsqueda demasiado restrictiva.
+  
+  **DIFERENCIA CRÍTICA:**
+  - Variaciones sintácticas: Reescrituras del mismo término ("Native Driver" → "MongoDB Native Driver")
+  - Sinónimos conceptuales: Términos diferentes con significado equivalente ("Native Driver" → "Raw queries", "Direct access")
+  
+  **PROCESO DE IDENTIFICACIÓN DE SINÓNIMOS:**
+  Para cada término clave, pregúntate:
+  1. ¿Qué otros términos usan los investigadores para referirse a este concepto?
+  2. ¿Qué sinónimos aparecen en papers académicos de esta área?
+  3. ¿Qué términos técnicos equivalentes existen?
+  4. ¿Qué abreviaturas o acrónimos se usan?
+  
+  **EJEMPLOS DE EXPANSIÓN CORRECTA:**
+  - "Machine Learning" → Incluir: "ML", "Statistical Learning", "Predictive Modeling", "Data-driven algorithms"
+  - "Performance" → Incluir: "Efficiency", "Speed", "Throughput", "Latency", "Response Time", "Execution Time"
+  - "Native Driver" → Incluir: "Raw queries", "Direct access", "Low-level driver", "Direct database operations"
+  - "Code Complexity" → Incluir: "Code Quality", "Maintainability", "Technical Debt", "Cognitive Complexity"
+  
+  **REGLAS DE EXPANSIÓN:**
+  - TRADUCCIÓN AUTOMÁTICA: Si los términos están en ESPAÑOL → traducir a INGLÉS + agregar sinónimos en inglés
   - Query final: 100% INGLÉS (idioma académico universal)
-  - ESTRUCTURA: Cada bloque = un paréntesis con términos OR
-  - EXPANSIÓN MÍNIMA: 5-7 variaciones por bloque I/O, 3-5 por bloque P/C
+  - ESTRUCTURA: Cada bloque = un paréntesis con términos OR (variaciones + sinónimos)
+  - EXPANSIÓN MÍNIMA: 7-10 términos por bloque I/C/O (variaciones + sinónimos), 5-7 por bloque P
   - WILDCARDS: Usar asteriscos (*) donde aplique (Perform*, Databas*, Efficien*)
+  - SINÓNIMOS OBLIGATORIOS: Cada término técnico clave debe tener al menos 3 sinónimos conceptuales
   
   PROHIBIDO:
   - (A AND B AND C) OR (A AND B AND D) ← ineficiente, repetitivo, propenso a errores
@@ -217,10 +267,49 @@ Estructura de cada bloque:
 - Bloque_O: ("métrica1" OR "outcome1" OR "variable1" OR "sinónimo1" OR ...)
 
 Ejemplo real:
-MAL: ("Mongoose" AND "Performance") OR ("Mongoose" AND "Latency") <- repetitivo
-BIEN: ("Mongoose" OR "Mongoose ODM") AND ("Node.js" OR "Backend") AND ("Native Driver" OR "MongoDB Driver") AND ("Performance" OR "Latency" OR "Throughput")
+MAL (solo variaciones sintácticas): 
+  ("Mongoose" AND "Performance") OR ("Mongoose" AND "Latency") <- repetitivo, bajo recall
 
-CRÍTICO: Si PICO-C = "Native Driver", tu query DEBE incluir ambos términos (Mongoose AND Native Driver) para encontrar estudios comparativos.
+REGULAR (variaciones pero sin sinónimos conceptuales):
+  ("Mongoose" OR "Mongoose ODM") AND ("Node.js" OR "Backend") AND ("Native Driver" OR "MongoDB Driver") AND ("Performance" OR "Latency")
+  ⚠️ PROBLEMA: Perderás papers que mencionen "Raw queries" o "Direct access" en lugar de "Native Driver"
+
+EXCELENTE (variaciones + sinónimos conceptuales - MAXIMIZA RECALL):
+  ("Mongoose" OR "Mongoose ODM" OR "Object Document Mapper" OR "MongoDB ORM") AND 
+  ("Node.js" OR "NodeJS" OR "Backend" OR "Server-side" OR "API Development") AND 
+  ("Native Driver" OR "MongoDB Driver" OR "Raw queries" OR "Direct access" OR "Direct MongoDB" OR "Low-level driver") AND 
+  ("Performance" OR "Latency" OR "Throughput" OR "Response Time" OR "Speed" OR "Execution Time")
+  ✅ BENEFICIO: Captura ALL los papers relevantes independientemente de la terminología usada por los autores
+
+CRÍTICO: Si PICO-C = "Native Driver", tu query DEBE incluir:
+  1. El término principal + variaciones ("Native Driver", "MongoDB Native Driver")
+  2. Sinónimos conceptuales ("Raw queries", "Direct access", "Direct database operations")
+  Solo así capturarás TODOS los estudios comparativos.
+
+═══════════════════════════════════════════════════════════════
+EJEMPLOS DE EXPANSIÓN POR BLOQUE
+═══════════════════════════════════════════════════════════════
+
+BLOQUE I - Mongoose (Ejemplo):
+Variaciones: "Mongoose", "Mongoose ODM", "Mongoose.js", "Mongoose Library"
+Sinónimos: "Object Document Mapper", "MongoDB ORM", "Node ODM", "Document Mapper"
+Query: ("Mongoose" OR "Mongoose ODM" OR "Mongoose.js" OR "Object Document Mapper" OR "MongoDB ORM" OR "Node ODM")
+
+BLOQUE P - Backend Development (Ejemplo):
+Variaciones: "Backend", "Backend Development", "Server-side"
+Sinónimos: "API Development", "Server Programming", "Web Services", "Backend Systems"
+Query: ("Backend" OR "Backend Development" OR "Server-side" OR "API Development" OR "Server Programming")
+
+BLOQUE C - Native Driver (Ejemplo) - CRÍTICO PARA ESTUDIOS COMPARATIVOS:
+Variaciones: "Native Driver", "Native MongoDB Driver", "MongoDB Native"
+Sinónimos conceptuales: "Raw queries", "Direct access", "Direct MongoDB", "Low-level driver", "Direct database operations"
+Query: ("Native Driver" OR "Native MongoDB Driver" OR "Raw queries" OR "Direct access" OR "Direct MongoDB" OR "Low-level driver")
+
+BLOQUE O - Performance (Ejemplo):
+Término paraguas: "Performance"
+Métricas específicas: "Latency", "Throughput"
+Sinónimos: "Response Time", "Speed", "Execution Time", "Processing Time", "Efficiency"
+Query: ("Performance" OR "Latency" OR "Throughput" OR "Response Time" OR "Speed" OR "Execution Time" OR "Efficiency")
 
 ═══════════════════════════════════════════════════════════════
 SINTAXIS POR BASE DE DATOS
@@ -259,10 +348,46 @@ ${databases.map((db, i) => `${i + 1}. ${db}`).join('\n')}
 - Wildcards (*) donde aplique según sintaxis de cada base
 
 ${picoData?.comparison && picoData.comparison !== 'N/A' ? `RECORDATORIO CRÍTICO: PICO-C está definido ("${picoData.comparison}").
-DEBES incluir Bloque C con variaciones del término de comparación.
+DEBES incluir Bloque C con variaciones + sinónimos conceptuales del término de comparación.
 SIN BLOQUE C = queries inútiles (solo traerán artículos de ${picoData?.intervention || 'la intervención'}, no comparativos).
 
-` : ''}GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA BALANCEADAS AHORA:
+` : ''}═══════════════════════════════════════════════════════════════
+VALIDACIÓN ANTES DE ENVIAR (CRÍTICO PARA RECALL)
+═══════════════════════════════════════════════════════════════
+
+Antes de generar las queries, verifica MENTALMENTE:
+
+✅ **BLOQUE I (Intervención):**
+   - ¿Incluí el término principal + al menos 3 variaciones?
+   - ¿Incluí al menos 3 sinónimos conceptuales que investigadores podrían usar?
+   - Ejemplo: Si I = "Machine Learning" → ¿Incluí "ML", "Statistical Learning", "Predictive Modeling"?
+
+✅ **BLOQUE P (Población/Contexto):**
+   - ¿Incluí el contexto principal + al menos 2 variaciones?
+   - ¿Incluí al menos 2 sinónimos de contexto?
+   - Ejemplo: Si P = "Backend" → ¿Incluí "Server-side", "API Development", "Web Services"?
+
+✅ **BLOQUE C (Comparación) - SI EXISTE:**
+   - ¿Incluí el término de comparación + al menos 3 variaciones?
+   - ¿Incluí al menos 3 sinónimos conceptuales? ← CRÍTICO para no perder estudios comparativos
+   - Ejemplo: Si C = "Native Driver" → ¿Incluí "Raw queries", "Direct access", "Low-level driver"?
+
+✅ **BLOQUE O (Outcomes):**
+   - ¿Incluí el término paraguas (Performance, Efficiency, etc.)?
+   - ¿Incluí al menos 3 métricas específicas?
+   - ¿Incluí al menos 3 sinónimos de esas métricas?
+   - Ejemplo: Si O = "Performance" → ¿Incluí "Latency", "Throughput", "Response Time", "Speed"?
+
+✅ **CONSISTENCIA ENTRE BASES:**
+   - ¿Todas las bases tienen los MISMOS conceptos, solo cambiando sintaxis?
+   - ¿Ninguna base tiene términos que otras no tienen?
+
+SI TODAS LAS VALIDACIONES PASAN → PROCEDER CON GENERACIÓN
+SI ALGUNA FALLA → REVISAR Y EXPANDIR CON MÁS SINÓNIMOS
+
+═══════════════════════════════════════════════════════════════
+
+GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA BALANCEADAS AHORA:
 `;
   }
 

@@ -97,21 +97,40 @@ Debes definir cada componente buscando **precisión absoluta y operacionalizaci�
 ⚠️ **REGLA CRÍTICA PARA INGENIERÍA Y TECNOLOGÍA:**
 - Definición: El **DOMINIO**, **SISTEMA** o **CONTEXTO TÉCNICO** donde se aplica la tecnología.
 - La POBLACIÓN en RSL de ingeniería NO son los "artículos" ni "estudios", sino el ecosistema técnico.
+- PRISMA 2020 para ingeniería exige definir **A QUÉ TIPO DE SISTEMAS O ENTORNOS** se aplican los estudios que se busca.
 - Formato obligatorio: "Sistemas de [tipo] en contextos de [dominio]" o "Entornos de [tipo] que utilizan [tecnología]"
 
+**EJEMPLO CORRECTO REAL:**
+"Sistemas de software backend desarrollados en Node.js que requieren persistencia de datos en bases de datos NoSQL (específicamente MongoDB), incluyendo aplicaciones escalables, microservicios y APIs RESTful."
+
 **QUÉ DEBE INCLUIR:**
-- Dominio de aplicación (ej: Salud, Finanzas, IoT, Educación)
-- Tipo de sistema o plataforma (ej: Sistemas distribuidos, Aplicaciones móviles, Redes neuronales)
-- Contexto técnico específico
+- Tipo de sistema o plataforma técnica (ej: Sistemas backend, Aplicaciones móviles, Redes neuronales, Sistemas distribuidos)
+- Tecnologías específicas que usa ese sistema (ej: Node.js, MongoDB, React, TensorFlow)
+- Contexto de aplicación (ej: APIs RESTful, Microservicios, Aplicaciones empresariales)
+- Características técnicas (ej: Escalables, Tiempo real, Alta concurrencia)
 - **LONGITUD MÍNIMA: 40-60 palabras**
 
 **QUÉ NO DEBE INCLUIR JAMÁS:**
-- ❌ "Estudios", "Artículos", "Investigaciones" como sujeto principal (eso es la unidad de análisis, no la población).
-- ❌ Edad, profesiones, ubicación geográfica de personas.
-- ❌ "Profesionales", "usuarios", "trabajadores".
+- ❌ "Estudios", "Artículos", "Investigaciones", "Publicaciones académicas" como sujeto principal
+- ❌ "Literatura científica", "Papers", "Revisiones" (eso es la UNIDAD DE ANÁLISIS de la RSL, NO la población)
+- ❌ Edad, profesiones, ubicación geográfica de personas
+- ❌ "Profesionales", "usuarios", "trabajadores", "desarrolladores" como población
+- ❌ "Bases de datos académicas", "Journals", "Conferencias"
 
-**JUSTIFICACIÓN METODOLÓGICA (incluir siempre):**
-"La población se define en términos del dominio o sistema técnico donde aplica la tecnología, conforme a los estándares de ingeniería de software para RSL (Kitchenham/PRISMA)."
+**EJEMPLOS DE POBLACIÓN INCORRECTA (NUNCA GENERAR):**
+- ❌ "Artículos científicos publicados en IEEE y Scopus" ← Esto es la unidad de análisis
+- ❌ "Estudios empíricos sobre rendimiento" ← Esto es el tipo de estudio
+- ❌ "Publicaciones académicas revisadas por pares" ← Esto es criterio de inclusión
+- ❌ "Investigaciones en bases de datos indexadas" ← Esto es fuente de búsqueda
+
+**EJEMPLOS DE POBLACIÓN CORRECTA (SEGUIR ESTOS):**
+- ✅ "Sistemas de backend en Node.js con persistencia MongoDB en contextos de microservicios escalables"
+- ✅ "Aplicaciones de aprendizaje automático implementadas con TensorFlow en dominios de visión por computadora"
+- ✅ "Sistemas IoT con comunicación MQTT desplegados en entornos de smart cities y domótica"
+- ✅ "Aplicaciones web desarrolladas con React que implementan gestión de estado con Redux en contextos empresariales"
+
+**JUSTIFICACIÓN METODOLÓGICA (incluir siempre en el JSON):**
+"La población se define como el dominio, sistema o contexto técnico donde se aplicará la tecnología investigada, NO como estudios o publicaciones (esas son la unidad de análisis). Esta definición sigue estándares Kitchenham y PRISMA para revisiones en ingeniería."
 
 🔬 **I - INTERVENTION (Intervención/Exposición):**
 - Definición: La tecnología, método, práctica o fenómeno observado que constituye el eje central del estudio.
@@ -133,7 +152,23 @@ Debes definir cada componente buscando **precisión absoluta y operacionalizaci�
 - Deben ser **métricas específicas** que puedan extraerse de los estudios.
 - **LONGITUD MÍNIMA: 40-60 palabras** listando outcomes concretos, unidades de medida cuando sea posible.
 
-**Ejemplo válido:** "Métricas de rendimiento del sistema medidas en: (1) precisión de clasificación (accuracy, F1-score), (2) tiempo de respuesta en milisegundos, (3) uso de recursos computacionales (CPU, memoria), (4) escalabilidad medida en throughput de peticiones por segundo."
+⚠️ **REGLA CRÍTICA PARA TÍTULOS - USO DE TÉRMINOS PARAGUAS (UMBRELLA TERMS):**
+Para TÍTULOS de RSL, usa un TÉRMINO PARAGUAS que agrupe múltiples métricas relacionadas:
+
+**TÉRMINOS PARAGUAS COMUNES EN INGENIERÍA:**
+- "Performance" → Agrupa: Latency, Throughput, Response Time, Execution Time, Speed
+- "Scalability" → Agrupa: Load Handling, Concurrency, Resource Scaling, Horizontal/Vertical Scaling
+- "Reliability" → Agrupa: Error Rate, Uptime, Fault Tolerance, Availability, Robustness
+- "Usability" → Agrupa: Learning Curve, Developer Experience, Ease of Use, Documentation Quality
+- "Development Efficiency" → Agrupa: Productivity, Code Complexity, Maintainability, Development Time
+- "Security" → Agrupa: Vulnerability Detection, Attack Prevention, Authentication, Authorization
+- "Resource Consumption" → Agrupa: CPU Usage, Memory Footprint, Disk I/O, Network Bandwidth
+- "Code Quality" → Agrupa: Maintainability, Readability, Technical Debt, Code Smells
+
+**PARA LA DESCRIPCIÓN DETALLADA DE OUTCOMES** (en el campo descripcion), SÍ lista métricas específicas.
+**PARA EL TÍTULO DE LA RSL**, usa el término paraguas.
+
+**Ejemplo válido:** "Métricas de rendimiento del sistema medidas en: (1) precisión de clasificación (accuracy, F1-score), (2) tiempo de respuesta en milisegundos, (3) uso de recursos computacionales (CPU, memoria), (4) escalabilidad medida en throughput de peticiones por segundo. TÉRMINO PARAGUAS PARA TÍTULO: Performance."
 
 **PREGUNTA CONTESTABLE:**
 Construir pregunta PICO formal que guíe toda la revisión:
@@ -154,8 +189,8 @@ Genera exactamente 7 elementos de análisis con respuestas fundamentadas:
    - justificacion: [Por qué este foco, relevancia para ${area}, min. 30-40 palabras]
 
 2. **¿En qué contexto técnico o dominio se aplica?**
-   - presente: [Dominio tecnológico específico, NO personas, min. 20-30 palabras]
-   - justificacion: [Relevancia del contexto para la RSL, min. 30-40 palabras]
+   - presente: [SISTEMAS O ENTORNOS TÉCNICOS específicos donde opera la tecnología. NO mencionar 'artículos', 'estudios' o 'publicaciones'. Ejemplo: 'Sistemas backend Node.js con MongoDB'. Min. 20-30 palabras]
+   - justificacion: [Relevancia del ecosistema técnico para delimitar alcance de la RSL. Explicar por qué este sistema/entorno es el foco. Min. 30-40 palabras]
 
 3. **¿Qué intervención/método específico se analiza?**
    - presente: [Detalle del método, características operacionales, min. 20-30 palabras]
@@ -217,12 +252,30 @@ FORMATO JSON DE SALIDA (ESTRICTO)
 ═══════════════════════════════════════════════════════════════
 
 {
-  "titulo_propuesto": "[Máximo 20 palabras: Fenómeno + Contexto + 'Revisión Sistemática']",
+  "titulo_propuesto": "[FORMATO OBLIGATORIO SEGÚN COMPARACIÓN:
+  
+  SI PICO-C EXISTE (Estudio Comparativo):
+    [Intervención I] vs [Comparación C]: Impact on [TÉRMINO PARAGUAS O] in [Contexto P breve]
+    Ejemplo: 'Mongoose vs Native Driver: Impact on Performance in Node.js Backend Systems'
+    Ejemplo: 'React Hooks vs Redux: Impact on Development Efficiency in Enterprise Web Applications'
+  
+  SI PICO-C ES VACÍO/N/A (Estudio Exploratorio):
+    [Intervención I]: [TÉRMINO PARAGUAS O] Analysis in [Contexto P breve]
+    Ejemplo: 'TensorFlow: Performance Analysis in Computer Vision Systems'
+  
+  REGLAS:
+  - Título DECLARATIVO/DESCRIPTIVO (estilo Q1/Q2 journals)
+  - Si C existe, DEBE aparecer en título con 'vs' o 'versus'
+  - Usar TÉRMINO PARAGUAS para O (Performance, Efficiency, Scalability, Usability, etc.)
+  - NO listar métricas individuales (Latency, Throughput, etc.)
+  - Contexto P debe ser breve (3-5 palabras máximo)
+  - Máximo 15 palabras total
+  ]",
   "fase1_marco_pico": {
     "marco_pico": {
       "population": {
-        "descripcion": "[Sistemas/Contextos [tipo] donde aplica [fenómeno]. Ejemplo: 'Sistemas de software backend en Node.js con persistencia NoSQL'. Mínimo 40 palabras.]",
-        "justificacion": "La población se define como el dominio, sistema o contexto técnico donde se aplicará la tecnología investigada, NO como estudios o publicaciones (esas son la unidad de análisis). Esta definición sigue estándares Kitchenham y PRISMA para revisiones en ingeniería."
+        "descripcion": "[SISTEMAS O ENTORNOS TÉCNICOS donde se aplica la tecnología. NUNCA 'artículos' o 'estudios'. Formato: 'Sistemas de [tipo técnico] en [stack tecnológico] para [contexto aplicación], incluyendo [características técnicas]'. Ejemplo real: 'Sistemas de software backend desarrollados en Node.js que requieren persistencia de datos en bases de datos NoSQL (específicamente MongoDB), incluyendo aplicaciones escalables, microservicios y APIs RESTful.' Mínimo 40 palabras.]",
+        "justificacion": "La población se define como el dominio, sistema o contexto técnico donde se aplicará la tecnología investigada, NO como estudios o publicaciones (esas son la unidad de análisis). PRISMA 2020 exige especificar a qué tipo de sistemas/entornos se aplican los estudios buscados. Esta definición sigue estándares Kitchenham y PRISMA para revisiones en ingeniería."
       },
       "intervention": {
         "descripcion": "[Tecnología/método operacionalizado con características distintivas. Mínimo 40 palabras.]",
@@ -287,17 +340,30 @@ VALIDACIÓN FINAL OBLIGATORIA
 
 Antes de enviar el JSON, VERIFICA:
 
+✅ **TÍTULO PROPUESTO:**
+   - ❌ ¿Contiene palabras genéricas como "Revisión Sistemática", "Systematic Review", "RSL", "SLR"? → ELIMINAR
+   - ✅ Si PICO-C existe → ¿El título incluye "I vs C: Impact on O"? Ejemplo: "Mongoose vs Native Driver: Impact on Performance"
+   - ✅ Si PICO-C no existe → ¿El título usa "I: O Analysis"? Ejemplo: "TensorFlow: Performance Analysis"
+   - ✅ ¿Usa TÉRMINO PARAGUAS para O? (Performance, Efficiency, Scalability, Usability, etc.)
+   - ❌ ¿Lista métricas individuales? (Latency, Throughput, etc.) → REEMPLAZAR con término paraguas
+   - ✅ ¿Es declarativo/descriptivo siguiendo estilo Q1/Q2?
+   - ✅ ¿Máximo 15 palabras?
+
+✅ **POBLACIÓN (P) - VALIDACIÓN CRÍTICA:**
+   - ❌ ¿Contiene "artículos", "estudios", "investigaciones", "publicaciones", "papers", "literatura"? → INVALIDO
+   - ❌ ¿Contiene "bases de datos académicas", "journals", "conferencias"? → INVALIDO
+   - ❌ ¿Contiene profesiones ("desarrolladores", "ingenieros") o personas como sujeto? → INVALIDO
+   - ✅ ¿Define SISTEMA, ENTORNO o CONTEXTO TÉCNICO? (ej: "Sistemas backend", "Aplicaciones móviles")
+   - ✅ ¿Especifica STACK TECNOLÓGICO? (ej: "Node.js", "MongoDB", "React")
+   - ✅ ¿Incluye CONTEXTO DE APLICACIÓN? (ej: "microservicios", "APIs RESTful")
+   - ✅ ¿Tiene al menos 40 palabras descriptivas del sistema técnico?
+   - ✅ ¿La justificación menciona "dominio/sistema técnico, NO estudios/publicaciones"?
+
 ✅ **PREGUNTA CONTESTABLE:**
    - ¿Puede responderse con los estudios delimitados por los criterios?
    - ¿Los outcomes son medibles en estudios empíricos?
    - ¿La intervención está suficientemente operacionalizada?
-
-✅ **POBLACIÓN NO CONTIENE:**
-   - ❌ Edad, profesiones como sujeto principal, ubicación geográfica de personas
-   
-✅ **POBLACIÓN SÍ CONTIENE:**
-   - ✅ Dominio, sistema o contexto técnico
-   - ✅ Justificación metodológica correcta
+   - Si PICO-C existe → ¿La pregunta incluye "en comparación con [C]"?
 
 ✅ **CRITERIOS PREPARADOS PARA EXTRACCIÓN:**
    - ¿Los criterios de inclusión permiten identificar estudios con datos extraíbles?
@@ -308,6 +374,9 @@ Antes de enviar el JSON, VERIFICA:
    - Todos los elementos de inclusión están reflejados en PICO
    - Todos los elementos de exclusión justifican límites claros
    - La pregunta contestable conecta P-I-C-O de forma lógica
+   - Si C existe, aparece en título, pregunta y matriz
+
+⚠️ **SI ALGUNA VALIDACIÓN FALLA → CORREGIR ANTES DE ENVIAR JSON**
 
 RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
 `.trim();
@@ -319,7 +388,7 @@ RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'Eres un experto en metodología PRISMA/Cochrane para revisiones sistemáticas en Ingeniería y Tecnología. REGLA CRÍTICA: La POBLACIÓN en RSL de ingeniería son ESTUDIOS o CONTEXTOS TECNOLÓGICOS, NUNCA personas. Respondes solo con JSON válido.' },
+          { role: 'system', content: 'Eres un experto en metodología PRISMA 2020/Cochrane para revisiones sistemáticas en Ingeniería y Tecnología. REGLAS CRÍTICAS ABSOLUTAS: (1) La POBLACIÓN en RSL de ingeniería es el SISTEMA/ENTORNO TÉCNICO donde se aplica la tecnología, NUNCA "artículos", "estudios" o "publicaciones". (2) Si PICO-C existe, el TÍTULO DEBE incluirlo con formato "I vs C: Impact on O". (3) Usa TÉRMINOS PARAGUAS en títulos (Performance, Efficiency), no métricas individuales. Respondes solo con JSON válido.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.6, // Aumentado de 0.3 a 0.6 para mayor especificidad
