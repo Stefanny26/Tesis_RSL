@@ -9,9 +9,8 @@ class GenerateProtocolAnalysisUseCase {
     }
     this.outputSchema = {
       type: 'object',
-      required: ['titulo_propuesto', 'fase1_marco_pico', 'fase2_matriz_es_no_es'],
+      required: ['fase1_marco_pico', 'fase2_matriz_es_no_es'],
       properties: {
-        titulo_propuesto: { type: 'string' },
         fase1_marco_pico: { 
           type: 'object',
           required: ['marco_pico', 'pregunta_contestable'],
@@ -252,25 +251,6 @@ FORMATO JSON DE SALIDA (ESTRICTO)
 ═══════════════════════════════════════════════════════════════
 
 {
-  "titulo_propuesto": "[FORMATO OBLIGATORIO SEGÚN COMPARACIÓN:
-  
-  SI PICO-C EXISTE (Estudio Comparativo):
-    [Intervención I] vs [Comparación C]: Impact on [TÉRMINO PARAGUAS O] in [Contexto P breve]
-    Ejemplo: 'Mongoose vs Native Driver: Impact on Performance in Node.js Backend Systems'
-    Ejemplo: 'React Hooks vs Redux: Impact on Development Efficiency in Enterprise Web Applications'
-  
-  SI PICO-C ES VACÍO/N/A (Estudio Exploratorio):
-    [Intervención I]: [TÉRMINO PARAGUAS O] Analysis in [Contexto P breve]
-    Ejemplo: 'TensorFlow: Performance Analysis in Computer Vision Systems'
-  
-  REGLAS:
-  - Título DECLARATIVO/DESCRIPTIVO (estilo Q1/Q2 journals)
-  - Si C existe, DEBE aparecer en título con 'vs' o 'versus'
-  - Usar TÉRMINO PARAGUAS para O (Performance, Efficiency, Scalability, Usability, etc.)
-  - NO listar métricas individuales (Latency, Throughput, etc.)
-  - Contexto P debe ser breve (3-5 palabras máximo)
-  - Máximo 15 palabras total
-  ]",
   "fase1_marco_pico": {
     "marco_pico": {
       "population": {
@@ -339,15 +319,6 @@ VALIDACIÓN FINAL OBLIGATORIA
 ═══════════════════════════════════════════════════════════════
 
 Antes de enviar el JSON, VERIFICA:
-
-✅ **TÍTULO PROPUESTO:**
-   - ❌ ¿Contiene palabras genéricas como "Revisión Sistemática", "Systematic Review", "RSL", "SLR"? → ELIMINAR
-   - ✅ Si PICO-C existe → ¿El título incluye "I vs C: Impact on O"? Ejemplo: "Mongoose vs Native Driver: Impact on Performance"
-   - ✅ Si PICO-C no existe → ¿El título usa "I: O Analysis"? Ejemplo: "TensorFlow: Performance Analysis"
-   - ✅ ¿Usa TÉRMINO PARAGUAS para O? (Performance, Efficiency, Scalability, Usability, etc.)
-   - ❌ ¿Lista métricas individuales? (Latency, Throughput, etc.) → REEMPLAZAR con término paraguas
-   - ✅ ¿Es declarativo/descriptivo siguiendo estilo Q1/Q2?
-   - ✅ ¿Máximo 15 palabras?
 
 ✅ **POBLACIÓN (P) - VALIDACIÓN CRÍTICA:**
    - ❌ ¿Contiene "artículos", "estudios", "investigaciones", "publicaciones", "papers", "literatura"? → INVALIDO
