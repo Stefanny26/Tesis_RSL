@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useWizard } from "../wizard-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -39,6 +39,16 @@ import { apiClient } from "@/lib/api-client"
 import { ImportReferencesButton } from "@/components/screening/import-references-button"
 
 // Wrapper component para manejar la creación de proyecto temporal antes de la importación
+interface ImportReferencesWrapperProps {
+  query: any
+  data: any
+  updateData: (updates: any) => void
+  createTemporaryProjectForImport: () => Promise<void>
+  setImportedCounts: React.Dispatch<React.SetStateAction<Record<string, number>>>
+  importedCounts: Record<string, number>
+  toast: any
+}
+
 function ImportReferencesWrapper({ 
   query, 
   data, 
@@ -47,7 +57,7 @@ function ImportReferencesWrapper({
   setImportedCounts, 
   importedCounts, 
   toast 
-}: any) {
+}: ImportReferencesWrapperProps) {
   const [isCreatingProject, setIsCreatingProject] = useState(false)
   
   const handleImportClick = async () => {
@@ -906,97 +916,6 @@ export function SearchPlanStep() {
                         importedCounts={importedCounts}
                         toast={toast}
                       />
-                    </TableCell>
-                        <ImportReferencesButton
-                          projectId={data.projectId}
-                          size="sm"
-                          showLabel={true}
-                          onImportSuccess={(count: number, fileInfo?: any) => {
-                            // Actualizar contador local
-                            setImportedCounts(prev => ({
-                              ...prev,
-                              [query.databaseId]: (prev[query.databaseId] || 0) + count
-                            }))
-                            
-                            // Actualizar uploadedFiles en el context
-                            const newUploadedFile = {
-                              filename: fileInfo?.filename || `import_${query.databaseName}.csv`,
-                              format: fileInfo?.format || 'csv',
-                              recordCount: count,
-                              uploadedAt: new Date().toISOString(),
-                              databaseId: query.databaseId,
-                              databaseName: query.databaseName,
-                              data: []
-                            }
-                            
-                            updateData({
-                              searchPlan: {
-                                ...data.searchPlan,
-                                uploadedFiles: [
-                                  ...(data.searchPlan?.uploadedFiles || []),
-                                  newUploadedFile
-                                ]
-                              }
-                            })
-                            
-                            toast({
-                              title: "✅ Referencias importadas",
-                              description: `${count} referencias cargadas de ${query.databaseName}`
-                            })
-                          }}
-                        />
-                      ) : queries.length > 0 ? (
-                        <div className="text-center space-y-2">
-                          <div className="text-xs text-muted-foreground italic mb-1">
-                            Proyecto no creado
-                          </div>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={async () => {
-                              try {
-                                const projectData = {
-                                  title: data.projectName || data.selectedTitle || 'Proyecto RSL',
-                                  description: data.projectDescription || `RSL: ${data.selectedTitle}`,
-                                  status: 'draft'
-                                }
-                                const result = await apiClient.createProject(projectData)
-                                if (result?.data?.project?.id) {
-                                  updateData({ projectId: result.data.project.id })
-                                  toast({
-                                    title: "\u2705 Proyecto temporal creado",
-                                    description: "Ahora puedes importar referencias. Recuerda completar el wizard para guardar definitivamente."
-                                  })
-                                }
-                              } catch (error: any) {
-                                toast({
-                                  title: "❌ Error",
-                                  description: error.message,
-                                  variant: "destructive"
-                                })
-                              }
-                            }}
-                          >
-                            <Save className="h-3 w-3 mr-1" />
-                            Importar Referencias
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <div className="text-xs text-muted-foreground italic mb-1">
-                            Genera queries primero
-                          </div>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            disabled
-                            className="text-xs"
-                          >
-                            <Upload className="h-3 w-3 mr-1" />
-                            Cargar
-                          </Button>
-                        </div>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}
