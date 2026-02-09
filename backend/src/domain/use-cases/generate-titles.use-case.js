@@ -140,8 +140,8 @@ REGLAS DE REDACCIÓN ACADÉMICA PARA TÍTULOS
 1. **PRISMA Ítem 1**: El título DEBE incluir la naturaleza del estudio: "A Systematic Review", "A Scoping Review" o "Evidence Synthesis".
 
 2. **Outcome (O) Sintetizado (Umbrella Term)**: 
-   - ⚠️⚠️⚠️ CRÍTICO ABSOLUTO: NO listes métricas individuales (e.g., "latency", "throughput", "accuracy", "precision", "cost", "time").
-   - ⚠️⚠️⚠️ PROHIBIDO usar comas, "+", "and", "y" en Outcomes del título.
+   - [!!!] CRÍTICO ABSOLUTO: NO listes métricas individuales (e.g., "latency", "throughput", "accuracy", "precision", "cost", "time").
+   - [!!!] PROHIBIDO usar comas, "+", "and", "y" en Outcomes del título.
    - DEBES usar UN SOLO término "paraguas" que englobe el impacto.
    - **Términos paraguas OBLIGATORIOS para Ingeniería:**
      * "Latency + Throughput + Response Time" → "**Performance**" (NO: "Latency and Throughput")
@@ -152,26 +152,26 @@ REGLAS DE REDACCIÓN ACADÉMICA PARA TÍTULOS
      * "Security + Authentication + Vulnerability" → "**Security**" (NO: "Security and Authentication")
      * "CPU + Memory + Disk I/O" → "**Resource Consumption**" (NO: "CPU and Memory Usage")
    - El título debe leerse fluido y académico, usando UN SOLO término paraguas.
-   - ❌ EJEMPLO INCORRECTO: "[I] vs [C] for Latency and Throughput in [P]" 
-   - ✅ EJEMPLO CORRECTO: "[I] vs [C] for Performance in [P]"
+   - [X] EJEMPLO INCORRECTO: "[I] vs [C] for Latency and Throughput in [P]" 
+   - [OK] EJEMPLO CORRECTO: "[I] vs [C] for Performance in [P]"
 
 3. **Comparador (C) - REGLA CRÍTICA**: 
-   - ⚠️⚠️⚠️ Si el PICO tiene Comparison (C) definida, esto es una FORTALEZA metodológica que DEBE aparecer en el título.
+   - [!!!] Si el PICO tiene Comparison (C) definida, esto es una FORTALEZA metodológica que DEBE aparecer en el título.
    - **OBLIGATORIO ABSOLUTO:** Mínimo 4 de 5 títulos DEBEN incluir la comparación explícitamente con "vs" o "versus".
-   - ❌ NO omitir la comparación aunque el título se vea largo.
-   - ❌ NO usar comparación implícita o vaga ("different approaches", "alternative methods").
-   - ✅ Formato comparativo EXPLÍCITO: "[I] vs [C] for [O] in [P]" o "[O] of [I] Compared to [C] in [P]"
-   - ✅ La comparación debe ser ESPECÍFICA: "Mongoose vs Native Driver", "React Hooks vs Redux", NO "ORM vs Traditional Methods".
-   - ⚠️ Si el usuario definió C en PICO, es porque quiere comparar. NO lo ignores en el título.
+   - [X] NO omitir la comparación aunque el título se vea largo.
+   - [X] NO usar comparación implícita o vaga ("different approaches", "alternative methods").
+   - [OK] Formato comparativo EXPLÍCITO: "[I] vs [C] for [O] in [P]" o "[O] of [I] Compared to [C] in [P]"
+   - [OK] La comparación debe ser ESPECÍFICA: "Mongoose vs Native Driver", "React Hooks vs Redux", NO "ORM vs Traditional Methods".
+   - [!] Si el usuario definió C en PICO, es porque quiere comparar. NO lo ignores en el título.
 
 4. **Estilo Declarativo/Descriptivo (Q1/Q2)**:
-   - ⚠️⚠️⚠️ Preferir títulos que DECLARAN lo que se compara/evalúa (NO usar verbos exploratorios).
-   - ✅ Ejemplos CORRECTOS Q1/Q2: 
+   - [!!!] Preferir títulos que DECLARAN lo que se compara/evalúa (NO usar verbos exploratorios).
+   - [OK] Ejemplos CORRECTOS Q1/Q2: 
      * "Mongoose vs Native Driver for Performance in Node.js Backend Systems" (DECLARATIVO, término paraguas "Performance")
      * "React Hooks vs Redux for Development Efficiency in Enterprise Web Applications" (DECLARATIVO, término paraguas "Development Efficiency")
-   - ❌ PROHIBIDO ABSOLUTO: "A Study of...", "Exploring...", "Investigating...", "Analyzing...", "Examining..."
-   - ❌ PROHIBIDO: Listar múltiples métricas: "for Latency, Throughput, and Scalability" → debe ser "for Performance"
-   - ✅ SÍ usar: "[Tech A] vs [Tech B] for [Umbrella Term]", "[Umbrella Term] of [Tech] Compared to [Baseline]"
+   - [X] PROHIBIDO ABSOLUTO: "A Study of...", "Exploring...", "Investigating...", "Analyzing...", "Examining..."
+   - [X] PROHIBIDO: Listar múltiples métricas: "for Latency, Throughput, and Scalability" -> debe ser "for Performance"
+   - [OK] SÍ usar: "[Tech A] vs [Tech B] for [Umbrella Term]", "[Umbrella Term] of [Tech] Compared to [Baseline]"
 
 5. **Sin buzzwords**: Prohibido usar "Moderno", "Avanzado", "Reciente", "Impacto general", "Mejora", "Estudio sobre", "Exploring", "Investigating".
 
@@ -184,11 +184,11 @@ PATRONES DE ESTRUCTURA (Prioridad a Comparativos si C existe)
 ═══════════════════════════════════════════════════════════════
 
 **CUANDO HAY COMPARACIÓN (C) - USAR ESTOS 4 PATRONES PRIMERO (MÍNIMO 4 DE 5 TÍTULOS):**
-⚠️ RECORDATORIO: [O] DEBE SER UN SOLO TÉRMINO PARAGUAS (Performance, Efficiency, Scalability, Reliability, Usability, Security, Resource Consumption, Development Efficiency)
+[!] RECORDATORIO: [O] DEBE SER UN SOLO TÉRMINO PARAGUAS (Performance, Efficiency, Scalability, Reliability, Usability, Security, Resource Consumption, Development Efficiency)
 
 **Patrón C1** (Declarativo directo - PREFERIDO): [I] vs [C] for [O] in [P]: A Systematic Review
    Ejemplo: "Mongoose vs Native Driver for Performance in Node.js Backend Systems: A Systematic Review"
-   ❌ NO: "Mongoose vs Native Driver for Latency and Throughput in Node.js Backend Systems"
+   [X] NO: "Mongoose vs Native Driver for Latency and Throughput in Node.js Backend Systems"
 
 **Patrón C2** (Outcome primero): [O] of [I] Compared to [C] in [P]: A Systematic Review
    Ejemplo: "Performance of Mongoose Compared to Native Driver in Node.js Backend Systems: A Systematic Review"
@@ -252,17 +252,17 @@ INSTRUCCIONES FINALES
 
 1. Genera EXACTAMENTE 5 títulos DISTINTOS y NO REDUNDANTES
 2. Mínimo 4 de 5 deben tener "cochraneCompliance": "full"
-3. ⚠️⚠️⚠️ **CRÍTICO - UMBRELLA TERM:** Cada título DEBE usar UN SOLO término paraguas para O (Performance, Efficiency, Scalability, Reliability, Usability, Security, Resource Consumption, Development Efficiency). PROHIBIDO listar métricas (Latency, Throughput, Accuracy, etc.)
-4. ⚠️⚠️⚠️ **CRÍTICO - COMPARACIÓN:** Si PICO tiene C (Comparison), MÍNIMO 4 de 5 títulos DEBEN usar patrones C1, C2, C3 o C4 con "vs" o "versus" EXPLÍCITO
+3. [!!!] **CRÍTICO - UMBRELLA TERM:** Cada título DEBE usar UN SOLO término paraguas para O (Performance, Efficiency, Scalability, Reliability, Usability, Security, Resource Consumption, Development Efficiency). PROHIBIDO listar métricas (Latency, Throughput, Accuracy, etc.)
+4. [!!!] **CRÍTICO - COMPARACIÓN:** Si PICO tiene C (Comparison), MÍNIMO 4 de 5 títulos DEBEN usar patrones C1, C2, C3 o C4 con "vs" o "versus" EXPLÍCITO
 5. Cada título DEBE tener justificación de 30-50 palabras
-6. ⚠️⚠️⚠️ **Estilo Q1/Q2:** Títulos declarativos/descriptivos. PROHIBIDO ABSOLUTO: "Exploring", "Investigating", "A Study of", "Analyzing", "Examining"
+6. [!!!] **Estilo Q1/Q2:** Títulos declarativos/descriptivos. PROHIBIDO ABSOLUTO: "Exploring", "Investigating", "A Study of", "Analyzing", "Examining"
 7. Responde ÚNICAMENTE con JSON válido, sin texto adicional
 
-⚠️⚠️⚠️ VALIDACIÓN FINAL ANTES DE ENVIAR JSON:
-- ¿Cada título usa UN SOLO término paraguas para O? (NO listas de métricas)
-- ¿Si C existe, al menos 4 títulos incluyen "vs" o "versus"?
-- ¿NINGÚN título usa "Exploring", "Investigating", "A Study of"?
-- ¿Cada componente.outcome es un término paraguas válido?
+[!!!] VALIDACIÓN FINAL ANTES DE ENVIAR JSON:
+- [?] ¿Cada título usa UN SOLO término paraguas para O? (NO listas de métricas)
+- [?] ¿Si C existe, al menos 4 títulos incluyen "vs" o "versus"?
+- [?] ¿NINGÚN título usa "Exploring", "Investigating", "A Study of"?
+- [?] ¿Cada componente.outcome es un término paraguas válido?
 
 GENERA LOS 5 TÍTULOS AHORA:`;
   }
@@ -341,11 +341,11 @@ GENERA LOS 5 TÍTULOS AHORA:`;
           const isValidUmbrella = validUmbrellaTerms.some(term => outcomeLower.includes(term));
           
           if (hasCommaOrAnd) {
-            console.warn(`⚠️ Título ${index + 1} lista múltiples métricas: "${components.outcome}" - DEBE usar UN SOLO término paraguas (Performance, Efficiency, etc.)`);
+            console.warn(`[!] Título ${index + 1} lista múltiples métricas: "${components.outcome}" - DEBE usar UN SOLO término paraguas (Performance, Efficiency, etc.)`);
           }
           
           if (isInvalidMetric && !isValidUmbrella) {
-            console.warn(`⚠️ Título ${index + 1} usa métrica individual: "${components.outcome}" - DEBE usar término paraguas (Performance en vez de Latency/Throughput)`);
+            console.warn(`[!] Título ${index + 1} usa métrica individual: "${components.outcome}" - DEBE usar término paraguas (Performance en vez de Latency/Throughput)`);
           }
         }
         
@@ -395,10 +395,10 @@ GENERA LOS 5 TÍTULOS AHORA:`;
         }).length;
         
         if (withVsCount < 4) {
-          console.warn(`⚠️⚠️⚠️ CRÍTICO: Solo ${withVsCount} títulos incluyen comparación explícita (vs/versus), se esperaban al menos 4`);
-          console.warn(`⚠️ PICO tiene Comparación (C) definida, mínimo 4 de 5 títulos DEBEN incluir "vs" o "versus" explícitamente`);
+          console.warn(`[!!!] CRÍTICO: Solo ${withVsCount} títulos incluyen comparación explícita (vs/versus), se esperaban al menos 4`);
+          console.warn(`[!] PICO tiene Comparación (C) definida, mínimo 4 de 5 títulos DEBEN incluir "vs" o "versus" explícitamente`);
         } else {
-          console.log(`✅ Validación comparación: ${withVsCount} títulos incluyen "vs/versus" explícitamente`);
+          console.log(`[OK] Validación comparación: ${withVsCount} títulos incluyen "vs/versus" explícitamente`);
         }
       }
       
@@ -418,10 +418,10 @@ GENERA LOS 5 TÍTULOS AHORA:`;
       }).length;
       
       if (withUmbrellaCount < 4) {
-        console.warn(`⚠️⚠️⚠️ CRÍTICO: Solo ${withUmbrellaCount} títulos usan términos paraguas (umbrella terms), se esperaban al menos 4`);
-        console.warn(`⚠️ Los títulos DEBEN usar UN SOLO término paraguas para Outcomes (Performance, Efficiency, Scalability, etc.), NO listar métricas individuales`);
+        console.warn(`[!!!] CRÍTICO: Solo ${withUmbrellaCount} títulos usan términos paraguas (umbrella terms), se esperaban al menos 4`);
+        console.warn(`[!] Los títulos DEBEN usar UN SOLO término paraguas para Outcomes (Performance, Efficiency, Scalability, etc.), NO listar métricas individuales`);
       } else {
-        console.log(`✅ Validación umbrella terms: ${withUmbrellaCount} títulos usan términos paraguas correctamente`);
+        console.log(`[OK] Validación umbrella terms: ${withUmbrellaCount} títulos usan términos paraguas correctamente`);
       }
       
       // NUEVA VALIDACIÓN: Verificar que NO haya títulos con verbos exploratorios
@@ -432,10 +432,10 @@ GENERA LOS 5 TÍTULOS AHORA:`;
       }).length;
       
       if (withExploratoryCount > 0) {
-        console.warn(`⚠️⚠️⚠️ CRÍTICO: ${withExploratoryCount} títulos usan verbos exploratorios prohibidos (Exploring, Investigating, A Study of, etc.)`);
-        console.warn(`⚠️ Títulos Q1/Q2 DEBEN ser declarativos/descriptivos: "[I] vs [C] for [O]", NO "Exploring...", "Investigating..."`);
+        console.warn(`[!!!] CRÍTICO: ${withExploratoryCount} títulos usan verbos exploratorios prohibidos (Exploring, Investigating, A Study of, etc.)`);
+        console.warn(`[!] Títulos Q1/Q2 DEBEN ser declarativos/descriptivos: "[I] vs [C] for [O]", NO "Exploring...", "Investigating..."`);
       } else {
-        console.log(`✅ Validación estilo Q1/Q2: Ningún título usa verbos exploratorios`);
+        console.log(`[OK] Validación estilo Q1/Q2: Ningún título usa verbos exploratorios`);
       }
       
       // NUEVA VALIDACIÓN: Verificar que al menos 4 títulos tengan outcomes explícitos
