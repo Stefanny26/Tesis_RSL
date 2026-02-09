@@ -178,6 +178,58 @@ class ProjectController {
       });
     }
   }
+
+  /**
+   * POST /api/cleanup-temporary-project
+   * Limpiar proyecto temporal al abandonar wizard
+   */
+  async cleanupTemporary(req, res) {
+    try {
+      const { projectId } = req.body;
+
+      // Verificar que el proyecto existe y es del usuario
+      const project = await this.projectRepository.findById(projectId);
+      
+      if (!project) {
+        return res.status(404).json({
+          success: false,
+          message: 'Proyecto no encontrado'
+        });
+      }
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para eliminar este proyecto'
+        });
+      }
+
+      // Solo eliminar si es temporal
+      if (project.status === 'temporary' || project.title?.startsWith('[TEMPORAL]')) {
+        console.log(`🧹 Eliminando proyecto temporal: ${projectId} (${project.title})`);
+        await this.projectRepository.delete(projectId);
+        
+        res.status(200).json({
+          success: true,
+          message: 'Proyecto temporal eliminado exitosamente'
+        });
+      } else {
+        console.log(`⏭️ Proyecto no es temporal, no se elimina: ${projectId} (status: ${project.status})`);
+        res.status(200).json({
+          success: true,
+          message: 'Proyecto no requiere limpieza'
+        });
+      }
+    } catch (error) {
+      console.error('Error limpiando proyecto temporal:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al limpiar proyecto temporal'
+      });
+    }
+  }
 }
 
 module.exports = new ProjectController();

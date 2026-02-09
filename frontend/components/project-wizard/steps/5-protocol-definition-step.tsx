@@ -171,9 +171,27 @@ export function ProtocolDefinitionStep() {
   }
 
   const handleTermChange = (section: keyof typeof protocolTerms, index: number, newValue: string, side: 'es' | 'en', originalOtherSide: string) => {
-     const newFullString = side === 'es' ? `${newValue} - ${originalOtherSide}` : `${originalOtherSide} - ${newValue}`
+     const currentTerm = protocolTerms[section][index]
+     const isNewTerm = !currentTerm || currentTerm.trim() === '' || !currentTerm.includes(' - ')
+     
+     // Si es término nuevo (vacío o sin formato bilingüe), permitir editar ambos lados manualmente
+     if (isNewTerm) {
+       // Para términos nuevos, construir formato bilingüe desde cero
+       const parts = currentTerm.includes(' - ') ? currentTerm.split(' - ') : ['', '']
+       const esPart = side === 'es' ? newValue : (parts[0] || '')
+       const enPart = side === 'en' ? newValue : (parts[1] || originalOtherSide || '')
+       const newFullString = `${esPart} - ${enPart}`
+       updateArrayField(section, index, newFullString)
+       setModifiedSide({ section, index, side })
+       return
+     }
+     
+     // Para términos generados por IA, solo permitir modificar el lado español
+     if (side !== 'es') return
+     
+     const newFullString = `${newValue} - ${originalOtherSide}`
      updateArrayField(section, index, newFullString)
-     setModifiedSide({ section, index, side })
+     setModifiedSide({ section, index, side: 'es' })
   }
 
   const addArrayItem = (field: keyof typeof protocolTerms) => {
@@ -221,28 +239,35 @@ export function ProtocolDefinitionStep() {
         const esTerm = parts[0].trim()
         const enTerm = parts.slice(1).join(' - ').trim()
         
-        try {
-            setTranslating({ section: field, index })
-            let newFullString = currentTerm
-            
-            if (modifiedSide.side === 'es' && esTerm) {
+        // Detectar si es un término nuevo (usuario escribió ambos lados manualmente)
+        const isNewTerm = !currentTerm || modifiedSide.side === 'en' || (esTerm && enTerm && modifiedSide.side !== 'es')
+        
+        // Si ambos lados tienen contenido Y el usuario editó manualmente, solo guardar sin traducir
+        if (isNewTerm && esTerm && enTerm) {
+            setModifiedSide(null)
+            setTranslating(null)
+            toast({ title: "Guardado", description: "Término bilingüe guardado", duration: 2000 })
+        } else if (modifiedSide.side === 'es' && esTerm) {
+            // Solo traducir si editó el español y NO tiene inglés todavía
+            try {
+                setTranslating({ section: field, index })
                 toast({ title: "Traduciendo...", description: "Generando término en inglés..." })
                 const translated = await apiClient.translateText(esTerm, 'es', 'en')
-                newFullString = `${esTerm} - ${translated}`
-            } else if (modifiedSide.side === 'en' && enTerm) {
-                toast({ title: "Traduciendo...", description: "Generando término en español..." })
-                const translated = await apiClient.translateText(enTerm, 'en', 'es')
-                newFullString = `${translated} - ${enTerm}`
+                const newFullString = `${esTerm} - ${translated}`
+                updateArrayField(field, index, newFullString)
+                setModifiedSide(null)
+                toast({ title: "Guardado y traducido", duration: 2000 })
+            } catch (e) {
+                console.error(e)
+                toast({ variant: "destructive", title: "Error al traducir, pero se guardó el cambio manual." })
+            } finally {
+                setTranslating(null)
             }
-            
-            updateArrayField(field, index, newFullString)
+        } else {
+            // Otros casos: simplemente guardar
             setModifiedSide(null)
-            toast({ title: "Guardado y traducido", duration: 2000 })
-        } catch (e) {
-            console.error(e)
-            toast({ variant: "destructive", title: "Error al traducir, pero se guardó el cambio manual." })
-        } finally {
             setTranslating(null)
+            toast({ title: "Guardado", duration: 2000 })
         }
     }
 
@@ -456,16 +481,24 @@ export function ProtocolDefinitionStep() {
                    </div>
 
                    <div className="col-span-1 md:col-span-6 space-y-2 relative">
-                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-400"></span> Inglés (Search Query)
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-400"></span> Inglés (Search Query)
+                        </span>
+                        {isEditing && tech.includes(' - ') && esTerm && enTerm && (
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded">
+                            AUTO-TRADUCCIÓN
+                          </span>
+                        )}
                       </Label>
                       <Textarea
                         value={enTerm}
                         onChange={(e) => handleTermChange('tecnologia', index, e.target.value, 'en', esTerm)}
                         placeholder="English Term"
                         rows={2}
-                        disabled={!isEditing || isTranslating}
-                        className={getFieldStyles()}
+                        disabled={!isEditing || isTranslating || (tech.includes(' - ') && esTerm && enTerm)}
+                        className={`${getFieldStyles()} ${(isEditing && tech.includes(' - ') && esTerm && enTerm) ? 'cursor-not-allowed opacity-60' : ''}`}
+                        title={(isEditing && tech.includes(' - ') && esTerm && enTerm) ? "Este campo se traduce automáticamente al guardar" : ""}
                       />
                    </div>
                    
@@ -616,16 +649,24 @@ export function ProtocolDefinitionStep() {
                    </div>
 
                    <div className="col-span-1 md:col-span-6 space-y-2 relative">
-                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-400"></span> Inglés (Search Query)
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-400"></span> Inglés (Search Query)
+                        </span>
+                        {isEditing && domain.includes(' - ') && esTerm && enTerm && (
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded">
+                            AUTO-TRADUCCIÓN
+                          </span>
+                        )}
                       </Label>
                       <Textarea
                         value={enTerm}
                         onChange={(e) => handleTermChange('dominio', index, e.target.value, 'en', esTerm)}
                         placeholder="English Term"
                         rows={2}
-                        disabled={!isEditing || isTranslating}
-                        className={getFieldStyles()}
+                        disabled={!isEditing || isTranslating || (domain.includes(' - ') && esTerm && enTerm)}
+                        className={`${getFieldStyles()} ${(isEditing && domain.includes(' - ') && esTerm && enTerm) ? 'cursor-not-allowed opacity-60' : ''}`}
+                        title={(isEditing && domain.includes(' - ') && esTerm && enTerm) ? "Este campo se traduce automáticamente al guardar" : ""}
                       />
                    </div>
                    
@@ -776,16 +817,24 @@ export function ProtocolDefinitionStep() {
                    </div>
 
                    <div className="col-span-1 md:col-span-6 space-y-2 relative">
-                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-400"></span> Inglés (Search Query)
+                      <Label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-400"></span> Inglés (Search Query)
+                        </span>
+                        {isEditing && focus.includes(' - ') && esTerm && enTerm && (
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded">
+                            AUTO-TRADUCCIÓN
+                          </span>
+                        )}
                       </Label>
                       <Textarea
                         value={enTerm}
                         onChange={(e) => handleTermChange('focosTematicos', index, e.target.value, 'en', esTerm)}
                         placeholder="English Term"
                         rows={2}
-                        disabled={!isEditing || isTranslating}
-                        className={getFieldStyles()}
+                        disabled={!isEditing || isTranslating || (focus.includes(' - ') && esTerm && enTerm)}
+                        className={`${getFieldStyles()} ${(isEditing && focus.includes(' - ') && esTerm && enTerm) ? 'cursor-not-allowed opacity-60' : ''}`}
+                        title={(isEditing && focus.includes(' - ') && esTerm && enTerm) ? "Este campo se traduce automáticamente al guardar" : ""}
                       />
                    </div>
                    

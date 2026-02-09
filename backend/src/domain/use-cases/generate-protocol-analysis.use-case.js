@@ -95,22 +95,23 @@ Debes definir cada componente buscando **precisión absoluta y operacionalizaci�
 
 🧑 **P - POPULATION/PROBLEM:**
 ⚠️ **REGLA CRÍTICA PARA INGENIERÍA Y TECNOLOGÍA:**
-- Definición: Estudios empíricos y contextos tecnológicos que presentan el problema o condición de interés.
-- La POBLACIÓN en RSL de ingeniería son ESTUDIOS o CONTEXTOS TECNOLÓGICOS, NUNCA personas.
-- Formato obligatorio: "Estudios [tipo de estudios] sobre [fenómeno tecnológico] en [contexto técnico/dominio]"
+- Definición: El **DOMINIO**, **SISTEMA** o **CONTEXTO TÉCNICO** donde se aplica la tecnología.
+- La POBLACIÓN en RSL de ingeniería NO son los "artículos" ni "estudios", sino el ecosistema técnico.
+- Formato obligatorio: "Sistemas de [tipo] en contextos de [dominio]" o "Entornos de [tipo] que utilizan [tecnología]"
 
 **QUÉ DEBE INCLUIR:**
-- Tipo de estudios (empíricos, evaluativos, experimentales, casos de estudio)
-- Fenómeno o tecnología investigada
-- Contexto técnico o dominio de aplicación (relacionado con ${area})
+- Dominio de aplicación (ej: Salud, Finanzas, IoT, Educación)
+- Tipo de sistema o plataforma (ej: Sistemas distribuidos, Aplicaciones móviles, Redes neuronales)
+- Contexto técnico específico
 - **LONGITUD MÍNIMA: 40-60 palabras**
 
 **QUÉ NO DEBE INCLUIR JAMÁS:**
-- ❌ Edad, profesiones, ubicación geográfica de personas
-- ❌ "Profesionales", "usuarios", "trabajadores" como sujeto principal
+- ❌ "Estudios", "Artículos", "Investigaciones" como sujeto principal (eso es la unidad de análisis, no la población).
+- ❌ Edad, profesiones, ubicación geográfica de personas.
+- ❌ "Profesionales", "usuarios", "trabajadores".
 
 **JUSTIFICACIÓN METODOLÓGICA (incluir siempre):**
-"La población se define en términos de estudios/contextos técnicos conforme a metodología PRISMA 2020, donde la unidad de análisis son publicaciones académicas, no sujetos humanos."
+"La población se define en términos del dominio o sistema técnico donde aplica la tecnología, conforme a los estándares de ingeniería de software para RSL (Kitchenham/PRISMA)."
 
 🔬 **I - INTERVENTION (Intervención/Exposición):**
 - Definición: La tecnología, método, práctica o fenómeno observado que constituye el eje central del estudio.
@@ -136,8 +137,8 @@ Debes definir cada componente buscando **precisión absoluta y operacionalizaci�
 
 **PREGUNTA CONTESTABLE:**
 Construir pregunta PICO formal que guíe toda la revisión:
-- **CON comparación:** "En [P], ¿cómo influye la aplicación de [I] en comparación con [C] sobre los niveles de [O]?"
-- **SIN comparación:** "En [P], ¿cuál es el efecto/impacto de [I] en términos de [O]?"
+- **CON comparación:** "En [P - sistemas/contextos], ¿cómo influye la aplicación de [I] en comparación con [C] sobre los niveles de [O]?"
+- **SIN comparación:** "En [P - sistemas/contextos], ¿cuál es el efecto/impacto de [I] en términos de [O]?"
 
 ═══════════════════════════════════════════════════════════════
 FASE 2: MATRIZ DE CRITERIOS DE ELEGIBILIDAD (Inclusión/Exclusión)
@@ -220,8 +221,8 @@ FORMATO JSON DE SALIDA (ESTRICTO)
   "fase1_marco_pico": {
     "marco_pico": {
       "population": {
-        "descripcion": "[Estudios [tipo] sobre [fenómeno] en [contexto técnico]. NO personas. Mínimo 40 palabras.]",
-        "justificacion": "La población se define en términos de estudios/contextos técnicos conforme a metodología PRISMA 2020, donde la unidad de análisis son publicaciones académicas, no sujetos humanos."
+        "descripcion": "[Sistemas/Contextos [tipo] donde aplica [fenómeno]. Ejemplo: 'Sistemas de software backend en Node.js con persistencia NoSQL'. Mínimo 40 palabras.]",
+        "justificacion": "La población se define como el dominio, sistema o contexto técnico donde se aplicará la tecnología investigada, NO como estudios o publicaciones (esas son la unidad de análisis). Esta definición sigue estándares Kitchenham y PRISMA para revisiones en ingeniería."
       },
       "intervention": {
         "descripcion": "[Tecnología/método operacionalizado con características distintivas. Mínimo 40 palabras.]",
@@ -236,7 +237,7 @@ FORMATO JSON DE SALIDA (ESTRICTO)
         "justificacion": "[Por qué estos outcomes, cómo se relacionan con objetivos. Mínimo 30 palabras.]"
       }
     },
-    "pregunta_contestable": "En [Estudios sobre P], ¿cómo influye [I] en comparación con [C] sobre los niveles de [O]?"
+    "pregunta_contestable": "En [P - contextos/sistemas], ¿cómo influye [I] en comparación con [C] sobre los niveles de [O]?"
   },
   "fase2_matriz_es_no_es": {
     "analisis_critico": [
@@ -295,8 +296,8 @@ Antes de enviar el JSON, VERIFICA:
    - ❌ Edad, profesiones como sujeto principal, ubicación geográfica de personas
    
 ✅ **POBLACIÓN SÍ CONTIENE:**
-   - ✅ Tipo de estudios, fenómeno tecnológico, contexto técnico
-   - ✅ Justificación metodológica PRISMA 2020
+   - ✅ Dominio, sistema o contexto técnico
+   - ✅ Justificación metodológica correcta
 
 ✅ **CRITERIOS PREPARADOS PARA EXTRACCIÓN:**
    - ¿Los criterios de inclusión permiten identificar estudios con datos extraíbles?

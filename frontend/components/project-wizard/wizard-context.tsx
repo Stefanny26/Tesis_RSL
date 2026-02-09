@@ -294,6 +294,62 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
     loadExistingProtocol()
   }, [projectId, projectData])
 
+  // Limpieza de proyectos temporales cuando el usuario abandona el wizard
+  useEffect(() => {
+    const cleanupTemporaryProject = async () => {
+      // Solo limpiar si es un proyecto temporal (creado en step 6 pero no completado en step 7)
+      if (data.projectId && currentStep < 7) {
+        try {
+          // Verificar si el proyecto es temporal
+          const projectDetails = await apiClient.getProject(data.projectId)
+          
+          if (projectDetails?.data?.project?.status === 'temporary' || 
+              projectDetails?.data?.project?.title?.startsWith('[TEMPORAL]')) {
+            
+            console.log('🧹 Eliminando proyecto temporal al abandonar wizard:', data.projectId)
+            await apiClient.deleteProject(data.projectId)
+            console.log('✅ Proyecto temporal eliminado exitosamente')
+          }
+        } catch (error) {
+          console.error('❌ Error al eliminar proyecto temporal:', error)
+          // No es crítico si falla - se puede limpiar manualmente después
+        }
+      }
+    }
+
+    // Manejador para cuando el usuario cierra la pestaña o navega fuera
+    const handleBeforeUnload = () => {
+      // Solo marcar para limpieza si hay proyecto temporal
+      if (data.projectId && currentStep < 7) {
+        // Usar navigator.sendBeacon para envío asíncrono que no bloquee
+        const payload = JSON.stringify({ 
+          projectId: data.projectId, 
+          action: 'cleanup-temporary' 
+        })
+        
+        try {
+          navigator.sendBeacon('/api/projects/cleanup-temporary-project', payload)
+        } catch (error) {
+          console.error('Error enviando señal de limpieza:', error)
+        }
+      }
+    }
+
+    // Agregar event listener para detección de abandono
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    
+    // Limpiar proyecto temporal cuando el componente se desmonte
+    // (usuario navega fuera del wizard sin completar)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      
+      if (data.projectId && currentStep < 7) {
+        // Ejecutar limpieza de forma asíncrona
+        cleanupTemporaryProject()
+      }
+    }
+  }, [data.projectId, currentStep])
+
   const updateData = (updates: Partial<WizardData>) => {
     setData(prev => ({ ...prev, ...updates }))
   }

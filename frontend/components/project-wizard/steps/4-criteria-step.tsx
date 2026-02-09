@@ -21,6 +21,34 @@ const getProviderName = (provider: 'chatgpt' | 'gemini') => {
   return names[provider]
 }
 
+// Helper function para filtrar términos descartados
+const filterDiscardedTerms = (protocolTerms: any, discardedTerms: any) => {
+  if (!protocolTerms || !discardedTerms) return protocolTerms
+
+  const filterArray = (terms: string[], discarded: Set<number>) => {
+    return terms.filter((_, index) => !discarded.has(index))
+  }
+
+  return {
+    tecnologia: filterArray(
+      protocolTerms.tecnologia || protocolTerms.technologies || [],
+      discardedTerms.tecnologia || new Set()
+    ),
+    dominio: filterArray(
+      protocolTerms.dominio || protocolTerms.applicationDomain || [],
+      discardedTerms.dominio || new Set()
+    ),
+    focosTematicos: filterArray(
+      protocolTerms.focosTematicos || protocolTerms.thematicFocus || [],
+      discardedTerms.focosTematicos || new Set()
+    ),
+    tipoEstudio: filterArray(
+      protocolTerms.tipoEstudio || protocolTerms.studyType || [],
+      discardedTerms.tipoEstudio || new Set()
+    )
+  }
+}
+
 export function CriteriaStep() {
   const { data, updateData } = useWizard()
   const { toast } = useToast()
@@ -33,7 +61,31 @@ export function CriteriaStep() {
   const [editingCell, setEditingCell] = useState<string | null>(null) // e.g. "inc-0", "exc-3"
   const [editValue, setEditValue] = useState('')
 
-  // Nombres de las categorías (nivel protocolo PRISMA)
+  // Helper function para obtener términos rechazados
+  const getRejectedTerms = useCallback(() => {
+    const rejected: string[] = []
+    
+    // Agregar términos rechazados de tecnología
+    data.discardedTerms?.tecnologia?.forEach((index: number) => {
+      const term = data.protocolTerms?.tecnologia?.[index]
+      if (term) rejected.push(term)
+    })
+    
+    // Agregar términos rechazados de dominio
+    data.discardedTerms?.dominio?.forEach((index: number) => {
+      const term = data.protocolTerms?.dominio?.[index]
+      if (term) rejected.push(term)
+    })
+    
+    // Agregar términos rechazados de focos temáticos
+    data.discardedTerms?.focosTematicos?.forEach((index: number) => {
+      const term = data.protocolTerms?.focosTematicos?.[index]
+      if (term) rejected.push(term)
+    })
+    
+    return rejected
+  }, [data.discardedTerms, data.protocolTerms])
+
   // Nombres de las categorías
   const categoryNames = [
     'Cobertura Temática (Contexto)',
@@ -61,9 +113,12 @@ export function CriteriaStep() {
         description: `Usando ${getProviderName(data.aiProvider)} con términos confirmados del protocolo...`
       })
 
+      // Filtrar términos descartados antes de enviar al backend
+      const filteredTerms = filterDiscardedTerms(data.protocolTerms, data.discardedTerms)
+
       // Llamar al nuevo endpoint con términos normalizados y validados
       const result = await apiClient.generateInclusionExclusionCriteria(
-        data.protocolTerms,
+        filteredTerms,
         data.pico,
         data.aiProvider,
         undefined, // specificType
@@ -72,7 +127,8 @@ export function CriteriaStep() {
         undefined, // categoryName
         data.yearStart,
         data.yearEnd,
-        data.selectedTitle // ← REGLA: Usar título RSL seleccionado para derivar criterios
+        data.selectedTitle, // ← REGLA: Usar título RSL seleccionado para derivar criterios
+        getRejectedTerms() // ← Términos rechazados por el investigador
       )
 
       // Backend returns structured criteria with categories
@@ -218,9 +274,12 @@ export function CriteriaStep() {
         description: `${categoryName} - ${regenerateType === 'inclusion' ? 'Inclusión' : 'Exclusión'}`
       })
 
+      // Filtrar términos descartados antes de enviar al backend
+      const filteredTerms = filterDiscardedTerms(data.protocolTerms, data.discardedTerms)
+
       // Llamar al endpoint con categoría específica
       const result = await apiClient.generateInclusionExclusionCriteria(
-        data.protocolTerms,
+        filteredTerms,
         data.pico,
         data.aiProvider,
         regenerateType,
@@ -229,11 +288,30 @@ export function CriteriaStep() {
         categoryName,
         data.yearStart,
         data.yearEnd,
-        data.selectedTitle // ← REGLA: Usar título RSL seleccionado
+        data.selectedTitle, // ← REGLA: Usar título RSL seleccionado
+        getRejectedTerms() // ← Términos rechazados
       )
 
+      // Si el backend retorna ambos criterios (bothCriteria = true)  
+      if (result.bothCriteria) {
+        const inclusionCriteria = [...data.inclusionCriteria]
+        const exclusionCriteria = [...data.exclusionCriteria]
+        
+        inclusionCriteria[result.categoryIndex] = result.inclusion
+        exclusionCriteria[result.categoryIndex] = result.exclusion
+        
+        updateData({ 
+          inclusionCriteria, 
+          exclusionCriteria 
+        })
+        
+        toast({
+          title: "Ambos criterios actualizados",
+          description: `${categoryName} - Inclusión y Exclusión regenerados para mantener coherencia`
+        })
+      }
       // Si el backend retorna un solo criterio (isSingleCriterion = true)
-      if (result.isSingleCriterion && result.singleCriterion) {
+      else if (result.isSingleCriterion && result.singleCriterion) {
         if (regenerateType === 'inclusion') {
           const inclusionCriteria = [...data.inclusionCriteria]
           inclusionCriteria[regenerateCategory] = result.singleCriterion
@@ -243,6 +321,11 @@ export function CriteriaStep() {
           exclusionCriteria[regenerateCategory] = result.singleCriterion
           updateData({ exclusionCriteria })
         }
+        
+        toast({
+          title: "Criterio individual actualizado",
+          description: `${categoryName} - Solo ${regenerateType === 'inclusion' ? 'Inclusión' : 'Exclusión'} regenerado`
+        })
       } else {
         // Fallback: usar el formato antiguo si el backend no retorna isSingleCriterion
         if (regenerateType === 'inclusion') {
@@ -258,12 +341,12 @@ export function CriteriaStep() {
           exclusionCriteria[regenerateCategory] = newCriterio
           updateData({ exclusionCriteria })
         }
+        
+        toast({
+          title: "Criterio actualizado (formato legacy)", 
+          description: `${categoryName} - ${regenerateType === 'inclusion' ? 'Inclusión' : 'Exclusión'} regenerado`
+        })
       }
-
-      toast({
-        title: "Criterio regenerado",
-        description: `${categoryName} actualizado exitosamente`
-      })
 
       setRegenerateDialogOpen(false)
       setRegenerateFocus('')
@@ -324,7 +407,7 @@ export function CriteriaStep() {
           <CardHeader>
             <CardTitle>Matriz de Criterios de Inclusión/Exclusión</CardTitle>
             <CardDescription>
-              Criterios estructurados por categoría según metodología PRISMA. Usa el botón de regenerar en cada celda para actualizar criterios individuales.
+              Criterios estructurados por categoría según metodología PRISMA. Al regenerar un criterio, ambos (inclusión y exclusión) se actualizarán automáticamente para mantener coherencia.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -362,7 +445,8 @@ export function CriteriaStep() {
               Regenerar: {regenerateCategory === null ? '' : categoryNames[regenerateCategory]} - {regenerateType === 'inclusion' ? 'Inclusión' : 'Exclusión'}
             </DialogTitle>
             <DialogDescription>
-              Describe en qué quieres centrar el análisis para este criterio específico (opcional)
+              Para mantener coherencia, se regenerarán AMBOS criterios (Inclusión y Exclusión) de esta categoría.
+              Describe el enfoque específico que deseas (opcional).
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -372,14 +456,14 @@ export function CriteriaStep() {
               </Label>
               <Textarea
                 id="criteria-focus"
-                placeholder={`Ej: Quiero criterios más ${regenerateType === 'inclusion' ? 'inclusivos enfocados en estudios empíricos' : 'restrictivos para excluir literatura gris'}...`}
+                placeholder="Ej: Criterios más específicos para tecnologías de contenedores, enfoque en estudios empíricos recientes..."
                 value={regenerateFocus}
                 onChange={(e) => setRegenerateFocus(e.target.value)}
                 rows={4}
                 className="resize-none"
               />
               <p className="text-sm text-muted-foreground">
-                Si dejas esto en blanco, se usará el análisis predeterminado basado en tu protocolo
+                Si dejas esto vacío, se usará el análisis predeterminado. Ambos criterios (inclusión y exclusión) serán regenerados para mantener coherencia.
               </p>
             </div>
           </div>

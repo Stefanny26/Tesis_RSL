@@ -149,21 +149,37 @@ REGLAS DE REDACCIÓN ACADÉMICA PARA TÍTULOS
      *   "Cost + Time" → "**Efficiency**"
    - El título debe leerse fluido y académico, no como una lista de variables.
 
-3. **Comparador (C)**: Si el PICO tiene Comparison definida, al menos 1 título debe usar formato comparativo: "[I] vs. [C] for [O] in [P]"
+3. **Comparador (C) - REGLA CRÍTICA**: 
+   - ⚠️ Si el PICO tiene Comparison (C) definida, esto es una FORTALEZA metodológica.
+   - **OBLIGATORIO:** Mínimo 4 de 5 títulos DEBEN incluir la comparación explícitamente.
+   - Formato comparativo: "[I] vs. [C] for [O] in [P]" o "[O] of [I] Compared to [C] in [P]"
+   - La comparación debe ser clara y específica, no vaga.
 
-4. **Sin buzzwords**: Prohibido usar "Moderno", "Avanzado", "Reciente", "Impacto general", "Mejora", "Estudio sobre".
+4. **Estilo Declarativo/Descriptivo (Q1/Q2)**:
+   - Preferir títulos que DECLARAN lo que se compara/evalúa.
+   - Ejemplos Q1: "MongoDB vs. PostgreSQL for Query Performance in Node.js Backend Systems"
+   - NO usar: "A Study of...", "Exploring...", "Investigating..."
+   - SÍ usar: "[Tech A] vs. [Tech B] for [Outcome]", "[Outcome] of [Tech] Compared to [Baseline]"
 
-5. **Longitud**: Entre 12 y 18 palabras.
+5. **Sin buzzwords**: Prohibido usar "Moderno", "Avanzado", "Reciente", "Impacto general", "Mejora", "Estudio sobre", "Exploring", "Investigating".
 
-6. **Precisión técnica**: Usar la terminología exacta del PICO para P e I, pero términos paraguas para O.
+6. **Longitud**: Entre 12 y 18 palabras.
+
+7. **Precisión técnica**: Usar la terminología exacta del PICO para P, I, C y términos paraguas para O.
 
 ═══════════════════════════════════════════════════════════════
-PATRONES DE ESTRUCTURA
+PATRONES DE ESTRUCTURA (Prioridad a Comparativos si C existe)
 ═══════════════════════════════════════════════════════════════
 
+**CUANDO HAY COMPARACIÓN (C) - USAR ESTOS 4 PATRONES PRIMERO:**
+**Patrón C1** (Declarativo directo): [I] vs. [C] for [O] in [P]: A Systematic Review
+**Patrón C2** (Outcome primero): [O] of [I] Compared to [C] in [P]: A Systematic Review
+**Patrón C3** (Comparativo nominal): Comparative Analysis of [I] and [C] for [O] in [P]: A Systematic Review
+**Patrón C4** (Evaluación): Evaluating [I] Against [C] for [O] in [P]: A Systematic Review
+
+**CUANDO NO HAY COMPARACIÓN - USAR ESTOS:**
 **Patrón A** (Sin Comparison): [I] for [O] in [P]: A Systematic Review
-**Patrón B** (Outcome primero): [O] of [I] in [P]: A Systematic Review  
-**Patrón C** (Con Comparison): [I] vs. [C] for [O] in [P]: A Comparative Review
+**Patrón B** (Outcome primero): [O] of [I] in [P]: A Systematic Review
 **Patrón D** (Scoping): [O] of [I] in [P]: A Scoping Review
 
 ═══════════════════════════════════════════════════════════════
@@ -215,9 +231,10 @@ INSTRUCCIONES FINALES
 1. Genera EXACTAMENTE 5 títulos DISTINTOS y NO REDUNDANTES
 2. Mínimo 4 de 5 deben tener "cochraneCompliance": "full"
 3. Cada título DEBE incluir el Outcome (O) del PICO de manera concreta
-4. Si PICO tiene C (Comparison), al menos 1 título debe usar Patrón C
+4. ⚠️ **CRÍTICO - COMPARACIÓN:** Si PICO tiene C (Comparison), MÍNIMO 4 de 5 títulos DEBEN usar patrones C1, C2, C3 o C4 (incluir la comparación explícitamente)
 5. Cada título DEBE tener justificación de 30-50 palabras
-6. Responde ÚNICAMENTE con JSON válido, sin texto adicional
+6. **Estilo Q1/Q2:** Títulos declarativos/descriptivos, NO usar "Exploring", "Investigating", "A Study of"
+7. Responde ÚNICAMENTE con JSON válido, sin texto adicional
 
 GENERA LOS 5 TÍTULOS AHORA:`;
   }

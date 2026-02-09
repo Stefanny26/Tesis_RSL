@@ -141,6 +141,7 @@ DATOS DEL PROTOCOLO (ya validados en pasos anteriores)
 ═══════════════════════════════════════════════════════════════
 
 TÍTULO RSL SELECCIONADO: "${title}"
+⚠️ NOTA: El título es referencial. Basar términos en PICO y Matriz validados por el investigador.
 
 MARCO PICO (ya definido y editado por el investigador — usar tal cual):
 - P (Población/Contexto): ${P}
@@ -159,35 +160,44 @@ OBJETIVO: Maximizar la SENSIBILIDAD (Recall). Debemos encontrar TODOS los papers
 
 Genera 3 categorías de términos derivados del TÍTULO y del PICO ya validado:
 
-1. **technologies** (6-10 términos) — Basado en PICO-I: "${I}"
-   - Tecnología central del título + SINÓNIMOS TÉCNICOS + HIPÓNIMOS (subtipos específicos).
-   - Ejemplo: Si es "AI", incluir "Machine Learning", "Deep Learning", "CNN", "Computer Vision".
-   - Ejemplo: Si es "Pest Control", incluir "IPM", "Phytosanitary Control".
-   - Objetivo: Maximizar RECALL. Que no se escape ningún paper por usar términos específicos.
+1. **technologies** (4-6 términos CLAVE) — Basado en PICO-I: "${I}"
+   - SOLO nombres propios técnicos y conceptos clave específicos.
+   - ❌ NO atomizar: Si es "MongoDB" → incluir "MongoDB", NO "Mongoose", "Schema", "Collection" como términos separados.
+   - ✅ PREFERIR: Tecnologías/frameworks principales mencionados explícitamente en PICO-I.
+   - Ejemplo: Si PICO-I dice "MongoDB como ODM" → términos: "MongoDB", "ODM", "NoSQL Database".
+   - ❌ EVITAR términos amplios: "Database", "Software", "Technology", "System".
+   - **NOMBRES PROPIOS TÉCNICOS NO SE TRADUCEN**: "MongoDB - MongoDB", "Mongoose - Mongoose".
 
-2. **applicationDomain** (4-6 términos) — Basado en PICO-P: "${P}"
-   - Contexto/sector/entorno DONDE se aplica.
-   - ¡CRÍTICO! Usar KEYWORDS CORTAS (1-2 palabras) para buscadores (Scopus/IEEE).
-   - ❌ EVITAR frases largas como "Interacción con...", "Uso de tecnologías de...", "Entornos de ejecución".
-   - ✅ PREFERIR términos directos: "Agriculture", "Crops", "Mango", "Horticulture".
-   - Incluir variantes científicas si aplica (ej: "Mangifera indica" para Mango).
-   - NO incluir variables medibles.
+2. **applicationDomain** (3-5 términos CLAVE) — Basado en PICO-P: "${P}"
+   - Contexto/dominio específico DONDE se aplica (del PICO-P).
+   - ¡CRÍTICO! KEYWORDS CORTAS (1-3 palabras máximo) y ESPECÍFICAS.
+   - ❌ EVITAR frases largas: "Interacción con...", "Sistemas que utilizan...".
+   - ❌ EVITAR términos muy amplios: "Software", "Technology", "Engineering".
+   - ✅ PREFERIR términos concretos: "Backend Systems", "Node.js Applications", "RESTful APIs".
+   - Incluir variantes técnicas si aplica (ej: "Web Services", "Microservices").
+   - NO incluir variables medibles aquí.
 
-3. **thematicFocus** (5-8 términos, OBLIGATORIO) — Basado en PICO-O: "${O}"
-   - Variables/resultados medibles (responde "¿Qué se mide/evalúa?")
-   - DEBE incluir TODOS los outcomes listados en PICO (infestación, rendimiento, pesticidas, costos).
-   - ADEMÁS incluir términos "Paraguas" (Efficiency, Effectiveness, Sustainability, Impact).
-   - Si es comparativo, incluir "Comparative analysis", "Trade-off".
+3. **thematicFocus** (4-6 términos CLAVE, OBLIGATORIO) — Basado en PICO-O: "${O}"
+   - Variables/métricas específicas que se miden (responde "¿Qué se evalúa exactamente?").
+   - DEBE incluir los outcomes ESPECÍFICOS del PICO-O (ej: "Query Performance", "Response Time").
+   - ❌ EVITAR términos muy amplios: "Performance" solo, "Efficiency" solo, "Quality" solo.
+   - ✅ PREFERIR términos compuestos específicos: "Query Performance", "Developer Productivity", "Code Maintainability".
+   - Si es comparativo, incluir "Comparative Analysis", "Trade-off Analysis".
 
-REGLA CLAVE: Resultado medible → thematicFocus. Contexto/lugar → applicationDomain.
-Variedad de sinónimos y subtipos → technologies.
+REGLA CLAVE: 
+- Nombres propios técnicos (MongoDB, React, Docker) → NO traducir, usar "Término - Término".
+- Conceptos técnicos (Base de datos, Rendimiento) → traducir "Español - English".
+- EVITAR atomización: 4-6 términos clave por categoría, NO listas exhaustivas de sinónimos.
 
 ═══════════════════════════════════════════════════════════════
 FORMATO DE SALIDA (JSON ESTRICTO)
 ═══════════════════════════════════════════════════════════════
 
 - Formato BILINGÜE en una sola línea: "Español - English" (español primero)
-- Máximo 5 palabras por idioma
+- **NOMBRES PROPIOS TÉCNICOS**: usar el mismo término en ambos lados ("MongoDB - MongoDB", "React - React")
+- **CONCEPTOS TÉCNICOS**: traducir cuando sea relevante ("Base de datos - Database", "Rendimiento - Performance")
+- Máximo 4 palabras por idioma
+- Términos ESPECÍFICOS, NO genéricos
 - Términos buscables en bases académicas (Scopus, IEEE, WoS, ACM)
 
 {
@@ -233,6 +243,7 @@ Eres un experto en metodología PRISMA para revisiones sistemáticas. Tu tarea: 
 RESPONDE ÚNICAMENTE con JSON válido (sin texto adicional, sin markdown, sin comentarios).
 
 TÍTULO RSL: "${title}"
+⚠️ El título es solo contexto. Basar términos en PICO y enfoque personalizado del usuario.
 
 MARCO PICO (ya validado por el investigador — usar tal cual):
 - P (Población): ${P}
@@ -247,16 +258,18 @@ ENFOQUE PERSONALIZADO DEL USUARIO: ${customFocus}
 
 REGLAS PARA "${jsonKey}":
 ${jsonKey === 'technologies' ? `- Derivar de PICO-I: "${I}"
-- 6-10 términos: tecnología central + SINÓNIMOS + SUBTIPOS ESPECÍFICOS (Hipónimos).
-- Objetivo Recall: incluir variantes técnicas (ej: AI -> ML, DL, CNN, SVM).` : ''}
+- 4-6 términos CLAVE: nombres propios técnicos específicos.
+- ❌ NO atomizar: MongoDB (SÍ), Mongoose/Schema/Collection como términos separados (NO).
+- Nombres propios técnicos NO se traducen: "MongoDB - MongoDB".` : ''}
 ${jsonKey === 'applicationDomain' ? `- Derivar de PICO-P: "${P}"
-- 4-6 términos: contexto/sector/entorno DONDE se aplica.
-- ¡KEYWORDS CORTAS! (Agriculture, Crops, Mango).
-- Incluir nombres científicos (Mangifera indica).` : ''}
+- 3-5 términos ESPECÍFICOS: contexto/dominio DONDE se aplica.
+- ¡KEYWORDS CORTAS! (Backend Systems, Node.js, RESTful APIs).
+- ❌ EVITAR términos amplios: "Software", "Technology", "Engineering".` : ''}
 ${jsonKey === 'thematicFocus' ? `- Derivar de PICO-O: "${O}"
-- 5-8 focos medibles que respondan "¿Qué se mide/evalúa?"
-- Incluir TODOS los outcomes del PICO + Umbrella Terms (Efficiency, Effectiveness) + Causas Raíz.
-- NUNCA dejar vacío` : ''}
+- 4-6 métricas ESPECÍFICAS que respondan "¿Qué se mide exactamente?"
+- ✅ Términos compuestos específicos: "Query Performance", "Developer Productivity".
+- ❌ EVITAR términos solos muy amplios: "Performance" solo, "Efficiency" solo.
+- NUNCA dejar vacío.` : ''}
 
 FORMATO JSON (devolver las 3 categorías, solo "${jsonKey}" será usada):
 {

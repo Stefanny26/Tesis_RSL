@@ -124,13 +124,13 @@ RANGO TEMPORAL: ${yearStart && yearEnd ? `${yearStart}-${yearEnd}` : 'No especif
 REGLAS DE BALANCEO Y CONSISTENCIA (CRÍTICAS PARA SLR)
 ═══════════════════════════════════════════════════════════════
 
-⚠️ REGLA DE ORO: CONSISTENCIA CONCEPTUAL ABSOLUTA
+REGLA DE ORO: CONSISTENCIA CONCEPTUAL ABSOLUTA
   Una SLR exige buscar LOS MISMOS conceptos en todas las bases. 
-  ❌ ERROR (Sesgo de Selección):
+  ERROR (Sesgo de Selección):
      - IEEE: "Performance" OR "Latency"
      - ACM: "Throughput" OR "Memory"
      - Springer: "Productivity"
-  ✅ CORRECTO (Uniformidad):
+  CORRECTO (Uniformidad):
      - IEEE: ("Performance" OR "Throughput" OR "Efficiency")
      - ACM: ("Performance" OR "Throughput" OR "Efficiency")
      - Springer: ("Performance" OR "Throughput" OR "Efficiency")
@@ -140,30 +140,56 @@ REGLAS DE BALANCEO Y CONSISTENCIA (CRÍTICAS PARA SLR)
 
 REGLA 2: EVITAR AMBIGÜEDAD DE CONTEXTO
   Si la Intervención (I) tiene nombres comunes (ej: "Mongoose", "Atom", "Spring"), el Bloque P (Contexto) es OBLIGATORIO para desambiguar.
-  ❌ Query débil: ("Mongoose") AND ("Performance") -> Trae zoología.
-  ✅ Query robusta: ("Mongoose") AND ("Node.js" OR "Backend") AND ("Performance") -> Contexto técnico asegurado.
+  Query débil: ("Mongoose") AND ("Performance") -> Trae zoología.
+  Query robusta: ("Mongoose") AND ("Node.js" OR "Backend") AND ("Performance") -> Contexto técnico asegurado.
 
-REGLA 3: ESTRUCTURA DE BLOQUES - ESTRATEGIA DE MÁXIMO RECALL
-  1. Bloque I (Intervención/Tecnología):
-     - IMPORTANTE: Debes incluir TODOS los términos listados en "Términos Tecnología" arriba. NO FILTRES NADA.
-     - EXPANSIÓN OBLIGATORIA: Agrega abreviaturas (AI, ML, DL, CNN, IoT, NLP), sinónimos técnicos (Image Processing) y variaciones.
-     - FORMATO: ("Artificial Intelligence" OR "AI" OR "Machine Learning" OR "ML" OR "Deep Learning" OR "Neural Network*" OR "Computer Vision"...)
+REGLA 3: ESTRUCTURA DE BLOQUES CON OR INTERNO - CRÍTICO PARA RSL COMPARATIVAS
+  
+  ESTRUCTURA OBLIGATORIA: (Bloque_I) AND (Bloque_P) AND (Bloque_C) AND (Bloque_O)
+  
+  CADA BLOQUE contiene términos sinónimos/variaciones unidos con OR:
+  
+  1. Bloque I (Intervención/Tecnología Principal):
+     - Incluir TODOS los términos de "Términos Tecnología" + variaciones
+     - EXPANSIÓN: Abreviaturas (AI, ML, NLP), sinónimos técnicos, wildcards
+     - FORMATO: ("Mongoose" OR "Mongoose ODM" OR "Mongoose.js" OR "Mongoose Library")
+     - 5-7 variaciones por término clave
      
   2. Bloque P (Contexto/Dominio):
-     - Debes incluir TODOS los términos listados en "Términos Dominio".
-     - EXPANSIÓN: Nombres científicos (Fragaria, Mangifera), variaciones con Wildcards (Strawberr*, Farm*, Crop*).
-     - PRECISIÓN: Si el dominio es "Fresas", usa ("Strawberry" OR "Strawberr*" OR "Fragaria"). Evita términos demasiado genéricos solos como "Agriculture" si tienes específicos.
+     - Incluir TODOS los términos de "Términos Dominio" + variaciones
+     - EXPANSIÓN: Wildcards (Backend*, Server-side*), nombres técnicos, contextos relacionados
+     - FORMATO: ("Node.js" OR "NodeJS" OR "Node Backend" OR "Server-side JavaScript")
+     - 3-5 variaciones
 
-  3. Bloque O (Outcomes/Focos):
-     - Debes incluir TODOS los términos listados en "Focos Temáticos".
-     - COMBINACIÓN: Mezcla términos paraguas (Efficiency, Sustainability) CON métricas específicas (Yield, Detection Rate).
-     - WILDCARDS: (Econom*, Productiv*, Cost*).
+  3. Bloque C (Comparación) - CRÍTICO SI PICO-C EXISTE:
+     - SI PICO-C está definido → OBLIGATORIO incluir este bloque
+     - Incluir la tecnología/método de comparación + variaciones
+     - FORMATO: ("Native Driver" OR "MongoDB Native Driver" OR "Native MongoDB" OR "MongoDB Driver")
+     - Ejemplo: Si comparas "Mongoose vs Native Driver" → ambos deben estar en la query
+     - 3-5 variaciones del término de comparación
+     - SIN ESTE BLOQUE: Traerás artículos solo de Mongoose, no comparativos
+     - CON ESTE BLOQUE: Solo artículos que mencionen ambas tecnologías (comparativos)
 
-REGLA 4: EVITAR AMBIGÜEDAD Y SESGO DE IDIOMA
-  - TRADUCCIÓN: Si los términos provistos están en ESPAÑOL ("Inteligencia Artificial"), TRADÚCELOS al Inglés ("Artificial Intelligence") automáticamente.
-  - La query final debe estar 100% en INGLÉS (idioma universal de las bases de datos).
-  - CONECTORES: Usa paréntesis para agrupar sinónimos (OR). Une bloques con (AND).
-  - NO te limites a 3 términos. Una buena RSL usa 5-10 términos por bloque.
+  4. Bloque O (Outcomes/Focos/Métricas):
+     - Incluir TODOS los términos de "Focos Temáticos" + variaciones
+     - COMBINACIÓN: Términos paraguas (Performance, Efficiency) + métricas específicas (Latency, Throughput)
+     - FORMATO: ("Performance" OR "Throughput" OR "Response Time" OR "Latency" OR "Execution Time")
+     - WILDCARDS: (Perform*, Efficien*, Productiv*)
+     - 5-7 variaciones
+
+REGLA 4: TRADUCCIÓN Y EXPANSIÓN DE TÉRMINOS
+  - TRADUCCIÓN AUTOMÁTICA: Si los términos están en ESPAÑOL → traducir a INGLÉS
+  - Query final: 100% INGLÉS (idioma académico universal)
+  - ESTRUCTURA: Cada bloque = un paréntesis con términos OR
+  - EXPANSIÓN MÍNIMA: 5-7 variaciones por bloque I/O, 3-5 por bloque P/C
+  - WILDCARDS: Usar asteriscos (*) donde aplique (Perform*, Databas*, Efficien*)
+  
+  PROHIBIDO:
+  - (A AND B AND C) OR (A AND B AND D) ← ineficiente, repetitivo, propenso a errores
+  - Omitir PICO-C si está definido ← perderás estudios comparativos
+  
+  ESTRUCTURA CORRECTA:
+  - (I_términos OR I_sinónimos) AND (P_términos OR P_variantes) AND (C_término_comparación OR C_variantes) AND (O_métricas OR O_sinónimos)
 
 ═══════════════════════════════════════════════════════════════
 PROCESO DE GENERACIÓN
@@ -175,12 +201,26 @@ PROCESO DE GENERACIÓN
 3. Solo modifica la SINTAXIS (comillas, paréntesis, wildcards), NUNCA los conceptos.
 
 ═══════════════════════════════════════════════════════════════
-ESTRUCTURA DE CADA QUERY
+ESTRUCTURA DE CADA QUERY - FÓRMULA OBLIGATORIA
 ═══════════════════════════════════════════════════════════════
 
-(Bloque I) AND (Bloque P) AND (Bloque O)
+SI PICO-C ESTÁ VACÍO O "N/A":
+   (Bloque_I) AND (Bloque_P) AND (Bloque_O)
 
-¡IMPORTANTE!: Las 3 partes son OBLIGATORIAS para evitar ambigüedad.
+SI PICO-C TIENE VALOR (estudio comparativo):
+   (Bloque_I) AND (Bloque_P) AND (Bloque_C) AND (Bloque_O)
+
+Estructura de cada bloque:
+- Bloque_I: ("término1" OR "sinónimo1" OR "variante1" OR "abreviatura1" OR ...)
+- Bloque_P: ("contexto1" OR "dominio1" OR "variante1" OR ...)
+- Bloque_C: ("tecnología_comparación" OR "método_alternativo" OR "variante" OR ...) <- SOLO si PICO-C existe
+- Bloque_O: ("métrica1" OR "outcome1" OR "variable1" OR "sinónimo1" OR ...)
+
+Ejemplo real:
+MAL: ("Mongoose" AND "Performance") OR ("Mongoose" AND "Latency") <- repetitivo
+BIEN: ("Mongoose" OR "Mongoose ODM") AND ("Node.js" OR "Backend") AND ("Native Driver" OR "MongoDB Driver") AND ("Performance" OR "Latency" OR "Throughput")
+
+CRÍTICO: Si PICO-C = "Native Driver", tu query DEBE incluir ambos términos (Mongoose AND Native Driver) para encontrar estudios comparativos.
 
 ═══════════════════════════════════════════════════════════════
 SINTAXIS POR BASE DE DATOS
@@ -214,9 +254,15 @@ ${databases.map((db, i) => `${i + 1}. ${db}`).join('\n')}
 - NO omitir ninguna, NO generar extras
 - Cada QUERY en una línea continua (sin saltos)
 - La LÓGICA CONCEPTUAL debe ser idéntica entre bases — solo cambia la SINTAXIS
-- MÁXIMO 3 OR por bloque, 3 bloques AND, wildcards donde aplique
+- EXPANSIÓN: 5-7 términos OR por bloque I/O, 3-5 términos OR por bloque P/C
+- ESTRUCTURA: ${picoData?.comparison && picoData.comparison !== 'N/A' ? '4 bloques (I, P, C, O)' : '3 bloques (I, P, O)'} unidos con AND
+- Wildcards (*) donde aplique según sintaxis de cada base
 
-GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA BALANCEADAS AHORA:
+${picoData?.comparison && picoData.comparison !== 'N/A' ? `RECORDATORIO CRÍTICO: PICO-C está definido ("${picoData.comparison}").
+DEBES incluir Bloque C con variaciones del término de comparación.
+SIN BLOQUE C = queries inútiles (solo traerán artículos de ${picoData?.intervention || 'la intervención'}, no comparativos).
+
+` : ''}GENERA LAS ${databases.length} CADENAS DE BÚSQUEDA BALANCEADAS AHORA:
 `;
   }
 

@@ -196,37 +196,52 @@ export function PrismaCheckStep() {
 
       let result: any = null
       
+      // Determinar si actualizar proyecto temporal existente o crear uno nuevo
       if (data.projectId) {
-        // Proyecto ya existe (creado en paso 6), actualizarlo
-        console.log('📝 Actualizando proyecto existente:', data.projectId)
+        console.log('📝 Actualizando proyecto temporal a definitivo...', data.projectId)
         
-        // 1. Actualizar proyecto (solo title, description, status)
-        await apiClient.updateProject(data.projectId, projectData)
-        
-        // 2. Actualizar protocolo por separado
-        await apiClient.updateProtocol(data.projectId, protocolData)
-        
-        toast({
-          title: "Proyecto completado",
-          description: "Redirigiendo a tu proyecto..."
-        })
-        setTimeout(() => router.push(`/projects/${data.projectId}`), 1500)
+        try {
+          // Actualizar proyecto existente
+          result = await apiClient.updateProject(data.projectId, {
+            ...projectData,
+            title: data.selectedTitle, // Quitar prefijo [TEMPORAL]
+            status: 'in-progress', // Cambiar de 'temporary' a 'in-progress'
+            protocol: protocolData
+          } as any)
+          
+          console.log('✅ Proyecto temporal actualizado a definitivo:', data.projectId)
+          
+        } catch (updateError: any) {
+          console.error('❌ Error actualizando proyecto temporal:', updateError)
+          // Si falla la actualización, intentar crear nuevo proyecto
+          console.log('🔄 Intentando crear nuevo proyecto como fallback...')
+          
+          result = await apiClient.createProject({
+            ...projectData,
+            protocol: protocolData
+          } as any)
+        }
       } else {
-        // Crear proyecto nuevo (caso excepcional)
-        console.log('Creando proyecto nuevo')
+        console.log('📝 Creando proyecto completo desde cero...')
+        
         result = await apiClient.createProject({
           ...projectData,
           protocol: protocolData
         } as any)
+      }
 
-        if (result.success && result.data?.project?.id) {
-          toast({
-            title: "Proyecto creado exitosamente",
-            description: "Redirigiendo a tu proyecto..."
-          })
-          updateData({ projectId: result.data.project.id, lastSaved: new Date() })
-          setTimeout(() => router.push(`/projects/${result.data.project.id}`), 1500)
-        }
+      if (result.success && result.data?.project?.id) {
+        const projectId = result.data.project.id
+        
+        toast({
+          title: "Proyecto creado exitosamente",
+          description: "Redirigiendo a tu proyecto..."
+        })
+        
+        updateData({ projectId: projectId, lastSaved: new Date() })
+        setTimeout(() => router.push(`/projects/${projectId}`), 1500)
+      } else {
+        throw new Error('No se recibió respuesta válida del servidor')
       }
     } catch (error: any) {
       console.error('Error al guardar proyecto:', error)

@@ -824,7 +824,7 @@ const analyzeScreeningResults = async (req, res) => {
  */
 const generateInclusionExclusionCriteria = async (req, res) => {
   try {
-    const { selectedTitle, protocolTerms, picoData, aiProvider, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd } = req.body;
+    const { selectedTitle, protocolTerms, picoData, aiProvider, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd, rejectedTerms } = req.body;
 
     // Validaciones
     if (!protocolTerms) {
@@ -840,6 +840,7 @@ const generateInclusionExclusionCriteria = async (req, res) => {
     console.log('   Términos tecnología:', protocolTerms.tecnologia?.length || 0);
     console.log('   Términos dominio:', protocolTerms.dominio?.length || 0);
     console.log('   ⏰ Rango temporal recibido: yearStart =', yearStart, ', yearEnd =', yearEnd);
+    console.log('   ❌ Términos rechazados:', rejectedTerms?.length || 0);
     
     if (specificType) {
       console.log('   Tipo específico:', specificType);
@@ -858,7 +859,8 @@ const generateInclusionExclusionCriteria = async (req, res) => {
       categoryIndex,
       categoryName,
       yearStart,
-      yearEnd
+      yearEnd,
+      rejectedTerms: rejectedTerms || [] // ← NUEVO: Términos rechazados por el investigador
     });
 
     // Registrar uso de API

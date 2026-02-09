@@ -82,7 +82,7 @@ export function WizardNavigation({
   }
 
   return (
-    <div className="flex items-center justify-between pt-6 border-t bg-background sticky bottom-0 pb-6">
+    <div className="flex items-center justify-between pt-6 border-t bg-background pb-6">
       <div className="flex gap-3">
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -95,8 +95,8 @@ export function WizardNavigation({
             <AlertDialogHeader>
               <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
               <AlertDialogDescription>
-                Si cancelas ahora, perderás todos los cambios no guardados. 
-                Considera usar "Guardar borrador" antes de salir.
+                Si cancelas ahora, perderás todo el progreso del wizard. 
+                Solo se guarda el proyecto cuando completas todos los pasos y haces clic en "Crear Proyecto".
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

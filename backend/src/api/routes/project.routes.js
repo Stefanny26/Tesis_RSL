@@ -65,7 +65,7 @@ router.put(
       .withMessage('Título no puede exceder 500 caracteres'),
     body('status')
       .optional()
-      .isIn(['draft', 'in-progress', 'screening', 'analysis', 'completed'])
+      .isIn(['draft', 'temporary', 'in-progress', 'screening', 'analysis', 'completed'])
       .withMessage('Estado inválido'),
     body('deadline').optional().isISO8601().withMessage('Fecha inválida'),
     validateRequest
@@ -85,6 +85,21 @@ router.delete(
     validateRequest
   ],
   (req, res) => projectController.delete(req, res)
+);
+
+/**
+ * @route   POST /api/cleanup-temporary-project
+ * @desc    Limpiar proyecto temporal al abandonar wizard
+ * @access  Private
+ */
+router.post(
+  '/cleanup-temporary-project',
+  [
+    body('projectId').isUUID().withMessage('ID de proyecto inválido'),
+    body('action').equals('cleanup-temporary').withMessage('Acción inválida'),
+    validateRequest
+  ],
+  (req, res) => projectController.cleanupTemporary(req, res)
 );
 
 module.exports = router;

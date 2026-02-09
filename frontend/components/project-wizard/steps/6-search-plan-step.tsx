@@ -248,16 +248,16 @@ export function SearchPlanStep() {
     }))
   }
 
-  // Crear proyecto al llegar al paso 6 si aún no existe (para poder importar referencias)
-  // Este proyecto se actualizará con información completa en el paso 7
+  // Crear proyecto temporal para permitir importar referencias
+  // Este proyecto se marca como temporal y se elimina si no se completa el wizard
   useEffect(() => {
-    const createProjectForReferences = async () => {
+    const createTemporaryProject = async () => {
       // Solo crear si:
       // 1. No existe projectId todavía
       // 2. Tenemos datos mínimos necesarios
       // 3. Tenemos queries generadas (usuario está listo para importar)
       
-      console.log('🔍 Verificando condiciones para crear proyecto:', {
+      console.log('🔍 Verificando condiciones para crear proyecto temporal:', {
         hasProjectId: !!data.projectId,
         hasProjectName: !!data.projectName,
         hasSelectedTitle: !!data.selectedTitle,
@@ -280,43 +280,38 @@ export function SearchPlanStep() {
       }
 
       try {
-        console.log('📝 Creando proyecto para importación de referencias...')
+        console.log('📝 Creando proyecto temporal para importación de referencias...')
         
         const projectData = {
-          title: data.projectName || data.selectedTitle || 'Proyecto RSL',
-          description: data.projectDescription || `RSL: ${data.selectedTitle}`,
-          status: 'draft' // Marcarlo como borrador
+          title: `[TEMPORAL] ${data.projectName || data.selectedTitle}`,
+          description: `Proyecto temporal - ${data.projectDescription || `RSL: ${data.selectedTitle}`}`,
+          status: 'temporary' // Marcado como temporal
         }
 
         const result = await apiClient.createProject(projectData)
         
         if (result && result.data?.project?.id) {
-          console.log('✅ Proyecto borrador creado:', result.data.project.id)
+          console.log('✅ Proyecto temporal creado:', result.data.project.id)
           updateData({ projectId: result.data.project.id })
           
           toast({
-            title: "✅ Proyecto creado",
-            description: "Ahora puedes importar referencias de las bases de datos"
+            title: "✅ Proyecto temporal creado",
+            description: "Ahora puedes importar referencias. Recuerda completar el wizard para guardar definitivamente."
           })
         } else {
           console.error('❌ No se recibió ID del proyecto:', result)
-          toast({
-            title: "⚠️ Error al crear proyecto",
-            description: "No se pudo habilitar la importación de referencias",
-            variant: "destructive"
-          })
         }
       } catch (error: any) {
-        console.error('❌ Error creando proyecto:', error)
+        console.error('❌ Error creando proyecto temporal:', error)
         toast({
-          title: "❌ Error al crear proyecto",
-          description: error.message || "No se pudo crear el proyecto para importar referencias",
+          title: "❌ Error al crear proyecto temporal",
+          description: error.message || "No se pudo habilitar la importación de referencias",
           variant: "destructive"
         })
       }
     }
 
-    createProjectForReferences()
+    createTemporaryProject()
   }, [queries.length, data.projectId, data.projectName, data.selectedTitle])
 
   // Sincronizar con context
@@ -875,8 +870,8 @@ export function SearchPlanStep() {
                                 if (result?.data?.project?.id) {
                                   updateData({ projectId: result.data.project.id })
                                   toast({
-                                    title: "✅ Proyecto creado",
-                                    description: "Ahora puedes importar referencias"
+                                    title: "\u2705 Proyecto temporal creado",
+                                    description: "Ahora puedes importar referencias. Recuerda completar el wizard para guardar definitivamente."
                                   })
                                 }
                               } catch (error: any) {
@@ -889,7 +884,7 @@ export function SearchPlanStep() {
                             }}
                           >
                             <Save className="h-3 w-3 mr-1" />
-                            Crear Proyecto
+                            Importar Referencias
                           </Button>
                         </div>
                       ) : (

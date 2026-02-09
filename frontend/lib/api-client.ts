@@ -267,7 +267,8 @@ class ApiClient {
     categoryName?: string,
     yearStart?: number,
     yearEnd?: number,
-    selectedTitle?: string
+    selectedTitle?: string,
+    rejectedTerms?: string[] // ← NUEVO: Términos rechazados por el investigador
   ) {
     const data = await this.request('/api/ai/generate-inclusion-exclusion-criteria', {
       method: 'POST',
@@ -281,7 +282,8 @@ class ApiClient {
         categoryName,
         yearStart,
         yearEnd,
-        selectedTitle  // ← REGLA: Título RSL seleccionado para derivar criterios
+        selectedTitle,  // ← REGLA: Título RSL seleccionado para derivar criterios
+        rejectedTerms // ← NUEVO: Términos rechazados por el investigador
       }),
     })
     return data.data

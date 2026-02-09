@@ -19,7 +19,7 @@ class GenerateInclusionExclusionCriteriaUseCase {
   /**
    * Genera criterios de inclusión y exclusión
    */
-  async execute({ selectedTitle, protocolTerms, picoData, projectTitle, aiProvider = 'chatgpt', specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd }) {
+  async execute({ selectedTitle, protocolTerms, picoData, projectTitle, aiProvider = 'chatgpt', specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd, rejectedTerms }) {
     try {
       // REGLA METODOLÓGICA: Los criterios DEBEN basarse en el título de la RSL seleccionado
       const rslTitle = selectedTitle || projectTitle || 'Proyecto sin título';
@@ -27,6 +27,7 @@ class GenerateInclusionExclusionCriteriaUseCase {
       console.log('Generando criterios de inclusión/exclusión...');
       console.log('Título RSL:', rslTitle.substring(0, 60) + '...');
       console.log('Rango temporal para prompt: yearStart =', yearStart, ', yearEnd =', yearEnd);
+      console.log('Términos rechazados (NO usar):', rejectedTerms?.length || 0);
       
       if (specificType) {
         console.log('Regenerando tipo específico:', specificType);
@@ -46,7 +47,8 @@ class GenerateInclusionExclusionCriteriaUseCase {
         categoryIndex, 
         categoryName, 
         yearStart, 
-        yearEnd 
+        yearEnd,
+        rejectedTerms // ← NUEVO: Términos que el investigador rechazó
       });
       
       let text;
@@ -67,7 +69,7 @@ class GenerateInclusionExclusionCriteriaUseCase {
 
       // Parsear la respuesta
       const isSingleCriterion = categoryIndex !== undefined && categoryName;
-      const criteria = this.parseResponse(text, isSingleCriterion);
+      const criteria = this.parseResponse(text, isSingleCriterion, categoryIndex, categoryName);
 
       console.log('Criterios generados exitosamente');
 
@@ -86,7 +88,7 @@ class GenerateInclusionExclusionCriteriaUseCase {
   /**
    * Construye el prompt para la IA
    */
-  buildPrompt({ rslTitle, protocolTerms, picoData, projectTitle, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd }) {
+  buildPrompt({ rslTitle, protocolTerms, picoData, projectTitle, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd, rejectedTerms }) {
     // Usar título de la RSL seleccionado como fuente principal
     const title = rslTitle || projectTitle || 'Proyecto sin título';
     
@@ -99,9 +101,9 @@ class GenerateInclusionExclusionCriteriaUseCase {
     // Normalizar PICO outcome (frontend envía 'outcome' singular, legacy usa 'outcomes')
     const picoOutcome = picoData?.outcome || picoData?.outcomes || 'No especificado';
 
-    // Si hay categoría específica, generar solo ese criterio
+    // Si hay categoría específica, generar AMBOS criterios (inclusión Y exclusión)
     if (categoryIndex !== undefined && categoryName && specificType) {
-      return this.buildSingleCriterionPrompt({
+      return this.buildBothCriteriaPrompt({
         title,
         technologies,
         domains,
@@ -114,7 +116,8 @@ class GenerateInclusionExclusionCriteriaUseCase {
         categoryIndex,
         categoryName,
         yearStart,
-        yearEnd
+        yearEnd,
+        rejectedTerms
       });
     }
 
@@ -131,7 +134,8 @@ class GenerateInclusionExclusionCriteriaUseCase {
         specificType,
         customFocus,
         yearStart,
-        yearEnd
+        yearEnd,
+        rejectedTerms
       });
     }
 
@@ -142,23 +146,42 @@ REGLA DE ORO: Los criterios no son "opuestos". Inclusión = PERTINENCIA. Exclusi
 
 RESPONDE ÚNICAMENTE con la TABLA en formato de texto (sin markdown, sin JSON).
 
+${rejectedTerms && rejectedTerms.length > 0 ? `
+RESTRICCIÓN CRÍTICA - LEER PRIMERO
+═══════════════════════════════════════════════════════════════
+TÉRMINOS PROHIBIDOS (el investigador los rechazó explícitamente):
+${rejectedTerms.map(t => `- ${t}`).join('\n')}
+
+INSTRUCCIONES OBLIGATORIAS:
+1. NO mencionar estos términos en NINGÚN criterio (inclusión ni exclusión)
+2. NO usar sinónimos o variantes de estos términos
+3. NO derivarlos del título aunque aparezcan ahí
+4. Si el título contiene estos términos, IGNORARLOS y basar criterios SOLO en los términos confirmados
+5. Reformular criterios usando términos MÁS ESPECÍFICOS o subcampos técnicos
+
+Ejemplo: Si "Inteligencia Artificial" está rechazado pero aparece en título:
+   MAL: "Estudios sobre inteligencia artificial..."
+   BIEN: "Estudios sobre técnicas de detección algorítmica..." (usando términos confirmados)
+═══════════════════════════════════════════════════════════════
+
+` : ''}
 ═══════════════════════════════════════════════════════════════
 DATOS DEL PROTOCOLO (ya validados en pasos anteriores — usar tal cual)
 ═══════════════════════════════════════════════════════════════
 
 TÍTULO RSL: "${title}"
-
+${rejectedTerms && rejectedTerms.length > 0 ? '\nRECORDATORIO: Ignorar términos rechazados que aparezcan en el título\n' : ''}
 MARCO PICO (ya definido y editado por el investigador):
 - P (Población): ${picoData?.population || 'No especificado'}
 - I (Intervención): ${picoData?.intervention || 'No especificado'}
 - C (Comparación): ${picoData?.comparison || 'N/A'}
 - O (Outcomes): ${picoOutcome}
 
-TÉRMINOS DEL PROTOCOLO (ya confirmados por el investigador):
+TÉRMINOS DEL PROTOCOLO (ya confirmados por el investigador - USAR SOLO ESTOS):
 - Tecnologías: ${technologies.length ? technologies.join(' | ') : 'No especificado'}
 - Dominio: ${domains.length ? domains.join(' | ') : 'No especificado'}
 - Focos Temáticos: ${themes.length ? themes.join(' | ') : 'No especificado'}
-
+${rejectedTerms && rejectedTerms.length > 0 ? '\nLos términos CONFIRMADOS arriba son los ÚNICOS que debes usar. NO agregar términos rechazados.\n' : ''}
 RANGO TEMPORAL: ${yearStart || 2019} - ${yearEnd || 2025}
 
 ═══════════════════════════════════════════════════════════════
@@ -206,7 +229,7 @@ GENERA LA TABLA AHORA:
   /**
    * Construye un prompt específico para regenerar solo criterios de inclusión o exclusión
    */
-  buildSpecificTypePrompt({ title, technologies, domains, studyTypes, themes, picoData, picoOutcome, specificType, customFocus, yearStart, yearEnd }) {
+  buildSpecificTypePrompt({ title, technologies, domains, studyTypes, themes, picoData, picoOutcome, specificType, customFocus, yearStart, yearEnd, rejectedTerms }) {
     const typeLabel = specificType === 'inclusion' ? 'INCLUSIÓN' : 'EXCLUSIÓN';
     const oppositeLabel = specificType === 'inclusion' ? 'exclusión' : 'inclusión';
 
@@ -215,15 +238,19 @@ Eres un experto en PRISMA 2020. Regenera criterios de ${typeLabel} con enfoque p
 
 RESPONDE ÚNICAMENTE con la TABLA en formato texto (sin markdown).
 
-TÍTULO RSL: "${title}"
+${rejectedTerms && rejectedTerms.length > 0 ? `TÉRMINOS PROHIBIDOS (NO mencionar en criterios):
+${rejectedTerms.map(t => `- ${t}`).join(', ')}
+NO usar estos términos aunque aparezcan en el título. Basar criterios SOLO en términos confirmados.
 
+` : ''}TÍTULO RSL: "${title}"
+${rejectedTerms && rejectedTerms.length > 0 ? '\nIgnorar términos rechazados del título\n' : ''}
 MARCO PICO (ya validado):
 - P: ${picoData?.population || 'No especificado'}
 - I: ${picoData?.intervention || 'No especificado'}
 - C: ${picoData?.comparison || 'N/A'}
 - O: ${picoOutcome}
 
-TÉRMINOS DEL PROTOCOLO (ya confirmados):
+TÉRMINOS DEL PROTOCOLO CONFIRMADOS (USAR SOLO ESTOS):
 - Tecnología: ${technologies.join(', ')}
 - Dominio: ${domains.join(', ')}
 - Focos: ${themes.join(', ')}
@@ -240,9 +267,82 @@ GENERA LA TABLA AHORA:
   }
 
   /**
+   * Construye un prompt para regenerar AMBOS criterios (inclusión Y exclusión) de una categoría específica
+   * Esto mantiene la coherencia entre criterios complementarios
+   */
+  buildBothCriteriaPrompt({ title, technologies, domains, studyTypes, themes, picoData, picoOutcome, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd, rejectedTerms }) {
+    return `
+Eres un experto en PRISMA 2020. El usuario quiere regenerar el criterio de ${specificType === 'inclusion' ? 'INCLUSIÓN' : 'EXCLUSIÓN'} de la categoría "${categoryName}".
+
+TAREA: Regenerar AMBOS criterios (inclusión Y exclusión) para mantener COHERENCIA y COMPLEMENTARIEDAD.
+
+${rejectedTerms && rejectedTerms.length > 0 ? `TÉRMINOS PROHIBIDOS - NO MENCIONAR:
+${rejectedTerms.map(t => `- ${t}`).join(', ')}
+Usar SOLO los términos confirmados abajo. NO derivar términos prohibidos del título o PICO.
+
+` : ''}CONTEXTO DEL PROTOCOLO (USAR SOLO ESTOS TÉRMINOS CONFIRMADOS):
+- Título RSL: "${title}"
+- Tecnología central: ${technologies.join(', ')}
+- Dominio/Contexto: ${domains.join(', ')}
+- Focos temáticos: ${themes.join(', ')}
+- PICO-P (Población): ${picoData?.population || 'N/A'}
+- PICO-I (Intervención): ${picoData?.intervention || 'N/A'}
+- PICO-O (Outcomes): ${picoOutcome}
+- Rango temporal: ${yearStart || 2019} a ${yearEnd || 2025}
+
+ENFOQUE SOLICITADO POR EL USUARIO:
+"${customFocus}"
+
+REGLAS DE COHERENCIA:
+1. El criterio de EXCLUSIÓN NO debe ser simplemente "No cumplir el de inclusión"
+2. INCLUSIÓN = Características técnicas que DEBEN estar presentes
+3. EXCLUSIÓN = Motivos técnicos específicos para descartar (contexto inadecuado, metodología deficiente, escala incorrecta)
+4. Máximo 25 palabras por criterio
+5. Usar términos técnicos precisos, evitar palabras vagas como "relevante"
+
+INSTRUCCIONES ESPECÍFICAS PARA "${categoryName}":
+
+${categoryName.toLowerCase().includes('cobertura') ? `
+- INCLUSIÓN: Estudios que analicen la relación técnica específica entre [${technologies.join(', ')}] y [${domains.join(', ')}]
+- EXCLUSIÓN: Estudios donde los términos aparecen en contextos ajenos o sin relación técnica directa
+` : ''}
+
+${categoryName.toLowerCase().includes('tecnolog') ? `
+- INCLUSIÓN: Uso específico de [${technologies.join(', ')}] como tecnología principal o arquitectural
+- EXCLUSIÓN: Tecnologías obsoletas, mencionadas tangencialmente, o fuera del ecosistema técnico definido
+` : ''}
+
+${categoryName.toLowerCase().includes('resultado') || categoryName.toLowerCase().includes('outcome') ? `
+- INCLUSIÓN: Estudios que evalúen específicamente [${themes.join(', ')}] con métricas cuantificables
+- EXCLUSIÓN: Estudios puramente descriptivos sin evaluación empírica de los focos temáticos
+` : ''}
+
+${categoryName.toLowerCase().includes('tipo de estudio') ? `
+- INCLUSIÓN: Investigaciones empíricas, experimentales, comparativas o estudios de caso técnicos
+- EXCLUSIÓN: Opiniones, tutoriales, discusiones conceptuales sin validación experimental
+` : ''}
+
+${categoryName.toLowerCase().includes('documento') ? `
+- INCLUSIÓN: Artículos de revistas científicas y conferencias indexadas (peer-reviewed)
+- EXCLUSIÓN: Blogs, white papers, libros de texto, documentación oficial de proveedores
+` : ''}
+
+${categoryName.toLowerCase().includes('temporal') || categoryName.toLowerCase().includes('idioma') ? `
+- INCLUSIÓN: Artículos en inglés publicados entre ${yearStart || 2019} y ${yearEnd || 2025}
+- EXCLUSIÓN: Estudios anteriores a ${yearStart || 2019} o en otros idiomas sin traducción técnica certificada
+` : ''}
+
+FORMATO DE SALIDA:
+Responde ÚNICAMENTE con DOS líneas:
+INCLUSIÓN: [criterio de inclusión]
+EXCLUSIÓN: [criterio de exclusión]
+`;
+  }
+
+  /**
    * Construye un prompt para regenerar ÚNICAMENTE un criterio específico
    */
-  buildSingleCriterionPrompt({ title, technologies, domains, studyTypes, themes, picoData, picoOutcome, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd }) {
+  buildSingleCriterionPrompt({ title, technologies, domains, studyTypes, themes, picoData, picoOutcome, specificType, customFocus, categoryIndex, categoryName, yearStart, yearEnd, rejectedTerms }) {
     const typeLabel = specificType === 'inclusion' ? 'INCLUSIÓN' : 'EXCLUSIÓN';
     const isInclusion = specificType === 'inclusion';
 
@@ -250,7 +350,11 @@ GENERA LA TABLA AHORA:
 Eres un revisor metodológico de la metodología PRISMA 2020.
 Tarea: Redactar UN SOLO criterio de ${typeLabel} para la categoría "${categoryName}".
 
-CONTEXTO PARA COHERENCIA:
+${rejectedTerms && rejectedTerms.length > 0 ? `TÉRMINOS PROHIBIDOS - NO MENCIONAR:
+${rejectedTerms.map(t => `- ${t}`).join(', ')}
+Usar SOLO los términos confirmados abajo. NO derivar términos prohibidos del PICO.
+
+` : ''}CONTEXTO PARA COHERENCIA (USAR SOLO ESTOS TÉRMINOS CONFIRMADOS):
 - Tecnología central: ${technologies.join(', ')}
 - Dominio/Contexto: ${domains.join(', ')}
 - Focos temáticos: ${themes.join(', ')}
@@ -305,17 +409,36 @@ RESPONDE SOLO CON EL TEXTO DEL CRITERIO (máximo 25 palabras):
   /**
    * Parsea la respuesta de la IA en formato tabla o criterio único
    */
-  parseResponse(text, isSingleCriterion = false) {
+  parseResponse(text, isSingleCriterion = false, categoryIndex = null, categoryName = null) {
     console.log('Parseando respuesta de criterios...');
     console.log('Texto completo:', text.substring(0, 500));
 
-    // Si es un solo criterio, retornarlo directamente
-    if (isSingleCriterion) {
-      const cleanedText = text.trim()
-        .replace(/^["']|["']$/g, '') // Quitar comillas al inicio/final
-        .replace(/^\*\*|\*\*$/g, ''); // Quitar markdown bold
+    // Si es regeneración de categoría específica, buscar formato "INCLUSIÓN: ... EXCLUSIÓN: ..."
+    if (isSingleCriterion && categoryIndex !== null && categoryName !== null) {
+      const inclusionMatch = text.match(/INCLUSI[ÓO]N:\s*(.+)/i);
+      const exclusionMatch = text.match(/EXCLUSI[ÓO]N:\s*(.+)/i);
       
-      console.log('Criterio único parseado:', cleanedText);
+      if (inclusionMatch && exclusionMatch) {
+        const inclusion = inclusionMatch[1].trim().replace(/^["']|["']$/g, '');
+        const exclusion = exclusionMatch[1].trim().replace(/^["']|["']$/g, '');
+        
+        console.log('Ambos criterios parseados:', { inclusion, exclusion });
+        
+        return { 
+          bothCriteria: true,
+          categoryIndex,
+          categoryName,
+          inclusion,
+          exclusion
+        };
+      }
+      
+      // Fallback: buscar criterio único (formato anterior)
+      const cleanedText = text.trim()
+        .replace(/^["']|["']$/g, '') 
+        .replace(/^\*\*|\*\*$/g, '');
+      
+      console.log('Criterio único parseado (fallback):', cleanedText);
       return { singleCriterion: cleanedText };
     }
 
