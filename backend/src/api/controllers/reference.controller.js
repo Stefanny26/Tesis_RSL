@@ -478,10 +478,37 @@ const importReferencesFromFiles = async (req, res) => {
     
     console.log('✅ Importación completada:', result);
 
+    // Ejecutar detección automática de duplicados después de la importación
+    let duplicateDetectionResult = null;
+    if (result.success > 0) {
+      try {
+        console.log('🔍 Ejecutando detección automática de duplicados...');
+        duplicateDetectionResult = await detectDuplicates.execute(projectId);
+        console.log('✅ Detección de duplicados completada:', duplicateDetectionResult.stats);
+      } catch (error) {
+        console.error('⚠️ Error en detección de duplicados (no crítico):', error.message);
+        // No fallar la importación si falla la detección de duplicados
+      }
+    }
+
+    // Construir mensaje informativo
+    let message = `Se importaron ${result.success} referencias exitosamente`;
+    
+    if (result.duplicates > 0) {
+      message += ` (${result.duplicates} duplicados evitados durante carga)`;
+    }
+    
+    if (duplicateDetectionResult && duplicateDetectionResult.stats.duplicates > 0) {
+      message += `. Detección avanzada encontró ${duplicateDetectionResult.stats.duplicates} duplicados adicionales`;
+    }
+
     res.status(200).json({
       success: true,
-      message: `Se importaron ${result.success} referencias exitosamente`,
-      data: result
+      message: message,
+      data: {
+        ...result,
+        duplicateDetection: duplicateDetectionResult
+      }
     });
   } catch (error) {
     console.error('❌ Error importando referencias:', error);

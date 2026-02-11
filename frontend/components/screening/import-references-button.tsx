@@ -35,20 +35,37 @@ export function ImportReferencesButton({
     try {
       const result = await apiClient.importReferences(projectId, formData)
       
-      // Backend retorna: { success: true, data: { success: N, failed: N, duplicates: N } }
+      // Backend retorna estructura mejorada con bySource y duplicateDetection
       const importedCount = result.data?.success || 0
       const failedCount = result.data?.failed || 0
       const duplicatesCount = result.data?.duplicates || 0
+      const bySource = result.data?.bySource || {}
+      const duplicateDetection = result.data?.duplicateDetection
+      
+      // Construir mensaje detallado con estadísticas por fuente
+      const sourceDetails = Object.entries(bySource).map(([source, stats]: [string, any]) => {
+        const parts = []
+        if (stats.parsed > 0) parts.push(`${stats.parsed} encontradas`)
+        if (stats.imported > 0) parts.push(`${stats.imported} importadas`)
+        if (stats.duplicates > 0) parts.push(`${stats.duplicates} duplicadas`)
+        return `${source}: ${parts.join(', ')}`
+      }).join('\n')
+      
+      // Mensaje de duplicados avanzados si hay detección
+      let duplicateMessage = ''
+      if (duplicateDetection && duplicateDetection.stats.duplicates > 0) {
+        duplicateMessage = `\n\n🔍 Detección avanzada: ${duplicateDetection.stats.duplicates} duplicados adicionales marcados`
+      }
       
       const details = []
-      if (importedCount > 0) details.push(`${importedCount} importadas`)
+      if (importedCount > 0) details.push(`${importedCount} referencias importadas`)
+      if (duplicatesCount > 0) details.push(`${duplicatesCount} duplicados evitados`)
       if (failedCount > 0) details.push(`${failedCount} fallidas`)
-      if (duplicatesCount > 0) details.push(`${duplicatesCount} duplicadas`)
       
       toast({
         title: "✅ Referencias procesadas",
-        description: details.join(', '),
-        duration: 4000
+        description: sourceDetails ? `${sourceDetails}${duplicateMessage}` : details.join(', '),
+        duration: 6000
       })
 
       if (onImportSuccess) {

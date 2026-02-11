@@ -68,7 +68,8 @@ class ImportReferencesUseCase {
       failed: 0,
       duplicates: 0,
       references: [],
-      errors: []
+      errors: [],
+      bySource: {} // Nuevo: estadísticas por base de datos
     };
 
     for (const file of files) {
@@ -107,7 +108,19 @@ class ImportReferencesUseCase {
           throw new Error(`Formato de archivo no soportado: ${fileExtension}. Formatos soportados: CSV, JSON, RIS, BibTeX, nbib, ciw.`);
         }
         
-        console.log(`Parseadas ${parsedReferences.length} referencias`);
+        console.log(`Parseadas ${parsedReferences.length} referencias del archivo`);
+
+        // Detectar la fuente del archivo para estadísticas
+        const fileSource = this.detectDatabaseSource(file.originalname, parsedReferences[0] || {});
+        if (!results.bySource[fileSource]) {
+          results.bySource[fileSource] = {
+            fileName: file.originalname,
+            parsed: 0,
+            imported: 0,
+            duplicates: 0
+          };
+        }
+        results.bySource[fileSource].parsed = parsedReferences.length;
 
         // Guardar referencias en la base de datos
         console.log(`Guardando ${parsedReferences.length} referencias en BD...`);
@@ -127,6 +140,7 @@ class ImportReferencesUseCase {
             if (existing) {
               console.log(`   Duplicado: ${refData.title}`);
               results.duplicates++;
+              results.bySource[fileSource].duplicates++;
               continue;
             }
 
@@ -149,6 +163,7 @@ class ImportReferencesUseCase {
             console.log(`   Insertado ID: ${reference.id}`);
             results.references.push(reference);
             results.success++;
+            results.bySource[fileSource].imported++;
           } catch (error) {
             console.log(`   Error insertando: ${error.message}`);
             results.failed++;

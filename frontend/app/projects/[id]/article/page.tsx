@@ -62,12 +62,14 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
       try {
         const refsData = await apiClient.getReferences(params.id, { limit: 10000 })
         const allRefs = refsData?.references || []
+        const stats = refsData?.stats || {}
         const totalRefs = allRefs.length
 
         // API devuelve campo "status" (no screeningStatus)
         const getStatus = (r: any) => r.status || r.screeningStatus || r.screening_status || 'pending'
 
-        const duplicates = allRefs.filter((r: any) => getStatus(r) === 'duplicate').length
+        // Los duplicados se marcan con isDuplicate: true, no con un status especial
+        const duplicates = stats.duplicates || allRefs.filter((r: any) => r.isDuplicate === true).length
         const excluded = allRefs.filter((r: any) => getStatus(r) === 'excluded').length
         const included = allRefs.filter((r: any) => {
           const st = getStatus(r)
@@ -98,7 +100,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
         const fullTextAssessed = afterDedup - screenedOut
 
         setPrismaStats({
-          identified: totalRefs,
+          identified: totalRefs + duplicates, // Total antes de eliminar duplicados
           duplicates,
           afterDedup,
           screenedTitleAbstract: afterDedup,

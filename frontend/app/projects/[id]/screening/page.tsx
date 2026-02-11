@@ -1492,9 +1492,9 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                 })
                 
                 const prismaStats = {
-                  identified: totalRefs,
-                  duplicates: 0,
-                  afterDedup: totalRefs,
+                  identified: totalRefs + (stats.duplicates || 0), // Total antes de eliminar duplicados
+                  duplicates: stats.duplicates || 0, // Duplicados detectados y marcados
+                  afterDedup: totalRefs, // Referencias únicas después de eliminar duplicados
                   screenedTitleAbstract: screenedInPhase1 > 0 ? screenedInPhase1 : totalRefs,
                   excludedTitleAbstract: excludedInPhase1,
                   fullTextAssessed: selectedForReview.length,
