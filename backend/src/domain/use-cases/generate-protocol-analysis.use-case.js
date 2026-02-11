@@ -9,8 +9,9 @@ class GenerateProtocolAnalysisUseCase {
     }
     this.outputSchema = {
       type: 'object',
-      required: ['fase1_marco_pico', 'fase2_matriz_es_no_es'],
+      required: ['titulo_propuesto', 'fase1_marco_pico', 'fase2_matriz_es_no_es'],
       properties: {
+        titulo_propuesto: { type: 'string' },
         fase1_marco_pico: { 
           type: 'object',
           required: ['marco_pico', 'pregunta_contestable'],
@@ -92,8 +93,8 @@ FASE 1: MARCO PICO (Pregunta de Investigación Contestable)
 
 Debes definir cada componente buscando **precisión absoluta y operacionalización**:
 
-**P - POPULATION/PROBLEM:**
-[!] **REGLA CRÍTICA PARA INGENIERÍA Y TECNOLOGÍA:**
+🧑 **P - POPULATION/PROBLEM:**
+⚠️ **REGLA CRÍTICA PARA INGENIERÍA Y TECNOLOGÍA:**
 - Definición: El **DOMINIO**, **SISTEMA** o **CONTEXTO TÉCNICO** donde se aplica la tecnología.
 - La POBLACIÓN en RSL de ingeniería NO son los "artículos" ni "estudios", sino el ecosistema técnico.
 - PRISMA 2020 para ingeniería exige definir **A QUÉ TIPO DE SISTEMAS O ENTORNOS** se aplican los estudios que se busca.
@@ -110,28 +111,28 @@ Debes definir cada componente buscando **precisión absoluta y operacionalizaci�
 - **LONGITUD MÍNIMA: 40-60 palabras**
 
 **QUÉ NO DEBE INCLUIR JAMÁS:**
-- [X] "Estudios", "Artículos", "Investigaciones", "Publicaciones académicas" como sujeto principal
-- [X] "Literatura científica", "Papers", "Revisiones" (eso es la UNIDAD DE ANÁLISIS de la RSL, NO la población)
-- [X] Edad, profesiones, ubicación geográfica de personas
-- [X] "Profesionales", "usuarios", "trabajadores", "desarrolladores" como población
-- [X] "Bases de datos académicas", "Journals", "Conferencias"
+- ❌ "Estudios", "Artículos", "Investigaciones", "Publicaciones académicas" como sujeto principal
+- ❌ "Literatura científica", "Papers", "Revisiones" (eso es la UNIDAD DE ANÁLISIS de la RSL, NO la población)
+- ❌ Edad, profesiones, ubicación geográfica de personas
+- ❌ "Profesionales", "usuarios", "trabajadores", "desarrolladores" como población
+- ❌ "Bases de datos académicas", "Journals", "Conferencias"
 
 **EJEMPLOS DE POBLACIÓN INCORRECTA (NUNCA GENERAR):**
-- [X] "Artículos científicos publicados en IEEE y Scopus" <- Esto es la unidad de análisis
-- [X] "Estudios empíricos sobre rendimiento" <- Esto es el tipo de estudio
-- [X] "Publicaciones académicas revisadas por pares" <- Esto es criterio de inclusión
-- [X] "Investigaciones en bases de datos indexadas" <- Esto es fuente de búsqueda
+- ❌ "Artículos científicos publicados en IEEE y Scopus" ← Esto es la unidad de análisis
+- ❌ "Estudios empíricos sobre rendimiento" ← Esto es el tipo de estudio
+- ❌ "Publicaciones académicas revisadas por pares" ← Esto es criterio de inclusión
+- ❌ "Investigaciones en bases de datos indexadas" ← Esto es fuente de búsqueda
 
 **EJEMPLOS DE POBLACIÓN CORRECTA (SEGUIR ESTOS):**
-- [OK] "Sistemas de backend en Node.js con persistencia MongoDB en contextos de microservicios escalables"
-- [OK] "Aplicaciones de aprendizaje automático implementadas con TensorFlow en dominios de visión por computadora"
-- [OK] "Sistemas IoT con comunicación MQTT desplegados en entornos de smart cities y domótica"
-- [OK] "Aplicaciones web desarrolladas con React que implementan gestión de estado con Redux en contextos empresariales"
+- ✅ "Sistemas de backend en Node.js con persistencia MongoDB en contextos de microservicios escalables"
+- ✅ "Aplicaciones de aprendizaje automático implementadas con TensorFlow en dominios de visión por computadora"
+- ✅ "Sistemas IoT con comunicación MQTT desplegados en entornos de smart cities y domótica"
+- ✅ "Aplicaciones web desarrolladas con React que implementan gestión de estado con Redux en contextos empresariales"
 
 **JUSTIFICACIÓN METODOLÓGICA (incluir siempre en el JSON):**
 "La población se define como el dominio, sistema o contexto técnico donde se aplicará la tecnología investigada, NO como estudios o publicaciones (esas son la unidad de análisis). Esta definición sigue estándares Kitchenham y PRISMA para revisiones en ingeniería."
 
-**I - INTERVENTION (Intervención/Exposición):**
+🔬 **I - INTERVENTION (Intervención/Exposición):**
 - Definición: La tecnología, método, práctica o fenómeno observado que constituye el eje central del estudio.
 - **Debe estar lo más definida y operacionalizada posible** (versión, tipo, características distintivas).
 - Debe ser BUSCABLE en bases de datos académicas (IEEE, Scopus, ACM).
@@ -139,19 +140,19 @@ Debes definir cada componente buscando **precisión absoluta y operacionalizaci�
 
 **Ejemplo válido:** "Algoritmos de aprendizaje profundo (redes neuronales convolucionales y recurrentes) aplicados en sistemas de reconocimiento de patrones, incluyendo sus arquitecturas, parámetros de configuración y técnicas de entrenamiento."
 
-**C - COMPARISON (Comparador):**
+⚖️ **C - COMPARISON (Comparador):**
 - Definición: Alternativa de intervención, métodos tradicionales, estándar de la industria o "sin intervención".
 - **Si NO aplica comparación:** Indicar explícitamente "No se compara con intervención específica" y **justificar por qué** (ej: enfoque exploratorio, no existe estándar de oro claro, naturaleza descriptiva de la revisión).
 - **Si SÍ aplica:** Ser específico (ej: "métodos tradicionales sin IA", "algoritmos clásicos", "enfoque manual").
 - **LONGITUD MÍNIMA: 30-50 palabras**
 
-**O - OUTCOMES (Resultados Medibles):**
+🎯 **O - OUTCOMES (Resultados Medibles):**
 - Definición: Variables de resultado medibles y observables que se espera encontrar en los estudios.
 - **¿Qué impacto medible se espera obtener?** (rendimiento, precisión, latencia, usabilidad, tasa de error, tiempo de respuesta)
 - Deben ser **métricas específicas** que puedan extraerse de los estudios.
 - **LONGITUD MÍNIMA: 40-60 palabras** listando outcomes concretos, unidades de medida cuando sea posible.
 
-[!] **REGLA CRÍTICA PARA TÍTULOS - USO DE TÉRMINOS PARAGUAS (UMBRELLA TERMS):**
+⚠️ **REGLA CRÍTICA PARA TÍTULOS - USO DE TÉRMINOS PARAGUAS (UMBRELLA TERMS):**
 Para TÍTULOS de RSL, usa un TÉRMINO PARAGUAS que agrupe múltiples métricas relacionadas:
 
 **TÉRMINOS PARAGUAS COMUNES EN INGENIERÍA:**
@@ -251,6 +252,25 @@ FORMATO JSON DE SALIDA (ESTRICTO)
 ═══════════════════════════════════════════════════════════════
 
 {
+  "titulo_propuesto": "[FORMATO OBLIGATORIO SEGÚN COMPARACIÓN:
+  
+  SI PICO-C EXISTE (Estudio Comparativo):
+    [Intervención I] vs [Comparación C]: Impact on [TÉRMINO PARAGUAS O] in [Contexto P breve]
+    Ejemplo: 'Mongoose vs Native Driver: Impact on Performance in Node.js Backend Systems'
+    Ejemplo: 'React Hooks vs Redux: Impact on Development Efficiency in Enterprise Web Applications'
+  
+  SI PICO-C ES VACÍO/N/A (Estudio Exploratorio):
+    [Intervención I]: [TÉRMINO PARAGUAS O] Analysis in [Contexto P breve]
+    Ejemplo: 'TensorFlow: Performance Analysis in Computer Vision Systems'
+  
+  REGLAS:
+  - Título DECLARATIVO/DESCRIPTIVO (estilo Q1/Q2 journals)
+  - Si C existe, DEBE aparecer en título con 'vs' o 'versus'
+  - Usar TÉRMINO PARAGUAS para O (Performance, Efficiency, Scalability, Usability, etc.)
+  - NO listar métricas individuales (Latency, Throughput, etc.)
+  - Contexto P debe ser breve (3-5 palabras máximo)
+  - Máximo 15 palabras total
+  ]",
   "fase1_marco_pico": {
     "marco_pico": {
       "population": {
@@ -320,34 +340,43 @@ VALIDACIÓN FINAL OBLIGATORIA
 
 Antes de enviar el JSON, VERIFICA:
 
-[CHECK] **POBLACIÓN (P) - VALIDACIÓN CRÍTICA:**
-   - [X] ¿Contiene "artículos", "estudios", "investigaciones", "publicaciones", "papers", "literatura"? -> INVALIDO
-   - [X] ¿Contiene "bases de datos académicas", "journals", "conferencias"? -> INVALIDO
-   - [X] ¿Contiene profesiones ("desarrolladores", "ingenieros") o personas como sujeto? -> INVALIDO
-   - [OK] ¿Define SISTEMA, ENTORNO o CONTEXTO TÉCNICO? (ej: "Sistemas backend", "Aplicaciones móviles")
-   - [OK] ¿Especifica STACK TECNOLÓGICO? (ej: "Node.js", "MongoDB", "React")
-   - [OK] ¿Incluye CONTEXTO DE APLICACIÓN? (ej: "microservicios", "APIs RESTful")
-   - [OK] ¿Tiene al menos 40 palabras descriptivas del sistema técnico?
-   - [OK] ¿La justificación menciona "dominio/sistema técnico, NO estudios/publicaciones"?
+✅ **TÍTULO PROPUESTO:**
+   - ❌ ¿Contiene palabras genéricas como "Revisión Sistemática", "Systematic Review", "RSL", "SLR"? → ELIMINAR
+   - ✅ Si PICO-C existe → ¿El título incluye "I vs C: Impact on O"? Ejemplo: "Mongoose vs Native Driver: Impact on Performance"
+   - ✅ Si PICO-C no existe → ¿El título usa "I: O Analysis"? Ejemplo: "TensorFlow: Performance Analysis"
+   - ✅ ¿Usa TÉRMINO PARAGUAS para O? (Performance, Efficiency, Scalability, Usability, etc.)
+   - ❌ ¿Lista métricas individuales? (Latency, Throughput, etc.) → REEMPLAZAR con término paraguas
+   - ✅ ¿Es declarativo/descriptivo siguiendo estilo Q1/Q2?
+   - ✅ ¿Máximo 15 palabras?
 
-[CHECK] **PREGUNTA CONTESTABLE:**
+✅ **POBLACIÓN (P) - VALIDACIÓN CRÍTICA:**
+   - ❌ ¿Contiene "artículos", "estudios", "investigaciones", "publicaciones", "papers", "literatura"? → INVALIDO
+   - ❌ ¿Contiene "bases de datos académicas", "journals", "conferencias"? → INVALIDO
+   - ❌ ¿Contiene profesiones ("desarrolladores", "ingenieros") o personas como sujeto? → INVALIDO
+   - ✅ ¿Define SISTEMA, ENTORNO o CONTEXTO TÉCNICO? (ej: "Sistemas backend", "Aplicaciones móviles")
+   - ✅ ¿Especifica STACK TECNOLÓGICO? (ej: "Node.js", "MongoDB", "React")
+   - ✅ ¿Incluye CONTEXTO DE APLICACIÓN? (ej: "microservicios", "APIs RESTful")
+   - ✅ ¿Tiene al menos 40 palabras descriptivas del sistema técnico?
+   - ✅ ¿La justificación menciona "dominio/sistema técnico, NO estudios/publicaciones"?
+
+✅ **PREGUNTA CONTESTABLE:**
    - ¿Puede responderse con los estudios delimitados por los criterios?
    - ¿Los outcomes son medibles en estudios empíricos?
    - ¿La intervención está suficientemente operacionalizada?
-   - Si PICO-C existe -> ¿La pregunta incluye "en comparación con [C]"?
+   - Si PICO-C existe → ¿La pregunta incluye "en comparación con [C]"?
 
-[CHECK] **CRITERIOS PREPARADOS PARA EXTRACCIÓN:**
+✅ **CRITERIOS PREPARADOS PARA EXTRACCIÓN:**
    - ¿Los criterios de inclusión permiten identificar estudios con datos extraíbles?
    - ¿La estructura de matriz de síntesis cubre todas las dimensiones PICO?
    - ¿Los outcomes están reflejados como columnas en la matriz?
 
-[CHECK] **COHERENCIA INTERNA:**
+✅ **COHERENCIA INTERNA:**
    - Todos los elementos de inclusión están reflejados en PICO
    - Todos los elementos de exclusión justifican límites claros
    - La pregunta contestable conecta P-I-C-O de forma lógica
    - Si C existe, aparece en título, pregunta y matriz
 
-[!] **SI ALGUNA VALIDACIÓN FALLA -> CORREGIR ANTES DE ENVIAR JSON**
+⚠️ **SI ALGUNA VALIDACIÓN FALLA → CORREGIR ANTES DE ENVIAR JSON**
 
 RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
 `.trim();
