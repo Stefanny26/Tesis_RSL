@@ -126,13 +126,30 @@ export function ProjectCard({ project, onDelete }: { readonly project: Project; 
           <span>Actualizado {new Date(project.updatedAt).toLocaleDateString("es-ES")}</span>
         </div>
       </CardContent>
-      <CardFooter>
-        <Button className="w-full" asChild>
-          <Link href={`/projects/${project.id}`}>
-            Ver Proyecto
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+      <CardFooter className="flex gap-2">
+        {effectiveStatus === 'draft' ? (
+          <>
+            <Button className="flex-1" variant="outline" asChild>
+              <Link href={`/projects/${project.id}`}>
+                Ver Detalles
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button className="flex-1" asChild>
+              <Link href={`/new-project?projectId=${project.id}`}>
+                Continuar Borrador
+                <FileText className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </>
+        ) : (
+          <Button className="w-full" asChild>
+            <Link href={`/projects/${project.id}`}>
+              Ver Proyecto
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        )}
       </CardFooter>
 
       {/* Diálogo de confirmación de eliminación */}

@@ -239,16 +239,60 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
       
       try {
         console.log('🔍 Cargando protocolo existente para proyecto:', projectId)
+        
+        // Si no se pasó projectData, cargar los datos del proyecto primero
+        let projectInfo = projectData
+        if (!projectInfo) {
+          try {
+            const projectResponse = await apiClient.getProject(projectId)
+            projectInfo = {
+              title: projectResponse.title || projectResponse.data?.project?.title || "",
+              description: projectResponse.description || projectResponse.data?.project?.description || "",
+              researchArea: projectResponse.researchArea || projectResponse.data?.project?.researchArea || ""
+            }
+            console.log('📦 Datos del proyecto cargados:', projectInfo)
+          } catch (err) {
+            console.error('Error cargando datos del proyecto:', err)
+          }
+        }
+        
         const protocol = await apiClient.getProtocol(projectId)
         console.log('📋 Protocolo recibido:', protocol)
+        
+        // Cargar referencias existentes del proyecto
+        let uploadedFiles: any[] = []
+        try {
+          const referencesResponse = await apiClient.getReferences(projectId)
+          if (referencesResponse && referencesResponse.length > 0) {
+            // Agrupar referencias por fuente de base de datos
+            const dbGroups: Record<string, any[]> = {}
+            referencesResponse.forEach((ref: any) => {
+              const source = ref.source || 'unknown'
+              if (!dbGroups[source]) dbGroups[source] = []
+              dbGroups[source].push(ref)
+            })
+            
+            // Convertir a formato uploadedFiles
+            uploadedFiles = Object.entries(dbGroups).map(([dbName, refs]) => ({
+              name: `${dbName}_export.bib`,
+              recordCount: refs.length,
+              database: dbName,
+              uploadedAt: new Date().toISOString()
+            }))
+            
+            console.log('📚 Referencias cargadas:', uploadedFiles.length, 'archivos')
+          }
+        } catch (err) {
+          console.error('Error cargando referencias:', err)
+        }
         
         if (protocol) {
           // Mapear datos del protocolo al formato del wizard
           const loadedData: Partial<WizardData> = {
             projectId: projectId,
-            projectName: projectData?.title || "",
-            projectDescription: protocol.refinedQuestion || projectData?.description || "",
-            researchArea: projectData?.researchArea || "",
+            projectName: projectInfo?.title || "",
+            projectDescription: protocol.refinedQuestion || projectInfo?.description || "",
+            researchArea: projectInfo?.researchArea || "",
             
             // PICO
             pico: {
@@ -265,7 +309,7 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
             },
             
             // Título seleccionado
-            selectedTitle: protocol.proposedTitle || projectData?.title || "",
+            selectedTitle: protocol.proposedTitle || projectInfo?.title || "",
             
             // Términos del protocolo
             protocolDefinition: protocol.keyTerms || {
@@ -294,7 +338,8 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
                 start: protocol.temporalRange?.start || 2019,
                 end: protocol.temporalRange?.end || new Date().getFullYear()
               },
-              searchQueries: protocol.searchQueries || []
+              searchQueries: protocol.searchQueries || [],
+              uploadedFiles: uploadedFiles // Referencias cargadas del proyecto
             },
             
             // Rango temporal

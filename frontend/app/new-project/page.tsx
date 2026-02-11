@@ -13,6 +13,7 @@ import { SearchPlanStep } from "@/components/project-wizard/steps/6-search-plan-
 import { PrismaCheckStep } from "@/components/project-wizard/steps/7-prisma-check-step"
 import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 
 function WizardContent() {
   const { data, currentStep, updateData } = useWizard()
@@ -22,21 +23,48 @@ function WizardContent() {
   const handleCreateProject = async () => {
     setIsSaving(true)
     try {
-      const payload = {
-        title: data.projectName,
-        description: data.projectDescription || "Proyecto de revisión sistemática",
-        researchArea: data.researchArea,
-        status: "draft"
+      let projectId: string
+      
+      // Si ya existe un proyecto temporal (creado en paso 6), actualizarlo
+      if (data.projectId) {
+        console.log('🔄 Actualizando proyecto temporal a definitivo:', data.projectId)
+        
+        const updatePayload = {
+          title: data.projectName, // Quitar prefijo [TEMPORAL]
+          description: data.projectDescription || "Proyecto de revisión sistemática",
+          researchArea: data.researchArea,
+          status: "draft" // Cambiar de 'temporary' a 'draft'
+        }
+        
+        await apiClient.updateProject(data.projectId, updatePayload)
+        projectId = data.projectId
+        
+        toast({
+          title: "✅ Proyecto actualizado",
+          description: "Tu proyecto con referencias queda listo"
+        })
+      } else {
+        // Si NO existe proyecto, crear uno nuevo
+        console.log('📝 Creando nuevo proyecto')
+        
+        const payload = {
+          title: data.projectName,
+          description: data.projectDescription || "Proyecto de revisión sistemática",
+          researchArea: data.researchArea,
+          status: "draft"
+        }
+        
+        const project = await apiClient.createProject(payload)
+        projectId = project.id
+        
+        toast({
+          title: "✅ Proyecto creado",
+          description: "El proyecto fue creado correctamente"
+        })
       }
 
-      const project = await apiClient.createProject(payload)
-
-      toast({
-        title: "✅ Proyecto creado",
-        description: "El proyecto fue creado correctamente"
-      })
-
-      window.location.href = `/projects/${project.id}`
+      // Redirigir al proyecto (temporal actualizado o nuevo)
+      window.location.href = `/projects/${projectId}`
     } catch (err) {
       console.error(err)
       toast({
@@ -179,8 +207,11 @@ function WizardContent() {
 }
 
 export default function NewProjectWizardPage() {
+  const searchParams = useSearchParams()
+  const projectId = searchParams.get('projectId')
+  
   return (
-    <WizardProvider>
+    <WizardProvider projectId={projectId || undefined}>
       <WizardContent />
     </WizardProvider>
   )
