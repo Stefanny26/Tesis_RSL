@@ -205,12 +205,37 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
   const [data, setData] = useState<WizardData>(initialData)
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(!!projectId)
+  const [saveTimeoutId, setSaveTimeoutId] = useState<NodeJS.Timeout | null>(null)
   const totalSteps = 7
 
   // Cargar protocolo existente si se pasa projectId
   useEffect(() => {
     async function loadExistingProtocol() {
-      if (!projectId) return
+      if (!projectId) {
+        // Si no hay projectId, intentar cargar borrador local
+        try {
+          const draft = localStorage.getItem('wizard-draft')
+          if (draft) {
+            const parsed = JSON.parse(draft)
+            const ageMinutes = (Date.now() - new Date(parsed.timestamp).getTime()) / 60000
+            
+            // Si el borrador tiene menos de 24 horas, cargar
+            if (ageMinutes < 1440) {
+              console.log('📥 Restaurando borrador local (guardado hace', Math.round(ageMinutes), 'minutos)')
+              setData(prev => ({ ...prev, ...parsed.data }))
+              setCurrentStep(parsed.currentStep)
+            } else {
+              console.log('🧹 Borrador local expirado, limpiando')
+              localStorage.removeItem('wizard-draft')
+            }
+          }
+        } catch (error) {
+          console.error('Error cargando borrador local:', error)
+        }
+        
+        setIsLoading(false)
+        return
+      }
       
       try {
         console.log('🔍 Cargando protocolo existente para proyecto:', projectId)
@@ -343,15 +368,60 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
       
+      // Limpiar timeout de auto-guardado pendiente
+      if (saveTimeoutId) {
+        clearTimeout(saveTimeoutId)
+      }
+      
       if (data.projectId && currentStep < 7) {
         // Ejecutar limpieza de forma asíncrona
         cleanupTemporaryProject()
       }
     }
-  }, [data.projectId, currentStep])
+  }, [data.projectId, currentStep, saveTimeoutId])
 
   const updateData = (updates: Partial<WizardData>) => {
-    setData(prev => ({ ...prev, ...updates }))
+    setData(prev => {
+      const newData = { ...prev, ...updates }
+      
+      // Auto-guardar en localStorage (backup local)
+      try {
+        const key = projectId || 'wizard-draft'
+        localStorage.setItem(key, JSON.stringify({
+          data: newData,
+          currentStep,
+          timestamp: new Date().toISOString()
+        }))
+        console.log('💾 Progreso guardado en localStorage')
+      } catch (error) {
+        console.error('Error guardando en localStorage:', error)
+      }
+      
+      // Auto-guardar en backend con debouncing (esperar 2 segundos sin cambios)
+      if (projectId) {
+        // Cancelar guardado anterior si existe
+        if (saveTimeoutId) {
+          clearTimeout(saveTimeoutId)
+        }
+        
+        // Programar nuevo guardado
+        const timeoutId = setTimeout(async () => {
+          try {
+            await apiClient.updateProtocol(projectId, {
+              ...updates,
+              lastSaved: new Date().toISOString()
+            })
+            console.log('✅ Auto-guardado en servidor')
+          } catch (error) {
+            console.error('❌ Error en auto-guardado:', error)
+          }
+        }, 2000) // Esperar 2 segundos sin cambios
+        
+        setSaveTimeoutId(timeoutId)
+      }
+      
+      return newData
+    })
   }
 
   const resetData = () => {
