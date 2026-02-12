@@ -100,6 +100,7 @@ class ProtocolRepository {
       searchString: 'search_string',
       keyTerms: 'key_terms',
       temporalRange: 'temporal_range',
+      researchArea: 'research_area',
       
       // Cumplimiento PRISMA - deprecado, usar tabla prisma_items
       // prismaCompliance: 'prisma_compliance',
@@ -125,12 +126,52 @@ class ProtocolRepository {
       completed: 'completed'
     };
 
+    // MAPEO ESPECÍFICO PARA DATOS DEL WIZARD
+    // Los datos del wizard vienen con estructura anidada que necesitamos aplanar
+    let mappedData = { ...protocolData };
+
+    // 1. Mapear datos del marco PICO si vienen en estructura anidada
+    if (protocolData.pico && typeof protocolData.pico === 'object') {
+      console.log('📊 Mapeando datos PICO desde estructura wizard:', protocolData.pico);
+      mappedData.population = protocolData.pico.population;
+      mappedData.intervention = protocolData.pico.intervention;  
+      mappedData.comparison = protocolData.pico.comparison;
+      mappedData.outcomes = protocolData.pico.outcome || protocolData.pico.outcomes; // Singular/plural compatibility
+    }
+
+    // 2. Mapear matriz Es/No Es si viene en estructura anidada
+    if (protocolData.matrixIsNot && typeof protocolData.matrixIsNot === 'object') {
+      console.log('📋 Mapeando matriz Es/No Es desde estructura wizard:', protocolData.matrixIsNot);
+      mappedData.isMatrix = protocolData.matrixIsNot.is || [];
+      mappedData.isNotMatrix = protocolData.matrixIsNot.isNot || [];
+    }
+
+    // 3. Mapear datos del searchPlan si vienen en estructura anidada
+    if (protocolData.searchPlan && typeof protocolData.searchPlan === 'object') {
+      console.log('🔍 Mapeando plan de búsqueda desde estructura wizard');
+      if (protocolData.searchPlan.databases) {
+        mappedData.databases = protocolData.searchPlan.databases;
+      }
+      if (protocolData.searchPlan.searchQueries) {
+        mappedData.searchQueries = protocolData.searchPlan.searchQueries;
+      }
+      if (protocolData.searchPlan.temporalRange) {
+        mappedData.temporalRange = protocolData.searchPlan.temporalRange;
+      }
+    }
+
+    // 4. Mapear términos del protocolo si viene en estructura anidada  
+    if (protocolData.protocolDefinition && typeof protocolData.protocolDefinition === 'object') {
+      console.log('🏷️ Mapeando términos del protocolo desde estructura wizard:', protocolData.protocolDefinition);
+      mappedData.keyTerms = protocolData.protocolDefinition;
+    }
+
     // Usar el modelo Protocol para manejar la serialización correctamente
     const Protocol = require('../../domain/models/protocol.model');
     
-    // Crear instancia del modelo con los datos recibidos
+    // Crear instancia del modelo con los datos mapeados
     const protocolInstance = new Protocol({
-      ...protocolData,
+      ...mappedData,
       projectId: projectId
     });
     
@@ -139,8 +180,8 @@ class ProtocolRepository {
     
     // Mapear los campos del modelo a la base de datos
     for (const [jsKey, dbKey] of Object.entries(fieldMap)) {
-      // Solo actualizar campos que están presentes en protocolData
-      if (protocolData[jsKey] !== undefined) {
+      // Solo actualizar campos que están presentes en mappedData
+      if (mappedData[jsKey] !== undefined) {
         const snakeKey = dbKey;
         const valueToUpdate = dbData[snakeKey];
         

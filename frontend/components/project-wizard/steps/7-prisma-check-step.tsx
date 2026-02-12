@@ -84,14 +84,12 @@ export function PrismaCheckStep() {
   const handleFinishProject = async () => {
     setIsSaving(true)
     try {
-      // Separar datos de proyecto y protocolo
-      const projectData = {
-        title: data.selectedTitle,
-        description: data.projectDescription,
-        status: 'in-progress' // Cambiar de 'draft' a 'in-progress' (estado válido)
+      // VALIDAR que existe proyecto (creado en step 3)
+      if (!data.projectId) {
+        throw new Error('No hay proyecto creado. Regresa al paso 3 para seleccionar un título y crear el proyecto.')
       }
 
-      // Encontrar el título seleccionado completo (con español)
+      // Datos del protocolo COMPLETO para actualizar proyecto existente
       const selectedTitleObj = data.generatedTitles?.find(t => t.title === data.selectedTitle)
       const titleToSave = selectedTitleObj?.spanishTitle || data.selectedTitle
 
@@ -157,12 +155,18 @@ export function PrismaCheckStep() {
         }
       })
 
-      const protocolData = {
+      // Datos de actualización del proyecto (cambiar a estado 'in-progress')
+      const projectUpdateData = {
+        title: data.selectedTitle, // Limpiar título (quitar [TEMPORAL] si existía)
+        description: data.projectDescription,
+        status: 'in-progress', // Cambiar de 'draft' a 'in-progress'
+        researchArea: data.researchArea
+      }
+
+      // Datos del protocolo completo para actualización
+      // Solo incluir campos PICO si tienen valor para no sobrescribir datos existentes
+      const protocolData: any = {
         proposedTitle: titleToSave,
-        population: data.pico.population,
-        intervention: data.pico.intervention,
-        comparison: data.pico.comparison || '',
-        outcomes: data.pico.outcome,
         refinedQuestion: data.projectDescription,
         isMatrix: data.matrixIsNot.is,
         isNotMatrix: data.matrixIsNot.isNot,
@@ -171,16 +175,17 @@ export function PrismaCheckStep() {
         databases: databaseNames,
         searchString: searchString,
         searchQueries: queries,
+        researchArea: data.researchArea, // Guardar área de investigación
         temporalRange: {
           start: data.yearStart || 2019,
           end: data.yearEnd || new Date().getFullYear(),
           justification: `Rango temporal definido para cubrir investigaciones recientes en ${data.researchArea || 'el área de estudio'}`
         },
         keyTerms: {
-          technology: (data.protocolDefinition?.technologies || []).filter((_, idx) => !data.discardedTerms?.tecnologia?.has(idx)),
-          domain: (data.protocolDefinition?.applicationDomain || []).filter((_, idx) => !data.discardedTerms?.dominio?.has(idx)),
-          studyType: (data.protocolDefinition?.studyType || []).filter((_, idx) => !data.discardedTerms?.tipoEstudio?.has(idx)),
-          themes: (data.protocolDefinition?.thematicFocus || []).filter((_, idx) => !data.discardedTerms?.focosTematicos?.has(idx))
+          technology: (data.protocolDefinition?.technologies || data.protocolTerms?.tecnologia || []).filter((_, idx) => !data.discardedTerms?.tecnologia?.has(idx)),
+          domain: (data.protocolDefinition?.applicationDomain || data.protocolTerms?.dominio || []).filter((_, idx) => !data.discardedTerms?.dominio?.has(idx)),
+          studyType: (data.protocolDefinition?.studyType || data.protocolTerms?.tipoEstudio || []).filter((_, idx) => !data.discardedTerms?.tipoEstudio?.has(idx)),
+          themes: (data.protocolDefinition?.thematicFocus || data.protocolTerms?.focosTematicos || []).filter((_, idx) => !data.discardedTerms?.focosTematicos?.has(idx))
         },
         prismaCompliance: PRISMA_WPOM_ITEMS.map(item => ({
           number: item.number,
@@ -189,65 +194,51 @@ export function PrismaCheckStep() {
           evidence: prismaData[item.id]?.evidence || ''
         }))
       }
+      
+      // Solo incluir campos PICO si tienen valor
+      if (data.pico?.population) protocolData.population = data.pico.population
+      if (data.pico?.intervention) protocolData.intervention = data.pico.intervention
+      if (data.pico?.comparison) protocolData.comparison = data.pico.comparison
+      if (data.pico?.outcome) protocolData.outcomes = data.pico.outcome
 
-      console.log('🔍 DEBUG - searchPlan:', data.searchPlan)
-      console.log('🔍 DEBUG - protocolDefinition:', data.protocolDefinition)
+      console.log('📝 ACTUALIZANDO proyecto existente:', data.projectId)
       console.log('🔍 DEBUG - protocolData que se enviará:', protocolData)
 
-      let result: any = null
-      
-      // Determinar si actualizar proyecto temporal existente o crear uno nuevo
-      if (data.projectId) {
-        console.log('📝 Actualizando proyecto temporal a definitivo...', data.projectId)
-        
-        try {
-          // Actualizar proyecto existente
-          result = await apiClient.updateProject(data.projectId, {
-            ...projectData,
-            title: data.selectedTitle, // Quitar prefijo [TEMPORAL]
-            status: 'in-progress', // Cambiar de 'temporary' a 'in-progress'
-            protocol: protocolData
-          } as any)
-          
-          console.log('✅ Proyecto temporal actualizado a definitivo:', data.projectId)
-          
-        } catch (updateError: any) {
-          console.error('❌ Error actualizando proyecto temporal:', updateError)
-          // Si falla la actualización, intentar crear nuevo proyecto
-          console.log('🔄 Intentando crear nuevo proyecto como fallback...')
-          
-          result = await apiClient.createProject({
-            ...projectData,
-            protocol: protocolData
-          } as any)
-        }
-      } else {
-        console.log('📝 Creando proyecto completo desde cero...')
-        
-        result = await apiClient.createProject({
-          ...projectData,
-          protocol: protocolData
-        } as any)
-      }
+      // Primero actualizar el protocolo
+      await apiClient.updateProtocol(data.projectId, protocolData)
+      console.log('✅ Protocolo actualizado')
 
-      if (result.success && result.data?.project?.id) {
-        const projectId = result.data.project.id
-        
-        toast({
-          title: "Proyecto creado exitosamente",
-          description: "Redirigiendo a tu proyecto..."
-        })
-        
-        updateData({ projectId: projectId, lastSaved: new Date() })
-        setTimeout(() => router.push(`/projects/${projectId}`), 1500)
-      } else {
-        throw new Error('No se recibió respuesta válida del servidor')
+      // Luego actualizar el proyecto (solo campos básicos)
+      // El método request() lanza error si la respuesta no es exitosa, 
+      // por lo que si llegamos aquí sin error, el proyecto se actualizó correctamente
+      await apiClient.updateProject(data.projectId, projectUpdateData as any)
+      console.log('✅ Proyecto actualizado exitosamente:', data.projectId)
+      
+      // Limpiar localStorage del wizard para evitar conflictos
+      try {
+        localStorage.removeItem('wizard-draft')
+        console.log('🧹 Limpiando localStorage del wizard')
+      } catch (e) {
+        console.warn('⚠️ No se pudo limpiar localStorage:', e)
       }
-    } catch (error: any) {
-      console.error('Error al guardar proyecto:', error)
+      
       toast({
-        title: "Error al guardar proyecto",
-        description: error.message || "No se pudo guardar el proyecto",
+        title: "Proyecto completado exitosamente",
+        description: "Tu revisión sistemática está lista para la fase de ejecución"
+      })
+      
+      updateData({ lastSaved: new Date() })
+      
+      // Usar replace en lugar de push para evitar problemas de navegación
+      setTimeout(() => {
+        console.log('🔄 Redirigiendo a proyecto completado:', data.projectId)
+        router.replace(`/projects/${data.projectId}`)
+      }, 1500)
+    } catch (error: any) {
+      console.error('Error al finalizar proyecto:', error)
+      toast({
+        title: "Error al finalizar proyecto",
+        description: error.message || "No se pudo completar el proyecto",
         variant: "destructive"
       })
     } finally {

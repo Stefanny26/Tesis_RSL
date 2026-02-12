@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Sparkles, Loader2, Wrench, Microscope, Focus, Check, X, Pencil, Save, RefreshCw, Trash2 } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
 
@@ -20,31 +20,31 @@ export function ProtocolDefinitionStep() {
   const [regenerateSection, setRegenerateSection] = useState<'tecnologia' | 'dominio' | 'focosTematicos' | null>(null)
   const [regenerateFocus, setRegenerateFocus] = useState('')
   
-  // Estado para términos confirmados
+  // Estado para términos confirmados - inicializar desde contexto si existe
   const [confirmedTerms, setConfirmedTerms] = useState<{
     tecnologia: Set<number>
     dominio: Set<number>
     tipoEstudio: Set<number>
     focosTematicos: Set<number>
-  }>({
-    tecnologia: new Set(),
-    dominio: new Set(),
-    tipoEstudio: new Set(),
-    focosTematicos: new Set()
-  })
+  }>(() => ({
+    tecnologia: data.confirmedTerms?.tecnologia instanceof Set ? data.confirmedTerms.tecnologia : new Set(data.confirmedTerms?.tecnologia || []),
+    dominio: data.confirmedTerms?.dominio instanceof Set ? data.confirmedTerms.dominio : new Set(data.confirmedTerms?.dominio || []),
+    tipoEstudio: data.confirmedTerms?.tipoEstudio instanceof Set ? data.confirmedTerms.tipoEstudio : new Set(data.confirmedTerms?.tipoEstudio || []),
+    focosTematicos: data.confirmedTerms?.focosTematicos instanceof Set ? data.confirmedTerms.focosTematicos : new Set(data.confirmedTerms?.focosTematicos || [])
+  }))
 
-  // Estado para términos descartados (marcados con X)
+  // Estado para términos descartados - inicializar desde contexto si existe
   const [discardedTerms, setDiscardedTerms] = useState<{
     tecnologia: Set<number>
     dominio: Set<number>
     tipoEstudio: Set<number>
     focosTematicos: Set<number>
-  }>({
-    tecnologia: new Set(),
-    dominio: new Set(),
-    tipoEstudio: new Set(),
-    focosTematicos: new Set()
-  })
+  }>(() => ({
+    tecnologia: data.discardedTerms?.tecnologia instanceof Set ? data.discardedTerms.tecnologia : new Set(data.discardedTerms?.tecnologia || []),
+    dominio: data.discardedTerms?.dominio instanceof Set ? data.discardedTerms.dominio : new Set(data.discardedTerms?.dominio || []),
+    tipoEstudio: data.discardedTerms?.tipoEstudio instanceof Set ? data.discardedTerms.tipoEstudio : new Set(data.discardedTerms?.tipoEstudio || []),
+    focosTematicos: data.discardedTerms?.focosTematicos instanceof Set ? data.discardedTerms.focosTematicos : new Set(data.discardedTerms?.focosTematicos || [])
+  }))
 
   // Estado para términos en modo edición
   const [editingTerms, setEditingTerms] = useState<{
@@ -71,8 +71,15 @@ export function ProtocolDefinitionStep() {
     focosTematicos: data.protocolTerms?.focosTematicos || []
   }
 
-  // Sincronizar estados locales con el contexto del wizard
+  // Ref para evitar sincronización en el montaje inicial
+  const isFirstMount = useRef(true)
+
+  // Sincronizar estados locales con el contexto del wizard (solo después del primer mount)
   useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false
+      return
+    }
     updateData({ confirmedTerms, discardedTerms })
   }, [confirmedTerms, discardedTerms])
 

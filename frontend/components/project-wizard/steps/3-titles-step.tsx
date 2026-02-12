@@ -99,9 +99,94 @@ export function TitlesStep() {
     }
   }
 
-  const handleSelectTitle = (index: number) => {
+  const handleSelectTitle = async (index: number) => {
     setSelectedIndex(index)
-    updateData({ selectedTitle: data.generatedTitles[index].title })
+    const selectedTitle = data.generatedTitles[index].title
+    updateData({ selectedTitle })
+    
+    // Crear proyecto de borrador cuando se selecciona un título (si no existe aún)
+    if (!data.projectId && selectedTitle && data.projectName && data.projectDescription) {
+      await createProjectDraft(selectedTitle)
+    }
+  }
+  
+  // Función para crear proyecto como borrador temprano en el proceso
+  const createProjectDraft = async (selectedTitle: string) => {
+    try {
+      console.log('📝 Creando proyecto como borrador...')
+      
+      const projectData = {
+        title: selectedTitle,
+        description: data.projectDescription,
+        researchArea: data.researchArea,
+        status: 'draft' // Estado borrador para permitir edición
+      }
+
+      const result = await apiClient.createProject(projectData)
+      
+      if (result.success && result.data?.project?.id) {
+        const projectId = result.data.project.id
+        console.log('✅ Proyecto borrador creado con ID:', projectId)
+        
+        // Actualizar wizard data con el projectId
+        updateData({ 
+          projectId: projectId, 
+          lastSaved: new Date() 
+        })
+        
+        toast({
+          title: "Proyecto creado",
+          description: "Tu proyecto se ha guardado como borrador y se actualizará automáticamente"
+        })
+        
+        // Guardar protocolo inicial
+        setTimeout(async () => {
+          try {
+            await saveInitialProtocolData(projectId)
+          } catch (error) {
+            console.error('Error guardando protocolo inicial:', error)
+          }
+        }, 500)
+        
+      } else {
+        throw new Error('No se recibió respuesta válida del servidor')
+      }
+    } catch (error: any) {
+      console.error('Error creando proyecto borrador:', error)
+      toast({
+        title: "Error creando proyecto",
+        description: error.message || "No se pudo crear el proyecto. Se guardará localmente.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  // Función para guardar protocolo inicial con los datos actuales  
+  const saveInitialProtocolData = async (projectId: string) => {
+    try {
+      const protocolData = {
+        proposedTitle: data.selectedTitle,
+        population: data.pico.population,
+        intervention: data.pico.intervention,
+        comparison: data.pico.comparison || '',
+        outcomes: data.pico.outcome,
+        refinedQuestion: data.projectDescription,
+        isMatrix: data.matrixIsNot.is,
+        isNotMatrix: data.matrixIsNot.isNot,
+        researchArea: data.researchArea, // Guardar área de investigación
+        temporalRange: {
+          start: data.yearStart || 2019,
+          end: data.yearEnd || new Date().getFullYear(),
+          justification: `Rango temporal definido para ${data.researchArea || 'la investigación'}`
+        }
+      }
+      
+      // Usar updateProtocol para guardar/actualizar el protocolo
+      await apiClient.updateProtocol(projectId, protocolData)
+      console.log('✅ Protocolo inicial guardado')
+    } catch (error) {
+      console.error('Error guardando protocolo inicial:', error)
+    }
   }
 
   // Auto-save debounced function

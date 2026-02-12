@@ -88,7 +88,7 @@ export function ImportReferencesButton({
   const handleClick = () => {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = '.csv,.ris,.bib'
+    input.accept = '.csv,.ris,.bib,.txt,.nbib,.ciw,.json'
     input.onchange = handleFileSelect as any
     input.click()
   }
@@ -115,10 +115,10 @@ export function ImportReferencesButton({
         )}
       </Button>
       <p className="text-xs text-muted-foreground text-center">
-        📋 Formatos: CSV, RIS, BIB
+        Formatos: CSV, RIS, BibTeX
       </p>
       <p className="text-xs text-amber-600 dark:text-amber-400 text-center font-medium">
-        ⚠️ Debes tener una cuenta creada en la base de datos
+        Debes tener una cuenta creada en la base de datos
       </p>
     </div>
   )

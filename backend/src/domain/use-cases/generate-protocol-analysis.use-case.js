@@ -32,7 +32,26 @@ class GenerateProtocolAnalysisUseCase {
         }
       }
     };
+    
+    // Schema para validar actualizaciones parciales de matriz ES/NO ES
+    this.matrizEsNoEsSchema = {
+      type: 'object',
+      required: ['fase2_matriz_es_no_es'],
+      properties: {
+        fase2_matriz_es_no_es: { 
+          type: 'object',
+          required: ['analisis_critico', 'criterios_inclusion_es', 'criterios_exclusion_no_es'],
+          properties: {
+            analisis_critico: { type: 'array' },
+            criterios_inclusion_es: { type: 'array' },
+            criterios_exclusion_no_es: { type: 'array' }
+          }
+        }
+      }
+    };
+    
     this.validateOutput = ajv.compile(this.outputSchema);
+    this.validateMatrizEsNoEs = ajv.compile(this.matrizEsNoEsSchema);
   }
 
   normalizeText(text) {
@@ -382,6 +401,190 @@ RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
 `.trim();
   }
 
+  /**
+   * Construye prompt específico para actualizar matriz ES/NO ES cuando se edita el marco PICO
+   * @param {Object} params - Parámetros del proyecto
+   * @param {Object} params.marcoPico - Marco PICO actualizado
+   * @param {string} params.area - Área de conocimiento
+   * @param {number} params.yearStart - Año inicial del rango temporal
+   * @param {number} params.yearEnd - Año final del rango temporal
+   */
+  buildMatrizUpdatePrompt({ marcoPico, area = 'No especificada', yearStart = 2020, yearEnd = new Date().getFullYear() }) {
+    const { population, intervention, comparison, outcomes } = marcoPico;
+    
+    return `
+Eres un experto en metodología PRISMA 2020 para revisiones sistemáticas de literatura en Ingeniería y Tecnología.
+
+═══════════════════════════════════════════════════════════════
+TAREA: ACTUALIZAR MATRIZ ES/NO ES BASADA EN MARCO PICO EDITADO
+═══════════════════════════════════════════════════════════════
+
+El usuario ha editado elementos del marco PICO. Debes regenerar ÚNICAMENTE la matriz ES/NO ES (Fase 2) para que sea coherente con los cambios realizados.
+
+═══════════════════════════════════════════════════════════════
+MARCO PICO ACTUALIZADO (ENTRADA)
+═══════════════════════════════════════════════════════════════
+
+**P - POBLACIÓN:**
+${population?.descripcion || 'No especificada'}
+
+**I - INTERVENCIÓN:**
+${intervention?.descripcion || 'No especificada'}
+
+**C - COMPARACIÓN:**
+${comparison?.descripcion || 'No especificada'}
+
+**O - OUTCOMES:**
+${outcomes?.descripcion || 'No especificados'}
+
+**ÁREA DE CONOCIMIENTO:** ${area}
+**RANGO TEMPORAL:** ${yearStart} - ${yearEnd}
+
+═══════════════════════════════════════════════════════════════
+INSTRUCCIONES PARA MATRIZ ES/NO ES ACTUALIZADA
+═══════════════════════════════════════════════════════════════
+
+Debes generar una matriz ES/NO ES que mantenga COHERENCIA ABSOLUTA con el marco PICO editado.
+
+**ANÁLISIS CRÍTICO - 7 DIMENSIONES OBLIGATORIAS:**
+Responde exactamente estas 7 preguntas basándote en el PICO actualizado:
+
+1. **¿Qué fenómeno/tecnología se investiga específicamente?**
+   - presente: [Extraer de Intervención I actualizada, mínimo 20-30 palabras]
+   - justificacion: [Por qué este foco específico es relevante para ${area}, mínimo 30-40 palabras]
+
+2. **¿En qué contexto técnico o dominio se aplica?**
+   - presente: [Extraer de Población P actualizada - sistemas/entornos técnicos específicos, mínimo 20-30 palabras]
+   - justificacion: [Por qué este contexto técnico delimita el alcance, mínimo 30-40 palabras]
+
+3. **¿Qué intervención/método específico se analiza?**
+   - presente: [Detallar Intervención I con características operacionales, mínimo 20-30 palabras]
+   - justificacion: [Cómo se operacionaliza esta intervención, mínimo 30-40 palabras]
+
+4. **¿Existe comparación con alternativas?**
+   - presente: [Analizar Comparación C - si existe o no, mínimo 20-30 palabras]
+   - justificacion: [Relevancia de la comparación o justificación de ausencia, mínimo 30-40 palabras]
+
+5. **¿Qué variables de resultado se miden?**
+   - presente: [Extraer de Outcomes O - métricas específicas, mínimo 20-30 palabras]
+   - justificacion: [Por qué estos outcomes son relevantes, mínimo 30-40 palabras]
+
+6. **¿Qué tipos de estudios se consideran válidos?**
+   - presente: [Diseño metodológico apropiado para ${area}, mínimo 20-30 palabras]
+   - justificacion: [Adecuación metodológica para el área, mínimo 30-40 palabras]
+
+7. **¿Cuál es el rigor de la evidencia requerida?**
+   - presente: [Estándares de calidad académica, mínimo 20-30 palabras]
+   - justificacion: [Impacto en validez de resultados, mínimo 30-40 palabras]
+
+**CRITERIOS DE INCLUSIÓN (ES) - 7 elementos:**
+Generar criterios que reflejen EXACTAMENTE el PICO actualizado:
+
+1. "Estudios que analicen [fenómeno de Intervención I] en contextos de [Población P específica]"
+2. "Investigaciones que utilicen [método/tecnología de I] de forma operacionalizada"
+3. "Estudios que midan resultados en términos de [Outcomes O específicos]"
+4. "Artículos en journals revisados por pares o conferencias indexadas (IEEE, ACM, Springer, Elsevier)"
+5. "Publicaciones entre ${yearStart} y ${yearEnd}"
+6. "Estudios empíricos con datos cuantitativos o cualitativos verificables"
+7. "Investigaciones en inglés o español con acceso a texto completo"
+
+**CRITERIOS DE EXCLUSIÓN (NO ES) - 7 elementos:**
+Generar exclusiones coherentes con el PICO:
+
+1. "Estudios anteriores a ${yearStart} que no reflejan el estado actual de la tecnología"
+2. "Literatura gris (tesis, reportes técnicos no publicados) que no cumplen estándares académicos"
+3. "Investigaciones en áreas fuera de [contexto de Población P] que no son relevantes"
+4. "Artículos sin evidencia empírica (opiniones, editoriales) que no aportan datos verificables"
+5. "Estudios que no analicen específicamente [Intervención I actualizada]"
+6. "Investigaciones que no midan resultados cuantificables en [Outcomes O actualizados]"
+7. "Publicaciones en idiomas distintos a inglés/español sin traducción disponible"
+
+═══════════════════════════════════════════════════════════════
+FORMATO JSON DE SALIDA (ESTRICTO)
+═══════════════════════════════════════════════════════════════
+
+{
+  "fase2_matriz_es_no_es": {
+    "analisis_critico": [
+      {
+        "pregunta": "¿Qué fenómeno/tecnología se investiga específicamente?",
+        "presente": "[basado en I actualizada, min. 20-30 palabras]",
+        "justificacion": "[relevancia para ${area}, min. 30-40 palabras]"
+      },
+      {
+        "pregunta": "¿En qué contexto técnico o dominio se aplica?",
+        "presente": "[basado en P actualizada - sistemas técnicos, min. 20-30 palabras]",
+        "justificacion": "[delimitación del contexto técnico, min. 30-40 palabras]"
+      },
+      {
+        "pregunta": "¿Qué intervención/método específico se analiza?",
+        "presente": "[detalles de I con operacionalización, min. 20-30 palabras]",
+        "justificacion": "[implementación y características distintivas, min. 30-40 palabras]"
+      },
+      {
+        "pregunta": "¿Existe comparación con alternativas?",
+        "presente": "[análisis de C actualizada, min. 20-30 palabras]",
+        "justificacion": "[relevancia o ausencia de comparación, min. 30-40 palabras]"
+      },
+      {
+        "pregunta": "¿Qué variables de resultado se miden?",
+        "presente": "[métricas específicas de O actualizada, min. 20-30 palabras]",
+        "justificacion": "[importancia de estas métricas para objetivos, min. 30-40 palabras]"
+      },
+      {
+        "pregunta": "¿Qué tipos de estudios se consideran válidos?",
+        "presente": "[diseños metodológicos para ${area}, min. 20-30 palabras]",
+        "justificacion": "[adecuación metodológica al área, min. 30-40 palabras]"
+      },
+      {
+        "pregunta": "¿Cuál es el rigor de la evidencia requerida?",
+        "presente": "[estándares de calidad académica, min. 20-30 palabras]",
+        "justificacion": "[impacto en validez de resultados, min. 30-40 palabras]"
+      }
+    ],
+    "criterios_inclusion_es": [
+      "Estudios que analicen [extraer de I] en contextos de [extraer de P]",
+      "Investigaciones que utilicen [método específico de I] de forma operacionalizada",
+      "Estudios que midan resultados en términos de [outcomes específicos de O]",
+      "Artículos en journals revisados por pares o conferencias indexadas (IEEE, ACM, Springer, Elsevier)",
+      "Publicaciones entre ${yearStart} y ${yearEnd}",
+      "Estudios empíricos con datos cuantitativos o cualitativos verificables",
+      "Investigaciones en inglés o español con acceso a texto completo"
+    ],
+    "criterios_exclusion_no_es": [
+      "Estudios anteriores a ${yearStart} que no reflejan el estado actual de la tecnología",
+      "Literatura gris (tesis, reportes técnicos no publicados) que no cumplen estándares académicos", 
+      "Investigaciones en áreas fuera de [contexto P] que no son relevantes para el fenómeno",
+      "Artículos sin evidencia empírica (opiniones, editoriales) que no aportan datos verificables",
+      "Estudios que no analicen específicamente [intervención I actualizada]",
+      "Investigaciones que no midan resultados cuantificables en [outcomes O actualizados]",
+      "Publicaciones en idiomas distintos a inglés/español sin traducción disponible"
+    ]
+  }
+}
+
+═══════════════════════════════════════════════════════════════
+VALIDACIÓN CRÍTICA ANTES DE RESPONDER
+═══════════════════════════════════════════════════════════════
+
+✅ **COHERENCIA CON PICO ACTUALIZADO:**
+   - Todos los elementos del análisis crítico reflejan el PICO editado
+   - Los criterios de inclusión mencionan específicamente P, I, C (si existe), O actualizados
+   - Los criterios de exclusión son el negativo lógico de los elementos PICO
+
+✅ **ANÁLISIS CRÍTICO:**
+   - Cada respuesta tiene mínimo 20-30 palabras en "presente"
+   - Cada justificación tiene mínimo 30-40 palabras
+   - Las 7 dimensiones están completas
+
+✅ **CRITERIOS:**
+   - Inclusión: 7 criterios que reflejan exactamente el PICO actualizado
+   - Exclusión: 7 criterios que delimitan claramente los límites
+
+RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
+`.trim();
+  }
+
   async generateWithChatGPT(prompt) {
     if (!this.openai) throw new Error('OpenAI no configurado');
     const res = await this.retry(async () => {
@@ -420,6 +623,71 @@ RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO. NO AGREGUES TEXTO ADICIONAL.
       }
       return { ok: false, error: 'parse_failed', message: parseError.message, raw: cleaned };
     }
+  }
+
+  async parseAndValidateMatrizJson(rawText, correctionFn = null) {
+    const cleaned = this.normalizeText(rawText);
+    try {
+      const parsed = JSON.parse(cleaned);
+      const valid = this.validateMatrizEsNoEs(parsed);
+      if (!valid) return { ok: false, error: 'schema', details: this.validateMatrizEsNoEs.errors, parsed };
+      return { ok: true, value: parsed };
+    } catch (parseError) {
+      if (correctionFn) {
+        try {
+          const correction = await correctionFn('Corrige este JSON para matriz ES/NO ES: ' + cleaned);
+          const parsed2 = JSON.parse(this.normalizeText(correction));
+          if (!this.validateMatrizEsNoEs(parsed2)) return { ok: false, error: 'schema_after_correction' };
+          return { ok: true, value: parsed2, corrected: true };
+        } catch (err2) {
+          return { ok: false, error: 'parse_failed', message: err2.message, raw: cleaned };
+        }
+      }
+      return { ok: false, error: 'parse_failed', message: parseError.message, raw: cleaned };
+    }
+  }
+
+  /**
+   * Actualiza la matriz ES/NO ES cuando se edita el marco PICO
+   * @param {Object} params - Parámetros de entrada
+   * @param {Object} params.marcoPico - Marco PICO actualizado (P, I, C, O)
+   * @param {string} params.area - Área de conocimiento (opcional)
+   * @param {number} params.yearStart - Año inicial del rango temporal (opcional, default: 2019)
+   * @param {number} params.yearEnd - Año final del rango temporal (opcional, default: 2025)
+   */
+  async updateMatrizEsNoEs({ marcoPico, area = 'No especificada', yearStart = 2019, yearEnd = new Date().getFullYear() } = {}) {
+    if (!marcoPico) throw new Error('Marco PICO requerido para actualizar matriz');
+    if (!this.openai) throw new Error('No hay proveedor de IA configurado (OpenAI)');
+    
+    console.log('🔄 Actualizando matriz ES/NO ES basada en cambios PICO...');
+    console.log('   Área:', area);
+    console.log('   Rango temporal:', yearStart, '-', yearEnd);
+    console.log('   Elementos PICO editados detectados');
+    
+    const prompt = this.buildMatrizUpdatePrompt({ marcoPico, area, yearStart, yearEnd });
+    const chatgptCaller = async (p) => await this.generateWithChatGPT(p);
+    
+    let raw;
+    try {
+      raw = await chatgptCaller(prompt);
+    } catch (error) {
+      console.error(`❌ Error en ChatGPT:`, error.message);
+      throw error;
+    }
+    
+    const parseResult = await this.parseAndValidateMatrizJson(raw, chatgptCaller);
+    if (!parseResult.ok) {
+      console.error('❌ Error validando JSON de matriz ES/NO ES:', parseResult.error);
+      throw new Error('No se pudo obtener matriz ES/NO ES válida');
+    }
+    
+    console.log('✅ Matriz ES/NO ES actualizada exitosamente');
+    return { 
+      success: true, 
+      data: parseResult.value.fase2_matriz_es_no_es,
+      usedProvider: 'chatgpt',
+      updated: true
+    };
   }
 
   /**

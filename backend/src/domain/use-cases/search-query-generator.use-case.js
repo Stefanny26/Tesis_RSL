@@ -117,6 +117,8 @@ TÉRMINOS DEL PROTOCOLO (ya confirmados por el investigador):
 - Tecnología (I): ${technologies.length ? technologies.join(' | ') : 'No especificado'}
 - Dominio (P): ${domains.length ? domains.join(' | ') : 'No especificado'}
 - Focos temáticos (O): ${themes.length ? themes.join(' | ') : 'No especificado'}
+${picoData?.comparison && picoData.comparison.trim() && picoData.comparison !== 'N/A' && picoData.comparison !== 'No especificado' ? 
+`- Comparación (C): ${picoData.comparison}` : ''}
 
 RANGO TEMPORAL: ${yearStart && yearEnd ? `${yearStart}-${yearEnd}` : 'No especificado'}
 
@@ -185,17 +187,25 @@ ESTRUCTURA DE CADA QUERY
 
 ⚠️ AJUSTAR NÚMERO DE TÉRMINOS SEGÚN PLATAFORMA:
 
+**ESTRUCTURA PICO COMPLETA:**
+${picoData?.comparison && picoData.comparison.trim() && picoData.comparison !== 'N/A' && picoData.comparison !== 'No especificado' ? 
+'(Bloque I: Intervención) AND (Bloque P: Población) AND (Bloque C: Comparación) AND (Bloque O: Outcomes)' : 
+'(Bloque I: Intervención) AND (Bloque P: Población) AND (Bloque O: Outcomes)'}
+
 **IEEE Xplore (RESTRICTIVO - MÁXIMO 10 TÉRMINOS TOTALES):**
-(Bloque I: 2 términos) AND (Bloque P: 2 términos) AND (Bloque O: 2 términos)
-Resultado: 2×2×2 = 8 términos ✅ (dentro del límite de 10)
+${picoData?.comparison && picoData.comparison.trim() && picoData.comparison !== 'N/A' && picoData.comparison !== 'No especificado' ? 
+'(Bloque I: 2 términos) AND (Bloque P: 2 términos) AND (Bloque C: 2 términos) AND (Bloque O: 2 términos)\nResultado: 2×2×2×2 = 8 términos ✅' : 
+'(Bloque I: 2 términos) AND (Bloque P: 2 términos) AND (Bloque O: 2 términos)\nResultado: 2×2×2 = 8 términos ✅'}
 
 **ScienceDirect (MODERADO - 3-4 TÉRMINOS POR GRUPO):**
-(Bloque I: 3-4 términos) AND (Bloque P: 3-4 términos) AND (Bloque O: 3-4 términos)
-Resultado: 3×3×3 = 9 a 4×4×4 = 16 términos
+${picoData?.comparison && picoData.comparison.trim() && picoData.comparison !== 'N/A' && picoData.comparison !== 'No especificado' ? 
+'(Bloque I: 3 términos) AND (Bloque P: 3 términos) AND (Bloque C: 3 términos) AND (Bloque O: 3 términos)\nResultado: 3×3×3×3 = 12 términos' : 
+'(Bloque I: 3-4 términos) AND (Bloque P: 3-4 términos) AND (Bloque O: 3-4 términos)\nResultado: 3×3×3 = 9 a 4×4×4 = 16 términos'}
 
 **Scopus/WoS/ACM (ESTÁNDAR):**
-(Bloque I: 2-3 términos) AND (Bloque P: 2-3 términos) AND (Bloque O: 2-3 términos)
-Resultado: 2×2×2 = 8 a 3×3×3 = 12 términos
+${picoData?.comparison && picoData.comparison.trim() && picoData.comparison !== 'N/A' && picoData.comparison !== 'No especificado' ? 
+'(Bloque I: 2-3 términos) AND (Bloque P: 2-3 términos) AND (Bloque C: 2-3 términos) AND (Bloque O: 2-3 términos)\nResultado: 2×2×2×2 = 8 a 3×3×3×3 = 16 términos' : 
+'(Bloque I: 2-3 términos) AND (Bloque P: 2-3 términos) AND (Bloque O: 2-3 términos)\nResultado: 2×2×2 = 8 a 3×3×3 = 12 términos'}
 
 ═══════════════════════════════════════════════════════════════
 SINTAXIS POR BASE DE DATOS

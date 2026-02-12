@@ -32,7 +32,8 @@ import {
   Save,
   Edit,
   Check,
-  X
+  X,
+  Trash2
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api-client"
@@ -228,6 +229,7 @@ export function SearchPlanStep() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [countingDatabases, setCountingDatabases] = useState<Set<string>>(new Set())
   const [availableDatabases, setAvailableDatabases] = useState<any[]>([])
+  const [disabledDatabases, setDisabledDatabases] = useState<string[]>([]) // Bases de datos que el usuario no puede usar
   const [loadingDatabases, setLoadingDatabases] = useState(false)
   const [detectedArea, setDetectedArea] = useState<string>("")
   const [importedCounts, setImportedCounts] = useState<Record<string, number>>({})
@@ -359,54 +361,23 @@ export function SearchPlanStep() {
     }))
   }
 
-  // PROYECTO TEMPORAL: Solo se crea cuando se importan referencias realmente 
-  // NO crear proyecto automáticamente - evita borradores vacíos
+  // VALIDAR PROYECTO EXISTENTE: Verificar que existe proyecto antes de importar referencias
+  // Ya no crear proyecto temporal - usar el proyecto creado en step 3
   const createTemporaryProjectForImport = async () => {
-    // Solo crear si no existe projectId y se van a importar referencias
+    // Verificar si ya existe projectId (creado en step 3)
     if (data.projectId) {
-      console.log('⏭️ Proyecto ya existe:', data.projectId)
+      console.log('✅ Usando proyecto existente:', data.projectId)
       return data.projectId
     }
 
-    if (!data.projectName || !data.selectedTitle) {
-      console.log('⏭️ Faltan datos del proyecto (nombre o título)')
-      throw new Error('Faltan datos del proyecto para crear proyecto temporal')
-    }
-
-    try {
-      console.log('📝 Creando proyecto temporal para importación de referencias...')
-      
-      const projectData = {
-        title: `[TEMPORAL] ${data.projectName || data.selectedTitle}`,
-        description: `Proyecto temporal - ${data.projectDescription || `RSL: ${data.selectedTitle}`}`,
-        status: 'temporary' // Marcado como temporal
-      }
-
-      const result = await apiClient.createProject(projectData)
-      
-      if (result && result.data?.project?.id) {
-        console.log('✅ Proyecto temporal creado:', result.data.project.id)
-        updateData({ projectId: result.data.project.id })
-        
-        toast({
-          title: "✅ Proyecto temporal creado",
-          description: "Referencias importadas exitosamente. Completa el wizard para guardar definitivamente."
-        })
-        
-        return result.data.project.id
-      } else {
-        console.error('❌ No se recibió ID del proyecto:', result)
-        throw new Error('No se pudo crear el proyecto temporal')
-      }
-    } catch (error: any) {
-      console.error('❌ Error creando proyecto temporal:', error)
-      toast({
-        title: "❌ Error al crear proyecto temporal", 
-        description: error.message || "No se pudo habilitar la importación de referencias",
-        variant: "destructive"
-      })
-      throw error
-    }
+    // Si no existe proyecto, significa que el usuario se saltó el step 3 o hubo un error
+    console.log('⚠️ No hay proyecto creado. Faltan datos:', {
+      projectId: data.projectId,
+      selectedTitle: data.selectedTitle,
+      projectName: data.projectName
+    })
+    
+    throw new Error('Debes seleccionar un título en el paso anterior para crear el proyecto antes de importar referencias')
   }
 
   // Sincronizar con context
@@ -422,7 +393,59 @@ export function SearchPlanStep() {
     }
   }, [queries, selectedDatabases])
 
+  // Función para eliminar una base de datos ya seleccionada
+  const removeDatabaseFromSelection = (databaseId: string) => {
+    console.log('🗑️ Eliminando base de datos de la selección:', databaseId)
+    
+    // Validar que no sea la última base de datos
+    if (selectedDatabases.length === 1) {
+      toast({
+        title: "⚠️ No se puede eliminar",
+        description: "Debes mantener al menos una base de datos seleccionada",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    // Remover de bases seleccionadas
+    setSelectedDatabases(prev => prev.filter(id => id !== databaseId))
+    
+    // Remover queries relacionadas
+    const updatedQueries = queries.filter(q => q.databaseId !== databaseId)
+    setQueries(updatedQueries)
+    
+    // Remover contador de importaciones
+    setImportedCounts(prev => {
+      const newCounts = { ...prev }
+      delete newCounts[databaseId]
+      return newCounts
+    })
+    
+    // Actualizar contexto del wizard
+    updateData({
+      searchPlan: {
+        ...data.searchPlan,
+        databases: selectedDatabases.filter(id => id !== databaseId),
+        searchQueries: updatedQueries,
+        uploadedFiles: (data.searchPlan?.uploadedFiles || []).filter(
+          (file: any) => file.databaseId !== databaseId
+        )
+      }
+    })
+    
+    const dbName = availableDatabases.find(db => db.id === databaseId)?.name || databaseId
+    toast({
+      title: "✅ Base de datos eliminada",
+      description: `${dbName} ha sido removida de tu selección`
+    })
+  }
+
   const toggleDatabase = (dbId: string) => {
+    if (disabledDatabases.includes(dbId)) {
+      // No permitir seleccionar bases de datos deshabilitadas
+      return
+    }
+    
     setSelectedDatabases(prev =>
       prev.includes(dbId) ? prev.filter(id => id !== dbId) : [...prev, dbId]
     )
@@ -668,41 +691,60 @@ export function SearchPlanStep() {
             </Alert>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {availableDatabases.map((db) => (
-              <div 
-                key={db.id} 
-                className={`flex flex-col space-y-2 p-3 rounded-lg border-2 transition-colors cursor-pointer ${
-                  selectedDatabases.includes(db.id) 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-border hover:border-primary/50'
-                }`}
-                onClick={() => toggleDatabase(db.id)}
-                onKeyDown={(e) => e.key === 'Enter' && toggleDatabase(db.id)}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id={db.id}
-                    checked={selectedDatabases.includes(db.id)}
-                    onCheckedChange={() => toggleDatabase(db.id)}
-                  />
-                  <label
-                    htmlFor={db.id}
-                    className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
-                  >
-                    <span>{db.icon}</span>
-                    <span>{db.name}</span>
-                  </label>
-                </div>
-                {db.requiresPremium && (
-                  <div className="ml-8 text-xs text-amber-600 flex items-center gap-1">
-                    <span>🔐</span>
-                    <span>{db.premiumNote}</span>
+              {availableDatabases.map((db) => {
+                const isDisabled = disabledDatabases.includes(db.id)
+                const isSelected = selectedDatabases.includes(db.id)
+                
+                return (
+                <div 
+                  key={db.id} 
+                  className={`flex flex-col space-y-2 p-3 rounded-lg border-2 transition-colors relative ${
+                    isDisabled 
+                      ? 'border-gray-300 bg-gray-50 opacity-60' 
+                      : isSelected
+                        ? 'border-primary bg-primary/5 cursor-pointer' 
+                        : 'border-border hover:border-primary/50 cursor-pointer'
+                  }`}
+                  onClick={() => !isDisabled && toggleDatabase(db.id)}
+                  onKeyDown={(e) => e.key === 'Enter' && !isDisabled && toggleDatabase(db.id)}
+                  role="button"
+                  tabIndex={isDisabled ? -1 : 0}
+                >
+                  {/* Badge de estado deshabilitado */}
+                  {isDisabled && (
+                    <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full z-10">
+                      Deshabilitada
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id={db.id}
+                      checked={isSelected && !isDisabled}
+                      disabled={isDisabled}
+                      onCheckedChange={() => !isDisabled && toggleDatabase(db.id)}
+                    />
+                    <label
+                      htmlFor={db.id}
+                      className={`text-sm font-medium leading-none flex items-center gap-2 ${
+                        isDisabled ? 'cursor-not-allowed text-gray-500' : 'cursor-pointer'
+                      }`}
+                    >
+                      <span>{db.icon}</span>
+                      <span>{db.name}</span>
+                    </label>
                   </div>
-                )}
-              </div>
-            ))}
+                  
+                  {/* Información de acceso premium */}
+                  {db.requiresPremium && (
+                    <div className="ml-8 text-xs text-amber-600 flex items-center gap-1">
+                      <span>🔐</span>
+                      <span>{db.premiumNote}</span>
+                    </div>
+                  )}
+                </div>
+                )
+              })}
             </div>
           )}
 
@@ -783,6 +825,7 @@ export function SearchPlanStep() {
                   <TableHead className="w-[140px] text-center">Búsqueda Avanzada</TableHead>
                   <TableHead className="w-[120px] text-center">Referencias</TableHead>
                   <TableHead className="w-[120px]">Acciones</TableHead>
+                  <TableHead className="w-[80px] text-center">Eliminar</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -795,7 +838,6 @@ export function SearchPlanStep() {
                         </span>
                         <div>
                           <div className="font-semibold">{query.databaseName}</div>
-                          <Badge variant="secondary" className="text-xs mt-1">Importación Manual</Badge>
                         </div>
                       </div>
                     </TableCell>
@@ -916,6 +958,17 @@ export function SearchPlanStep() {
                         importedCounts={importedCounts}
                         toast={toast}
                       />
+                    </TableCell>
+                    <TableCell className="align-top text-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeDatabaseFromSelection(query.databaseId)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        title={`Eliminar ${query.databaseName} de la selección`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

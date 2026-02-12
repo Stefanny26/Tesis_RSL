@@ -206,31 +206,122 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(!!projectId)
   const [saveTimeoutId, setSaveTimeoutId] = useState<NodeJS.Timeout | null>(null)
+  const [isInitialized, setIsInitialized] = useState(!projectId) // true si no hay projectId (nuevo proyecto), false si es draft (necesita carga)
   const totalSteps = 7
+
+  // Función para determinar el paso actual basado en los datos cargados
+  const determineCurrentStep = (loadedData: Partial<WizardData>): number => {
+    console.log('📊 Determinando paso actual basado en datos:', {
+      hasProjectName: !!loadedData.projectName,
+      hasProjectDescription: !!loadedData.projectDescription,
+      hasPico: !!(loadedData.pico?.population && loadedData.pico?.intervention),
+      hasMatrix: !!(loadedData.matrixIsNot?.is?.length || loadedData.matrixIsNot?.isNot?.length),
+      hasTitle: !!loadedData.selectedTitle,
+      hasCriteria: !!(loadedData.inclusionCriteria?.length || loadedData.exclusionCriteria?.length),
+      hasTerms: !!(loadedData.protocolDefinition && 
+                   (loadedData.protocolDefinition.technologies?.length ||
+                    loadedData.protocolDefinition.applicationDomain?.length ||
+                    loadedData.protocolDefinition.studyType?.length ||
+                    loadedData.protocolDefinition.thematicFocus?.length)),
+      hasSearchPlan: !!(loadedData.searchPlan?.databases?.length),
+      hasReferences: !!(loadedData.searchPlan?.uploadedFiles?.length)
+    })
+
+    // Step 7: Si tiene referencias cargadas -> Paso de revisión/finalización (PrismaCheckStep)
+    if (loadedData.searchPlan?.uploadedFiles?.length && loadedData.searchPlan.uploadedFiles.length > 0) {
+      console.log('📚 Referencias detectadas, dirigiendo a step 7 (PrismaCheckStep)')
+      return 7
+    }
+
+    // Step 6: Si tiene plan de búsqueda configurado -> Carga de referencias (SearchPlanStep)
+    if (loadedData.searchPlan?.databases?.length && loadedData.searchPlan.databases.length > 0) {
+      console.log('🔍 Plan de búsqueda detectado, dirigiendo a step 6 (SearchPlanStep)')
+      return 6
+    }
+
+    // Step 5: Si tiene términos del protocolo definidos -> Plan de búsqueda (ProtocolDefinitionStep)
+    if (loadedData.protocolDefinition && 
+        (loadedData.protocolDefinition.technologies?.length ||
+         loadedData.protocolDefinition.applicationDomain?.length ||
+         loadedData.protocolDefinition.studyType?.length ||
+         loadedData.protocolDefinition.thematicFocus?.length)) {
+      console.log('🏷️ Términos del protocolo detectados, dirigiendo a step 5 (ProtocolDefinitionStep)')
+      return 5
+    }
+
+    // Step 4: Si tiene criterios definidos -> Definición de términos (CriteriaStep completado, ir a ProtocolDefinitionStep)
+    if (loadedData.inclusionCriteria?.length || loadedData.exclusionCriteria?.length) {
+      console.log('✅ Criterios detectados, dirigiendo a step 5 (siguiente: ProtocolDefinitionStep)')
+      return 5
+    }
+
+    // Step 3: Si tiene título seleccionado -> Criterios (TitlesStep completado, ir a CriteriaStep)
+    if (loadedData.selectedTitle && loadedData.selectedTitle.trim()) {
+      console.log('📝 Título detectado, dirigiendo a step 4 (siguiente: CriteriaStep)')
+      return 4
+    }
+
+    // Step 2: Si tiene PICO o matriz Es/No Es -> Selección de título (PicoMatrixStep completado, ir a TitlesStep)
+    if ((loadedData.pico?.population || loadedData.pico?.intervention || 
+         loadedData.pico?.comparison || loadedData.pico?.outcome) ||
+        (loadedData.matrixIsNot?.is?.length || loadedData.matrixIsNot?.isNot?.length)) {
+      console.log('🎯 Marco PICO/Matriz detectado, dirigiendo a step 3 (siguiente: TitlesStep)')
+      return 3
+    }
+
+    // Step 1: Si tiene información básica del proyecto -> Continuar desde tema (ProposalStep completado, ir a PicoMatrixStep)
+    if (loadedData.projectName || loadedData.projectDescription) {
+      console.log('📄 Información básica detectada, dirigiendo a step 2 (siguiente: PicoMatrixStep)')
+      return 2
+    }
+
+    // Default: Empezar desde el principio
+    console.log('🆕 Sin información previa, empezando desde step 1')
+    return 1
+  }
 
   // Cargar protocolo existente si se pasa projectId
   useEffect(() => {
     async function loadExistingProtocol() {
       if (!projectId) {
-        // Si no hay projectId, intentar cargar borrador local
+        // Si no hay projectId, intentar cargar borrador local MEJORADO
         try {
           const draft = localStorage.getItem('wizard-draft')
           if (draft) {
             const parsed = JSON.parse(draft)
             const ageMinutes = (Date.now() - new Date(parsed.timestamp).getTime()) / 60000
             
-            // Si el borrador tiene menos de 24 horas, cargar
-            if (ageMinutes < 1440) {
+            // Aumentar tiempo de vida del borrador de 24h a 7 días
+            if (ageMinutes < 10080) { // 7 días en minutos
               console.log('📥 Restaurando borrador local (guardado hace', Math.round(ageMinutes), 'minutos)')
-              setData(prev => ({ ...prev, ...parsed.data }))
-              setCurrentStep(parsed.currentStep)
+              setData(prev => ({ 
+                ...prev, 
+                ...parsed.data,
+                lastSaved: new Date(parsed.timestamp) 
+              }))
+              setCurrentStep(parsed.currentStep || determineCurrentStep(parsed.data))
+              
+              // Si el borrador tiene projectId, cargar también del servidor
+              if (parsed.data.projectId) {
+                console.log('🔄 Borrador tiene projectId, sincronizando con servidor...')
+                try {
+                  const serverProtocol = await apiClient.getProtocol(parsed.data.projectId)
+                  if (serverProtocol) {
+                    // Combinar datos locales (más recientes) con servidor (respaldo)
+                    console.log('✅ Datos del servidor obtenidos, combinando con borrador local')
+                  }
+                } catch (serverError) {
+                  console.warn('⚠️ No se pudo sincronizar con servidor, usando borrador local')
+                }
+              }
             } else {
-              console.log('🧹 Borrador local expirado, limpiando')
+              console.log('🧹 Borrador local expirado (más de 7 días), limpiando')
               localStorage.removeItem('wizard-draft')
             }
           }
         } catch (error) {
           console.error('Error cargando borrador local:', error)
+          localStorage.removeItem('wizard-draft') // Limpiar borrador corrupto
         }
         
         setIsLoading(false)
@@ -292,14 +383,15 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
             projectId: projectId,
             projectName: projectInfo?.title || "",
             projectDescription: protocol.refinedQuestion || projectInfo?.description || "",
-            researchArea: projectInfo?.researchArea || "",
+            // Cargar researchArea del protocolo si existe, o del proyecto como fallback
+            researchArea: protocol.researchArea || projectInfo?.researchArea || "",
             
-            // PICO
+            // PICO - el backend puede devolverlo en picoFramework o campos directos
             pico: {
-              population: protocol.population || "",
-              intervention: protocol.intervention || "",
-              comparison: protocol.comparison || "",
-              outcome: protocol.outcomes || ""
+              population: protocol.picoFramework?.population || protocol.population || "",
+              intervention: protocol.picoFramework?.intervention || protocol.intervention || "",
+              comparison: protocol.picoFramework?.comparison || protocol.comparison || "",
+              outcome: protocol.picoFramework?.outcomes || protocol.outcomes || ""
             },
             
             // Matriz Es/No Es
@@ -311,12 +403,38 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
             // Título seleccionado
             selectedTitle: protocol.proposedTitle || projectInfo?.title || "",
             
-            // Términos del protocolo
-            protocolDefinition: protocol.keyTerms || {
-              technologies: [],
-              applicationDomain: [],
-              studyType: [],
-              thematicFocus: []
+            // Términos del protocolo (formato wizard-internal)
+            // Mapear keyTerms del protocolo al formato protocolTerms del wizard
+            protocolTerms: {
+              tecnologia: protocol.keyTerms?.technology || [],
+              dominio: protocol.keyTerms?.domain || [],
+              tipoEstudio: protocol.keyTerms?.studyType || [],
+              focosTematicos: protocol.keyTerms?.themes || []
+            },
+            
+            // Términos confirmados (asumimos todos confirmados al cargar desde servidor)
+            confirmedTerms: {
+              tecnologia: new Set((protocol.keyTerms?.technology || []).map((_: any, i: number) => i)),
+              dominio: new Set((protocol.keyTerms?.domain || []).map((_: any, i: number) => i)),
+              tipoEstudio: new Set((protocol.keyTerms?.studyType || []).map((_: any, i: number) => i)),
+              focosTematicos: new Set((protocol.keyTerms?.themes || []).map((_: any, i: number) => i))
+            },
+            
+            // Sin términos descartados al cargar desde servidor
+            discardedTerms: {
+              tecnologia: new Set<number>(),
+              dominio: new Set<number>(),
+              tipoEstudio: new Set<number>(),
+              focosTematicos: new Set<number>()
+            },
+            
+            // Términos del protocolo (formato legacy para paso 7)
+            // Mapear keyTerms a estructura esperada por protocolDefinition
+            protocolDefinition: {
+              technologies: protocol.keyTerms?.technology || [],
+              applicationDomain: protocol.keyTerms?.domain || [],
+              studyType: protocol.keyTerms?.studyType || [],
+              thematicFocus: protocol.keyTerms?.themes || []
             },
             
             // Criterios
@@ -325,26 +443,26 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
             
             // Plan de búsqueda
             searchPlan: {
-              databases: (protocol.searchQueries || []).map((q: any) => ({
+              databases: (protocol.searchStrategy?.searchQueries || protocol.searchQueries || []).map((q: any) => ({
                 name: q.databaseName || q.database || "",
                 searchString: q.query || "",
-                dateRange: `${protocol.temporalRange?.start || 2019}-${protocol.temporalRange?.end || new Date().getFullYear()}`,
+                dateRange: `${protocol.searchStrategy?.temporalRange?.start || 2019}-${protocol.searchStrategy?.temporalRange?.end || new Date().getFullYear()}`,
                 resultCount: q.resultsCount || null,
                 status: q.status || 'pending',
                 hasAPI: q.hasAPI || false,
                 connectionStatus: q.apiRequired ? 'requires_key' : 'available'
               })),
               temporalRange: {
-                start: protocol.temporalRange?.start || 2019,
-                end: protocol.temporalRange?.end || new Date().getFullYear()
+                start: protocol.searchStrategy?.temporalRange?.start || 2019,
+                end: protocol.searchStrategy?.temporalRange?.end || new Date().getFullYear()
               },
-              searchQueries: protocol.searchQueries || [],
+              searchQueries: protocol.searchStrategy?.searchQueries || protocol.searchQueries || [],
               uploadedFiles: uploadedFiles // Referencias cargadas del proyecto
             },
             
-            // Rango temporal
-            yearStart: protocol.temporalRange?.start || 2019,
-            yearEnd: protocol.temporalRange?.end || new Date().getFullYear(),
+            // Rango temporal - cargar desde searchStrategy
+            yearStart: protocol.searchStrategy?.temporalRange?.start || 2019,
+            yearEnd: protocol.searchStrategy?.temporalRange?.end || new Date().getFullYear(),
             
             // PRISMA - ahora se carga desde API /api/projects/:id/prisma
             prismaItems: []
@@ -352,7 +470,14 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
           }
           
           setData(prev => ({ ...prev, ...loadedData }))
-          console.log('✅ Protocolo cargado en wizard')
+          
+          // Determinar el paso actual basado en qué información está disponible
+          const determinedStep = determineCurrentStep(loadedData)
+          console.log('✅ Protocolo cargado en wizard, estableciendo step:', determinedStep)
+          setCurrentStep(determinedStep)
+          
+          // Marcar como inicializado para permitir auto-guardado
+          setIsInitialized(true)
         }
       } catch (error) {
         console.error("❌ Error cargando protocolo:", error)
@@ -427,40 +552,96 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
 
   const updateData = (updates: Partial<WizardData>) => {
     setData(prev => {
-      const newData = { ...prev, ...updates }
+      const newData = { ...prev, ...updates, lastSaved: new Date() }
       
-      // Auto-guardar en localStorage (backup local)
+      // Auto-guardar en localStorage (backup local MEJORADO)
       try {
         const key = projectId || 'wizard-draft'
-        localStorage.setItem(key, JSON.stringify({
+        const draftData = {
           data: newData,
           currentStep,
-          timestamp: new Date().toISOString()
-        }))
-        console.log('💾 Progreso guardado en localStorage')
+          timestamp: new Date().toISOString(),
+          version: '2.0' // Versionar para futures migraciones
+        }
+        localStorage.setItem(key, JSON.stringify(draftData))
+        console.log('💾 Progreso guardado en localStorage (step', currentStep, ')')
       } catch (error) {
         console.error('Error guardando en localStorage:', error)
       }
       
-      // Auto-guardar en backend con debouncing (esperar 2 segundos sin cambios)
-      if (projectId) {
+      // Auto-guardar en backend MEJORADO con debouncing más agresivo
+      // Solo auto-guardar si ya está inicializado (no durante carga de draft)
+      if (newData.projectId && isInitialized) {
         // Cancelar guardado anterior si existe
         if (saveTimeoutId) {
           clearTimeout(saveTimeoutId)
         }
         
-        // Programar nuevo guardado
+        // Programar nuevo guardado con menos delay para mejor UX
         const timeoutId = setTimeout(async () => {
           try {
-            await apiClient.updateProtocol(projectId, {
-              ...updates,
+            console.log('📡 Iniciando auto-guardado en servidor...')
+            
+            // Construir datos del protocolo incremental
+            const protocolUpdates: any = {}
+            
+            // Solo incluir campos que han cambiado para optimizar
+            if (updates.selectedTitle || updates.pico) {
+              protocolUpdates.proposedTitle = newData.selectedTitle
+              protocolUpdates.population = newData.pico?.population
+              protocolUpdates.intervention = newData.pico?.intervention
+              protocolUpdates.comparison = newData.pico?.comparison
+              protocolUpdates.outcomes = newData.pico?.outcome
+            }
+            
+            if (updates.inclusionCriteria || updates.exclusionCriteria) {
+              protocolUpdates.inclusionCriteria = newData.inclusionCriteria
+              protocolUpdates.exclusionCriteria = newData.exclusionCriteria
+            }
+            
+            if (updates.searchPlan) {
+              protocolUpdates.searchQueries = newData.searchPlan?.searchQueries || []
+              protocolUpdates.searchString = newData.searchPlan?.searchQueries?.[0]?.query || ''
+            }
+            
+            if (updates.protocolDefinition) {
+              protocolUpdates.keyTerms = {
+                technology: newData.protocolDefinition?.technologies || [],
+                domain: newData.protocolDefinition?.applicationDomain || [],
+                studyType: newData.protocolDefinition?.studyType || [],
+                themes: newData.protocolDefinition?.thematicFocus || []
+              }
+            }
+            
+            // Guardar researchArea si ha cambiado
+            if (updates.researchArea) {
+              protocolUpdates.researchArea = newData.researchArea
+            }
+            
+            // Guardar protocolo (createOrUpdate)
+            await apiClient.updateProtocol(newData.projectId, {
+              ...protocolUpdates,
               lastSaved: new Date().toISOString()
             })
-            console.log('✅ Auto-guardado en servidor')
+            
+            console.log('✅ Auto-guardado exitoso en servidor')
+            
+            // También actualizar datos básicos del proyecto si han cambiado
+            if (updates.selectedTitle || updates.projectDescription || updates.researchArea) {
+              await apiClient.updateProject(newData.projectId, {
+                title: newData.selectedTitle,
+                description: newData.projectDescription,
+                researchArea: newData.researchArea,
+                status: 'draft' // Mantener como borrador hasta step 7
+              })
+              console.log('✅ Datos del proyecto actualizados')
+            }
+            
           } catch (error) {
             console.error('❌ Error en auto-guardado:', error)
+            // No mostrar error al usuario para no interrumpir el flujo
           }
-        }, 2000) // Esperar 2 segundos sin cambios
+        }, 1000) // Reducido de 2000ms a 1000ms para guardado más frecuente
         
         setSaveTimeoutId(timeoutId)
       }
@@ -472,6 +653,14 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
   const resetData = () => {
     setData(initialData)
     setCurrentStep(1)
+    
+    // Limpiar también localStorage
+    try {
+      localStorage.removeItem('wizard-draft')
+      console.log('🧹 Wizard reset completo - limpiando localStorage')
+    } catch (error) {
+      console.error('Error limpiando localStorage:', error)
+    }
   }
 
   // Función para limpiar datos generados después de un paso específico
@@ -565,16 +754,62 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
     }
     
     // Actualizar el estado local
-    setData(prev => ({ ...prev, ...updates }))
+    setData(prev => ({ ...prev, ...updates, lastSaved: new Date() }))
     
-    // Si hay un projectId, actualizar también en el backend
+    // Si hay un projectId, actualizar también en el backend INMEDIATAMENTE
     if (data.projectId) {
       try {
-        await apiClient.updateProtocol(data.projectId, updates)
-        console.log('✅ Datos limpiados en el servidor')
+        // Convertir formato wizard a formato backend
+        const protocolUpdates: any = {
+          lastSaved: new Date().toISOString()
+        }
+        
+        // Mapear campos wizard -> backend
+        if ('protocolTerms' in updates) {
+          protocolUpdates.keyTerms = {
+            technology: updates.protocolTerms?.tecnologia || [],
+            domain: updates.protocolTerms?.dominio || [],
+            studyType: updates.protocolTerms?.tipoEstudio || [],
+            themes: updates.protocolTerms?.focosTematicos || []
+          }
+        }
+        
+        if ('inclusionCriteria' in updates) {
+          protocolUpdates.inclusionCriteria = updates.inclusionCriteria || []
+        }
+        
+        if ('exclusionCriteria' in updates) {
+          protocolUpdates.exclusionCriteria = updates.exclusionCriteria || []
+        }
+        
+        if ('searchPlan' in updates) {
+          protocolUpdates.databases = updates.searchPlan?.databases || []
+          protocolUpdates.searchQueries = updates.searchPlan?.searchQueries || []
+          protocolUpdates.temporalRange = updates.searchPlan?.temporalRange
+        }
+        
+        // Forzar guardado inmediato (sin debouncing) para cambios estructurales
+        await apiClient.updateProtocol(data.projectId, protocolUpdates)
+        console.log('✅ Datos limpiados y sincronizados con el servidor')
       } catch (error) {
         console.error('❌ Error limpiando datos en el servidor:', error)
+        // Mantener cambios locales aunque falle el servidor
       }
+    }
+    
+    // También limpiar localStorage para reflejar el nuevo estado
+    try {
+      const key = data.projectId || 'wizard-draft'
+      const draftData = {
+        data: { ...data, ...updates, lastSaved: new Date() },
+        currentStep,
+        timestamp: new Date().toISOString(),
+        version: '2.0'
+      }
+      localStorage.setItem(key, JSON.stringify(draftData))
+      console.log('💾 Estado limpio guardado en localStorage (step', currentStep, ')')
+    } catch (error) {
+      console.error('Error actualizando localStorage tras limpiar:', error)
     }
   }
 

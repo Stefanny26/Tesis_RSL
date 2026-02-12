@@ -84,28 +84,33 @@ class ImportReferencesUseCase {
         
         let parsedReferences = [];
 
-        // Parsear según el tipo de archivo
-        if (fileExtension === 'csv') {
-          console.log('Parseando como CSV...');
-          parsedReferences = this.parseCSV(content);
-        } else if (fileExtension === 'json') {
-          console.log('Parseando como JSON...');
-          parsedReferences = JSON.parse(content);
-        } else if (fileExtension === 'ris' || fileExtension === 'txt') {
-          console.log('Parseando como RIS...');
-          parsedReferences = this.parseRIS(content);
-        } else if (fileExtension === 'bib') {
-          console.log('Parseando como BibTeX...');
-          parsedReferences = this.parseBibTeX(content);
-        } else if (fileExtension === 'nbib') {
-          console.log('Parseando como PubMed (nbib)...');
-          parsedReferences = this.parseRIS(content); // nbib usa formato similar a RIS
-        } else if (fileExtension === 'ciw') {
-          console.log('Parseando como Web of Science (ciw)...');
-          parsedReferences = this.parseRIS(content); // ciw usa formato similar a RIS
-        } else {
-          console.log(`Formato no soportado: ${fileExtension}`);
-          throw new Error(`Formato de archivo no soportado: ${fileExtension}. Formatos soportados: CSV, JSON, RIS, BibTeX, nbib, ciw.`);
+        try {
+          // Parsear según el tipo de archivo
+          if (fileExtension === 'csv') {
+            console.log('Parseando como CSV...');
+            parsedReferences = this.parseCSV(content);
+          } else if (fileExtension === 'json') {
+            console.log('Parseando como JSON...');
+            parsedReferences = JSON.parse(content);
+          } else if (fileExtension === 'ris' || fileExtension === 'txt') {
+            console.log('Parseando como RIS...');
+            parsedReferences = this.parseRIS(content);
+          } else if (fileExtension === 'bib') {
+            console.log('Parseando como BibTeX...');
+            parsedReferences = this.parseBibTeX(content);
+          } else if (fileExtension === 'nbib') {
+            console.log('Parseando como PubMed (nbib)...');
+            parsedReferences = this.parseRIS(content); // nbib usa formato similar a RIS
+          } else if (fileExtension === 'ciw') {
+            console.log('Parseando como Web of Science (ciw)...');
+            parsedReferences = this.parseRIS(content); // ciw usa formato similar a RIS
+          } else {
+            console.log(`Formato no soportado: ${fileExtension}`);
+            throw new Error(`Formato de archivo no soportado: ${fileExtension}. Formatos soportados: CSV, JSON, RIS, BibTeX, nbib, ciw.`);
+          }
+        } catch (parseError) {
+          console.error(`Error parseando archivo ${file.originalname}:`, parseError);
+          throw new Error(`Error al procesar el archivo ${file.originalname}: ${parseError.message}. Verifica que el archivo tenga el formato correcto y no esté corrupto.`);
         }
         
         console.log(`Parseadas ${parsedReferences.length} referencias del archivo`);
@@ -511,11 +516,26 @@ class ImportReferencesUseCase {
    * También compatible con nbib (PubMed) y ciw (Web of Science)
    */
   parseRIS(content) {
+    console.log('parseRIS: Iniciando parsing...');
+    console.log('parseRIS: Contenido length:', content.length);
+    console.log('parseRIS: Primeros 500 caracteres:', content.substring(0, 500));
+    
     const references = [];
-    // Split by ER tag (end of record) - formato estándar RIS
-    const records = content.split(/ER\s*-\s*\n?/).filter(r => r.trim());
+    
+    // Normalizar saltos de línea (algunos archivos usan \r\n, otros \n)
+    const normalizedContent = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    // Split by ER tag (end of record) - MUY flexible con variaciones
+    // Soporta: "ER  -", "ER-", "ER -", "ER  - \n\n", etc.
+    // IEEE usa: "ER  - \n\n\n" (dos espacios, guion, espacios, múltiples saltos)
+    const records = normalizedContent.split(/\nER\s+-?\s*\n/).filter(r => r.trim());
+    console.log(`parseRIS: Encontrados ${records.length} registros`);
 
-    for (const record of records) {
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      console.log(`\nparseRIS: Procesando registro ${i + 1}/${records.length}`);
+      console.log(`parseRIS: Primeras 200 caracteres del registro:`, record.substring(0, 200));
+      
       const lines = record.split('\n');
       const ref = {
         title: '',
@@ -534,83 +554,133 @@ class ImportReferencesUseCase {
         externalId: null  // Add externalId field
       };
 
+      let currentTag = null;
+      let currentValue = '';
+
       for (const line of lines) {
-        const match = line.match(/^([A-Z0-9]{2})\s*-\s*(.+)$/);
-        if (!match) continue;
-
-        const [, tag, value] = match;
-        const cleanValue = value.trim();
-
-        switch (tag) {
-          case 'TI': // Title
-          case 'T1':
-            ref.title = cleanValue;
-            break;
-          case 'AU': // Author
-          case 'A1':
-            ref.authors.push(cleanValue);
-            break;
-          case 'PY': // Publication Year
-          case 'Y1':
-            ref.year = parseInt(cleanValue) || null;
-            break;
-          case 'JO': // Journal
-          case 'T2':
-          case 'JF':
-            ref.journal = cleanValue;
-            break;
-          case 'VL': // Volume
-            ref.volume = cleanValue;
-            break;
-          case 'IS': // Issue
-            ref.issue = cleanValue;
-            break;
-          case 'SP': // Start Page
-            ref.pages = cleanValue;
-            break;
-          case 'EP': // End Page
-            if (ref.pages) ref.pages += `-${cleanValue}`;
-            else ref.pages = cleanValue;
-            break;
-          case 'DO': // DOI
-            ref.doi = cleanValue;
-            break;
-          case 'AB': // Abstract
-          case 'N2':
-            ref.abstract = cleanValue;
-            break;
-          case 'KW': // Keywords
-            ref.keywords.push(cleanValue);
-            break;
-          case 'UR': // URL
-          case 'L1':
-          case 'L2':
-            ref.url = cleanValue;
-            break;
-          case 'TY': // Type of reference
-            ref.type = this.mapRISType(cleanValue);
-            break;
-          case 'DB': // Database name
-            ref.database = cleanValue;
-            break;
-          case 'AN': // Accession Number / External ID
-          case 'ID':
-            ref.externalId = cleanValue;
-            break;
+        // Regex MUY flexible: permite múltiples espacios antes y después del guion
+        // Soporta: "TY  - JOUR", "TY - JOUR", "TY- JOUR", "TY-JOUR", "TYJOUR"
+        const match = line.match(/^([A-Z0-9]{2})\s*-?\s*(.*)$/);
+        
+        if (match) {
+          // Procesar el tag anterior si existía
+          if (currentTag && currentValue) {
+            this.processRISTag(ref, currentTag, currentValue.trim());
+          }
+          
+          // Nueva tag
+          const [, tag, value] = match;
+          currentTag = tag;
+          currentValue = value;
+        } else if (currentTag && line.trim()) {
+          // Continuación de valor multi-línea
+          currentValue += ' ' + line.trim();
         }
+      }
+
+      // Procesar el último tag
+      if (currentTag && currentValue) {
+        this.processRISTag(ref, currentTag, currentValue.trim());
       }
 
       // Solo agregar si tiene al menos título
       if (ref.title) {
+        console.log(`parseRIS: ✓ Registro válido - Título: ${ref.title.substring(0, 60)}...`);
         references.push({
           ...ref,
           authors: ref.authors.join('; '),
           keywords: ref.keywords.join('; ')
         });
+      } else {
+        console.log(`parseRIS: ✗ Registro descartado - Sin título`);
+        console.log(`parseRIS: Contenido del registro:`, JSON.stringify(ref, null, 2));
       }
     }
 
+    console.log(`parseRIS: Total referencias parseadas: ${references.length}`);
     return references;
+  }
+
+  /**
+   * Procesa un tag RIS y actualiza el objeto de referencia
+   */
+  processRISTag(ref, tag, value) {
+    const cleanValue = value.trim();
+    if (!cleanValue) return;
+
+    switch (tag) {
+      case 'TI': // Title
+      case 'T1':
+      case 'CT': // Title (algunos formatos)
+        if (!ref.title) ref.title = cleanValue;
+        break;
+      case 'AU': // Author
+      case 'A1':
+      case 'A2': // Secondary author
+        ref.authors.push(cleanValue);
+        break;
+      case 'PY': // Publication Year
+      case 'Y1':
+        const year = parseInt(cleanValue);
+        if (!isNaN(year) && year > 1900 && year < 2100) {
+          ref.year = year;
+        }
+        break;
+      case 'JO': // Journal (full)
+      case 'JF': // Journal (full)
+      case 'JA': // Journal (abbreviated)
+      case 'T2': // Secondary title (often journal for articles)
+        if (!ref.journal) ref.journal = cleanValue;
+        break;
+      case 'VL': // Volume
+      case 'VO': // Volume (alternate)
+        ref.volume = cleanValue;
+        break;
+      case 'IS': // Issue
+        ref.issue = cleanValue;
+        break;
+      case 'SP': // Start Page
+        ref.pages = cleanValue;
+        break;
+      case 'EP': // End Page
+        if (ref.pages) ref.pages += `-${cleanValue}`;
+        else ref.pages = cleanValue;
+        break;
+      case 'DO': // DOI
+        ref.doi = cleanValue;
+        break;
+      case 'AB': // Abstract
+      case 'N2': // Abstract (alternate)
+        if (!ref.abstract) ref.abstract = cleanValue;
+        break;
+      case 'KW': // Keywords
+        ref.keywords.push(cleanValue);
+        break;
+      case 'UR': // URL
+      case 'L1': // PDF Link
+      case 'L2': // Full text link
+      case 'L3': // Related records link
+        if (!ref.url) ref.url = cleanValue;
+        break;
+      case 'TY': // Type of reference
+        ref.type = this.mapRISType(cleanValue);
+        break;
+      case 'DB': // Database name
+        ref.database = cleanValue;
+        break;
+      case 'AN': // Accession Number / External ID
+      case 'ID': // Reference ID
+        if (!ref.externalId) ref.externalId = cleanValue;
+        break;
+      case 'SN': // ISSN
+      case 'BN': // ISBN
+        // Podríamos agregar estos campos si los necesitamos
+        break;
+      case 'M3': // Type of work (for Scopus)
+      case 'N1': // Notes (puede contener información adicional en Scopus)
+        // Ignorar por ahora, pero reconocer
+        break;
+    }
   }
 
   /**
@@ -634,13 +704,45 @@ class ImportReferencesUseCase {
    * Formato usado por LaTeX, BibDesk, JabRef, etc.
    */
   parseBibTeX(content) {
-    const references = [];
-    // Regex para encontrar entradas BibTeX
-    const entryRegex = /@(\w+)\s*{\s*([^,]+)\s*,\s*([\s\S]+?)(?=\n@|\n\s*$)/g;
+    console.log('parseBibTeX: Iniciando parsing...');
+    console.log('parseBibTeX: Contenido length:', content.length);
+    console.log('parseBibTeX: Primeros 500 caracteres:', content.substring(0, 500));
     
-    let match;
-    while ((match = entryRegex.exec(content)) !== null) {
-      const [, type, citationKey, fields] = match;
+    const references = [];
+    
+    // Normalizar: separar entradas pegadas y limpiar
+    let normalizedContent = content
+      .replace(/\}@/g, '}\n\n@')  // Separar entradas pegadas
+      .replace(/\r\n/g, '\n')      // Normalizar saltos de línea
+      .replace(/\r/g, '\n');
+    
+    // Encontrar todas las entradas @TYPE{...}
+    // Usar regex que busca desde @ hasta } balanceado
+    const entryPattern = /@(\w+)\s*\{([^@]*?)(?=\n@|\n*$)/gs;
+    const matches = [...normalizedContent.matchAll(entryPattern)];
+    
+    console.log(`parseBibTeX: Encontradas ${matches.length} entradas`);
+    
+    for (let i = 0; i < matches.length; i++) {
+      const match = matches[i];
+      const type = match[1];
+      let entryContent = match[2];
+      
+      console.log(`\nparseBibTeX: Procesando entrada ${i + 1}/${matches.length} - Tipo: ${type}`);
+      console.log(`parseBibTeX: Primeros 200 caracteres:`, entryContent.substring(0, 200));
+      
+      // Extraer citation key (primer valor después de la llave)
+      const keyMatch = entryContent.match(/^\s*([^,\s]+)\s*,/);
+      if (!keyMatch) {
+        console.log(`parseBibTeX: No se pudo extraer citation key`);
+        continue;
+      }
+      
+      const citationKey = keyMatch[1];
+      console.log(`parseBibTeX: Citation Key: ${citationKey}`);
+      
+      // Remover el citation key del contenido para procesar solo los campos
+      entryContent = entryContent.substring(keyMatch[0].length);
       
       const ref = {
         type: this.mapBibTeXType(type.toLowerCase()),
@@ -656,35 +758,40 @@ class ImportReferencesUseCase {
         abstract: '',
         keywords: '',
         url: '',
-        database: null,  // Add database field
-        externalId: null  // Add externalId field
+        database: null,
+        externalId: null
       };
 
       // Parsear campos
-      const fieldRegex = /(\w+)\s*=\s*[{"']([^}"']+)[}"']/g;
-      let fieldMatch;
-      while ((fieldMatch = fieldRegex.exec(fields)) !== null) {
-        const [, key, value] = fieldMatch;
+      const fields = this.extractBibTeXFields(entryContent);
+      console.log(`parseBibTeX: Extraídos ${Object.keys(fields).length} campos`);
+      
+      for (const [key, value] of Object.entries(fields)) {
         const cleanValue = value.trim();
-
+        
         switch (key.toLowerCase()) {
           case 'title':
             ref.title = cleanValue;
             break;
           case 'author':
+            // Reemplazar 'and' por '; ' para separar autores
             ref.authors = cleanValue.replace(/ and /g, '; ');
             break;
           case 'year':
-            ref.year = parseInt(cleanValue) || null;
+            const year = parseInt(cleanValue);
+            if (!isNaN(year) && year > 1900 && year < 2100) {
+              ref.year = year;
+            }
             break;
           case 'journal':
           case 'booktitle':
-            ref.journal = cleanValue;
+            if (!ref.journal) ref.journal = cleanValue;
             break;
           case 'volume':
             ref.volume = cleanValue;
             break;
           case 'number':
+          case 'issue':
             ref.issue = cleanValue;
             break;
           case 'pages':
@@ -700,7 +807,8 @@ class ImportReferencesUseCase {
             ref.keywords = cleanValue;
             break;
           case 'url':
-            ref.url = cleanValue;
+          case 'link':
+            if (!ref.url) ref.url = cleanValue;
             break;
           case 'database':
           case 'source':
@@ -708,18 +816,120 @@ class ImportReferencesUseCase {
             break;
           case 'eprint':
           case 'id':
-            ref.externalId = cleanValue;
+          case 'articleid':
+            if (!ref.externalId) ref.externalId = cleanValue;
+            break;
+          case 'issn':
+          case 'isbn':
+          case 'month':
+            // Ignorar por ahora
             break;
         }
       }
 
       // Solo agregar si tiene título
       if (ref.title) {
+        console.log(`parseBibTeX: ✓ Entrada válida - Título: ${ref.title.substring(0, 60)}...`);
         references.push(ref);
+      } else {
+        console.log(`parseBibTeX: ✗ Entrada descartada - Sin título`);
+        console.log(`parseBibTeX: Campos extraídos:`, Object.keys(fields));
       }
     }
 
+    console.log(`parseBibTeX: Total referencias parseadas: ${references.length}`);
     return references;
+  }
+
+  /**
+   * Extrae campos de una entrada BibTeX manejando llaves balanceadas
+   */
+  extractBibTeXFields(content) {
+    const fields = {};
+    
+    // Limpiar: quitar llaves finales de la entrada y espacios
+    content = content.trim();
+    if (content.endsWith('}')) {
+      content = content.substring(0, content.length - 1);
+    }
+    
+    // Buscar campos: key = {value} o key = "value" o key = value
+    let pos = 0;
+    while (pos < content.length) {
+      // Buscar nombre del campo
+      const keyMatch = content.substring(pos).match(/^\s*(\w+)\s*=/);
+      if (!keyMatch) {
+        // Si no hay más campos, salir
+        break;
+      }
+      
+      const key = keyMatch[1];
+      pos += keyMatch[0].length;
+      
+      // Saltar espacios después del =
+      while (pos < content.length && /\s/.test(content[pos])) pos++;
+      
+      if (pos >= content.length) break;
+      
+      // Extraer valor según el delimitador
+      let value = '';
+      const delimiter = content[pos];
+      
+      if (delimiter === '{') {
+        // Manejar llaves balanceadas
+        let braceCount = 1;
+        pos++; // Saltar la llave de apertura
+        let start = pos;
+        
+        while (pos < content.length && braceCount > 0) {
+          if (content[pos] === '\\' && pos + 1 < content.length) {
+            // Saltar secuencias de escape
+            pos += 2;
+            continue;
+          }
+          if (content[pos] === '{') braceCount++;
+          else if (content[pos] === '}') braceCount--;
+          if (braceCount > 0) pos++;
+        }
+        
+        value = content.substring(start, pos);
+        pos++; // Saltar la llave de cierre
+      } else if (delimiter === '"') {
+        // Manejar comillas
+        pos++; // Saltar la comilla de apertura
+        let start = pos;
+        
+        while (pos < content.length && content[pos] !== '"') {
+          if (content[pos] === '\\' && pos + 1 < content.length) {
+            pos += 2; // Saltar caracteres escapados
+            continue;
+          }
+          pos++;
+        }
+        
+        value = content.substring(start, pos);
+        if (pos < content.length) pos++; // Saltar la comilla de cierre
+      } else {
+        // Valor sin delimitadores (número o texto simple)
+        let start = pos;
+        while (pos < content.length && content[pos] !== ',' && content[pos] !== '}' && content[pos] !== '\n') {
+          pos++;
+        }
+        value = content.substring(start, pos).trim();
+      }
+      
+      // Solo agregar si el valor no está vacío
+      if (value.trim()) {
+        fields[key] = value;
+      }
+      
+      // Saltar la coma y espacios si existen
+      while (pos < content.length && (content[pos] === ',' || /\s/.test(content[pos]))) {
+        pos++;
+      }
+    }
+    
+    return fields;
   }
 
   /**

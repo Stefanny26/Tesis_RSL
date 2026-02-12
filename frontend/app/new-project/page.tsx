@@ -210,6 +210,16 @@ export default function NewProjectWizardPage() {
   const searchParams = useSearchParams()
   const projectId = searchParams.get('projectId')
   
+  // Si NO hay projectId, es un proyecto completamente nuevo - limpiar localStorage
+  if (!projectId) {
+    try {
+      localStorage.removeItem('wizard-draft')
+      console.log('🧹 Proyecto nuevo detectado - limpiando wizard draft')
+    } catch (e) {
+      console.warn('⚠️ No se pudo limpiar localStorage:', e)
+    }
+  }
+  
   return (
     <WizardProvider projectId={projectId || undefined}>
       <WizardContent />

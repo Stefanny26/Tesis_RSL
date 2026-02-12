@@ -32,6 +32,9 @@ class Protocol {
     this.temporalRange = data.temporal_range || data.temporalRange || {};
     this.keyTerms = data.key_terms || data.keyTerms || {};
     
+    // Área de investigación (para restaurar borradores)
+    this.researchArea = data.research_area || data.researchArea || '';
+    
     // NOTA: prismaCompliance se gestiona en tabla prisma_items
     // this.prismaCompliance campo deprecado - usar prisma_items
     this.prismaLocked = data.prisma_locked || data.prismaLocked || false;
@@ -84,6 +87,7 @@ class Protocol {
         temporalRange: this.temporalRange
       },
       keyTerms: this.keyTerms,
+      researchArea: this.researchArea,
       // prismaCompliance ahora se lee de tabla prisma_items
       prismaLocked: this.prismaLocked,
       prismaCompletedAt: this.prismaCompletedAt,
@@ -128,6 +132,7 @@ class Protocol {
       search_queries: safeStringify(this.searchQueries),
       temporal_range: safeStringify(this.temporalRange),
       key_terms: safeStringify(this.keyTerms),
+      research_area: this.researchArea,
       // prisma_compliance deprecado - usar tabla prisma_items
       prisma_locked: this.prismaLocked,
       prisma_completed_at: this.prismaCompletedAt,
