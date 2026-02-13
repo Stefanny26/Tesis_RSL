@@ -166,13 +166,30 @@ export function ProtocolDefinitionStep() {
     }
   }
 
+  // Mapeo de campos protocolTerms -> protocolDefinition
+  const fieldToDefinitionMap: Record<string, string> = {
+    tecnologia: 'technologies',
+    dominio: 'applicationDomain',
+    tipoEstudio: 'studyType',
+    focosTematicos: 'thematicFocus'
+  }
+
   const updateArrayField = (field: keyof typeof protocolTerms, index: number, value: string) => {
     const newArray = [...protocolTerms[field]]
     newArray[index] = value
+    
+    // Actualizar AMBAS estructuras para mantener sincronía
+    const definitionField = fieldToDefinitionMap[field]
+    const currentDefinition = data.protocolDefinition || {}
+    
     updateData({
       protocolTerms: {
         ...protocolTerms,
         [field]: newArray
+      },
+      protocolDefinition: {
+        ...currentDefinition,
+        [definitionField]: newArray
       }
     })
   }
@@ -202,10 +219,18 @@ export function ProtocolDefinitionStep() {
   }
 
   const addArrayItem = (field: keyof typeof protocolTerms) => {
+    const newArray = [...protocolTerms[field], ""]
+    const definitionField = fieldToDefinitionMap[field]
+    const currentDefinition = data.protocolDefinition || {}
+    
     updateData({
       protocolTerms: {
         ...protocolTerms,
-        [field]: [...protocolTerms[field], ""]
+        [field]: newArray
+      },
+      protocolDefinition: {
+        ...currentDefinition,
+        [definitionField]: newArray
       }
     })
   }

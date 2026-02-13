@@ -352,7 +352,7 @@ RESPONDE SOLO CON EL JSON. NADA MÁS.
             "Eficiencia - Efficiency",
             "Efectividad - Effectiveness"
           ];
-          console.warn('ℹ️ Se agregaron términos genéricos. El investigador DEBE revisarlos y personalizarlos según su PICO-O');
+          console.warn(' Se agregaron términos genéricos. El investigador DEBE revisarlos y personalizarlos según su PICO-O');
         }
       }
     }

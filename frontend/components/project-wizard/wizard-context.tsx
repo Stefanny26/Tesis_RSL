@@ -604,12 +604,13 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
               protocolUpdates.searchString = newData.searchPlan?.searchQueries?.[0]?.query || ''
             }
             
-            if (updates.protocolDefinition) {
+            // Soportar ambas estructuras: protocolDefinition (preferido) y protocolTerms (legacy)
+            if (updates.protocolDefinition || updates.protocolTerms) {
               protocolUpdates.keyTerms = {
-                technology: newData.protocolDefinition?.technologies || [],
-                domain: newData.protocolDefinition?.applicationDomain || [],
-                studyType: newData.protocolDefinition?.studyType || [],
-                themes: newData.protocolDefinition?.thematicFocus || []
+                technology: newData.protocolDefinition?.technologies || newData.protocolTerms?.tecnologia || [],
+                domain: newData.protocolDefinition?.applicationDomain || newData.protocolTerms?.dominio || [],
+                studyType: newData.protocolDefinition?.studyType || newData.protocolTerms?.tipoEstudio || [],
+                themes: newData.protocolDefinition?.thematicFocus || newData.protocolTerms?.focosTematicos || []
               }
             }
             
