@@ -140,10 +140,71 @@ Seguimos la metodología DSR (Hevner et al., 2004) para desarrollar y evaluar ar
 
 1. **Identificación del problema**: Análisis de complejidad y tiempo de RSL manuales
 2. **Objetivos de la solución**: Sistema que automatice y valide RSL con IA
-3. **Diseño y desarrollo**: 6 meses de implementación iterativa (metodología ágil)
+3. **Diseño y desarrollo**: 6 meses de implementación iterativa con Scrum
 4. **Demostración**: Caso de uso completo con proyecto real de RSL
 5. **Evaluación**: Pruebas funcionales, rendimiento, usabilidad y precisión de IA
 6. **Comunicación**: Documentación académica y código abierto en GitHub
+
+#### 4.1.1 Marco de trabajo Scrum
+
+Implementamos **Scrum como marco ágil** para el desarrollo iterativo e incremental del sistema, ejecutando **5 sprints** entre octubre 2025 y febrero 2026.
+
+**Sprint 1: Análisis y diseño del protocolo** (01-31 octubre 2025)
+- **Duración**: 20 días hábiles
+- **Esfuerzo**: 120 horas trabajadas
+- **Entregables**:
+  - Levantamiento de requerimientos funcionales y no funcionales
+  - Diseño metodológico basado en PRISMA 2020
+  - Planificación general del sistema (arquitectura y tecnologías)
+
+**Sprint 2: Desarrollo del módulo Protocolo** (01-30 noviembre 2025)
+- **Duración**: 20 días hábiles
+- **Esfuerzo**: 140 horas trabajadas
+- **Entregables**:
+  - Desarrollo Frontend (Next.js + React + Tailwind CSS)
+  - Desarrollo Backend (Node.js + Express + PostgreSQL)
+  - Arquitectura cliente-servidor con API REST
+  - Módulo de generación automática de protocolo PICO con IA
+
+**Sprint 3: Implementación del cribado y PRISMA** (01-20 diciembre 2025)
+- **Duración**: 15 días hábiles
+- **Esfuerzo**: 90 horas trabajadas
+- **Entregables**:
+  - Cribado semántico con embeddings (MiniLM-L6-v2)
+  - Integración de validación PRISMA 2020
+  - Lógica del AI Gatekeeper (27 prompts especializados)
+  - Búsqueda vectorial con pgvector en PostgreSQL
+
+**Sprint 4: Generación del artículo** (08-21 enero 2026)
+- **Duración**: 15 días hábiles
+- **Esfuerzo**: 80 horas trabajadas
+- **Entregables**:
+  - Generación automatizada de los 27 ítems PRISMA
+  - Exportación académica (Word, PDF, LaTeX)
+  - Validación metodológica final con técnica RAG
+  - Interfaz de edición tipo Google Docs
+
+**Sprint 5: Pruebas finales y despliegue** (22 enero - 13 febrero 2026)
+- **Duración**: 10 días hábiles
+- **Esfuerzo**: 90 horas trabajadas
+- **Entregables**:
+  - 91 pruebas funcionales automatizadas (Jest + Supertest)
+  - Despliegue en producción (Frontend en Vercel, Backend en Render)
+  - Documentación técnica completa (GitHub)
+  - Documentación de usuario (manuales y guías)
+
+**Resumen de esfuerzo total**:
+- **Periodo**: Octubre 2025 - Febrero 2026 (5 meses)
+- **Días ejecutados**: 80 días hábiles
+- **Horas totales**: 520 horas trabajadas
+- **Productividad**: 6.5 horas/día promedio
+
+**Prácticas Scrum aplicadas**:
+- Daily standups virtuales (sincronización diaria)
+- Sprint planning al inicio de cada sprint
+- Sprint review con tutor académico
+- Retrospectivas para mejora continua
+- Product backlog priorizado por valor de negocio
 
 ### 4.2 Técnicas de recolección de datos
 
@@ -711,6 +772,9 @@ Evidencia:
 
 ### Para Metodología:
 - "Seguimos Design Science Research de Hevner, metodología ideal para desarrollar artefactos tecnológicos..."
+- "Utilizamos Scrum como marco ágil, ejecutando 5 sprints iterativos entre octubre 2025 y febrero 2026..."
+- "En total trabajamos 520 horas en 80 días hábiles, con entregas incrementales en cada sprint..."
+- "El Sprint 3 fue clave: implementamos el cribado semántico y la lógica del AI Gatekeeper..."
 - "Implementamos 91 casos de prueba automatizados con Jest y Supertest..."
 - "Utilizamos Google Lighthouse, el estándar de la industria para medir rendimiento web..."
 
