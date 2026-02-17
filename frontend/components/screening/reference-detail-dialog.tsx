@@ -36,7 +36,7 @@ export function ReferenceDetailDialog({ reference, open, onOpenChange, onStatusC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-[1600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl pr-8">{reference.title}</DialogTitle>
           <DialogDescription>

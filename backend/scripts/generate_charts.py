@@ -8,9 +8,10 @@ import matplotlib.patches as patches
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 import matplotlib.patheffects as pe
 import pandas as pd
+import numpy as np
 import argparse
 
-# ─── Estilo académico global (similar a revistas científicas) ───
+# Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Estilo acadÃƒÂ©mico global (similar a revistas cientÃƒÂ­ficas) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 plt.rcParams.update({
     'font.family': 'serif',
     'font.serif': ['Times New Roman', 'DejaVu Serif', 'Georgia', 'serif'],
@@ -32,21 +33,39 @@ def ensure_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+def save_figure(fig, output_path, **kwargs):
+    """
+    Save figure in both PNG and PDF (vector) formats.
+    The PNG path is the primary output; PDF is saved alongside automatically.
+    """
+    defaults = {'dpi': 300, 'bbox_inches': 'tight', 'facecolor': 'white', 'edgecolor': 'none'}
+    defaults.update(kwargs)
+    # Save PNG (raster)
+    fig.savefig(output_path, **defaults)
+    # Save PDF (vector) alongside
+    pdf_path = os.path.splitext(output_path)[0] + '.pdf'
+    pdf_kwargs = {k: v for k, v in defaults.items() if k != 'dpi'}
+    pdf_kwargs['format'] = 'pdf'
+    try:
+        fig.savefig(pdf_path, **pdf_kwargs)
+    except Exception as e:
+        print(f"Ã¢Å¡Â Ã¯Â¸Â  Could not save PDF vector version: {e}", file=sys.stderr)
+
 def draw_prisma(data, output_path):
     """
-    PRISMA 2020 Flow Diagram — Based on Page et al., 2021 standard.
+    PRISMA 2020 Flow Diagram Ã¢â‚¬â€ Based on Page et al., 2021 standard.
     Colored header, phase labels, and detailed database breakdown.
     """
-    print(f"🔍 DEBUG Python - Received data keys: {data.keys()}", file=sys.stderr)
-    print(f"🔍 DEBUG Python - databases value: {data.get('databases', [])}", file=sys.stderr)
-    print(f"🔍 DEBUG Python - identified value: {data.get('identified', 0)}", file=sys.stderr)
+    print(f"Ã°Å¸â€Â DEBUG Python - Received data keys: {data.keys()}", file=sys.stderr)
+    print(f"Ã°Å¸â€Â DEBUG Python - databases value: {data.get('databases', [])}", file=sys.stderr)
+    print(f"Ã°Å¸â€Â DEBUG Python - identified value: {data.get('identified', 0)}", file=sys.stderr)
     
     fig, ax = plt.subplots(figsize=(11, 12))
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 100)
     ax.axis('off')
 
-    # ─── PRISMA 2020 Color Palette ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ PRISMA 2020 Color Palette Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     HEADER_COLOR = '#f4d03f'  # Yellow/gold header
     PHASE_IDENTIFICATION = '#5dade2'  # Blue
     PHASE_SCREENING = '#5dade2'  # Blue
@@ -103,7 +122,7 @@ def draw_prisma(data, output_path):
                     arrowprops=dict(arrowstyle="-|>", color=ARROW_COLOR,
                                     lw=1.5, mutation_scale=15))
 
-    # ─── Data extraction ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Data extraction Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     identified = data.get('identified', 0)
     databases = data.get('databases', [])  # List of {name, hits}
     duplicates = data.get('duplicates', 0)
@@ -115,15 +134,15 @@ def draw_prisma(data, output_path):
     excluded_reasons = data.get('excluded_reasons', {})
     included = data.get('included', 0)
     
-    print(f"🔍 DEBUG draw_prisma - identified: {identified}", file=sys.stderr)
-    print(f"🔍 DEBUG draw_prisma - databases: {databases}", file=sys.stderr)
-    print(f"🔍 DEBUG draw_prisma - len(databases): {len(databases)}", file=sys.stderr)
-    print(f"🔍 DEBUG draw_prisma - screened: {screened}", file=sys.stderr)
-    print(f"🔍 DEBUG draw_prisma - excluded: {excluded}", file=sys.stderr)
-    print(f"🔍 DEBUG draw_prisma - assessed: {assessed}", file=sys.stderr)
-    print(f"🔍 DEBUG draw_prisma - included: {included}", file=sys.stderr)
+    print(f"Ã°Å¸â€Â DEBUG draw_prisma - identified: {identified}", file=sys.stderr)
+    print(f"Ã°Å¸â€Â DEBUG draw_prisma - databases: {databases}", file=sys.stderr)
+    print(f"Ã°Å¸â€Â DEBUG draw_prisma - len(databases): {len(databases)}", file=sys.stderr)
+    print(f"Ã°Å¸â€Â DEBUG draw_prisma - screened: {screened}", file=sys.stderr)
+    print(f"Ã°Å¸â€Â DEBUG draw_prisma - excluded: {excluded}", file=sys.stderr)
+    print(f"Ã°Å¸â€Â DEBUG draw_prisma - assessed: {assessed}", file=sys.stderr)
+    print(f"Ã°Å¸â€Â DEBUG draw_prisma - included: {included}", file=sys.stderr)
 
-    # ─── Layout constants ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Layout constants Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     PHASE_X, PHASE_W = 2, 7
     MAIN_X, MAIN_W = 14, 34
     EXCL_X, EXCL_W = 62, 32
@@ -132,11 +151,11 @@ def draw_prisma(data, output_path):
 
     y = 94  # Start from top
 
-    # ═══════ YELLOW HEADER ═══════
+    # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â YELLOW HEADER Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
     draw_header(MAIN_X, y, MAIN_W, 3, 'Identification of new studies via databases and registers')
     y -= 4
 
-    # ═══════ IDENTIFICATION PHASE ═══════
+    # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â IDENTIFICATION PHASE Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
     # Calculate height based on number of databases
     id_box_h = max(10, 5 + len(databases) * 1.2)
     draw_phase_label(PHASE_X, y - id_box_h, PHASE_W, id_box_h + 3, 'Identification', PHASE_IDENTIFICATION)
@@ -174,7 +193,7 @@ def draw_prisma(data, output_path):
     y -= id_box_h + GAP
     draw_arrow(CENTER, y + GAP - 1, CENTER, y + 1)
 
-    # ═══════ SCREENING PHASE ═══════
+    # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â SCREENING PHASE Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
     scr_h = 8
     draw_phase_label(PHASE_X, y - scr_h, PHASE_W, scr_h + 3, 'Screening', PHASE_SCREENING)
     
@@ -193,7 +212,7 @@ def draw_prisma(data, output_path):
     y -= scr_h + GAP
     draw_arrow(CENTER, y + GAP - 1, CENTER, y + 1)
 
-    # ═══════ REPORTS SOUGHT FOR RETRIEVAL ═══════
+    # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â REPORTS SOUGHT FOR RETRIEVAL Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
     retr_h = 7
     retr_text = f'Reports sought for retrieval\n(n = {retrieved})'
     draw_box(MAIN_X, y - retr_h, MAIN_W, retr_h, retr_text, bg_color=BOX_MAIN, fontsize=8)
@@ -211,7 +230,7 @@ def draw_prisma(data, output_path):
     y -= retr_h + GAP
     draw_arrow(CENTER, y + GAP - 1, CENTER, y + 1)
 
-    # ═══════ ELIGIBILITY (Reports assessed) ═══════
+    # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â ELIGIBILITY (Reports assessed) Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
     assess_h = 7
     assess_text = f'Reports assessed for eligibility\n(n = {assessed})'
     draw_box(MAIN_X, y - assess_h, MAIN_W, assess_h, assess_text, bg_color=BOX_MAIN, fontsize=8)
@@ -240,7 +259,7 @@ def draw_prisma(data, output_path):
     y -= assess_h + GAP
     draw_arrow(CENTER, y + GAP - 1, CENTER, y + 1)
 
-    # ═══════ INCLUDED ═══════
+    # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â INCLUDED Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
     inc_h = 8
     draw_phase_label(PHASE_X, y - inc_h, PHASE_W, inc_h + 3, 'Included', PHASE_INCLUDED)
     
@@ -253,17 +272,17 @@ def draw_prisma(data, output_path):
     draw_box(MAIN_X + inc_left_w + 2, y - inc_h, inc_left_w, inc_h, inc2_text, 
              bg_color=BOX_MAIN, fontsize=8)
 
-    # ─── Adjust visible area ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Adjust visible area Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     ax.set_ylim(y - inc_h - 3, 98)
 
-    # ─── Title ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Title Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     plt.suptitle('PRISMA 2020 Flow Diagram', fontsize=13, fontweight='bold',
                  family='serif', y=0.98)
     plt.figtext(0.5, 0.96, 'Study selection process according to Page et al. (2021)',
                 ha='center', fontsize=8, fontstyle='italic', family='serif', color='#555555')
 
     plt.tight_layout(rect=[0, 0.01, 1, 0.95])
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+    save_figure(fig, output_path)
     plt.close()
 
 def draw_scree(data, output_path):
@@ -274,22 +293,22 @@ def draw_scree(data, output_path):
     scores = sorted(data.get('scores', []), reverse=True)
 
     if not scores:
-        print("⚠️  No hay scores disponibles para generar scree plot", file=sys.stderr)
+        print("Ã¢Å¡Â Ã¯Â¸Â  No hay scores disponibles para generar scree plot", file=sys.stderr)
         fig, ax = plt.subplots(figsize=(8, 5))
         ax.text(0.5, 0.5, 'No hay datos de relevancia disponibles',
                 ha='center', va='center', fontsize=12, color='#666666', family='serif')
         ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
-        plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
+        save_figure(fig, output_path)
         plt.close()
         return
 
     if len(scores) < 3:
-        print(f"⚠️  Insuficientes scores ({len(scores)})", file=sys.stderr)
+        print(f"Ã¢Å¡Â Ã¯Â¸Â  Insuficientes scores ({len(scores)})", file=sys.stderr)
         fig, ax = plt.subplots(figsize=(8, 5))
         ax.text(0.5, 0.5, f'Datos insuficientes ({len(scores)} puntos)\nSe requieren al menos 3 referencias',
                 ha='center', va='center', fontsize=12, color='#996600', family='serif')
         ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
-        plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
+        save_figure(fig, output_path)
         plt.close()
         return
 
@@ -297,20 +316,20 @@ def draw_scree(data, output_path):
 
     fig, ax = plt.subplots(figsize=(8, 5))
 
-    # ─── Main line plot ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Main line plot Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     ax.plot(df['Rank'], df['Score'], 'o-', color='#333333', markersize=4,
             markerfacecolor='#333333', markeredgecolor='#333333', linewidth=1.2,
             label='Puntaje de relevancia', zorder=3)
 
-    # ─── Fill under curve (very subtle) ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Fill under curve (very subtle) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     ax.fill_between(df['Rank'], df['Score'], color='#cccccc', alpha=0.3, zorder=1)
 
-    # ─── Median ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Median Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     median_score = float(df['Score'].median())
     ax.axhline(y=median_score, color='#666666', linestyle='--', linewidth=0.8,
                alpha=0.8, label=f'Mediana: {median_score:.1%}', zorder=2)
 
-    # ─── Elbow (Knee) detection ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Elbow (Knee) detection Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     x1, y1 = 1, scores[0]
     x2, y2 = len(scores), scores[-1]
     A = y1 - y2
@@ -339,24 +358,24 @@ def draw_scree(data, output_path):
                     arrowprops=dict(arrowstyle='->', color='#333333', lw=0.8),
                     ha='left', va='bottom')
 
-    # ─── Quantile lines ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Quantile lines Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     top_10_idx = max(1, int(len(scores) * 0.1))
     top_25_idx = max(1, int(len(scores) * 0.25))
 
     if top_10_idx <= len(scores):
         s10 = scores[top_10_idx - 1]
         ax.axhline(y=s10, color='#999999', linestyle='-.', linewidth=0.7,
-                   alpha=0.6, label=f'Top 10% (≥ {s10:.2f})')
+                   alpha=0.6, label=f'Top 10% (Ã¢â€°Â¥ {s10:.2f})')
 
     if top_25_idx <= len(scores):
         s25 = scores[top_25_idx - 1]
         ax.axhline(y=s25, color='#999999', linestyle=':', linewidth=0.7,
-                   alpha=0.6, label=f'Top 25% (≥ {s25:.2f})')
+                   alpha=0.6, label=f'Top 25% (Ã¢â€°Â¥ {s25:.2f})')
 
-    # ─── Axes formatting ───
+    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Axes formatting Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     ax.set_xlabel('Rango de referencia', fontsize=11, family='serif')
     ax.set_ylabel('Puntaje de relevancia', fontsize=11, family='serif')
-    ax.set_title('Distribución de puntajes de cribado por prioridad (Scree Plot)',
+    ax.set_title('DistribuciÃƒÂ³n de puntajes de cribado por prioridad (Scree Plot)',
                  fontsize=12, fontweight='bold', family='serif', pad=12)
 
     # Academic grid style
@@ -374,12 +393,12 @@ def draw_scree(data, output_path):
               edgecolor='#cccccc', fontsize=8, fancybox=False)
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+    save_figure(fig, output_path)
     plt.close()
     
 def draw_search_table(data, output_path):
     """
-    Search Strategy Table — Academic style with serif fonts and clean borders.
+    Search Strategy Table Ã¢â‚¬â€ Academic style with serif fonts and clean borders.
     """
     if not data:
         return
@@ -387,7 +406,7 @@ def draw_search_table(data, output_path):
     import textwrap
 
     table_data = []
-    col_labels = ['Fuente', 'Resultados', 'Cadena de búsqueda']
+    col_labels = ['Fuente', 'Resultados', 'Cadena de bÃƒÂºsqueda']
 
     for item in data:
         name = item.get('name', 'Desconocido')
@@ -404,7 +423,7 @@ def draw_search_table(data, output_path):
     ax.axis('off')
     ax.axis('tight')
 
-    ax.set_title("Tabla 1. Fuentes de datos y resultados de la estrategia de búsqueda",
+    ax.set_title("Tabla 1. Fuentes de datos y resultados de la estrategia de bÃƒÂºsqueda",
                  fontsize=11, fontweight='bold', family='serif', pad=15)
 
     table = ax.table(cellText=table_data, colLabels=col_labels,
@@ -429,7 +448,335 @@ def draw_search_table(data, output_path):
             cell.set_facecolor('#ffffff' if row % 2 == 1 else '#f5f5f5')
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+    save_figure(fig, output_path)
+    plt.close()
+
+def draw_temporal_distribution(data, output_path):
+    """
+    Temporal Distribution (Bar Chart / Line Plot).
+    Shows publication years and identifies trends and peaks.
+    Academic journal style with serif fonts and clean presentation.
+    """
+    years_data = data.get('years', {})  # { '2019': 2, '2020': 5, '2021': 8, ... }
+    
+    if not years_data or len(years_data) == 0:
+        print("Ã¢Å¡Â Ã¯Â¸Â  No hay datos temporales disponibles", file=sys.stderr)
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.text(0.5, 0.5, 'No hay datos de distribuciÃƒÂ³n temporal disponibles',
+                ha='center', va='center', fontsize=12, color='#666666', family='serif')
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
+        save_figure(fig, output_path)
+        plt.close()
+        return
+    
+    # Convert to sorted lists
+    years = sorted([int(y) for y in years_data.keys()])
+    counts = [years_data[str(y)] for y in years]
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Bar chart
+    bars = ax.bar(years, counts, color='#4a90e2', alpha=0.8, edgecolor='#333333', linewidth=0.8)
+    
+    # Add value labels on top of bars
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height + 0.2,
+                f'{int(height)}',
+                ha='center', va='bottom', fontsize=9, family='serif', fontweight='bold')
+    
+    # Trend line (polynomial fit if enough data points)
+    if len(years) >= 3:
+        z = np.polyfit(years, counts, min(2, len(years)-1))
+        p = np.poly1d(z)
+        years_smooth = np.linspace(min(years), max(years), 100)
+        ax.plot(years_smooth, p(years_smooth), '--', color='#e74c3c', linewidth=2, 
+                alpha=0.7, label='Tendencia')
+    
+    ax.set_xlabel('AÃƒÂ±o de publicaciÃƒÂ³n', fontsize=11, family='serif')
+    ax.set_ylabel('NÃƒÂºmero de estudios', fontsize=11, family='serif')
+    ax.set_title('DistribuciÃƒÂ³n Temporal de Estudios Incluidos', 
+                 fontsize=12, fontweight='bold', family='serif', pad=12)
+    
+    # Format x-axis to show all years
+    ax.set_xticks(years)
+    ax.set_xticklabels([str(y) for y in years], rotation=45, ha='right')
+    
+    # Grid
+    ax.grid(True, axis='y', linestyle='-', linewidth=0.3, alpha=0.4, color='#cccccc')
+    ax.set_axisbelow(True)
+    
+    # Clean spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_linewidth(0.8)
+    ax.spines['bottom'].set_linewidth(0.8)
+    
+    # Legend if trend line exists
+    if len(years) >= 3:
+        ax.legend(loc='upper left', frameon=True, framealpha=0.9,
+                  edgecolor='#cccccc', fontsize=9, fancybox=False)
+    
+    plt.tight_layout()
+    save_figure(fig, output_path)
+    plt.close()
+
+def draw_quality_assessment(data, output_path):
+    """
+    Quality Assessment (Stacked Bar Chart).
+    Shows compliance with Kitchenham criteria (Yes/No/Partial).
+    Uses Plotly-like colors but with Matplotlib for consistency.
+    """
+    questions = data.get('questions', [])  # ['Q1', 'Q2', ...]
+    yes_counts = data.get('yes', [])
+    no_counts = data.get('no', [])
+    partial_counts = data.get('partial', [])
+    
+    if not questions or len(questions) == 0:
+        print("Ã¢Å¡Â Ã¯Â¸Â  No hay datos de evaluaciÃƒÂ³n de calidad disponibles", file=sys.stderr)
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.text(0.5, 0.5, 'No hay datos de evaluaciÃƒÂ³n de calidad disponibles',
+                ha='center', va='center', fontsize=12, color='#666666', family='serif')
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
+        save_figure(fig, output_path)
+        plt.close()
+        return
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    x = np.arange(len(questions))
+    width = 0.6
+    
+    # Stacked bars
+    p1 = ax.bar(x, yes_counts, width, label='SÃƒÂ­', color='#27ae60', alpha=0.9, edgecolor='#333333', linewidth=0.5)
+    p2 = ax.bar(x, partial_counts, width, bottom=yes_counts, label='Parcial', 
+                color='#f39c12', alpha=0.9, edgecolor='#333333', linewidth=0.5)
+    
+    # Calculate bottom for 'No' bars
+    bottom_no = [yes_counts[i] + partial_counts[i] for i in range(len(questions))]
+    p3 = ax.bar(x, no_counts, width, bottom=bottom_no, label='No', 
+                color='#e74c3c', alpha=0.9, edgecolor='#333333', linewidth=0.5)
+    
+    # Add percentage labels
+    total = [yes_counts[i] + partial_counts[i] + no_counts[i] for i in range(len(questions))]
+    for i in range(len(questions)):
+        if total[i] > 0:
+            yes_pct = (yes_counts[i] / total[i]) * 100
+            if yes_pct >= 10:  # Only show if big enough
+                ax.text(i, yes_counts[i]/2, f'{yes_pct:.0f}%', 
+                        ha='center', va='center', fontsize=8, family='serif', 
+                        color='white', fontweight='bold')
+    
+    ax.set_xlabel('Criterios de Calidad (Kitchenham)', fontsize=11, family='serif')
+    ax.set_ylabel('NÃƒÂºmero de Estudios', fontsize=11, family='serif')
+    ax.set_title('EvaluaciÃƒÂ³n de Calidad MetodolÃƒÂ³gica', 
+                 fontsize=12, fontweight='bold', family='serif', pad=12)
+    ax.set_xticks(x)
+    ax.set_xticklabels(questions, rotation=0, ha='center', fontsize=9)
+    
+    # Grid
+    ax.grid(True, axis='y', linestyle='-', linewidth=0.3, alpha=0.4, color='#cccccc')
+    ax.set_axisbelow(True)
+    
+    # Clean spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_linewidth(0.8)
+    ax.spines['bottom'].set_linewidth(0.8)
+    
+    # Legend
+    ax.legend(loc='upper right', frameon=True, framealpha=0.9,
+              edgecolor='#cccccc', fontsize=9, ncol=3, fancybox=False)
+    
+    plt.tight_layout()
+    save_figure(fig, output_path)
+    plt.close()
+
+def draw_bubble_chart(data, output_path):
+    """
+    Bubble Chart for Dimension Mapping.
+    X-axis: Metric, Y-axis: Tool, Bubble size: Number of studies.
+    Identifies research gaps and concentrations.
+    """
+    entries = data.get('entries', [])  
+    # entries = [{ metric: "latency", tool: "Mongoose", studies: 5 }, ...]
+    
+    if not entries or len(entries) == 0:
+        print("Ã¢Å¡Â Ã¯Â¸Â  No hay datos para bubble chart disponibles", file=sys.stderr)
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.text(0.5, 0.5, 'No hay datos de mapeo de dimensiones disponibles',
+                ha='center', va='center', fontsize=12, color='#666666', family='serif')
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
+        save_figure(fig, output_path)
+        plt.close()
+        return
+    
+    # Extract unique metrics and tools
+    metrics = sorted(list(set([e['metric'] for e in entries if 'metric' in e])))
+    tools = sorted(list(set([e['tool'] for e in entries if 'tool' in e])))
+    
+    if not metrics or not tools:
+        print("Ã¢Å¡Â Ã¯Â¸Â  Datos incompletos para bubble chart", file=sys.stderr)
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.text(0.5, 0.5, 'Datos incompletos para mapeo de dimensiones',
+                ha='center', va='center', fontsize=12, color='#666666', family='serif')
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
+        save_figure(fig, output_path)
+        plt.close()
+        return
+    
+    # Create mapping for positions
+    metric_pos = {m: i for i, m in enumerate(metrics)}
+    tool_pos = {t: i for i, t in enumerate(tools)}
+    
+    # Prepare data for scatter
+    x_vals = []
+    y_vals = []
+    sizes = []
+    colors = []
+    
+    # Color palette
+    color_palette = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c']
+    
+    for entry in entries:
+        if 'metric' in entry and 'tool' in entry and 'studies' in entry:
+            x_vals.append(metric_pos[entry['metric']])
+            y_vals.append(tool_pos[entry['tool']])
+            sizes.append(entry['studies'] * 300)  # Scale for visibility
+            colors.append(color_palette[tool_pos[entry['tool']] % len(color_palette)])
+    
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # Scatter plot
+    scatter = ax.scatter(x_vals, y_vals, s=sizes, c=colors, alpha=0.6, 
+                         edgecolors='#333333', linewidth=1.5)
+    
+    # Add study count labels
+    for i, entry in enumerate(entries):
+        if 'metric' in entry and 'tool' in entry and 'studies' in entry:
+            ax.text(x_vals[i], y_vals[i], str(entry['studies']), 
+                    ha='center', va='center', fontsize=9, family='serif', 
+                    fontweight='bold', color='white')
+    
+    ax.set_xlabel('MÃƒÂ©tricas de Rendimiento', fontsize=11, family='serif')
+    ax.set_ylabel('Herramientas/TecnologÃƒÂ­as', fontsize=11, family='serif')
+    ax.set_title('Mapeo de Dimensiones: MÃƒÂ©tricas vs Herramientas\n(TamaÃƒÂ±o = NÃƒÂºmero de Estudios)', 
+                 fontsize=12, fontweight='bold', family='serif', pad=12)
+    
+    ax.set_xticks(range(len(metrics)))
+    ax.set_xticklabels(metrics, rotation=45, ha='right', fontsize=9)
+    ax.set_yticks(range(len(tools)))
+    ax.set_yticklabels(tools, fontsize=9)
+    
+    # Grid
+    ax.grid(True, linestyle='--', linewidth=0.3, alpha=0.3, color='#cccccc')
+    ax.set_axisbelow(True)
+    
+    # Clean spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_linewidth(0.8)
+    ax.spines['bottom'].set_linewidth(0.8)
+    
+    plt.tight_layout()
+    save_figure(fig, output_path)
+    plt.close()
+
+def draw_technical_synthesis(data, output_path):
+    """
+    Technical Synthesis Table with Pandas.
+    Comparative table of metrics extracted from studies.
+    Format: Study | Tool | Latency | Throughput | CPU | Memory
+    """
+    studies_data = data.get('studies', [])
+    # studies_data = [{ study: "Smith 2021", tool: "Mongoose", latency: 45, throughput: 1200, cpu: 65, memory: 128 }, ...]
+    
+    if not studies_data or len(studies_data) == 0:
+        print("Ã¢Å¡Â Ã¯Â¸Â  No hay datos tÃƒÂ©cnicos para sÃƒÂ­ntesis disponibles", file=sys.stderr)
+        fig, ax = plt.subplots(figsize=(12, 4))
+        ax.text(0.5, 0.5, 'No hay datos de sÃƒÂ­ntesis tÃƒÂ©cnica disponibles',
+                ha='center', va='center', fontsize=12, color='#666666', family='serif')
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
+        save_figure(fig, output_path)
+        plt.close()
+        return
+    
+    # Convert to DataFrame
+    df = pd.DataFrame(studies_data)
+    
+    # Ensure required columns exist
+    required_cols = ['study', 'tool']
+    if not all(col in df.columns for col in required_cols):
+        print("Ã¢Å¡Â Ã¯Â¸Â  Columnas requeridas faltantes en datos tÃƒÂ©cnicos", file=sys.stderr)
+        return
+    
+    # Select columns to display
+    display_cols = ['study', 'tool']
+    optional_cols = ['latency', 'throughput', 'cpu', 'memory', 'accuracy']
+    for col in optional_cols:
+        if col in df.columns:
+            display_cols.append(col)
+    
+    df_display = df[display_cols].copy()
+    
+    # Format column names
+    col_labels = []
+    for col in display_cols:
+        if col == 'study':
+            col_labels.append('Estudio')
+        elif col == 'tool':
+            col_labels.append('Herramienta')
+        elif col == 'latency':
+            col_labels.append('Latencia\n(ms)')
+        elif col == 'throughput':
+            col_labels.append('Throughput\n(ops/s)')
+        elif col == 'cpu':
+            col_labels.append('CPU\n(%)')
+        elif col == 'memory':
+            col_labels.append('Memoria\n(MB)')
+        elif col == 'accuracy':
+            col_labels.append('PrecisiÃƒÂ³n\n(%)')
+        else:
+            col_labels.append(col.capitalize())
+    
+    # Create figure
+    fig_height = max(4, len(df_display) * 0.6 + 2)
+    fig, ax = plt.subplots(figsize=(14, fig_height))
+    ax.axis('off')
+    ax.axis('tight')
+    
+    ax.set_title("SÃƒÂ­ntesis TÃƒÂ©cnica: ComparaciÃƒÂ³n de MÃƒÂ©tricas de Rendimiento",
+                 fontsize=12, fontweight='bold', family='serif', pad=15)
+    
+    # Convert DataFrame to list of lists
+    table_data = df_display.values.tolist()
+    
+    table = ax.table(cellText=table_data, colLabels=col_labels,
+                     loc='center', cellLoc='center', colLoc='center')
+    
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    table.scale(1, 1.6)
+    
+    # Style table
+    for key, cell in table.get_celld().items():
+        row, col = key
+        cell.set_edgecolor('#333333')
+        cell.set_linewidth(0.5)
+        if row == 0:
+            cell.set_text_props(weight='bold', family='serif', fontsize=8)
+            cell.set_facecolor('#34495e')
+            cell.set_text_props(color='white')
+        else:
+            cell.set_text_props(family='serif', fontsize=8)
+            # Alternate row colors
+            if row % 2 == 1:
+                cell.set_facecolor('#ffffff')
+            else:
+                cell.set_facecolor('#ecf0f1')
+    
+    plt.tight_layout()
+    save_figure(fig, output_path)
     plt.close()
 
 def main():
@@ -442,7 +789,7 @@ def main():
     # Read data from stdin
     try:
         input_data = json.loads(sys.stdin.read())
-        print("🐍 Python recibió datos:", file=sys.stderr)
+        print("Ã°Å¸ÂÂ Python recibiÃƒÂ³ datos:", file=sys.stderr)
         print(f"   - Tiene 'prisma': {'prisma' in input_data}", file=sys.stderr)
         print(f"   - Tiene 'scree': {'scree' in input_data}", file=sys.stderr)
         if 'scree' in input_data:
@@ -471,6 +818,31 @@ def main():
         chart1_path = os.path.join(args.output_dir, 'chart1_search.png')
         draw_search_table(input_data['search_strategy'], chart1_path)
         results['chart1'] = 'chart1_search.png'
+    
+    # New charts
+    if 'temporal_distribution' in input_data:
+        temporal_path = os.path.join(args.output_dir, 'temporal_distribution.png')
+        draw_temporal_distribution(input_data['temporal_distribution'], temporal_path)
+        results['temporal_distribution'] = 'temporal_distribution.png'
+        print("Ã¢Å“â€¦ GrÃƒÂ¡fico de distribuciÃƒÂ³n temporal generado", file=sys.stderr)
+    
+    if 'quality_assessment' in input_data:
+        quality_path = os.path.join(args.output_dir, 'quality_assessment.png')
+        draw_quality_assessment(input_data['quality_assessment'], quality_path)
+        results['quality_assessment'] = 'quality_assessment.png'
+        print("Ã¢Å“â€¦ GrÃƒÂ¡fico de evaluaciÃƒÂ³n de calidad generado", file=sys.stderr)
+    
+    if 'bubble_chart' in input_data:
+        bubble_path = os.path.join(args.output_dir, 'bubble_chart.png')
+        draw_bubble_chart(input_data['bubble_chart'], bubble_path)
+        results['bubble_chart'] = 'bubble_chart.png'
+        print("Ã¢Å“â€¦ Bubble chart generado", file=sys.stderr)
+    
+    if 'technical_synthesis' in input_data:
+        synthesis_path = os.path.join(args.output_dir, 'technical_synthesis.png')
+        draw_technical_synthesis(input_data['technical_synthesis'], synthesis_path)
+        results['technical_synthesis'] = 'technical_synthesis.png'
+        print("Ã¢Å“â€¦ Tabla de sÃƒÂ­ntesis tÃƒÂ©cnica generada", file=sys.stderr)
 
     print(json.dumps(results))
 

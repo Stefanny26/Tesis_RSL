@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Sparkles, BarChart3, Info, Brain, CheckCircle2, Loader2, TrendingUp, Zap, Lightbulb } from "lucide-react"
-import { SimilarityDistributionAnalysis } from "./similarity-distribution-analysis"
+import { Sparkles, BarChart3, Info, Brain, CheckCircle2, Loader2, TrendingUp, Zap } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { apiClient } from "@/lib/api-client"
@@ -180,43 +179,13 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
             Cribado Automático con IA
           </CardTitle>
           <CardDescription>
-            Sistema de tres etapas: análisis de similitudes, clasificación con embeddings y revisión con ChatGPT de la zona gris
+            El sistema analiza automáticamente todas las referencias usando similitud semántica 
+            e inteligencia artificial para clasificarlas en categorías de relevancia según los criterios de tu protocolo.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
 
-          {/* Información del sistema automático - PRIMERO */}
-          <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Lightbulb className="h-4 w-4" />
-              ¿Qué hace el análisis automático?
-            </h4>
-            <div className="space-y-2">
-              <div className="flex items-start gap-2">
-                <span className="text-primary font-medium text-sm">Paso 1:</span>
-                <p className="text-sm text-muted-foreground">Analiza similitudes y determina umbral óptimo (Método Elbow)</p>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-primary font-medium text-sm">Paso 2:</span>
-                <p className="text-sm text-muted-foreground">Clasifica con Embeddings referencias de alta/baja confianza</p>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-primary font-medium text-sm">Paso 3:</span>
-                <p className="text-sm text-muted-foreground">ChatGPT analiza la zona gris (10-30% similitud)</p>
-              </div>
-              <div className="flex items-start gap-2 pt-2 border-t border-primary/20">
-                <span className="text-green-600 font-medium text-sm">Resultado:</span>
-                <p className="text-sm text-muted-foreground">Referencias organizadas listas para tu revisión</p>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
-                <span>Eficiencia: 95% precisión</span>
-                <span>•</span>
-                <span>Tiempo: 1-2 minutos</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Estadísticas - SEGUNDO */}
+          {/* Estadísticas - Más conciso */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-muted p-4 rounded-lg text-center">
               <p className="text-muted-foreground text-sm mb-1">Total Referencias</p>
@@ -228,7 +197,7 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
             </div>
           </div>
 
-          {/* Botón de acción - TERCERO */}
+          {/* Botón de acción */}
           <Button 
             onClick={handleRunScreening} 
             disabled={isRunning || totalReferences === 0 || method === 'llm'} 
@@ -371,7 +340,7 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
                 <div>
                   <div className="text-sm font-medium">Fase 2: Análisis con ChatGPT</div>
                   <div className="text-xs text-muted-foreground">
-                    Procesando zona gris secuencialmente (Lento - puede tardar)
+                    Procesando rango de incertidumbre secuencialmente (Lento - puede tardar)
                   </div>
                   {progress >= 35 && progress < 95 && (
                     <div className="mt-2 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
@@ -404,7 +373,7 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
               <Alert className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
                 <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 <AlertDescription className="text-xs text-amber-900 dark:text-amber-100">
-                  ⏳ <strong>Proceso en curso:</strong> ChatGPT está analizando cada referencia de la zona gris. 
+                  ⏳ <strong>Proceso en curso:</strong> ChatGPT está analizando cada referencia del rango de incertidumbre. 
                   Este proceso puede tardar varios minutos dependiendo de la cantidad de referencias. 
                   Por favor no cierres esta ventana.
                 </AlertDescription>

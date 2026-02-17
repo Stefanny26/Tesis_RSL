@@ -8,14 +8,12 @@ import { ProjectBreadcrumb } from "@/components/project-breadcrumb"
 import { ProjectHeader } from "@/components/project-header"
 import { ReferenceTable } from "@/components/screening/reference-table"
 import { AIScreeningPanel } from "@/components/screening/ai-screening-panel"
-import { BulkActionsBar } from "@/components/screening/bulk-actions-bar"
 import { ScreeningFilters } from "@/components/screening/screening-filters"
 import { DuplicateDetectionDialog } from "@/components/screening/duplicate-detection-dialog"
 import { HybridScreeningStats } from "@/components/screening/hybrid-screening-stats"
-import { ClassifiedReferencesView } from "@/components/screening/classified-references-view"
+import { SimplifiedScreeningSummary } from "@/components/screening/simplified-screening-summary"
 import { ExclusionReasonsTable } from "@/components/screening/exclusion-reasons-table"
 import { PrismaFlowDiagram } from "@/components/screening/prisma-flow-diagram"
-import { PriorityDistributionAnalysis } from "@/components/screening/priority-distribution-analysis"
 import { apiClient } from "@/lib/api-client"
 import type { Reference } from "@/lib/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,9 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Loader2, AlertCircle, ClipboardCheck, Database, Copy, Trash2, CheckCircle2, Brain, TrendingUp, ClipboardPaste, Save } from "lucide-react"
+import { Loader2, AlertCircle, Database, Copy, CheckCircle2, Brain, Download, ArrowRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ScreeningPage({ params }: { params: { id: string } }) {
@@ -33,14 +29,13 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
   const { toast } = useToast()
   const [project, setProject] = useState<any>(null)
   const [references, setReferences] = useState<Reference[]>([])
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState("all")
   const [methodFilter, setMethodFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
-  const [activeTab, setActiveTab] = useState<"fase1" | "priorizacion" | "revision" | "resultados">("fase1")
+  const [activeTab, setActiveTab] = useState<"fase1" | "priorizacion" | "revision" | "resultados" | "prisma">("fase1")
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -56,25 +51,9 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
   const [showDuplicatesDialog, setShowDuplicatesDialog] = useState(false)
   const [lastScreeningResult, setLastScreeningResult] = useState<any>(null)
   const [fase2Unlocked, setFase2Unlocked] = useState(false)
-  const [expandedAnalysis, setExpandedAnalysis] = useState<Set<string>>(new Set())
-  const [selectedReference, setSelectedReference] = useState<string | null>(null)
   const [selectedForFullText, setSelectedForFullText] = useState<Set<string>>(new Set())
   const [screeningFinalized, setScreeningFinalized] = useState(false)
   const [isFinalizingScreening, setIsFinalizingScreening] = useState(false)
-  const [pasteDialogOpen, setPasteDialogOpen] = useState(false)
-  const [pasteRefId, setPasteRefId] = useState<string | null>(null)
-  const [pasteText, setPasteText] = useState('')
-  const [isSavingPaste, setIsSavingPaste] = useState(false)
-
-  const toggleAnalysis = (refId: string) => {
-    const newExpanded = new Set(expandedAnalysis)
-    if (newExpanded.has(refId)) {
-      newExpanded.delete(refId)
-    } else {
-      newExpanded.add(refId)
-    }
-    setExpandedAnalysis(newExpanded)
-  }
 
   // Cargar referencias del proyecto y protocolo (search queries) - EN PARALELO
   useEffect(() => {
@@ -119,8 +98,16 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
           if (protocol?.fase2Unlocked) {
             setFase2Unlocked(protocol.fase2Unlocked)
           }
-          if (protocol?.selectedForFullText && Array.isArray(protocol.selectedForFullText)) {
+          if (protocol?.selectedForFullText && Array.isArray(protocol.selectedForFullText) && protocol.selectedForFullText.length > 0) {
             setSelectedForFullText(new Set(protocol.selectedForFullText))
+          } else if (refData?.references) {
+            // Fallback: inferir selectedForFullText desde refs con manualReviewStatus
+            const reviewedIds = (refData.references as any[]).filter(
+              (r: any) => r.manualReviewStatus === 'included' || r.manualReviewStatus === 'excluded'
+            ).map((r: any) => r.id)
+            if (reviewedIds.length > 0) {
+              setSelectedForFullText(new Set(reviewedIds))
+            }
           }
           if (protocol?.screeningFinalized) {
             setScreeningFinalized(protocol.screeningFinalized)
@@ -135,6 +122,13 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
     }
     loadData()
   }, [params.id])
+
+  // Cambiar a pestaña de revisión cuando el screening se finaliza
+  useEffect(() => {
+    if (screeningFinalized && activeTab === 'priorizacion') {
+      setActiveTab('revision')
+    }
+  }, [screeningFinalized, activeTab])
 
   // Función para recargar solo las referencias (útil después de subir PDFs)
   const reloadReferences = async () => {
@@ -262,74 +256,6 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
       toast({ 
         title: "Error", 
         description: "No se pudieron seleccionar los artículos", 
-        variant: "destructive" 
-      })
-    }
-  }
-
-  const handleBulkInclude = async () => {
-    try {
-      await Promise.all(selectedIds.map(id => apiClient.updateReferenceStatus(id, { status: 'included' })))
-      setReferences((prev) =>
-        prev.map((ref) => (selectedIds.includes(ref.id) ? { ...ref, status: "included" as const } : ref)),
-      )
-      toast({ title: "Referencias incluidas", description: `${selectedIds.length} referencias marcadas como incluidas` })
-      setSelectedIds([])
-    } catch (error) {
-      toast({ title: "Error", description: "No se pudieron actualizar las referencias", variant: "destructive" })
-    }
-  }
-
-  const handleBulkExclude = async () => {
-    try {
-      await Promise.all(selectedIds.map(id => apiClient.updateReferenceStatus(id, { status: 'excluded' })))
-      setReferences((prev) =>
-        prev.map((ref) => (selectedIds.includes(ref.id) ? { ...ref, status: "excluded" as const } : ref)),
-      )
-      toast({ title: "Referencias excluidas", description: `${selectedIds.length} referencias marcadas como excluidas` })
-      setSelectedIds([])
-    } catch (error) {
-      toast({ title: "Error", description: "No se pudieron actualizar las referencias", variant: "destructive" })
-    }
-  }
-
-  const handleBulkDelete = async () => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar ${selectedIds.length} referencias? Esta acción no se puede deshacer.`)) {
-      return
-    }
-
-    try {
-      // Eliminar referencias del backend
-      await Promise.all(selectedIds.map(id => apiClient.deleteReference(id)))
-      
-      // Actualizar estado local
-      const deletedCount = selectedIds.length
-      setReferences((prev) => prev.filter((ref) => !selectedIds.includes(ref.id)))
-      
-      // Actualizar estadísticas
-      setStats((prev) => {
-        const newStats = { ...prev }
-        selectedIds.forEach(id => {
-          const ref = references.find(r => r.id === id)
-          if (ref) {
-            newStats.total--
-            if (ref.status === 'pending') newStats.pending--
-            else if (ref.status === 'included') newStats.included--
-            else if (ref.status === 'excluded') newStats.excluded--
-          }
-        })
-        return newStats
-      })
-      
-      toast({ 
-        title: "Referencias eliminadas", 
-        description: `${deletedCount} referencias eliminadas permanentemente` 
-      })
-      setSelectedIds([])
-    } catch (error) {
-      toast({ 
-        title: "Error", 
-        description: "No se pudieron eliminar las referencias", 
         variant: "destructive" 
       })
     }
@@ -610,8 +536,8 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
             
             // Mostrar toast informativo
             toast({
-              title: "✅ Fase 2 desbloqueada",
-              description: "Ahora puedes acceder a la sección de Priorización (PRISMA)",
+              title: "✅ Screening completado",
+              description: "Ahora puedes proceder a la Revisión Manual de artículos",
               duration: 5000
             })
           }
@@ -814,34 +740,27 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
 
           {/* Sistema de Cribado Reorganizado */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 h-auto">
-              <TabsTrigger value="fase1" className="flex flex-col items-center gap-1 py-3">
-                <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4" />
-                  <span className="font-semibold">Clasificación IA</span>
-                </div>
-                <span className="text-xs text-muted-foreground">Screening Automático</span>
-              </TabsTrigger>
-              <TabsTrigger value="priorizacion" className="flex flex-col items-center gap-1 py-3">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="font-semibold">Priorización</span>
-                </div>
-                <span className="text-xs text-muted-foreground">Análisis de Corte</span>
-              </TabsTrigger>
-              <TabsTrigger value="revision" className="flex flex-col items-center gap-1 py-3">
-                <div className="flex items-center gap-2">
-                  <ClipboardCheck className="h-4 w-4" />
-                  <span className="font-semibold">Revisión Manual</span>
-                </div>
-                <span className="text-xs text-muted-foreground">Evaluación de Candidatos</span>
-              </TabsTrigger>
-              <TabsTrigger value="resultados" className="flex flex-col items-center gap-1 py-3">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4" />
-                  <span className="font-semibold">Resultados</span>
-                </div>
-                <span className="text-xs text-muted-foreground">Diagrama PRISMA</span>
+<TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="fase1" className="flex flex-col items-center gap-1 py-3">
+              <div className="flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                <span className="font-semibold">Clasificación IA</span>
+              </div>
+              <span className="text-xs text-muted-foreground">Screening Automático</span>
+            </TabsTrigger>
+            <TabsTrigger value="prisma" className="flex flex-col items-center gap-1 py-3">
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                <span className="font-semibold">Diagrama PRISMA</span>
+              </div>
+              <span className="text-xs text-muted-foreground">Flujo de Selección</span>
+            </TabsTrigger>
+            <TabsTrigger value="resultados" className="flex flex-col items-center gap-1 py-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <span className="font-semibold">Resultados Detallado</span>
+              </div>
+              <span className="text-xs text-muted-foreground">Resumen final</span>
               </TabsTrigger>
             </TabsList>
 
@@ -857,7 +776,125 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
               />
               
               {lastScreeningResult && (
-                <HybridScreeningStats result={lastScreeningResult} />
+                <SimplifiedScreeningSummary
+                  projectId={params.id}
+                  result={{
+                    ...lastScreeningResult,
+                    classifiedReferences: {
+                      highConfidenceInclude: references.filter(r => 
+                        (r.screeningScore ?? 0) > 0.15 && 
+                        !r.aiReasoning?.toLowerCase().includes('chatgpt')
+                      ),
+                      highConfidenceExclude: references.filter(r => 
+                        (r.screeningScore ?? 0) < 0.10 && 
+                        !r.aiReasoning?.toLowerCase().includes('chatgpt')
+                      ),
+                      complementaryRelevant: references.filter(r => 
+                        r.aiClassification === 'include' && 
+                        r.aiReasoning?.toLowerCase().includes('chatgpt')
+                      ),
+                      complementaryNotRelevant: references.filter(r => 
+                        r.aiClassification === 'exclude' && 
+                        r.aiReasoning?.toLowerCase().includes('chatgpt')
+                      )
+                    }
+                  }} 
+                  onProceedToManualReview={async (selectedIds: string[]) => {
+                    try {
+                      console.log('🔄 Procesando selección de artículos:', selectedIds)
+                      
+                      // Marcar artículos como seleccionados para texto completo
+                      setSelectedForFullText(new Set(selectedIds))
+                      setFase2Unlocked(true)
+                      
+                      // Marcar artículos como 'pending' SOLO si no tienen decisión manual previa
+                      await Promise.all(
+                        selectedIds.map(id => {
+                          const ref = references.find(r => r.id === id)
+                          // No sobrescribir si ya tiene decisión manual (included/excluded)
+                          if (ref?.manualReviewStatus === 'included' || ref?.manualReviewStatus === 'excluded') {
+                            return Promise.resolve()
+                          }
+                          return apiClient.updateReferenceStatus(id, { status: 'pending' })
+                        })
+                      )
+                      
+                      // Actualizar el estado local — preservar status de artículos ya revisados
+                      setReferences(prevRefs => 
+                        prevRefs.map(ref => {
+                          if (!selectedIds.includes(ref.id)) return ref
+                          // Si ya tiene decisión manual, mantener su status
+                          if (ref.manualReviewStatus === 'included' || ref.manualReviewStatus === 'excluded') {
+                            return ref
+                          }
+                          return { ...ref, status: 'pending' as const }
+                        })
+                      )
+                      
+                      console.log('✅ Artículos actualizados, cambiando a pestaña PRISMA')
+                      
+                      // Ir directamente al diagrama PRISMA
+                      setActiveTab("prisma")
+                      
+                      toast({
+                        title: "✅ Artículos seleccionados",
+                        description: `${selectedIds.length} artículo${selectedIds.length !== 1 ? 's' : ''} marcado${selectedIds.length !== 1 ? 's' : ''} para revisión manual`,
+                      })
+                      
+                      // Recargar referencias para asegurar sincronización
+                      setTimeout(async () => {
+                        try {
+                          const refData = await apiClient.getAllReferences(params.id)
+                          setReferences(refData.references || [])
+                          console.log('✅ Referencias recargadas después de selección')
+                        } catch (error) {
+                          console.warn('⚠️ Error al recargar referencias:', error)
+                        }
+                      }, 1000)
+                      
+                    } catch (error) {
+                      console.error('❌ Error al actualizar artículos seleccionados:', error)
+                      toast({
+                        title: "Error",
+                        description: "No se pudieron actualizar todos los artículos",
+                        variant: "destructive"
+                      })
+                    }
+                    
+                    // Guardar en el protocolo (incluir selectedForFullText para persistencia)
+                    apiClient.updateProtocol(params.id, { 
+                      fase2Unlocked: true,
+                      selectedForFullText: selectedIds 
+                    })
+                      .catch(err => console.warn('No se pudo actualizar el protocolo:', err))
+                    
+                    toast({
+                      title: "✅ Revisión manual completada",
+                      description: `${selectedIds.length} artículo${selectedIds.length !== 1 ? 's' : ''} aprobado${selectedIds.length !== 1 ? 's' : ''} para inclusión final`,
+                    })
+                  }}
+                  isLocked={fase2Unlocked}
+                  onReferenceStatusChange={async (referenceId: string, status: 'included' | 'excluded' | 'pending', exclusionReason?: string) => {
+                    try {
+                      console.log(`🔄 Actualizando estado local de artículo ${referenceId} a ${status}`)
+                      
+                      // NO llamar al backend aquí — handleSavePastedResults ya guardó con manualReviewStatus
+                      // Solo actualizar estado local inmediatamente
+                      setReferences(prevRefs => 
+                        prevRefs.map(ref => 
+                          ref.id === referenceId 
+                          ? { ...ref, status: status as any, manualReviewStatus: status, exclusionReason }
+                          : ref
+                        )
+                      )
+                      
+                      console.log(`✅ Estado local actualizado: ${referenceId} -> ${status}`)
+                      
+                    } catch (error) {
+                      console.error('❌ Error al actualizar estado del artículo:', error)
+                    }
+                  }}
+                />
               )}
 
               {/* Tabla de Referencias - Solo se muestra si NO hay resultados de cribado */}
@@ -886,566 +923,18 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                       references={filteredReferences}
                       onStatusChange={handleStatusChange}
                           onDelete={handleDeleteReference}
-                          selectedIds={selectedIds}
-                          onSelectionChange={setSelectedIds}
+                          selectedIds={[]}
+                          onSelectionChange={() => {}}
                           showActions={false}
                           enableSelection={false}
                         />
                       </CardContent>
                     </Card>
               )}
-
-              {lastScreeningResult && (
-                <Card className="mt-6">
-                  <CardHeader>
-                    <CardTitle>📊 Resultados de la Clasificación</CardTitle>
-                    <CardDescription>
-                      Referencias organizadas por método de clasificación
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ClassifiedReferencesView 
-                      references={references.filter(r => r.aiReasoning || r.aiClassification || r.screeningScore !== undefined)} 
-                    />
-                    
-                    <div className="mt-6 p-6 border-2 border-dashed border-green-300 dark:border-green-700 rounded-lg">
-                      <div className="flex items-start gap-4">
-                        <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-lg mb-2 text-foreground">Clasificación Automática Completada</h4>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            La IA ha clasificado {lastScreeningResult.summary?.processed || lastScreeningResult.summary?.total || 'todas las'} referencias. Las referencias candidatas están listas para revisión manual.
-                          </p>
-                          <Button onClick={() => {
-                            setFase2Unlocked(true)
-                            setActiveTab("priorizacion")
-                            // Guardar en el protocolo - SOLO el campo necesario
-                            apiClient.updateProtocol(params.id, { fase2Unlocked: true })
-                              .catch(err => console.warn('No se pudo actualizar el protocolo:', err))
-                          }} size="lg" className="bg-blue-600 hover:bg-blue-700">
-                            Continuar a Análisis de Priorización
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
 
-            {/* PESTAÑA: Priorización y Análisis de Criterio de Corte */}
-            <TabsContent value="priorizacion" className="space-y-6">
-              {(() => {
-                // Verificar si hay datos para análisis estadístico
-                // Buscar en similarity_score o screeningScore
-                const referencesWithScores = references.filter(r => {
-                  const score = r.similarity_score ?? r.screeningScore
-                  return score != null && !Number.isNaN(score) && score > 0
-                })
-                
-                // También verificar si hay clasificaciones de IA (aunque no tengan score numérico)
-                const hasAIClassification = references.some(r => r.aiClassification)
-
-                if (referencesWithScores.length === 0) {
-                  return (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5 text-blue-600" />
-                          Análisis de Priorización para Revisión Manual
-                        </CardTitle>
-                        <CardDescription>
-                          Determinación del criterio de corte óptimo mediante análisis estadístico
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                          <AlertCircle className="h-16 w-16 text-orange-400 mb-4" />
-                          <h3 className="text-lg font-semibold mb-2">
-                            {hasAIClassification ? 'Análisis de Priorización No Disponible' : 'Ejecute el Screening Automático'}
-                          </h3>
-                          <p className="text-sm text-muted-foreground max-w-md mb-4">
-                            {hasAIClassification ? (
-                              <>
-                                El método de screening utilizado no genera scores numéricos de similitud, 
-                                por lo que el análisis de priorización mediante Elbow Plot no está disponible. 
-                                Puede proceder directamente a la <strong>Revisión Manual</strong> de las referencias clasificadas.
-                              </>
-                            ) : (
-                              <>
-                                Para realizar el análisis de priorización, es necesario ejecutar primero 
-                                la <strong>Clasificación IA</strong>, que calculará los índices de similitud 
-                                de cada referencia con respecto a los criterios del protocolo.
-                              </>
-                            )}
-                          </p>
-                          {!hasAIClassification && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-lg mb-6">
-                              <p className="text-sm font-medium text-blue-900 mb-2">
-                                Propósito de esta herramienta:
-                              </p>
-                              <p className="text-sm text-blue-800">
-                                El análisis de priorización utiliza métodos estadísticos (Elbow Plot) 
-                                para identificar el punto óptimo de corte. Esto permite optimizar el 
-                                esfuerzo de revisión manual enfocándose en las referencias de mayor 
-                                relevancia, en lugar de revisar exhaustivamente todas las entradas.
-                              </p>
-                            </div>
-                          )}
-                          <Button 
-                            onClick={() => setActiveTab(hasAIClassification ? "revision" : "fase1")} 
-                            size="lg" 
-                            variant="outline"
-                          >
-                            {hasAIClassification ? 'Ir a Revisión Manual' : 'Ir a Clasificación IA'}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                }
-
-                return (
-                  <div className="space-y-6">
-                    {screeningFinalized && (
-                      <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
-                        <AlertCircle className="h-4 w-4 text-yellow-600" />
-                        <AlertTitle className="text-yellow-800 dark:text-yellow-200">Screening Finalizado</AlertTitle>
-                        <AlertDescription className="text-yellow-700 dark:text-yellow-300">
-                          El proceso de cribado ha sido finalizado. No se pueden realizar más cambios en la selección de artículos.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    
-                    <Card className="border-primary/20">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5 text-primary" />
-                          Análisis de Priorización: Determinación del Criterio de Corte
-                        </CardTitle>
-                        <CardDescription>
-                          Análisis estadístico basado en {referencesWithScores.length} referencias 
-                          para optimizar la eficiencia del proceso de revisión manual
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Alert className="border-primary/20 mb-4">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertTitle>Metodología Aplicada</AlertTitle>
-                          <AlertDescription className="text-sm mt-2">
-                            Este análisis implementa el <strong>método del codo (Elbow Plot)</strong>, 
-                            una técnica estadística que identifica el punto de inflexión en la distribución 
-                            de relevancia. Este punto indica dónde la inclusión de referencias adicionales 
-                            aporta rendimientos decrecientes, permitiendo establecer un criterio de corte 
-                            fundamentado para la revisión manual.
-                          </AlertDescription>
-                        </Alert>
-                      </CardContent>
-                    </Card>
-
-                    <PriorityDistributionAnalysis 
-                      references={references} 
-                      onSelectForFullText={handleSelectForFullText}
-                      disabled={screeningFinalized}
-                    />
-                  </div>
-                )
-              })()}
-            </TabsContent>
-
-            {/* PESTAÑA: Revisión Manual de Candidatos (Consolidado: Fase 2 + Fase 3) */}
-            <TabsContent value="revision" className="space-y-6">
-              {(() => {
-                // Verificar si se ha ejecutado el cribado de Fase 1
-                const hasAIClassification = references.some(r => r.aiClassification)
-                
-                // Candidatos para revisión manual: SOLO referencias explícitamente seleccionadas
-                // mediante el análisis de priorización (top 10, top 25, o punto de codo)
-                const candidatesForReview = references.filter(r => 
-                  selectedForFullText.has(r.id)
-                )
-                
-                const filteredCandidates = candidatesForReview.filter((ref) => {
-                  const matchesStatus = statusFilter === "all" || ref.status === statusFilter
-                  const matchesSearch =
-                    searchQuery === "" ||
-                    ref.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    ref.authors.some((author) => author.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                    ref.abstract.toLowerCase().includes(searchQuery.toLowerCase())
-                  return matchesStatus && matchesSearch
-                })
-
-                // Si no hay clasificación de IA, mostrar mensaje informativo
-                if (!hasAIClassification || !fase2Unlocked) {
-                  return (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <ClipboardCheck className="h-5 w-5 text-blue-600" />
-                          Revisión Manual de Referencias Candidatas
-                        </CardTitle>
-                        <CardDescription>
-                          Evaluación sistemática de referencias identificadas como potencialmente relevantes
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                          <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
-                          <h3 className="text-lg font-semibold mb-2">
-                            {!hasAIClassification ? 'Clasificación Previa Requerida' : 'Etapa Bloqueada'}
-                          </h3>
-                          <p className="text-sm text-muted-foreground max-w-md mb-6">
-                            {!hasAIClassification 
-                              ? 'Es necesario completar la Clasificación IA para identificar las referencias candidatas que requieren revisión manual según los criterios del protocolo.'
-                              : 'Debe finalizar la etapa de Clasificación IA y confirmar la transición a esta fase mediante el botón correspondiente.'
-                            }
-                          </p>
-                          <Button
-                            variant="outline"
-                            onClick={() => setActiveTab('fase1')}
-                          >
-                            Volver a Clasificación IA
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                }
-
-                return (
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="flex items-center gap-2">
-                            <ClipboardCheck className="h-5 w-5 text-blue-600" />
-                            Referencias Candidatas para Revisión Manual
-                          </CardTitle>
-                          <CardDescription className="mt-2">
-                            {candidatesForReview.length > 0 ? (
-                              <>
-                                Evaluación de {candidatesForReview.length} referencias seleccionadas para revisión de texto completo.
-                                <br />
-                                <strong>Nota:</strong> Estas son las referencias seleccionadas desde el análisis de priorización. Revise cada una y confirme la decisión final.
-                              </>
-                            ) : (
-                              <>
-                                No hay referencias seleccionadas para revisión manual. 
-                                <br />
-                                <strong>Sugerencia:</strong> Vaya a la pestaña "Priorización" y seleccione una fase para comenzar.
-                              </>
-                            )}
-                          </CardDescription>
-                        </div>
-                        {candidatesForReview.length === 0 && (
-                          <Badge variant="secondary" className="text-sm px-3 py-1">
-                            Seleccione artículos en Priorización
-                          </Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {candidatesForReview.length > 0 ? (
-                        <>
-                          <Alert className="border-primary/20">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle className="text-foreground">Referencias Seleccionadas para Full Text</AlertTitle>
-                            <AlertDescription className="text-muted-foreground text-sm mt-2">
-                              La tabla muestra únicamente las <strong>{candidatesForReview.length} referencias seleccionadas</strong> para revisión de texto completo. Para cada referencia:
-                              <ul className="list-disc ml-5 mt-2 space-y-1">
-                                <li>Revise el <strong>análisis de IA</strong> haciendo clic en "Ver análisis completo de IA"</li>
-                                <li>Confirme la inclusión o cambie el estado según su criterio experto</li>
-                                <li>Cargue los <strong>resultados encontrados</strong> del artículo para el análisis</li>
-                              </ul>
-                            </AlertDescription>
-                          </Alert>
-
-                          <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="border border-green-300 dark:border-green-700 rounded-lg p-4">
-                              <p className="text-sm text-green-700 dark:text-green-400 mb-1 font-medium">Total de Candidatos</p>
-                              <p className="text-2xl font-bold text-foreground">
-                                {candidatesForReview.length}
-                              </p>
-                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">Recomendados por IA para inclusión</p>
-                            </div>
-                            <div className="border border-blue-300 dark:border-blue-700 rounded-lg p-4">
-                              <p className="text-sm text-blue-700 dark:text-blue-400 mb-1 font-medium">Pendientes de Revisión</p>
-                              <p className="text-2xl font-bold text-foreground">
-                                {candidatesForReview.filter(r => r.status === 'pending').length}
-                              </p>
-                              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Esperando su decisión</p>
-                            </div>
-                          </div>
-
-                          {/* Layout estilo Rayyan: Lista a la izquierda, detalles a la derecha */}
-                          <div className="grid grid-cols-12 gap-4 h-[calc(100vh-400px)]">
-                            {/* Lista de artículos a la izquierda (4 columnas) */}
-                            <div className="col-span-4 overflow-y-auto border rounded-lg bg-muted/30">
-                              <div className="sticky top-0 bg-background border-b p-3 z-10">
-                                <h3 className="font-semibold text-sm">Artículos ({candidatesForReview.length})</h3>
-                              </div>
-                              <div className="divide-y">
-                                {candidatesForReview.map((ref) => (
-                                  <button
-                                    key={ref.id}
-                                    onClick={() => setSelectedReference(ref.id)}
-                                    className={`w-full text-left p-4 hover:bg-accent/50 transition-colors ${
-                                      selectedReference === ref.id ? 'bg-accent border-l-4 border-l-primary' : ''
-                                    }`}
-                                  >
-                                    <div className="flex items-start justify-between gap-2 mb-2">
-                                      <h4 className="text-sm font-medium line-clamp-2 flex-1">{ref.title}</h4>
-                                      {(ref.similarity_score || ref.screeningScore) && (
-                                        <Badge variant="secondary" className="text-xs flex-shrink-0">
-                                          {Math.round((ref.similarity_score || ref.screeningScore || 0) * 100)}%
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mb-2">
-                                      {Array.isArray(ref.authors) ? ref.authors.slice(0, 2).join(', ') : ref.authors}
-                                      {ref.year && ` (${ref.year})`}
-                                    </p>
-                                    <Badge 
-                                      variant={
-                                        ref.status === 'included' ? 'default' : 
-                                        ref.status === 'excluded' ? 'destructive' : 
-                                        'secondary'
-                                      } 
-                                      className="text-xs"
-                                    >
-                                      {ref.status === 'included' ? 'Incluido' : 
-                                       ref.status === 'excluded' ? 'Excluido' : 
-                                       'Pendiente'}
-                                    </Badge>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Detalles del artículo seleccionado a la derecha (8 columnas) */}
-                            <div className="col-span-8 overflow-y-auto border rounded-lg bg-background">
-                              {selectedReference ? (() => {
-                                const ref = candidatesForReview.find(r => r.id === selectedReference)
-                                if (!ref) return <div className="p-6 text-center text-muted-foreground">Artículo no encontrado</div>
-                                
-                                return (
-                                  <div className="p-6 space-y-6">
-                                    {/* Encabezado */}
-                                    <div>
-                                      <div className="flex items-start justify-between gap-4 mb-3">
-                                        <h2 className="text-xl font-bold flex-1">{ref.title}</h2>
-                                        <div className="flex flex-col items-end gap-2">
-                                          {(ref.similarity_score || ref.screeningScore) && (
-                                            <Badge variant="secondary" className="text-lg font-bold px-3 py-1">
-                                              {Math.round((ref.similarity_score || ref.screeningScore || 0) * 100)}%
-                                            </Badge>
-                                          )}
-                                          <Badge className="bg-green-600">
-                                            IA: Incluir
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                                        <div>
-                                          <strong>Autores:</strong> {Array.isArray(ref.authors) ? ref.authors.join(', ') : ref.authors}
-                                        </div>
-                                        {ref.year && (
-                                          <div><strong>Año:</strong> {ref.year}</div>
-                                        )}
-                                        {ref.journal && (
-                                          <div><strong>Revista:</strong> {ref.journal}</div>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    {/* Abstract */}
-                                    {ref.abstract && (
-                                      <div>
-                                        <h3 className="font-semibold mb-2">Resumen</h3>
-                                        <p className="text-sm text-muted-foreground leading-relaxed">
-                                          {ref.abstract}
-                                        </p>
-                                      </div>
-                                    )}
-
-                                    {/* Análisis de IA */}
-                                    {ref.aiReasoning && (
-                                      <div>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => toggleAnalysis(ref.id)}
-                                          className="w-full mb-3"
-                                        >
-                                          <AlertCircle className="h-4 w-4 mr-2" />
-                                          {expandedAnalysis.has(ref.id) ? 'Ocultar análisis de IA' : 'Ver análisis completo de IA'}
-                                        </Button>
-                                        
-                                        {expandedAnalysis.has(ref.id) && (
-                                          <Alert className="border-primary/20">
-                                            <AlertCircle className="h-4 w-4" />
-                                            <AlertTitle className="text-foreground font-bold mb-2">
-                                              Justificación de Inclusión
-                                            </AlertTitle>
-                                            <AlertDescription className="text-muted-foreground text-sm leading-relaxed">
-                                              {(() => {
-                                                const isTechnicalOnly = ref.aiReasoning && 
-                                                  (ref.aiReasoning.includes('Embeddings:') || 
-                                                   ref.aiReasoning.includes('Similitud:') ||
-                                                   ref.aiReasoning.length < 200)
-                                                
-                                                if (!ref.aiReasoning || isTechnicalOnly) {
-                                                  const score = Math.round((ref.similarity_score || ref.screeningScore || 0) * 100)
-                                                  let explanation = ''
-                                                  
-                                                  if (score >= 70) {
-                                                    explanation = 'presenta una alineación muy fuerte con los criterios de inclusión del protocolo de revisión. El contenido del título y resumen demuestra una alta relevancia temática con los objetivos de investigación establecidos.'
-                                                  } else if (score >= 50) {
-                                                    explanation = 'muestra una alineación considerable con los criterios de inclusión definidos. El análisis del título y resumen indica que aborda aspectos relevantes para los objetivos de la revisión sistemática.'
-                                                  } else if (score >= 30) {
-                                                    explanation = 'presenta elementos que coinciden con los criterios de inclusión del protocolo. El análisis del contenido sugiere que el estudio aborda temas relacionados con los objetivos de investigación.'
-                                                  } else {
-                                                    explanation = 'fue identificado por el sistema de screening como potencialmente relevante para los objetivos de la revisión sistemática, requiriendo evaluación detallada.'
-                                                  }
-                                                  
-                                                  return (
-                                                    <div className="bg-muted/30 p-4 rounded border border-primary/20">
-                                                      <p className="text-foreground leading-relaxed mb-3">
-                                                        Este artículo {explanation}
-                                                      </p>
-                                                      <p className="text-foreground leading-relaxed">
-                                                        El sistema de inteligencia artificial, mediante análisis de similitud semántica, 
-                                                        determinó que la investigación cumple con los requisitos metodológicos y temáticos 
-                                                        establecidos en el protocolo. Se recomienda la revisión del texto completo para 
-                                                        confirmar la inclusión definitiva en la revisión sistemática.
-                                                      </p>
-                                                    </div>
-                                                  )
-                                                }
-                                                
-                                                return (
-                                                  <div className="whitespace-pre-wrap bg-muted/30 p-4 rounded border border-primary/20 text-foreground leading-relaxed">
-                                                    {ref.aiReasoning}
-                                                  </div>
-                                                )
-                                              })()}
-                                            </AlertDescription>
-                                          </Alert>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {/* Acciones en una sola fila */}
-                                    <div className="border-t pt-6">
-                                      <h3 className="font-semibold mb-3">Acciones</h3>
-                                      <div className="flex items-center gap-3">
-                                        <Button
-                                          variant="outline"
-                                          disabled={screeningFinalized}
-                                          onClick={() => {
-                                            setPasteRefId(ref.id)
-                                            setPasteText('')
-                                            setPasteDialogOpen(true)
-                                          }}
-                                        >
-                                          <ClipboardPaste className="h-4 w-4 mr-2" />
-                                          {ref.fullTextPath ? 'Cambiar Resultados' : 'Cargar Resultados'}
-                                        </Button>
-                                        
-                                        <Button 
-                                          onClick={() => handleStatusChange(ref.id, 'included')}
-                                          disabled={ref.status === 'included' || screeningFinalized}
-                                          className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
-                                        >
-                                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                                          Incluir
-                                        </Button>
-                                        
-                                        <Button 
-                                          variant="destructive"
-                                          disabled={ref.status === 'excluded' || screeningFinalized}
-                                          onClick={() => {
-                                            handleStatusChange(ref.id, 'excluded')
-                                          }}
-                                        >
-                                          <AlertCircle className="h-4 w-4 mr-2" />
-                                          Excluir
-                                        </Button>
-                                        
-                                        <Badge 
-                                          variant={
-                                            ref.status === 'included' ? 'default' : 
-                                            ref.status === 'excluded' ? 'destructive' : 
-                                            'secondary'
-                                          }
-                                          className="text-sm px-4 py-2 ml-auto"
-                                        >
-                                          Estado: {ref.status === 'included' ? 'Incluido' : 
-                                           ref.status === 'excluded' ? 'Excluido' : 
-                                           'Pendiente'}
-                                        </Badge>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )
-                              })() : (
-                                <div className="h-full flex items-center justify-center text-center p-6">
-                                  <div>
-                                    <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                                    <h3 className="text-lg font-semibold mb-2">Selecciona un artículo</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                      Haz clic en un artículo de la lista para ver sus detalles y realizar la revisión
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {candidatesForReview.every(r => r.status !== 'pending') && (
-                            <div className="mt-6 p-6 border-2 border-dashed border-green-300 dark:border-green-700 rounded-lg">
-                              <div className="flex items-start gap-4">
-                                <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-foreground text-lg mb-2">Revisión Manual Completada</h4>
-                                  <p className="text-sm text-muted-foreground mb-4">
-                                    Ha completado la revisión de todas las referencias candidatas. 
-                                    Puede analizar la priorización o consultar directamente los resultados finales.
-                                  </p>
-                                  <div className="flex gap-3">
-                                    <Button onClick={() => setActiveTab("priorizacion")} size="lg" variant="outline">
-                                      Análisis de Priorización
-                                    </Button>
-                                    <Button onClick={() => setActiveTab("resultados")} size="lg" className="bg-blue-600 hover:bg-blue-700">
-                                      Ver Resultados (Diagrama PRISMA)
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                          <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
-                          <h3 className="text-lg font-semibold mb-2">No hay referencias seleccionadas</h3>
-                          <p className="text-sm text-muted-foreground max-w-md mb-6">
-                            Debe seleccionar artículos desde el <strong>Análisis de Priorización</strong> para comenzar la revisión de texto completo.
-                            Haga clic en cualquiera de las fases (Fase 1, 2 o 3) para seleccionar automáticamente los artículos recomendados.
-                          </p>
-                          <Button onClick={() => setActiveTab("priorizacion")} variant="outline">
-                            Ir a Análisis de Priorización
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })()}
-            </TabsContent>
-
-            {/* PESTAÑA: Resultados (PRISMA + Exclusiones) */}
-            <TabsContent value="resultados" className="space-y-6">
+            {/* PESTAÑA: Diagrama PRISMA (Flujo de Selección) */}
+            <TabsContent value="prisma" className="space-y-6">
               {(() => {
                 // Calcular estadísticas PRISMA desde las referencias reales
                 const totalRefs = references.length
@@ -1454,8 +943,21 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                 
                 // Solo contar artículos que fueron explícitamente seleccionados para full-text
                 const selectedForReview = references.filter(r => selectedForFullText.has(r.id))
-                const excludedManual = selectedForReview.filter(r => r.status === 'excluded')
-                const includedRefs = selectedForReview.filter(r => r.status === 'included')
+                // Usar manualReviewStatus para reflejar las decisiones de revisión manual
+                const excludedManual = selectedForReview.filter(r => r.manualReviewStatus === 'excluded')
+                const includedRefs = selectedForReview.filter(r => r.manualReviewStatus === 'included')
+                const pendingReview = selectedForReview.filter(r => !r.manualReviewStatus || r.manualReviewStatus === 'pending')
+                
+                // DEBUG: Imprimir valores para diagnóstico
+                console.log('🔍 PRISMA DEBUG:', {
+                  totalRefs,
+                  selectedForFullTextSize: selectedForFullText.size,
+                  selectedForReview: selectedForReview.length,
+                  pendingReview: pendingReview.length,
+                  excludedManual: excludedManual.length,
+                  includedRefs: includedRefs.length,
+                  selectedIds: Array.from(selectedForFullText)
+                })
                 
                 // Calcular referencias procesadas en Fase 1 (las que tienen clasificación de IA)
                 const screenedInPhase1 = classifiedRefs.length
@@ -1500,6 +1002,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                   fullTextAssessed: selectedForReview.length,
                   excludedFullText: excludedManual.length,
                   includedFinal: includedRefs.length,
+                  pendingReview: pendingReview.length,
                   databases: databases.length > 0 ? databases : undefined,
                   exclusionReasons: Object.keys(exclusionReasons).length > 0 ? exclusionReasons : undefined
                 }
@@ -1509,121 +1012,24 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                     {/* Diagrama PRISMA */}
                     <PrismaFlowDiagram stats={prismaStats} />
                     
-                    {/* Botón Finalizar Cribado */}
+                    {/* Botón para continuar a Resultados Detallado */}
                     <Card>
                       <CardHeader>
-                        <CardTitle>Finalizar Proceso de Cribado</CardTitle>
+                        <CardTitle>Continuar al Resumen Final</CardTitle>
                         <CardDescription>
-                          Una vez finalizado el cribado, se completará automáticamente el checklist PRISMA 2020 y 
-                          podrá acceder a la sección de Artículo para generar su borrador completo.
+                          Revise el resumen detallado de la revisión sistemática con las estadísticas completas, 
+                          tablas de artículos incluidos/excluidos y opciones de exportación antes de finalizar el cribado.
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <Button 
-                          onClick={async () => {
-                            setIsFinalizingScreening(true)
-                            try {
-                              // 0. Limpiar protocolo: descartar bases de datos sin referencias cargadas
-                              const databasesWithRefs: Record<string, number> = {}
-                              references.forEach((ref) => {
-                                const source = ref.source || 'Unknown'
-                                databasesWithRefs[source] = (databasesWithRefs[source] || 0) + 1
-                              })
-                              const activeDatabaseNames = Object.keys(databasesWithRefs)
-                              
-                              // Filtrar searchQueries y databases del protocolo
-                              const cleanedQueries = searchQueries.filter((q: any) => {
-                                const dbName = q.databaseName || q.databaseId || ''
-                                return activeDatabaseNames.some(name =>
-                                  name.toLowerCase().includes(dbName.toLowerCase()) ||
-                                  dbName.toLowerCase().includes(name.toLowerCase())
-                                )
-                              })
-                              const cleanedDatabases = activeDatabaseNames
-
-                              // 1. Guardar estado de finalización + bases de datos limpias
-                              await apiClient.updateProtocol(params.id, {
-                                screeningFinalized: true,
-                                prismaUnlocked: true,
-                                databases: cleanedDatabases,
-                                searchQueries: cleanedQueries.map((q: any) => ({
-                                  ...q,
-                                  resultsCount: databasesWithRefs[
-                                    activeDatabaseNames.find(name =>
-                                      name.toLowerCase().includes((q.databaseName || q.databaseId || '').toLowerCase()) ||
-                                      (q.databaseName || q.databaseId || '').toLowerCase().includes(name.toLowerCase())
-                                    ) || ''
-                                  ] || q.resultsCount || 0
-                                }))
-                              })
-                              
-                              setScreeningFinalized(true)
-                              
-                              toast({
-                                title: "Cribado Finalizado",
-                                description: "Completando PRISMA 2020 automáticamente..."
-                              })
-                              
-                              // 2. Generar automáticamente todo el contenido de PRISMA
-                              console.log('🔄 Iniciando autocompletado de PRISMA...')
-                              const prismaResponse = await apiClient.completePrismaByBlocks(params.id, 'all')
-                              
-                              console.log('✅ Respuesta de PRISMA:', prismaResponse)
-                              
-                              if (prismaResponse.success) {
-                                toast({
-                                  title: "✅ PRISMA Completado",
-                                  description: "Redirigiendo a la sección de Artículo...",
-                                })
-                              } else {
-                                toast({
-                                  title: "⚠️ PRISMA parcialmente completado",
-                                  description: "Puede revisar PRISMA antes de generar el artículo",
-                                  variant: "destructive"
-                                })
-                              }
-                              
-                              // 3. Redirigir al Artículo después de 2 segundos
-                              setTimeout(() => {
-                                router.push(`/projects/${params.id}/article`)
-                              }, 2000)
-                            } catch (error: any) {
-                              console.error('❌ Error completo:', error)
-                              toast({
-                                title: "Error",
-                                description: error.message || "No se pudo finalizar el cribado",
-                                variant: "destructive"
-                              })
-                            } finally {
-                              setIsFinalizingScreening(false)
-                            }
-                          }}
-                          disabled={screeningFinalized || isFinalizingScreening || selectedForReview.length === 0}
+                          onClick={() => setActiveTab('resultados')}
                           className="w-full"
                           size="lg"
                         >
-                          {isFinalizingScreening ? (
-                            <>
-                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                              Completando PRISMA...
-                            </>
-                          ) : screeningFinalized ? (
-                            <>
-                              <CheckCircle2 className="h-5 w-5 mr-2" />
-                              Cribado Finalizado
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="h-5 w-5 mr-2" />
-                              Finalizar Cribado
-                            </>
-                          )}
+                          Ver Resultados Detallado
+                          <ArrowRight className="h-5 w-5 ml-2" />
                         </Button>
-                        {selectedForReview.length === 0 && (
-                          <p className="text-sm text-muted-foreground mt-3 text-center">
-                            Debe seleccionar y revisar artículos antes de finalizar el cribado
-                          </p>
-                        )}
                       </CardContent>
                     </Card>
                   </div>
@@ -1631,20 +1037,724 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
               })()}
             </TabsContent>
 
+            {/* PESTAÑA: Resultados Detallado (Resumen final) */}
+            <TabsContent value="resultados" className="space-y-6">
+              {(() => {
+                // ═══ DATOS REALES DEL PROYECTO ═══
+                const totalRefs = references.length
+                const classifiedRefs = references.filter(r => r.aiClassification)
+                const selectedRefs = references.filter(r => selectedForFullText.has(r.id))
+                const includedRefs = selectedRefs.filter(r => r.manualReviewStatus === 'included')
+                const excludedManualRefs = selectedRefs.filter(r => r.manualReviewStatus === 'excluded')
+                const pendingRefs = selectedRefs.filter(r => !r.manualReviewStatus || r.manualReviewStatus === 'pending')
+                const excludedByAI = references.filter(r => r.aiClassification === 'exclude')
+                const analyzedByChatGPT = references.filter(r => r.aiReasoning?.toLowerCase().includes('chatgpt'))
+                
+                // Título y tema del proyecto
+                const projectTitle = project?.title || 'Revisión Sistemática'
+                // projectDescription available via project?.description if needed
+                const researchArea = project?.researchArea || ''
+                const picoFramework = project?.protocol?.picoFramework
+                const researchQuestions = project?.protocol?.researchQuestions || []
+                const inclusionCriteria = project?.protocol?.inclusionCriteria || []
+                const exclusionCriteria = project?.protocol?.exclusionCriteria || []
+                
+                // Distribución temporal
+                const yearCounts: Record<string, number> = {}
+                includedRefs.forEach(ref => {
+                  const year = ref.year?.toString() || 'N/A'
+                  yearCounts[year] = (yearCounts[year] || 0) + 1
+                })
+                const sortedYears = Object.entries(yearCounts).sort(([a], [b]) => a.localeCompare(b))
+                const peakYear = sortedYears.length > 0 ? sortedYears.reduce((max, curr) => curr[1] > max[1] ? curr : max, sortedYears[0]) : null
+                
+                // Fuentes por base de datos
+                const sourceCounts: Record<string, number> = {}
+                includedRefs.forEach(ref => {
+                  const src = ref.source || 'Desconocida'
+                  sourceCounts[src] = (sourceCounts[src] || 0) + 1
+                })
+                
+                // Distribución de scores en incluidos
+                const scores = includedRefs.map(r => parseFloat(String(r.screeningScore)) || 0).filter(s => s > 0 && !isNaN(s))
+                const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length) : 0
+                const maxScore = scores.length > 0 ? Math.max(...scores) : 0
+                const minScore = scores.length > 0 ? Math.min(...scores) : 0
+                
+                // Motivos de exclusión
+                const exclusionReasons: Record<string, number> = {}
+                references.filter(r => r.status === 'excluded').forEach(ref => {
+                  const reason = ref.exclusionReason || (ref.aiReasoning ? 'Exclusión automática por IA' : 'Sin motivo especificado')
+                  exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1
+                })
+                
+                // Keyword / topic extraction from included refs
+                const keywordCounts: Record<string, number> = {}
+                includedRefs.forEach(ref => {
+                  if (ref.keywords) {
+                    ref.keywords.split(/[,;]+/).map(k => k.trim().toLowerCase()).filter(k => k.length > 2).forEach(kw => {
+                      keywordCounts[kw] = (keywordCounts[kw] || 0) + 1
+                    })
+                  }
+                })
+                const topKeywords = Object.entries(keywordCounts).sort(([,a], [,b]) => b - a).slice(0, 8)
+
+                // Journals / revistas de los incluidos
+                const journalCounts: Record<string, number> = {}
+                includedRefs.forEach(ref => {
+                  const journal = (ref as any).journal || ref.source || 'N/A'
+                  journalCounts[journal] = (journalCounts[journal] || 0) + 1
+                })
+                const topJournals = Object.entries(journalCounts).sort(([,a], [,b]) => b - a).slice(0, 6)
+
+                return (
+              <div className="grid gap-6">
+                {/* Sección 1: Diagrama de Flujo PRISMA */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Database className="h-5 w-5" />
+                      1. Diagrama de Flujo PRISMA (Selección de Estudios)
+                    </CardTitle>
+                    <CardDescription>
+                      Transparencia, trazabilidad y replicabilidad del proceso de búsqueda y filtrado de la RSL: <em>"{projectTitle}"</em>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PrismaFlowDiagram stats={{
+                      identified: totalRefs,
+                      duplicates: 0,
+                      afterDedup: totalRefs,
+                      screenedTitleAbstract: classifiedRefs.length > 0 ? classifiedRefs.length : totalRefs,
+                      excludedTitleAbstract: classifiedRefs.length - selectedRefs.length,
+                      fullTextAssessed: selectedRefs.length,
+                      excludedFullText: excludedManualRefs.length,
+                      includedFinal: includedRefs.length,
+                    }} />
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/50 rounded-lg space-y-2">
+                      <h4 className="font-semibold text-blue-900 dark:text-blue-200">Descripción del proceso de selección:</h4>
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        De un total de <strong>{totalRefs}</strong> registros identificados en las bases de datos 
+                        ({Object.entries(sourceCounts).map(([src, count]) => `${src}: ${count}`).join(', ') || 'múltiples fuentes'}), 
+                        se realizó el cribado automático mediante análisis de embeddings semánticos y modelos de lenguaje (ChatGPT). 
+                        {classifiedRefs.length > 0 && <> El proceso de cribado por título y abstract clasificó <strong>{classifiedRefs.length}</strong> referencias, 
+                        resultando en la exclusión de <strong>{classifiedRefs.length - selectedRefs.length}</strong> artículos que no cumplían los criterios de inclusión. </>}
+                        {analyzedByChatGPT.length > 0 && <> El análisis complementario por ChatGPT evaluó <strong>{analyzedByChatGPT.length}</strong> referencias en la zona gris. </>}
+                        Se seleccionaron <strong>{selectedRefs.length}</strong> artículos para evaluación de texto completo, 
+                        de los cuales <strong>{includedRefs.length}</strong> fueron incluidos en la síntesis final
+                        {excludedManualRefs.length > 0 && <> y <strong>{excludedManualRefs.length}</strong> fueron excluidos tras la revisión manual</>}.
+                        {pendingRefs.length > 0 && <> Quedan <strong>{pendingRefs.length}</strong> artículos pendientes de revisión.</>}
+                      </p>
+                      <div className="mt-2 p-3 bg-blue-100 dark:bg-blue-900/40 rounded text-xs text-blue-700 dark:text-blue-300">
+                        <strong>Recomendación para la tesis:</strong> Este diagrama debe incluirse en el capítulo de Metodología como Figura X. 
+                        Referencia: Page MJ, McKenzie JE, Bossuyt PM, et al. The PRISMA 2020 statement. BMJ 2021;372:n71.
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Sección 2: Distribución Temporal */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      📊 2. Distribución Temporal de Estudios Incluidos
+                    </CardTitle>
+                    <CardDescription>
+                      Vigencia y evolución del interés científico en: <em>"{projectTitle}"</em>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-semibold mb-3">Distribución por Año de Publicación ({includedRefs.length} estudios incluidos)</h4>
+                        {sortedYears.length > 0 ? (
+                          <div className="space-y-3">
+                            {/* Barras visuales */}
+                            {sortedYears.map(([year, count]) => {
+                              const maxCount = Math.max(...sortedYears.map(([,c]) => c))
+                              const percentage = (count / maxCount) * 100
+                              return (
+                                <div key={year} className="flex items-center gap-3">
+                                  <span className="font-mono font-bold text-sm w-12">{year}</span>
+                                  <div className="flex-1 bg-gray-200 dark:bg-slate-700 rounded-full h-6 overflow-hidden">
+                                    <div 
+                                      className="bg-blue-500 h-full rounded-full flex items-center justify-end pr-2 transition-all"
+                                      style={{ width: `${Math.max(percentage, 15)}%` }}
+                                    >
+                                      <span className="text-xs font-bold text-white">{count}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground text-sm">No hay artículos incluidos aún para mostrar distribución temporal.</p>
+                        )}
+                      </div>
+                      
+                      <div className="p-4 bg-green-50 dark:bg-green-950/50 rounded-lg space-y-2">
+                        <h4 className="font-semibold text-green-900 dark:text-green-200">Descripción:</h4>
+                        <p className="text-sm text-green-800 dark:text-green-300">
+                          {sortedYears.length > 0 ? (
+                            <>
+                              La distribución anual de los <strong>{includedRefs.length}</strong> estudios incluidos 
+                              abarca el período {sortedYears[0][0]}–{sortedYears[sortedYears.length - 1][0]}.
+                              {peakYear && <> El mayor número de publicaciones se concentra en <strong>{peakYear[0]}</strong> con {peakYear[1]} estudio{peakYear[1] > 1 ? 's' : ''}.</>}
+                              {' '}Esto indica que la investigación sobre <em>{researchArea || projectTitle}</em> se encuentra en un estado{' '}
+                              {sortedYears.length >= 3 ? 'de desarrollo activo con producción científica reciente.' : 
+                               sortedYears.length >= 2 ? 'emergente con publicaciones en los últimos años.' : 
+                               'inicial con evidencia limitada.'}
+                            </>
+                          ) : (
+                            'Pendiente de artículos incluidos para generar análisis temporal.'
+                          )}
+                        </p>
+                        <div className="mt-2 p-3 bg-green-100 dark:bg-green-900/40 rounded text-xs text-green-700 dark:text-green-300">
+                          <strong>Librería recomendada para gráfico publicable:</strong> Matplotlib o Seaborn (Python). 
+                          Ideal para gráficos de barras o línea de tendencia con resolución de publicación científica.
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Sección 3: Evaluación de Calidad */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      ⭐ 3. Evaluación de Calidad Metodológica
+                    </CardTitle>
+                    <CardDescription>
+                      Análisis del rigor metodológico de los {includedRefs.length} artículos seleccionados según criterios de Kitchenham (2007)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Criterios de inclusión del protocolo como proxy de calidad */}
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-semibold mb-3">Criterios de Inclusión Evaluados (del Protocolo)</h4>
+                        {inclusionCriteria.length > 0 ? (
+                          <div className="grid gap-2">
+                            {inclusionCriteria.map((criteria: string, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
+                                <span className="text-sm flex-1">IC{idx + 1}: {criteria}</span>
+                                <Badge variant="outline" className="bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
+                                  {includedRefs.length}/{selectedRefs.length} cumplen
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground text-sm">Define criterios de inclusión en el protocolo para esta evaluación.</p>
+                        )}
+                        
+                        {exclusionCriteria.length > 0 && (
+                          <>
+                            <h4 className="font-semibold mt-4 mb-3">Criterios de Exclusión Aplicados</h4>
+                            <div className="grid gap-2">
+                              {exclusionCriteria.map((criteria: string, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-950/50 rounded">
+                                  <span className="text-sm flex-1">EC{idx + 1}: {criteria}</span>
+                                  <Badge variant="outline" className="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">
+                                    {excludedManualRefs.length + excludedByAI.length} excluidos
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      
+                      {/* Distribución de confianza IA */}
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-semibold mb-3">Distribución de Confianza del Screening por IA</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="p-3 bg-green-100 dark:bg-green-950/50 rounded text-center">
+                            <div className="text-xl font-bold text-green-700 dark:text-green-300">{scores.length > 0 ? `${(maxScore * 100).toFixed(1)}%` : 'N/A'}</div>
+                            <div className="text-xs text-green-800 dark:text-green-400">Score Máximo</div>
+                          </div>
+                          <div className="p-3 bg-blue-100 dark:bg-blue-950/50 rounded text-center">
+                            <div className="text-xl font-bold text-blue-700 dark:text-blue-300">{scores.length > 0 ? `${(avgScore * 100).toFixed(1)}%` : 'N/A'}</div>
+                            <div className="text-xs text-blue-800 dark:text-blue-400">Score Promedio</div>
+                          </div>
+                          <div className="p-3 bg-yellow-100 dark:bg-yellow-950/50 rounded text-center">
+                            <div className="text-xl font-bold text-yellow-700 dark:text-yellow-300">{scores.length > 0 ? `${(minScore * 100).toFixed(1)}%` : 'N/A'}</div>
+                            <div className="text-xs text-yellow-800 dark:text-yellow-400">Score Mínimo</div>
+                          </div>
+                          <div className="p-3 bg-purple-100 dark:bg-purple-950/50 rounded text-center">
+                            <div className="text-xl font-bold text-purple-700 dark:text-purple-300">{includedRefs.length}</div>
+                            <div className="text-xs text-purple-800 dark:text-purple-400">Estudios Incluidos</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-purple-50 dark:bg-purple-950/50 rounded-lg space-y-2">
+                        <h4 className="font-semibold text-purple-900 dark:text-purple-200">Descripción:</h4>
+                        <p className="text-sm text-purple-800 dark:text-purple-300">
+                          {includedRefs.length > 0 ? (
+                            <>
+                              De los <strong>{selectedRefs.length}</strong> artículos evaluados a texto completo, 
+                              <strong> {includedRefs.length}</strong> ({selectedRefs.length > 0 ? ((includedRefs.length / selectedRefs.length) * 100).toFixed(0) : 0}%) 
+                              cumplieron con todos los criterios de inclusión definidos en el protocolo
+                              {inclusionCriteria.length > 0 && <> ({inclusionCriteria.length} criterios)</>}.
+                              {scores.length > 0 && <> Los artículos incluidos obtuvieron un score de relevancia promedio 
+                              de <strong>{(avgScore * 100).toFixed(1)}%</strong> (rango: {(minScore * 100).toFixed(1)}%–{(maxScore * 100).toFixed(1)}%), 
+                              indicando {avgScore > 0.3 ? 'una alta coherencia' : avgScore > 0.2 ? 'una coherencia moderada' : 'variabilidad'} con el protocolo de investigación.</>}
+                            </>
+                          ) : (
+                            'Pendiente de artículos incluidos para evaluación de calidad.'
+                          )}
+                        </p>
+                        <div className="mt-2 p-3 bg-purple-100 dark:bg-purple-900/40 rounded text-xs text-purple-700 dark:text-purple-300">
+                          <strong>Librería recomendada:</strong> Plotly (Python) para barras apiladas que muestren proporción de cumplimiento 
+                          (Sí/No/Parcial) por cada criterio de calidad según Kitchenham (2007).
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Sección 4: Mapeo Temático */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      🎯 4. Mapeo Temático y Concentración de Estudios
+                    </CardTitle>
+                    <CardDescription>
+                      Identificación de áreas cubiertas y vacíos de investigación en los {includedRefs.length} estudios incluidos
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Keywords de los artículos incluidos */}
+                      {topKeywords.length > 0 && (
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-semibold mb-3">Términos Clave más Frecuentes</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {topKeywords.map(([keyword, count], idx) => {
+                              const colors = [
+                                'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300',
+                                'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300',
+                                'bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300',
+                                'bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300',
+                                'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300',
+                                'bg-yellow-100 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300',
+                                'bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300',
+                                'bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300'
+                              ]
+                              return (
+                                <div key={keyword} className={`p-3 rounded text-center ${colors[idx % colors.length]}`}>
+                                  <div className="text-lg font-bold">{count}</div>
+                                  <div className="text-xs capitalize">{keyword}</div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Fuentes / Revistas principales */}
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-semibold mb-3">Distribución por Fuente / Revista</h4>
+                        {topJournals.length > 0 ? (
+                          <div className="space-y-2">
+                            {topJournals.map(([journal, count]) => {
+                              const percentage = (count / includedRefs.length) * 100
+                              return (
+                                <div key={journal} className="flex items-center gap-3">
+                                  <span className="text-sm w-1/2 truncate" title={journal}>{journal}</span>
+                                  <div className="flex-1 bg-gray-200 dark:bg-slate-700 rounded-full h-5 overflow-hidden">
+                                    <div 
+                                      className="bg-indigo-500 h-full rounded-full flex items-center justify-end pr-2"
+                                      style={{ width: `${Math.max(percentage, 15)}%` }}
+                                    >
+                                      <span className="text-xs font-bold text-white">{count}</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 w-10">{percentage.toFixed(0)}%</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground text-sm">No hay artículos incluidos aún.</p>
+                        )}
+                      </div>
+
+                      {/* PICO si existe */}
+                      {picoFramework && (
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-semibold mb-3">Dimensiones PICO del Protocolo</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            {picoFramework.population && (
+                              <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded">
+                                <div className="text-xs font-semibold text-blue-700 dark:text-blue-300">P - Población</div>
+                                <div className="text-sm mt-1">{picoFramework.population}</div>
+                              </div>
+                            )}
+                            {picoFramework.intervention && (
+                              <div className="p-3 bg-green-50 dark:bg-green-950/50 rounded">
+                                <div className="text-xs font-semibold text-green-700 dark:text-green-300">I - Intervención</div>
+                                <div className="text-sm mt-1">{picoFramework.intervention}</div>
+                              </div>
+                            )}
+                            {picoFramework.comparison && (
+                              <div className="p-3 bg-orange-50 dark:bg-orange-950/50 rounded">
+                                <div className="text-xs font-semibold text-orange-700 dark:text-orange-300">C - Comparación</div>
+                                <div className="text-sm mt-1">{picoFramework.comparison}</div>
+                              </div>
+                            )}
+                            {(picoFramework.outcome || picoFramework.outcomes) && (
+                              <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded">
+                                <div className="text-xs font-semibold text-purple-700 dark:text-purple-300">O - Resultado</div>
+                                <div className="text-sm mt-1">{picoFramework.outcome || picoFramework.outcomes}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="p-4 bg-orange-50 dark:bg-orange-950/50 rounded-lg space-y-2">
+                        <h4 className="font-semibold text-orange-900 dark:text-orange-200">Descripción:</h4>
+                        <p className="text-sm text-orange-800 dark:text-orange-300">
+                          {includedRefs.length > 0 ? (
+                            <>
+                              El análisis temático de los <strong>{includedRefs.length}</strong> estudios incluidos 
+                              revela que las publicaciones provienen de <strong>{Object.keys(journalCounts).length}</strong> fuentes diferentes
+                              {topJournals.length > 0 && <>, siendo la fuente más frecuente <strong>{topJournals[0][0]}</strong> con {topJournals[0][1]} artículo{topJournals[0][1] > 1 ? 's' : ''}</>}.
+                              {topKeywords.length > 0 && <> Los términos clave más recurrentes son: {topKeywords.slice(0, 4).map(([kw]) => `"${kw}"`).join(', ')}, 
+                              lo que confirma la alineación con el tema de investigación. </>}
+                              {Object.keys(sourceCounts).length > 1 && <> La diversidad de bases de datos ({Object.keys(sourceCounts).join(', ')}) refuerza 
+                              la exhaustividad de la búsqueda bibliográfica.</>}
+                            </>
+                          ) : (
+                            'Pendiente de artículos incluidos para el mapeo temático.'
+                          )}
+                        </p>
+                        <div className="mt-2 p-3 bg-orange-100 dark:bg-orange-900/40 rounded text-xs text-orange-700 dark:text-orange-300">
+                          <strong>Librería recomendada:</strong> Plotly Express (Python) para gráfico de burbujas con tres dimensiones 
+                          (Eje X: Tema, Eje Y: Fuente, Tamaño: Número de estudios). También se puede usar WordCloud para mapa de palabras clave.
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Sección 5: Síntesis de Artículos Incluidos */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      📋 5. Síntesis de Estudios Incluidos
+                    </CardTitle>
+                    <CardDescription>
+                      Tabla comparativa de los {includedRefs.length} artículos que pasaron todos los filtros de selección
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {includedRefs.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full border border-gray-300 dark:border-slate-600 text-sm text-gray-900 dark:text-gray-100">
+                            <thead className="bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100">
+                              <tr>
+                                <th className="border border-gray-300 dark:border-slate-600 px-3 py-2 text-left">#</th>
+                                <th className="border border-gray-300 dark:border-slate-600 px-3 py-2 text-left">Autores</th>
+                                <th className="border border-gray-300 dark:border-slate-600 px-3 py-2 text-left">Año</th>
+                                <th className="border border-gray-300 dark:border-slate-600 px-3 py-2 text-left">Título</th>
+                                <th className="border border-gray-300 dark:border-slate-600 px-3 py-2 text-left">Fuente</th>
+                                <th className="border border-gray-300 dark:border-slate-600 px-3 py-2 text-left">Score IA</th>
+                                <th className="border border-gray-300 dark:border-slate-600 px-3 py-2 text-left">DOI</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {includedRefs.sort((a, b) => (b.screeningScore || 0) - (a.screeningScore || 0)).map((ref, idx) => (
+                                <tr key={ref.id} className={idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-gray-50 dark:bg-slate-800'}>
+                                  <td className="border border-gray-300 dark:border-slate-600 px-3 py-2 font-mono">{idx + 1}</td>
+                                  <td className="border border-gray-300 dark:border-slate-600 px-3 py-2 max-w-[200px] truncate" title={ref.authors.join(', ')}>
+                                    {ref.authors.length > 0 ? (ref.authors[0].split(' ').pop() || ref.authors[0]) + (ref.authors.length > 1 ? ' et al.' : '') : 'N/A'}
+                                  </td>
+                                  <td className="border border-gray-300 dark:border-slate-600 px-3 py-2">{ref.year || 'N/A'}</td>
+                                  <td className="border border-gray-300 dark:border-slate-600 px-3 py-2 max-w-[300px]">
+                                    <span className="line-clamp-2" title={ref.title}>{ref.title}</span>
+                                  </td>
+                                  <td className="border border-gray-300 dark:border-slate-600 px-3 py-2">{ref.source || 'N/A'}</td>
+                                  <td className="border border-gray-300 dark:border-slate-600 px-3 py-2 text-center">
+                                    <Badge variant="outline" className={
+                                      (ref.screeningScore || 0) >= 0.3 ? 'bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700' :
+                                      (ref.screeningScore || 0) >= 0.2 ? 'bg-yellow-50 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700' :
+                                      'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-slate-600'
+                                    }>
+                                      {ref.screeningScore ? `${(ref.screeningScore * 100).toFixed(1)}%` : 'N/A'}
+                                    </Badge>
+                                  </td>
+                                  <td className="border border-gray-300 dark:border-slate-600 px-3 py-2 text-xs max-w-[150px] truncate" title={ref.doi || ''}>
+                                    {ref.doi || '—'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : pendingRefs.length > 0 ? (
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>Artículos pendientes de revisión</AlertTitle>
+                          <AlertDescription>
+                            Hay <strong>{pendingRefs.length}</strong> artículos seleccionados pendientes de ser marcados como incluidos o excluidos. 
+                            Usa el botón "Cargar" en la pestaña de Clasificación IA para revisarlos.
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <p className="text-muted-foreground text-sm text-center py-8">
+                          No hay artículos incluidos aún. Completa la revisión de los artículos seleccionados.
+                        </p>
+                      )}
+                      
+                      {/* Motivos de exclusión si hay */}
+                      {Object.keys(exclusionReasons).length > 0 && (
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-semibold mb-3">Motivos de Exclusión Registrados</h4>
+                          <div className="grid gap-2">
+                            {Object.entries(exclusionReasons).sort(([,a], [,b]) => b - a).map(([reason, count]) => (
+                              <div key={reason} className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-950/50 rounded">
+                                <span className="text-sm flex-1 mr-2">{reason.length > 80 ? reason.substring(0, 80) + '...' : reason}</span>
+                                <Badge variant="outline" className="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700 flex-shrink-0">
+                                  {count} artículo{count > 1 ? 's' : ''}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="p-4 bg-red-50 dark:bg-red-950/50 rounded-lg space-y-2">
+                        <h4 className="font-semibold text-red-900 dark:text-red-200">Descripción:</h4>
+                        <p className="text-sm text-red-800 dark:text-red-300">
+                          {includedRefs.length > 0 ? (
+                            <>
+                              La tabla presenta los <strong>{includedRefs.length}</strong> estudios que superaron todos los filtros de selección 
+                              para la RSL <em>"{projectTitle}"</em>.
+                              {scores.length > 0 && <> Los scores de relevancia oscilan entre {(minScore * 100).toFixed(1)}% y {(maxScore * 100).toFixed(1)}%, 
+                              con un promedio de {(avgScore * 100).toFixed(1)}%. </>}
+                              {Object.keys(sourceCounts).length > 1 && <> Los artículos provienen de {Object.keys(sourceCounts).length} bases de datos distintas, 
+                              asegurando diversidad en las fuentes. </>}
+                              {researchQuestions.length > 0 && <> Estos estudios serán utilizados para responder las {researchQuestions.length} preguntas de investigación 
+                              definidas en el protocolo.</>}
+                            </>
+                          ) : (
+                            'Pending: incluye artículos para generar la síntesis técnica.'
+                          )}
+                        </p>
+                        <div className="mt-2 p-3 bg-red-100 dark:bg-red-900/40 rounded text-xs text-red-700 dark:text-red-300">
+                          <strong>Librería recomendada:</strong> Pandas (Python) con exportación a Styler para formato LaTeX/HTML. 
+                          Usar <code className="bg-white dark:bg-slate-800 px-1 rounded">df.to_latex()</code> para generar tablas directamente insertables en el documento.
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          const headers = ['#', 'Autores', 'Año', 'Título', 'Fuente', 'Score IA', 'DOI']
+                          const rows = includedRefs.map((ref, idx) => [
+                            idx + 1,
+                            `"${ref.authors.join('; ').replace(/"/g, '""')}"`,
+                            ref.year || 'N/A',
+                            `"${ref.title.replace(/"/g, '""')}"`,
+                            ref.source || 'N/A',
+                            ref.screeningScore ? `${(ref.screeningScore * 100).toFixed(1)}%` : 'N/A',
+                            ref.doi || ''
+                          ])
+                          const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+                          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                          const link = document.createElement('a')
+                          link.href = URL.createObjectURL(blob)
+                          link.download = `estudios-incluidos-${new Date().toISOString().split('T')[0]}.csv`
+                          link.click()
+                          toast({ title: "CSV exportado", description: `${includedRefs.length} estudios incluidos exportados.` })
+                        }}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Exportar Tabla CSV
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          // Export ALL references with full data
+                          const headers = ['#', 'Autores', 'Año', 'Título', 'Fuente', 'DOI', 'Estado', 'Score IA', 'Razón Exclusión']
+                          const rows = references.map((ref, idx) => [
+                            idx + 1,
+                            `"${ref.authors.join('; ').replace(/"/g, '""')}"`,
+                            ref.year || 'N/A',
+                            `"${ref.title.replace(/"/g, '""')}"`,
+                            ref.source || 'N/A',
+                            ref.doi || '',
+                            ref.status,
+                            ref.screeningScore ? `${(ref.screeningScore * 100).toFixed(1)}%` : 'N/A',
+                            `"${(ref.exclusionReason || '').replace(/"/g, '""')}"`
+                          ])
+                          const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+                          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                          const link = document.createElement('a')
+                          link.href = URL.createObjectURL(blob)
+                          link.download = `todas-referencias-${new Date().toISOString().split('T')[0]}.csv`
+                          link.click()
+                          toast({ title: "CSV completo exportado", description: `${references.length} referencias totales exportadas.` })
+                        }}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Exportar Todas las Referencias
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Botón Final: Finalizar Cribado, Completar PRISMA y Redirigir a Artículo */}
+                <Card className="border-2 border-primary bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/40 dark:to-blue-950/40">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-300">
+                      <CheckCircle2 className="h-6 w-6" />
+                      Finalizar Proceso de Cribado
+                    </CardTitle>
+                    <CardDescription>
+                      Una vez finalizado, se completará automáticamente el checklist PRISMA 2020 y 
+                      podrá acceder a la sección de Artículo para generar su borrador completo.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-white dark:bg-slate-800 rounded-lg p-4 text-center border dark:border-slate-700">
+                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalRefs}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">Identificados</div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-800 rounded-lg p-4 text-center border dark:border-slate-700">
+                          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{selectedRefs.length}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">Evaluados</div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-800 rounded-lg p-4 text-center border dark:border-slate-700">
+                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{includedRefs.length}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">Incluidos Final</div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-800 rounded-lg p-4 text-center border dark:border-slate-700">
+                          <div className="text-2xl font-bold text-red-600 dark:text-red-400">{excludedManualRefs.length}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">Excluidos Manual</div>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        onClick={async () => {
+                          setIsFinalizingScreening(true)
+                          try {
+                            // 0. Limpiar protocolo: descartar bases de datos sin referencias cargadas
+                            const databasesWithRefs: Record<string, number> = {}
+                            references.forEach((ref) => {
+                              const source = ref.source || 'Unknown'
+                              databasesWithRefs[source] = (databasesWithRefs[source] || 0) + 1
+                            })
+                            const activeDatabaseNames = Object.keys(databasesWithRefs)
+                            
+                            // Filtrar searchQueries y databases del protocolo
+                            const cleanedQueries = searchQueries.filter((q: any) => {
+                              const dbName = q.databaseName || q.databaseId || ''
+                              return activeDatabaseNames.some(name =>
+                                name.toLowerCase().includes(dbName.toLowerCase()) ||
+                                dbName.toLowerCase().includes(name.toLowerCase())
+                              )
+                            })
+
+                            // 1. Guardar estado de finalización + bases de datos limpias
+                            await apiClient.updateProtocol(params.id, {
+                              screeningFinalized: true,
+                              prismaUnlocked: true,
+                              analysisCompleted: true,
+                              databases: activeDatabaseNames,
+                              searchQueries: cleanedQueries.map((q: any) => ({
+                                ...q,
+                                resultsCount: databasesWithRefs[
+                                  activeDatabaseNames.find(name =>
+                                    name.toLowerCase().includes((q.databaseName || q.databaseId || '').toLowerCase()) ||
+                                    (q.databaseName || q.databaseId || '').toLowerCase().includes(name.toLowerCase())
+                                  ) || ''
+                                ] || q.resultsCount || 0
+                              }))
+                            })
+                            
+                            setScreeningFinalized(true)
+                            
+                            toast({
+                              title: "Cribado Finalizado",
+                              description: "Completando PRISMA 2020 automáticamente..."
+                            })
+                            
+                            // 2. Generar automáticamente todo el contenido de PRISMA
+                            console.log('🔄 Iniciando autocompletado de PRISMA...')
+                            const prismaResponse = await apiClient.completePrismaByBlocks(params.id, 'all')
+                            
+                            console.log('✅ Respuesta de PRISMA:', prismaResponse)
+                            
+                            if (prismaResponse.success) {
+                              toast({
+                                title: "✅ PRISMA Completado",
+                                description: "Redirigiendo a la sección de Artículo...",
+                              })
+                            } else {
+                              toast({
+                                title: "⚠️ PRISMA parcialmente completado",
+                                description: "Puede revisar PRISMA antes de generar el artículo",
+                                variant: "destructive"
+                              })
+                            }
+                            
+                            // 3. Redirigir al Artículo después de 2 segundos
+                            setTimeout(() => {
+                              router.push(`/projects/${params.id}/article`)
+                            }, 2000)
+                          } catch (error: any) {
+                            console.error('❌ Error al finalizar cribado:', error)
+                            toast({
+                              title: "Error",
+                              description: error.message || "No se pudo finalizar el cribado",
+                              variant: "destructive"
+                            })
+                          } finally {
+                            setIsFinalizingScreening(false)
+                          }
+                        }}
+                        disabled={screeningFinalized || isFinalizingScreening || selectedForFullText.size === 0}
+                        className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                        size="lg"
+                      >
+                        {isFinalizingScreening ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Completando PRISMA...
+                          </>
+                        ) : screeningFinalized ? (
+                          <>
+                            <CheckCircle2 className="h-5 w-5 mr-2" />
+                            Cribado Finalizado
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-5 w-5 mr-2" />
+                            Finalizar Cribado y Generar Artículo
+                          </>
+                        )}
+                      </Button>
+                      
+                      {selectedForFullText.size === 0 && (
+                        <p className="text-sm text-muted-foreground text-center">
+                          Debe completar la selección de artículos en "Clasificación IA" antes de finalizar
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+                )
+              })()}
+            </TabsContent>
+
           </Tabs>
         </div>
       </main>
-
-      {/* Barra de acciones masivas - Solo en Revisión Manual */}
-      {activeTab === "revision" && (
-        <BulkActionsBar
-          selectedCount={selectedIds.length}
-          onIncludeAll={handleBulkInclude}
-          onExcludeAll={handleBulkExclude}
-          onDeleteAll={handleBulkDelete}
-          onClearSelection={() => setSelectedIds([])}
-        />
-      )}
 
       {/* Diálogo de Duplicados */}
       <DuplicateDetectionDialog
@@ -1654,89 +1764,6 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
         onKeepReference={handleKeepReference}
         isProcessing={isDetectingDuplicates}
       />
-
-      {/* Diálogo para pegar resultados de texto completo */}
-      <Dialog open={pasteDialogOpen} onOpenChange={(open) => {
-        if (!isSavingPaste) {
-          setPasteDialogOpen(open)
-          if (!open) { setPasteText(''); setPasteRefId(null) }
-        }
-      }}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Cargar Resultados del Texto Completo</DialogTitle>
-            <DialogDescription>
-              Copia y pega los resultados clave del artículo: objetivos, metodología, hallazgos principales y conclusiones.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
-              placeholder="Pega aquí los resultados del artículo...&#10;&#10;Ejemplo:&#10;- Objetivo: ...&#10;- Metodología: ...&#10;- Resultados principales: ...&#10;- Conclusiones: ..."
-              rows={14}
-              className="resize-none font-mono text-sm"
-              autoFocus
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              {pasteText.length > 0 ? `${pasteText.length} caracteres` : 'Sin contenido'}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => { setPasteDialogOpen(false); setPasteText(''); setPasteRefId(null) }}
-              disabled={isSavingPaste}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!pasteRefId || !pasteText.trim()) return
-                setIsSavingPaste(true)
-                try {
-                  const blob = new Blob([pasteText], { type: 'text/plain' })
-                  const file = new File([blob], `resultados-${pasteRefId}.txt`, { type: 'text/plain' })
-                  
-                  toast({ title: "Guardando resultados...", description: "Subiendo texto al servidor" })
-                  await apiClient.uploadPdf(pasteRefId, file)
-                  
-                  toast({ title: "✅ Resultados guardados", description: "Analizando contenido con IA..." })
-                  
-                  try {
-                    await apiClient.extractSingleRQS(params.id, pasteRefId)
-                    toast({ title: "✅ Análisis completado", description: "Los datos RQS han sido extraídos exitosamente" })
-                  } catch {
-                    toast({ title: "Advertencia", description: "Resultados guardados, pero el análisis automático falló.", variant: "default" })
-                  }
-                  
-                  await reloadReferences()
-                  setPasteDialogOpen(false)
-                  setPasteText('')
-                  setPasteRefId(null)
-                } catch {
-                  toast({ title: "Error al guardar", description: "No se pudieron guardar los resultados", variant: "destructive" })
-                } finally {
-                  setIsSavingPaste(false)
-                }
-              }}
-              disabled={isSavingPaste || !pasteText.trim()}
-            >
-              {isSavingPaste ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Guardar Resultados
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

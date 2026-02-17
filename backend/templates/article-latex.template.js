@@ -1,16 +1,21 @@
 /**
  * Template LaTeX para exportación de artículos científicos
- * Compatible con formato universal PRISMA 2020 para journals Q1 (IEEE, ACM, Elsevier, Springer)
+ * Compatible con formato universal PRISMA 2020 para journals Q1 (IEEE, ACM, Elsevier, Springer, MDPI)
+ * 
+ * Target: ~7,200 palabras (~13 páginas)
+ * Distribución: Abstract+Intro ~1,200 | Metodología ~2,000 | Resultados ~2,500 |
+ *               Discusión+Conclusiones ~1,500 | Referencias N/A
  * 
  * Reglas de formato:
- * - Título: máx 15-18 palabras
- * - Abstract: 150-250 palabras, estructura: Contexto/Objetivo/Métodos/Resultados/Conclusión
- * - Keywords: 4-6 palabras clave
- * - Introduction: 10-15% del artículo
- * - Methods: sección crítica PRISMA compliant
- * - Results: incluye PRISMA diagram + gráfico de codo
- * - Discussion: interpretación sin figuras nuevas
- * - Conclusions: breve y contundente
+ * - Título: máx 25 palabras
+ * - Abstract: 250-400 palabras, estructura IMRaD en un solo párrafo
+ * - Keywords: 3-6 palabras clave
+ * - Introduction: 800-1000 palabras, DEBE terminar con lista explícita de RQs
+ * - Methods: ~2000 palabras, incluye sección 2.4 de screening IA + método del codo
+ * - Results: ~2500 palabras, síntesis de datos SIN opiniones del autor
+ * - Discussion: 800-1200 palabras, incluye subsección Threats to Validity
+ * - Conclusions: 500-800 palabras (5-10%), estructura: respuestas RQ → contribución → práctica → futuro
+ * - Gráficos: PDF vector (no PNG) para journals de alto impacto
  * 
  * Uso: 
  * const template = require('./article-latex.template');
@@ -77,9 +82,9 @@ ${generateUniversalAuthors(articleData.authors || (defaultAuthor ? [defaultAutho
 \\maketitle
 
 % -------------------- ABSTRACT --------------------
-% 📏 150–250 palabras (estándar universal IEEE/Elsevier/Springer/MDPI)
-% 📌 Estructura: Contexto/Objetivo/Métodos PRISMA/Resultados/Conclusión
-% 📌 Un solo párrafo, sin citas, sin figuras
+% 📏 250–400 palabras (IMRaD single paragraph — MDPI/IEEE extended SLR standard)
+% 📌 Estructura: Un solo párrafo con 4 segmentos: Introducción/Métodos/Resultados/Discusión
+% 📌 Sin citas, sin figuras, sin saltos de línea
 \\begin{abstract}
 ${escapeLatex(articleData.abstract || 'This systematic review examines... Following PRISMA 2020 guidelines, a structured search and screening process was conducted... Results indicate... These findings suggest...')}
 \\end{abstract}
@@ -90,8 +95,9 @@ ${escapeLatex(articleData.abstract || 'This systematic review examines... Follow
 \\bigskip
 
 % -------------------- 1. INTRODUCTION --------------------
-% 📏 10–15% del artículo
-% 📌 Estructura: Contextualización → Importancia → Vacíos → Variables → Estado actual → Justificación → Objetivos
+% 📏 800-1000 palabras
+% 📌 Estructura: Contextualización → Importancia → Vacíos → Estado actual → Justificación → Objetivos
+% 📌 DEBE terminar con lista explícita de Research Questions (RQ1, RQ2, RQ3)
 \\section{INTRODUCCIÓN}
 
 % CONTEXTUALIZACIÓN GENERAL DEL TEMA
@@ -142,7 +148,8 @@ ${generateMethodsSection(articleData.methods || '')}
 ${generateResultsSection(articleData.results || '')}
 
 % -------------------- 4. DISCUSIÓN --------------------
-% 📏 Interpretación crítica de hallazgos, comparación con literatura, implicaciones
+% 📏 800-1200 palabras — Interpretación crítica, comparación con literatura, implicaciones
+% 📌 DEBE incluir subsección "Threats to Validity" (sesgo publicación, BD, IA, idioma)
 % 📌 NO repetir resultados, NO tablas nuevas
 \\section{DISCUSIÓN}
 
@@ -249,8 +256,7 @@ function generateUniversalAuthors(authors) {
   
   const affiliations = authors.map((author, index) => 
     `{\\small $^{${index + 1}}$${escapeLatex(author.institution || 'Universidad de las Fuerzas Armadas ESPE')}, ${escapeLatex(author.country || 'Ecuador')}}`
-  ).join('\\\\
-');
+  ).join('\\\\\n');
   
   const emails = authors.length > 0 && authors[0].email 
     ? `{\\small ${authors[0].email}}` 
@@ -290,7 +296,7 @@ Se utilizó un enfoque híbrido de cribado asistido por IA. Las referencias desc
 
 \\begin{figure}[H]
 \\centering
-\\includegraphics[width=\\columnwidth]{scree_plot.png}
+\\includegraphics[width=\\columnwidth]{scree_plot}
 \\caption{Distribución visual de puntajes de relevancia ordenados de mayor a menor. La línea vertical indica el punto de inflexión utilizado como criterio de corte para priorizar la revisión manual.}
 \\label{fig:codo}
 \\end{figure}
@@ -336,7 +342,7 @@ La Figura~\\ref{fig:codo} presenta la distribución de estos puntajes ordenados 
 
 \\begin{figure}[H]
 \\centering
-\\includegraphics[width=0.85\\textwidth]{scree_plot.png}
+\\includegraphics[width=0.85\\textwidth]{scree_plot}
 \\caption{Scree plot: distribución de puntajes de relevancia semántica ordenados decrecientemente. La línea vertical roja señala el punto de inflexión utilizado como umbral de corte para priorizar la revisión manual.}
 \\label{fig:codo}
 \\end{figure}
@@ -393,7 +399,7 @@ El proceso completo de identificación, cribado y selección de estudios se resu
 
 \\begin{figure}[H]
 \\centering
-\\includegraphics[width=0.95\\textwidth]{prisma_diagram.png}
+\\includegraphics[width=0.95\\textwidth]{prisma_diagram}
 \\caption{Diagrama de flujo PRISMA 2020 del proceso de revisión sistemática. Muestra las fases de identificación, cribado, elegibilidad e inclusión final, así como las razones específicas de exclusión en cada etapa.}
 \\label{fig:prisma}
 \\end{figure}
@@ -413,7 +419,7 @@ El proceso completo de identificación, cribado y selección de estudios se resu
 
 \\begin{figure}[H]
 \\centering
-\\includegraphics[width=0.95\\textwidth]{prisma_diagram.png}
+\\includegraphics[width=0.95\\textwidth]{prisma_diagram}
 \\caption{Diagrama de flujo PRISMA 2020 del proceso de revisión sistemática. Muestra las fases de identificación, cribado, elegibilidad e inclusión final de estudios, con desglose detallado por base de datos académica y razones específicas de exclusión en cada etapa.}
 \\label{fig:prisma}
 \\end{figure}
@@ -454,49 +460,6 @@ Se observó que [describe tendencias, patrones o inconsistencias]. Las métricas
 
 % NOTA: Esta tabla debe ser generada automáticamente desde los datos RQS
 % Placeholder para tabla de síntesis de evidencia`;
-}
-  return `\\subsection{Selección de estudios}
-El proceso de selección de estudios se resume en la Figura~\\ref{fig:prisma}.
-
-\\begin{figure}[H]
-\\centering
-% NOTA: Si prisma_diagram.png no existe, comentar la siguiente línea y descomentar el placeholder
-\\includegraphics[width=0.8\\textwidth]{prisma_diagram.png}
-% \\fbox{\\parbox{0.8\\textwidth}{\\centering Placeholder: prisma\\_diagram.png}}
-\\caption{Diagrama de flujo PRISMA 2020 del proceso de selección de estudios.}
-\\label{fig:prisma}
-\\end{figure}
-
-\\subsection{Características de los estudios incluidos}
-La Tabla~\\ref{tab:studies} resume las características principales de los estudios incluidos.
-
-\\begin{table}[H]
-\\centering
-\\caption{Características de los estudios incluidos}
-\\label{tab:studies}
-\\begin{tabular}{p{2cm}p{1cm}p{2cm}p{2cm}}
-\\toprule
-Autor & Año & Diseño & Contexto \\\\
-\\midrule
-[Autor A] & [Año] & [Diseño] & [Contexto] \\\\
-[Autor B] & [Año] & [Diseño] & [Contexto] \\\\
-\\bottomrule
-\\end{tabular}
-\\end{table}
-
-\\subsection{Evaluación del riesgo de sesgo}
-La evaluación del riesgo de sesgo se presenta en la Tabla~\\ref{tab:bias}.
-
-\\subsection{Resultados por pregunta de investigación}
-
-\\subsubsection{RQ1: [Pregunta de Investigación 1]}
-[Presentar hallazgos para RQ1]
-
-\\subsubsection{RQ2: [Pregunta de Investigación 2]}
-[Presentar hallazgos para RQ2]
-
-\\subsubsection{RQ3: [Pregunta de Investigación 3]}
-[Presentar hallazgos para RQ3]`;
 }
 
 /**

@@ -18,9 +18,10 @@ class PythonGraphService {
      * @param {Object} prismaData - Datos de cribado PRISMA
      * @param {Array<number>} screeScores - Lista de puntajes de cribado
      * @param {Array<Object>} searchStrategy - Datos de estrategia de búsqueda (Source, Hits, Query)
+     * @param {Object} enhancedChartData - Datos para 4 nuevos gráficos académicos (distribución temporal, calidad, bubble, síntesis)
      * @returns {Promise<Object>} Rutas de las imágenes generadas
      */
-    async generateCharts(prismaData, screeScores, searchStrategy) {
+    async generateCharts(prismaData, screeScores, searchStrategy, enhancedChartData = null) {
         return new Promise((resolve, reject) => {
             // Build databases list: prioritize referencesBySource (real imported refs), fallback to searchStrategy
             let databases = [];
@@ -69,12 +70,21 @@ class PythonGraphService {
                 search_strategy: searchStrategy || []
             };
 
+            // Agregar datos de los 4 nuevos gráficos académicos si están disponibles
+            if (enhancedChartData) {
+                inputData.temporal_distribution = enhancedChartData.temporal_distribution;
+                inputData.quality_assessment = enhancedChartData.quality_assessment;
+                inputData.bubble_chart = enhancedChartData.bubble_chart;
+                inputData.technical_synthesis = enhancedChartData.technical_synthesis;
+            }
+
             console.log('📊 Datos enviados a Python:');
             console.log('   - PRISMA stats:', prismaData);
             console.log('   - Databases/Sources:', databases);
             console.log('   - Scores disponibles:', screeScores?.length || 0);
             console.log('   - Primer score (ejemplo):', screeScores?.[0]);
             console.log('   - Search strategy queries:', searchStrategy?.length || 0);
+            console.log('   - Enhanced charts:', enhancedChartData ? 'YES' : 'NO');
             console.log('📊 Generando gráficos con Python...');
 
             // Usar python3 para compatibilidad con entornos Linux/Render
@@ -117,9 +127,24 @@ class PythonGraphService {
                     const backendUrl = process.env.BACKEND_URL || 'https://tesis-rsl-backend.onrender.com';
                     
                     const urls = {};
+                    // Gráficos originales
                     if (results.prisma) urls.prisma = `${backendUrl}/uploads/charts/${results.prisma}`;
                     if (results.scree) urls.scree = `${backendUrl}/uploads/charts/${results.scree}`;
                     if (results.chart1) urls.chart1 = `${backendUrl}/uploads/charts/${results.chart1}`;
+                    
+                    // 4 Nuevos gráficos académicos
+                    if (results.temporal_distribution) {
+                        urls.temporal_distribution = `${backendUrl}/uploads/charts/${results.temporal_distribution}`;
+                    }
+                    if (results.quality_assessment) {
+                        urls.quality_assessment = `${backendUrl}/uploads/charts/${results.quality_assessment}`;
+                    }
+                    if (results.bubble_chart) {
+                        urls.bubble_chart = `${backendUrl}/uploads/charts/${results.bubble_chart}`;
+                    }
+                    if (results.technical_synthesis) {
+                        urls.technical_synthesis = `${backendUrl}/uploads/charts/${results.technical_synthesis}`;
+                    }
 
                     console.log('✅ URLs finales de gráficos:', urls);
                     resolve(urls);

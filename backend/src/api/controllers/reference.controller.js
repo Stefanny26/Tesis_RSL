@@ -139,7 +139,7 @@ const createReferencesBatch = async (req, res) => {
 const updateScreeningStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, aiData, exclusionReason } = req.body;
+    const { status, aiData, exclusionReason, manualReviewStatus } = req.body;
 
     if (!status) {
       return res.status(400).json({
@@ -162,6 +162,12 @@ const updateScreeningStatus = async (req, res) => {
     // Si se proporciona razón de exclusión, guardarla
     if (exclusionReason) {
       updateData.exclusionReason = exclusionReason;
+    }
+
+    // Si se proporciona estado de revisión manual, guardarla
+    if (manualReviewStatus) {
+      updateData.manualReviewStatus = manualReviewStatus;
+      updateData.reviewedAt = new Date().toISOString();
     }
 
     const reference = await referenceRepository.update(id, updateData);

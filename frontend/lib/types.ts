@@ -61,4 +61,6 @@ export interface Reference {
   screeningModel?: string
   screeningStatus?: string // 'pending', 'phase1_included', 'phase1_excluded', 'phase2_included', 'phase2_excluded', 'fulltext_included', 'fulltext_excluded'
   exclusionReason?: string
+  manualReviewStatus?: string // 'included', 'excluded', 'pending' - set by manual review
+  manualReviewNotes?: string
 }

@@ -10,6 +10,7 @@ import { VersionHistory } from "@/components/article/version-history"
 import { AIGeneratorPanel } from "@/components/article/ai-generator-panel"
 import { ArticleStats } from "@/components/article/article-stats"
 import { PrismaPreviewDialog } from "@/components/article/prisma-preview-dialog"
+import { ExportPanel } from "@/components/article/export-panel"
 import type { ArticleVersion } from "@/lib/article-types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -829,9 +830,9 @@ ${convertMarkdownToLatex(currentVersion.content.declarations)}
           {/* Project Header */}
           {project && <ProjectHeader project={project} />}
 
-          {/* Barra de estado + acciones */}
+          {/* Barra de estado PRISMA */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border bg-card p-3">
-            {/* Left: PRISMA status */}
+            {/* PRISMA status */}
             <div className="flex items-center gap-2">
               {status && status.canGenerate ? (
                 <div className="flex items-center gap-2">
@@ -851,42 +852,11 @@ ${convertMarkdownToLatex(currentVersion.content.declarations)}
               )}
             </div>
 
-            {/* Right: Action buttons */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => setShowPrismaDialog(true)}>
-                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                PRISMA
-              </Button>
-              {currentVersion && currentVersion.id !== 'v1-temp' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateFullArticle}
-                  disabled={isGenerating || !status?.canGenerate}
-                >
-                  {isGenerating ? (
-                    <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Regenerando...</>
-                  ) : (
-                    <><Sparkles className="mr-1.5 h-3.5 w-3.5" />Regenerar</>
-                  )}
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={handleExportLatex} disabled={!currentVersion || isGenerating}>
-                <FileDown className="mr-1.5 h-3.5 w-3.5" />
-                LaTeX
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportReferences} disabled={!currentVersion || isGenerating}>
-                <FileDown className="mr-1.5 h-3.5 w-3.5" />
-                Referencias
-              </Button>
-              <Button size="sm" onClick={handleSaveVersion} disabled={isGenerating || isSaving}>
-                {isSaving ? (
-                  <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Guardando...</>
-                ) : (
-                  <><Save className="mr-1.5 h-3.5 w-3.5" />Guardar</>
-                )}
-              </Button>
-            </div>
+            {/* Botón PRISMA */}
+            <Button variant="outline" size="sm" onClick={() => setShowPrismaDialog(true)}>
+              <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+              PRISMA
+            </Button>
           </div>
 
           {/* Layout: Sidebar índice + Contenido artículo */}
@@ -977,6 +947,19 @@ ${convertMarkdownToLatex(currentVersion.content.declarations)}
               )}
             </div>
           </div>
+
+          {/* Panel de Exportación */}
+          {currentVersion && currentVersion.id !== 'v1-temp' && (
+            <div className="mt-6">
+              <ExportPanel 
+                projectId={params.id} 
+                canExport={status?.canGenerate || false}
+                blockingReason={status?.blockingReason}
+                onRegenerate={handleGenerateFullArticle}
+                isRegenerating={isGenerating}
+              />
+            </div>
+          )}
         </div>
       </main>
 

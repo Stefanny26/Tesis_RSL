@@ -151,6 +151,9 @@ CREATE TABLE IF NOT EXISTS references (
   is_duplicate BOOLEAN DEFAULT FALSE,
   duplicate_of UUID REFERENCES references(id) ON DELETE SET NULL,
   
+  manual_review_status VARCHAR(50),
+  manual_review_notes TEXT,
+  
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   imported_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

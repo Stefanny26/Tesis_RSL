@@ -12,307 +12,377 @@ interface PrismaFlowDiagramProps {
     fullTextAssessed: number
     excludedFullText: number
     includedFinal: number
-    databases?: Array<{ name: string, hits: number }>
+    pendingReview?: number
+    databases?: Array<{ name: string; hits: number }>
     exclusionReasons?: Record<string, number>
   }
 }
 
-/* ─── PRISMA 2020 Standard Design (Page et al., 2021) ─── */
+/* ─── PRISMA 2020 – Diseño basado en Page et al. (2021) ─── */
 
-const serifFont = { fontFamily: "'Times New Roman', 'Noto Serif', Georgia, serif" }
+const FONT: React.CSSProperties = {
+  fontFamily: "'Times New Roman', 'Noto Serif', Georgia, serif",
+}
+
+/* Anchuras fijas para columnas consistentes */
+const W = {
+  phase: 70,      // barra lateral de fase
+  gap: 12,        // separación entre barra y contenido
+  arrow: 40,      // ancho de flecha horizontal
+  side: 220,      // columna lateral derecha
+}
+
+/* Mapeo de roles a clases Tailwind (light + dark) */
+const BOX_STYLES = {
+  idBox: "bg-[#DEEBF6] dark:bg-sky-900/50 text-slate-900 dark:text-slate-100",
+  idSide: "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100",
+  cribBox: "bg-[#FBE4D5] dark:bg-orange-900/40 text-slate-900 dark:text-slate-100",
+  cribSide: "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100",
+  inclBox: "bg-[#DEEBF6] dark:bg-sky-900/50 text-slate-900 dark:text-slate-100",
+  header: "bg-[#F4B942] dark:bg-amber-600 text-slate-900 dark:text-white",
+}
 
 export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
   const retrieved = stats.fullTextAssessed
   const notRetrieved = 0
+  const totalDatabases = stats.databases
+    ? stats.databases.reduce((s, d) => s + d.hits, 0)
+    : stats.identified
 
   return (
-    <Card className="border-0 shadow-none bg-transparent">
-      <CardContent className="p-0">
-        {/* Título */}
-        <div className="text-center mb-6">
-          <h2 className="text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100" style={serifFont}>
-            PRISMA 2020 Flow Diagram
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 italic" style={serifFont}>
-            Study selection process according to Page et al. (2021)
-          </p>
-        </div>
+    <Card className="border-0 shadow-none bg-transparent overflow-hidden">
+      <CardContent className="p-0 overflow-x-auto">
+        <div className="mx-auto" style={{ ...FONT, maxWidth: 880, minWidth: 680 }}>
 
-        <div className="max-w-[800px] mx-auto" style={serifFont}>
-          {/* Yellow Header */}
-          <div className="bg-amber-200 border-2 border-slate-700 px-4 py-2 text-center font-bold text-base mb-2">
-            Identification of new studies via databases and registers
-          </div>
+          {/* ══════════════════════════════════════════
+              ENCABEZADO DORADO
+              ══════════════════════════════════════════ */}
+          <Box variant="header" className="text-center font-bold text-base mb-4 rounded">
+            Identificación de nuevos estudios vía bases de datos y archivos
+          </Box>
 
-          {/* ═══ IDENTIFICATION PHASE ═══ */}
-          <RowWithPhase
-            phase="Identification"
-            phaseColor="bg-sky-500"
-            mainContent={
-              <div className="bg-emerald-100 border-2 border-slate-700 px-4 py-3 min-h-[140px] flex flex-col justify-center">
-                <p className="text-sm font-semibold mb-1">Records identified from:</p>
-                {stats.databases && stats.databases.length > 0 ? (
-                  <ul className="text-sm ml-3 space-y-0.5">
-                    {stats.databases.map((db) => (
-                      <li key={db.name}>
-                        {db.name} (n = {db.hits})
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm ml-3">Database searches</p>
-                )}
-                <p className="text-base font-bold mt-2">Total records (n = {stats.identified})</p>
-              </div>
-            }
-            sideContent={
-              <div className="bg-red-50 border-2 border-slate-700 px-3 py-2 min-h-[100px] flex flex-col justify-center">
-                <p className="text-sm font-semibold mb-1">Records removed before screening:</p>
-                <p className="text-sm ml-2">Duplicate records (n = {stats.duplicates})</p>
-                {/* <p className="text-xs ml-2">Records marked as ineligible (n = 0)</p>
-                <p className="text-xs ml-2">Other reasons (n = 0)</p> */}
-              </div>
-            }
-          />
+          {/* ══════════════════════════════════════════
+              FASE: IDENTIFICACIÓN
+              ══════════════════════════════════════════ */}
+          <div className="flex" style={{ gap: W.gap }}>
+            <PhaseLabel label="Identificación" />
 
-          <VerticalArrow />
-
-          {/* ═══ SCREENING PHASE (spans 3 rows per PRISMA 2020) ═══ */}
-          <div className="flex items-stretch">
-            {/* Phase label spanning all screening rows */}
-            <div className="flex items-center justify-center bg-sky-500 border-2 border-slate-700 w-[70px] min-w-[70px]">
-              <span className="[writing-mode:vertical-lr] rotate-180 text-sm font-bold text-white whitespace-nowrap">
-                Screening
-              </span>
-            </div>
-
-            {/* All screening rows stacked */}
-            <div className="flex-1 ml-3 space-y-0">
-              {/* Row 1: Records screened */}
-              <div className="flex items-stretch gap-3">
-                <div className="flex-1">
-                  <div className="bg-emerald-100 border-2 border-slate-700 px-4 py-3 text-center">
-                    <p className="text-sm font-semibold">Records screened</p>
-                    <p className="text-sm">(title and abstract)</p>
-                    <p className="text-base font-bold mt-1">(n = {stats.screenedTitleAbstract})</p>
-                  </div>
-                </div>
-                <div className="flex items-center w-[40px] flex-shrink-0">
-                  <svg width="100%" height="16" viewBox="0 0 40 16" preserveAspectRatio="none">
-                    <line x1="0" y1="8" x2="32" y2="8" stroke="#1e293b" strokeWidth="2" />
-                    <polygon points="32,4 32,12 40,8" fill="#1e293b" />
-                  </svg>
-                </div>
-                <div className="w-[200px] min-w-[200px]">
-                  <div className="bg-red-50 border-2 border-slate-700 px-3 py-2 text-center">
-                    <p className="text-sm font-semibold">Records excluded</p>
-                    <p className="text-base font-bold mt-1">(n = {stats.excludedTitleAbstract})</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Arrow between row 1 and row 2 */}
-              <div className="flex justify-start">
-                <svg width="3" height="30" className="overflow-visible ml-[calc(50%-120px)]">
-                  <line x1="1.5" y1="0" x2="1.5" y2="30" stroke="#1e293b" strokeWidth="2" />
-                  <polygon points="-2,22 5,22 1.5,30" fill="#1e293b" />
-                </svg>
-              </div>
-
-              {/* Row 2: Reports sought for retrieval */}
-              <div className="flex items-stretch gap-3">
-                <div className="flex-1">
-                  <div className="bg-emerald-100 border-2 border-slate-700 px-4 py-3 text-center">
-                    <p className="text-sm font-semibold">Reports sought for retrieval</p>
-                    <p className="text-base font-bold mt-1">(n = {retrieved})</p>
-                  </div>
-                </div>
-                {notRetrieved > 0 && (
-                  <>
-                    <div className="flex items-center w-[40px] flex-shrink-0">
-                      <svg width="100%" height="16" viewBox="0 0 40 16" preserveAspectRatio="none">
-                        <line x1="0" y1="8" x2="32" y2="8" stroke="#1e293b" strokeWidth="2" />
-                        <polygon points="32,4 32,12 40,8" fill="#1e293b" />
-                      </svg>
-                    </div>
-                    <div className="w-[200px] min-w-[200px]">
-                      <div className="bg-red-50 border-2 border-slate-700 px-3 py-2 text-center">
-                        <p className="text-sm font-semibold">Reports not retrieved</p>
-                        <p className="text-base font-bold mt-1">(n = {notRetrieved})</p>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Arrow between row 2 and row 3 */}
-              <div className="flex justify-start">
-                <svg width="3" height="30" className="overflow-visible ml-[calc(50%-120px)]">
-                  <line x1="1.5" y1="0" x2="1.5" y2="30" stroke="#1e293b" strokeWidth="2" />
-                  <polygon points="-2,22 5,22 1.5,30" fill="#1e293b" />
-                </svg>
-              </div>
-
-              {/* Row 3: Reports assessed for eligibility */}
-              <div className="flex items-stretch gap-3">
-                <div className="flex-1">
-                  <div className="bg-emerald-100 border-2 border-slate-700 px-4 py-3 text-center">
-                    <p className="text-sm font-semibold">Reports assessed for eligibility</p>
-                    <p className="text-base font-bold mt-1">(n = {stats.fullTextAssessed})</p>
-                  </div>
-                </div>
-                <div className="flex items-center w-[40px] flex-shrink-0">
-                  <svg width="100%" height="16" viewBox="0 0 40 16" preserveAspectRatio="none">
-                    <line x1="0" y1="8" x2="32" y2="8" stroke="#1e293b" strokeWidth="2" />
-                    <polygon points="32,4 32,12 40,8" fill="#1e293b" />
-                  </svg>
-                </div>
-                <div className="w-[200px] min-w-[200px]">
-                  <div className="bg-red-50 border-2 border-slate-700 px-3 py-2 min-h-[80px] flex flex-col justify-start text-left">
-                    <p className="text-sm font-semibold mb-1">Reports excluded (n = {stats.excludedFullText})</p>
-                    {stats.exclusionReasons && Object.keys(stats.exclusionReasons).length > 0 ? (
-                      <div className="text-sm ml-2 space-y-0.5 mt-1">
-                        {Object.entries(stats.exclusionReasons).map(([reason, count]) => (
-                          <div key={reason}>
-                            {reason} (n = {count})
-                          </div>
+            {/* Contenido principal + flecha + lateral */}
+            <div className="flex-1 flex items-stretch" style={{ gap: W.gap }}>
+              {/* Caja principal */}
+              <div className="flex-1">
+                <Box variant="idBox" className="h-full flex flex-col justify-center">
+                  <p className="text-sm font-semibold mb-1">Registros identificados desde*:</p>
+                  {stats.databases && stats.databases.length > 0 ? (
+                    <>
+                      <p className="text-sm ml-3">
+                        Bases de Datos (n&nbsp;=&nbsp;{totalDatabases})
+                      </p>
+                      <ul className="text-xs ml-6 space-y-0.5 mt-0.5 list-disc">
+                        {stats.databases.map((db) => (
+                          <li key={db.name}>
+                            {db.name} (n&nbsp;=&nbsp;{db.hits})
+                          </li>
                         ))}
-                      </div>
-                    ) : null}
+                      </ul>
+                    </>
+                  ) : (
+                    <p className="text-sm ml-3">
+                      Bases de Datos (n&nbsp;=&nbsp;{stats.identified})
+                    </p>
+                  )}
+                  <p className="text-sm ml-3 mt-1">
+                    Registros/Archivos (n&nbsp;=&nbsp;{stats.identified})
+                  </p>
+                </Box>
+              </div>
+
+              <ArrowH />
+
+              {/* Lateral: eliminados antes del cribado */}
+              <div style={{ width: W.side, minWidth: W.side }}>
+                <Box variant="idSide" className="h-full flex flex-col justify-center">
+                  <p className="text-sm font-semibold mb-1">
+                    Registros eliminados antes del cribado:
+                  </p>
+                  <p className="text-sm ml-3">Duplicados (n&nbsp;=&nbsp;{stats.duplicates})</p>
+                  <p className="text-sm ml-3">
+                    Registros señalados como inelegibles por herramientas de automatización
+                    (k&nbsp;=&nbsp;0)
+                  </p>
+                  <p className="text-sm ml-3">
+                    Registros eliminados por otras razones (n&nbsp;=&nbsp;0)
+                  </p>
+                </Box>
+              </div>
+            </div>
+          </div>
+
+          {/* Flecha ↓  entre Identificación y Cribado */}
+          <ArrowVBetween />
+
+          {/* ══════════════════════════════════════════
+              FASE: CRIBADO  (3 filas, 1 barra lateral)
+              ══════════════════════════════════════════ */}
+          <div className="flex" style={{ gap: W.gap }}>
+            <PhaseLabel label="Cribado" />
+
+            <div className="flex-1 flex flex-col" style={{ gap: 0 }}>
+              {/* ── Fila 1: Registros cribados ── */}
+              <Row
+                main={
+                  <>
+                    <p className="text-sm font-semibold">Registros cribados</p>
+                    <p className="text-base font-bold mt-1">
+                      (n&nbsp;=&nbsp;{stats.screenedTitleAbstract})
+                    </p>
+                  </>
+                }
+                mainVariant="cribBox"
+                side={
+                  <>
+                    <p className="text-sm font-semibold">Registros excluidos**</p>
+                    <p className="text-base font-bold mt-1">
+                      (n&nbsp;=&nbsp;{stats.excludedTitleAbstract})
+                    </p>
+                  </>
+                }
+                sideVariant="cribSide"
+              />
+
+              <ArrowVInner />
+
+              {/* ── Fila 2: Publicaciones recuperadas ── */}
+              <Row
+                main={
+                  <>
+                    <p className="text-sm font-semibold">
+                      Publicaciones recuperadas para evaluación
+                    </p>
+                    <p className="text-base font-bold mt-1">
+                      (n&nbsp;=&nbsp;{retrieved})
+                    </p>
+                  </>
+                }
+                mainVariant="cribBox"
+                side={
+                  <>
+                    <p className="text-sm font-semibold">Publicaciones no recuperadas</p>
+                    <p className="text-base font-bold mt-1">
+                      (n&nbsp;=&nbsp;{notRetrieved})
+                    </p>
+                  </>
+                }
+                sideVariant="cribSide"
+              />
+
+              <ArrowVInner />
+
+              {/* ── Fila 3: Evaluación de elegibilidad ── */}
+              <Row
+                main={
+                  <>
+                    <p className="text-sm font-semibold">
+                      Publicaciones evaluadas para elegibilidad
+                    </p>
+                    <p className="text-base font-bold mt-1">
+                      (n&nbsp;=&nbsp;{stats.fullTextAssessed})
+                    </p>
+                  </>
+                }
+                mainVariant="cribBox"
+                side={
+                  <div className="text-left">
+                    <p className="text-sm font-semibold mb-1">Publicaciones excluidas:</p>
+                    {stats.exclusionReasons &&
+                    Object.keys(stats.exclusionReasons).length > 0 ? (
+                      Object.entries(stats.exclusionReasons).map(([reason, count]) => (
+                        <p className="text-sm ml-3" key={reason}>
+                          {reason} (n&nbsp;=&nbsp;{count})
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-sm ml-3">
+                        Total (n&nbsp;=&nbsp;{stats.excludedFullText})
+                      </p>
+                    )}
                   </div>
-                </div>
-              </div>
+                }
+                sideVariant="cribSide"
+              />
             </div>
           </div>
 
-          <VerticalArrow />
+          {/* Flecha ↓  entre Cribado e Incluidos */}
+          <ArrowVBetween />
 
-          {/* ═══ INCLUDED PHASE ═══ */}
-          <div className="flex items-stretch">
-            {/* Phase label */}
-            <div className="flex items-center justify-center bg-sky-500 border-2 border-slate-700 w-[70px] min-w-[70px]">
-              <span className="[writing-mode:vertical-lr] rotate-180 text-sm font-bold text-white whitespace-nowrap">
-                Included
-              </span>
-            </div>
+          {/* ══════════════════════════════════════════
+              FASE: INCLUIDOS
+              ══════════════════════════════════════════ */}
+          <div className="flex" style={{ gap: W.gap }}>
+            <PhaseLabel label="Incluidos" />
 
-            {/* Two boxes side by side */}
-            <div className="flex-1 ml-3 flex gap-3">
-              <div className="flex-1 bg-emerald-100 border-2 border-slate-700 px-3 py-3 text-center">
-                <p className="text-sm font-semibold">New studies included</p>
-                <p className="text-sm">in review</p>
-                <p className="text-base font-bold mt-1">(n = {stats.includedFinal})</p>
-              </div>
-              <div className="flex-1 bg-emerald-100 border-2 border-slate-700 px-3 py-3 text-center">
-                <p className="text-sm font-semibold">Reports of new</p>
-                <p className="text-sm">included studies</p>
-                <p className="text-base font-bold mt-1">(n = {stats.includedFinal})</p>
-              </div>
+            <div className="flex-1">
+              <Box variant="inclBox" className="text-center py-4">
+                <p className="text-sm font-semibold">
+                  Nuevos estudios incluidos en la revisión
+                  (n&nbsp;=&nbsp;{stats.includedFinal})
+                </p>
+                <p className="text-sm mt-0.5">
+                  Registros de nuevos estudios incluidos
+                  (n&nbsp;=&nbsp;{stats.includedFinal})
+                </p>
+              </Box>
             </div>
           </div>
 
-          {/* Footer note */}
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-5 text-center italic">
-            Diagram based on PRISMA 2020 guidelines (Page et al., 2021).
-          </p>
+          {/* ── Notas al pie ── */}
+          <div className="mt-6 text-xs text-gray-500 dark:text-gray-400 space-y-1 leading-relaxed">
+            <p>
+              * Considere, si es factible hacerlo, informar del número de registros o citas
+              identificados en cada base de datos o registros buscados (en lugar del número total
+              encontrados en todas la base de datos/o bases de registros).
+            </p>
+            <p>
+              ** Si se utilizaron herramientas de aprendizaje automático, indique cuántos registros
+              fueron excluidos por humanos y cuántos fueron excluidos por estas herramientas.
+            </p>
+            <p className="italic mt-2">
+              Diagrama basado en las directrices PRISMA 2020 (Page et al., 2021).
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>
   )
 }
 
-/* ─── Sub-components ─── */
+/* ═══════════════════════════════════════════════════════
+   Sub-componentes
+   ═══════════════════════════════════════════════════════ */
 
-function RowWithPhase({ phase, phaseColor, mainContent, sideContent }: {
-  phase: string
-  phaseColor: string
-  mainContent: React.ReactNode
-  sideContent?: React.ReactNode
+/** Barra lateral de fase */
+function PhaseLabel({ label }: { label: string }) {
+  return (
+    <div
+      className="flex items-center justify-center rounded-sm shrink-0 bg-[#4472C4] dark:bg-blue-700 border-2 border-slate-600 dark:border-slate-500"
+      style={{
+        width: W.phase,
+        minWidth: W.phase,
+      }}
+    >
+      <span className="[writing-mode:vertical-lr] rotate-180 text-sm font-bold text-white whitespace-nowrap tracking-wide">
+        {label}
+      </span>
+    </div>
+  )
+}
+
+/** Caja genérica con borde — usa className para colores (soporta dark mode) */
+function Box({
+  variant,
+  className = "",
+  children,
+}: {
+  variant?: keyof typeof BOX_STYLES
+  className?: string
+  children: React.ReactNode
+}) {
+  const variantClass = variant ? BOX_STYLES[variant] : ""
+  return (
+    <div
+      className={`border-2 px-4 py-3 rounded-sm border-slate-600 dark:border-slate-500 ${variantClass} ${className}`}
+    >
+      {children}
+    </div>
+  )
+}
+
+/** Fila de Cribado: main (izq) + flecha → + side (der) — centrados verticalmente */
+function Row({
+  main,
+  mainVariant,
+  side,
+  sideVariant,
+}: {
+  main: React.ReactNode
+  mainVariant: keyof typeof BOX_STYLES
+  side: React.ReactNode
+  sideVariant: keyof typeof BOX_STYLES
 }) {
   return (
-    <div className="flex items-stretch">
-      {/* Phase label */}
-      <div className={`flex items-center justify-center ${phaseColor} border-2 border-slate-700 w-[70px] min-w-[70px]`}>
-        <span className="[writing-mode:vertical-lr] rotate-180 text-sm font-bold text-white whitespace-nowrap">
-          {phase}
-        </span>
+    <div className="flex items-stretch" style={{ gap: W.gap }}>
+      <div className="flex-1">
+        <Box variant={mainVariant} className="h-full flex flex-col items-center justify-center text-center">
+          {main}
+        </Box>
       </div>
-
-      {/* Main box */}
-      <div className="flex-1 ml-3">
-        <div className="flex items-stretch gap-3">
-          <div className="flex-1">
-            {mainContent}
-          </div>
-
-          {/* Arrow → + Side box */}
-          {sideContent && (
-            <>
-              <div className="flex items-center w-[40px] flex-shrink-0">
-                <svg width="100%" height="16" viewBox="0 0 40 16" preserveAspectRatio="none">
-                  <line x1="0" y1="8" x2="32" y2="8" stroke="#1e293b" strokeWidth="2" />
-                  <polygon points="32,4 32,12 40,8" fill="#1e293b" />
-                </svg>
-              </div>
-              <div className="w-[200px] min-w-[200px]">
-                {sideContent}
-              </div>
-            </>
-          )}
-        </div>
+      <ArrowH />
+      <div style={{ width: W.side, minWidth: W.side }}>
+        <Box variant={sideVariant} className="h-full flex flex-col items-center justify-center text-center">
+          {side}
+        </Box>
       </div>
     </div>
   )
 }
 
-function Row({ mainContent, sideContent }: {
-  mainContent: React.ReactNode
-  sideContent?: React.ReactNode
-}) {
+/** Flecha horizontal → */
+function ArrowH() {
   return (
-    <div className="flex items-stretch">
-      {/* Empty space for phase label alignment */}
-      <div className="w-[70px] min-w-[70px]" />
-
-      {/* Main box */}
-      <div className="flex-1 ml-3">
-        <div className="flex items-stretch gap-3">
-          <div className="flex-1">
-            {mainContent}
-          </div>
-
-          {/* Arrow → + Side box */}
-          {sideContent && (
-            <>
-              <div className="flex items-center w-[40px] flex-shrink-0">
-                <svg width="100%" height="16" viewBox="0 0 40 16" preserveAspectRatio="none">
-                  <line x1="0" y1="8" x2="32" y2="8" stroke="#1e293b" strokeWidth="2" />
-                  <polygon points="32,4 32,12 40,8" fill="#1e293b" />
-                </svg>
-              </div>
-              <div className="w-[200px] min-w-[200px]">
-                {sideContent}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+    <div
+      className="flex items-center shrink-0 text-slate-700 dark:text-slate-300"
+      style={{ width: W.arrow }}
+    >
+      <svg width="100%" height="16" viewBox="0 0 40 16" preserveAspectRatio="none">
+        <line x1="0" y1="8" x2="32" y2="8" stroke="currentColor" strokeWidth="2" />
+        <polygon points="32,4 32,12 40,8" fill="currentColor" />
+      </svg>
     </div>
   )
 }
 
-function VerticalArrow() {
+/**
+ * Flecha vertical ↓ ENTRE fases.
+ * Se alinea debajo de la columna principal (sin contar la lateral).
+ */
+function ArrowVBetween() {
   return (
-    <div className="flex my-2">
-      <div className="w-[70px] min-w-[70px]" />
-      <div className="flex-1 ml-3">
-        <div className="flex justify-start">
-          <svg width="3" height="30" className="overflow-visible ml-[calc(50%-1.5px)]">
-            <line x1="1.5" y1="0" x2="1.5" y2="30" stroke="#1e293b" strokeWidth="2" />
-            <polygon points="-2,22 5,22 1.5,30" fill="#1e293b" />
+    <div className="flex my-2 text-slate-700 dark:text-slate-300" style={{ gap: W.gap }}>
+      {/* Espacio de la barra lateral */}
+      <div style={{ width: W.phase, minWidth: W.phase }} />
+      {/* Centro sobre la columna principal */}
+      <div className="flex-1">
+        <div className="flex justify-center">
+          <svg width="3" height="28" className="overflow-visible">
+            <line x1="1.5" y1="0" x2="1.5" y2="28" stroke="currentColor" strokeWidth="2" />
+            <polygon points="-2,20 5,20 1.5,28" fill="currentColor" />
           </svg>
         </div>
       </div>
+      {/* Espacio equivalente a flecha + lateral para mantener centrado */}
+      <div className="shrink-0" style={{ width: W.arrow + W.gap + W.side }} />
+    </div>
+  )
+}
+
+/**
+ * Flecha vertical ↓ DENTRO de una fase (entre filas de Cribado).
+ * Se centra sobre la columna principal solamente.
+ */
+function ArrowVInner() {
+  return (
+    <div className="flex my-1 text-slate-700 dark:text-slate-300" style={{ gap: W.gap }}>
+      <div className="flex-1">
+        <div className="flex justify-center">
+          <svg width="3" height="22" className="overflow-visible">
+            <line x1="1.5" y1="0" x2="1.5" y2="22" stroke="currentColor" strokeWidth="2" />
+            <polygon points="-2,14 5,14 1.5,22" fill="currentColor" />
+          </svg>
+        </div>
+      </div>
+      {/* Compensar el espacio de la lateral para centrar correctamente */}
+      <div className="shrink-0" style={{ width: W.arrow + W.gap + W.side }} />
     </div>
   )
 }

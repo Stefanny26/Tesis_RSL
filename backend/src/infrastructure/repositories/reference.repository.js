@@ -103,7 +103,7 @@ class ReferenceRepository {
     const allowedFields = [
       'title', 'authors', 'year', 'journal', 'doi', 'abstract', 'keywords', 'url',
       'screeningStatus', 'aiClassification', 'aiConfidenceScore', 'aiReasoning',
-      'manualReviewStatus', 'manualReviewNotes', 'reviewedBy',
+      'manualReviewStatus', 'manualReviewNotes', 'reviewedBy', 'reviewedAt',
       'fullTextAvailable', 'fullTextUrl', 'screeningScore', 'aiDecision', 'exclusionReason',
       'fullTextData', 'fullTextExtracted', 'fullTextExtractedAt'
     ];
@@ -116,6 +116,7 @@ class ReferenceRepository {
       manualReviewStatus: 'manual_review_status',
       manualReviewNotes: 'manual_review_notes',
       reviewedBy: 'reviewed_by',
+      reviewedAt: 'reviewed_at',
       fullTextAvailable: 'full_text_available',
       fullTextUrl: 'full_text_url',
       screeningScore: 'screening_score',

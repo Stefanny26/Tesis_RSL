@@ -10,8 +10,12 @@ const GenerateArticleFromPrismaUseCase = require('../../domain/use-cases/generat
 const GeneratePrismaContextUseCase = require('../../domain/use-cases/generate-prisma-context.use-case');
 const AIService = require('../../infrastructure/services/ai.service');
 const ArticleVersion = require('../../domain/models/article-version.model');
+const latexTemplate = require('../../../templates/article-latex.template');
 const { v4: uuidv4 } = require('uuid');
 const database = require('../../config/database');
+const fs = require('fs');
+const path = require('path');
+const archiver = require('archiver');
 
 /**
  * Controlador de Artículo Científico
@@ -444,6 +448,559 @@ class ArticleController {
     }
   }
 
+  /**
+   * GET /api/projects/:projectId/article/export/latex
+   * Exportar artículo en formato LaTeX
+   */
+  async exportLatex(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para exportar este artículo'
+        });
+      }
+
+      // Generar artículo si no se ha generado aún
+      const generateContextUseCase = new GeneratePrismaContextUseCase({
+        protocolRepository: this.protocolRepository,
+        referenceRepository: this.referenceRepository,
+        projectRepository: this.projectRepository
+      });
+
+      const generateArticleUseCase = new GenerateArticleFromPrismaUseCase({
+        prismaItemRepository: this.prismaItemRepository,
+        protocolRepository: this.protocolRepository,
+        rqsEntryRepository: this.rqsEntryRepository,
+        screeningRecordRepository: this.screeningRecordRepository,
+        aiService: new AIService(req.userId),
+        pythonGraphService: this.pythonGraphService,
+        generatePrismaContextUseCase: generateContextUseCase
+      });
+
+      const result = await generateArticleUseCase.execute(projectId);
+      const article = result.article;
+
+      // Obtener perfil de usuario para autor
+      const userProfile = { email: req.user?.email, fullName: req.user?.fullName };
+
+      // Generar LaTeX
+      const latexContent = latexTemplate.generate(article, userProfile);
+
+      // Configurar headers para descarga
+      const filename = `article_${projectId.substring(0, 8)}.tex`;
+      res.setHeader('Content-Type', 'application/x-latex');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(latexContent);
+
+    } catch (error) {
+      console.error('❌ Error exportando LaTeX:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al exportar artículo en formato LaTeX',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/projects/:projectId/article/export/bibtex
+   * Exportar referencias en formato BibTeX
+   */
+  async exportBibtex(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para exportar referencias'
+        });
+      }
+
+      // Obtener RQS entries (estudios incluidos)
+      const rqsEntries = await this.rqsEntryRepository.findByProject(projectId);
+
+      if (rqsEntries.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No hay estudios incluidos para exportar'
+        });
+      }
+
+      // Generar BibTeX
+      const bibtexContent = this.generateBibtexFromRQS(rqsEntries);
+
+      // Configurar headers para descarga
+      const filename = `references_${projectId.substring(0, 8)}.bib`;
+      res.setHeader('Content-Type', 'application/x-bibtex');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(bibtexContent);
+
+    } catch (error) {
+      console.error('❌ Error exportando BibTeX:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al exportar referencias en formato BibTeX',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/projects/:projectId/article/export/data-csv
+   * Exportar datos RQS en formato CSV
+   */
+  async exportDataCSV(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para exportar datos'
+        });
+      }
+
+      // Obtener RQS entries
+      const rqsEntries = await this.rqsEntryRepository.findByProject(projectId);
+
+      if (rqsEntries.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No hay datos RQS para exportar'
+        });
+      }
+
+      // Generar CSV
+      const csvContent = this.generateCSVFromRQS(rqsEntries);
+
+      // Configurar headers para descarga
+      const filename = `rqs_data_${projectId.substring(0, 8)}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send('\uFEFF' + csvContent); // BOM para UTF-8
+
+    } catch (error) {
+      console.error('❌ Error exportando CSV:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al exportar datos en formato CSV',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/projects/:projectId/article/export/charts-zip
+   * Exportar gráficos en formato ZIP
+   */
+  async exportChartsZip(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para exportar gráficos'
+        });
+      }
+
+      const chartsDir = path.join(__dirname, '../../../uploads/charts');
+      
+      // Verificar que existan gráficos
+      if (!fs.existsSync(chartsDir)) {
+        return res.status(404).json({
+          success: false,
+          message: 'No se encontraron gráficos generados'
+        });
+      }
+
+      const chartFiles = fs.readdirSync(chartsDir).filter(file => 
+        file.endsWith('.png') || file.endsWith('.pdf') || file.endsWith('.eps')
+      );
+
+      if (chartFiles.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No hay gráficos disponibles para exportar'
+        });
+      }
+
+      // Crear ZIP
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      const filename = `charts_${projectId.substring(0, 8)}.zip`;
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      archive.pipe(res);
+
+      // Agregar archivos al ZIP organizados por formato
+      chartFiles.forEach(file => {
+        const filePath = path.join(chartsDir, file);
+        const ext = path.extname(file).toLowerCase();
+        const subfolder = ext === '.pdf' ? 'vector/' : ext === '.eps' ? 'vector/' : 'raster/';
+        archive.file(filePath, { name: `${subfolder}${file}` });
+      });
+
+      await archive.finalize();
+
+    } catch (error) {
+      console.error('❌ Error exportando gráficos:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al exportar gráficos',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/projects/:projectId/article/export/python-scripts
+   * Exportar script Python para generación de gráficos
+   */
+  async exportPythonScripts(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para exportar scripts'
+        });
+      }
+
+      const pythonScriptPath = path.join(__dirname, '../../../scripts/generate_charts.py');
+      
+      if (!fs.existsSync(pythonScriptPath)) {
+        return res.status(404).json({
+          success: false,
+          message: 'Script Python no encontrado'
+        });
+      }
+
+      // Crear ZIP con el script + un README de uso + requirements
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      const filename = `python_scripts_${projectId.substring(0, 8)}.zip`;
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      archive.pipe(res);
+
+      // 1. Script principal
+      archive.file(pythonScriptPath, { name: 'generate_charts.py' });
+
+      // 2. Requirements
+      const requirementsContent = `# Python dependencies for chart generation
+matplotlib>=3.7.0
+pandas>=2.0.0
+numpy>=1.24.0
+`;
+      archive.append(requirementsContent, { name: 'requirements.txt' });
+
+      // 3. README con instrucciones
+      const readmeContent = `# Chart Generation Scripts
+
+## Setup
+
+\`\`\`bash
+pip install -r requirements.txt
+\`\`\`
+
+## Usage
+
+The script reads JSON data from stdin and outputs charts to the specified directory:
+
+\`\`\`bash
+echo '{"prisma": {...}, "scree": {"scores": [...]}}' | python generate_charts.py --output-dir ./output
+\`\`\`
+
+## Output Formats
+
+Each chart is automatically saved in two formats:
+- **PNG** (300 DPI raster) — for screen display and web
+- **PDF** (vector) — for high-impact journal publication (required by IEEE, Elsevier, Springer, MDPI)
+
+## Available Charts
+
+1. **prisma_flow** — PRISMA 2020 flow diagram
+2. **scree_plot** — AI screening relevance scores with elbow detection
+3. **chart1_search** — Database search strategy table
+4. **temporal_distribution** — Publication year distribution
+5. **quality_assessment** — Methodological quality assessment
+6. **bubble_chart** — Metrics vs Technologies mapping
+7. **technical_synthesis** — Comparative technical performance table
+
+## Customization
+
+You can modify:
+- Colors: Edit the color constants at the top of each draw function
+- Fonts: Change \`plt.rcParams\` in the global style section
+- Labels: Modify axis labels and titles in each function
+- DPI: Adjust the \`dpi\` parameter in \`save_figure()\`
+`;
+      archive.append(readmeContent, { name: 'README.md' });
+
+      await archive.finalize();
+
+    } catch (error) {
+      console.error('❌ Error exportando scripts Python:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al exportar scripts Python',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/projects/:projectId/article/export/all-zip
+   * Exportar todo (LaTeX, BibTeX, CSV, Gráficos, Script Python)
+   */
+  async exportAllZip(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      // Verificar permisos
+      const isOwner = await this.projectRepository.isOwner(projectId, req.userId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permiso para exportar este proyecto'
+        });
+      }
+
+      // Generar artículo
+      const generateContextUseCase = new GeneratePrismaContextUseCase({
+        protocolRepository: this.protocolRepository,
+        referenceRepository: this.referenceRepository,
+        projectRepository: this.projectRepository
+      });
+
+      const generateArticleUseCase = new GenerateArticleFromPrismaUseCase({
+        prismaItemRepository: this.prismaItemRepository,
+        protocolRepository: this.protocolRepository,
+        rqsEntryRepository: this.rqsEntryRepository,
+        screeningRecordRepository: this.screeningRecordRepository,
+        aiService: new AIService(req.userId),
+        pythonGraphService: this.pythonGraphService,
+        generatePrismaContextUseCase: generateContextUseCase
+      });
+
+      const result = await generateArticleUseCase.execute(projectId);
+      const article = result.article;
+      const rqsEntries = await this.rqsEntryRepository.findByProject(projectId);
+
+      // Crear ZIP
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      const filename = `article_complete_${projectId.substring(0, 8)}.zip`;
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      archive.pipe(res);
+
+      // 1. LaTeX
+      const userProfile = { email: req.user?.email, fullName: req.user?.fullName };
+      const latexContent = latexTemplate.generate(article, userProfile);
+      archive.append(latexContent, { name: 'article.tex' });
+
+      // 2. BibTeX
+      if (rqsEntries.length > 0) {
+        const bibtexContent = this.generateBibtexFromRQS(rqsEntries);
+        archive.append(bibtexContent, { name: 'references.bib' });
+      }
+
+      // 3. CSV
+      if (rqsEntries.length > 0) {
+        const csvContent = this.generateCSVFromRQS(rqsEntries);
+        archive.append('\uFEFF' + csvContent, { name: 'rqs_data.csv' });
+      }
+
+      // 4. Gráficos
+      const chartsDir = path.join(__dirname, '../../../uploads/charts');
+      if (fs.existsSync(chartsDir)) {
+        const chartFiles = fs.readdirSync(chartsDir).filter(file => 
+          file.endsWith('.png') || file.endsWith('.pdf') || file.endsWith('.eps')
+        );
+        chartFiles.forEach(file => {
+          const filePath = path.join(chartsDir, file);
+          const ext = path.extname(file).toLowerCase();
+          const subfolder = ext === '.pdf' || ext === '.eps' ? 'charts/vector/' : 'charts/raster/';
+          archive.file(filePath, { name: `${subfolder}${file}` });
+        });
+      }
+
+      // 5. Script Python
+      const pythonScriptPath = path.join(__dirname, '../../../scripts/generate_charts.py');
+      if (fs.existsSync(pythonScriptPath)) {
+        archive.file(pythonScriptPath, { name: 'generate_charts.py' });
+      }
+
+      // 6. README con instrucciones
+      const readmeContent = this.generateExportReadme(article);
+      archive.append(readmeContent, { name: 'README.md' });
+
+      await archive.finalize();
+
+    } catch (error) {
+      console.error('❌ Error exportando paquete completo:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al exportar paquete completo',
+        error: error.message
+      });
+    }
+  }
+
+  // ============================================================================
+  // MÉTODOS AUXILIARES
+  // ============================================================================
+
+  /**
+   * Generar BibTeX desde RQS entries
+   */
+  generateBibtexFromRQS(rqsEntries) {
+    let bibtex = '% BibTeX entries for included studies\n';
+    bibtex += `% Generated: ${new Date().toISOString()}\n\n`;
+
+    rqsEntries.forEach((entry, index) => {
+      const id = `study${index + 1}`;
+      const author = entry.author || 'Unknown';
+      const year = entry.year || '0000';
+      const title = entry.title || 'Untitled';
+      const source = entry.source || 'Unknown Source';
+
+      bibtex += `@article{${id},\n`;
+      bibtex += `  author = {${author}},\n`;
+      bibtex += `  title = {${title}},\n`;
+      bibtex += `  journal = {${source}},\n`;
+      bibtex += `  year = {${year}},\n`;
+      
+      if (entry.technology) {
+        bibtex += `  keywords = {${entry.technology}},\n`;
+      }
+      
+      bibtex += `}\n\n`;
+    });
+
+    return bibtex;
+  }
+
+  /**
+   * Generar CSV desde RQS entries
+   */
+  generateCSVFromRQS(rqsEntries) {
+    let csv = 'ID,Author,Year,Title,Source,Study Type,Technology,Context,Quality Score,RQ1,RQ2,RQ3\n';
+
+    rqsEntries.forEach((entry, index) => {
+      const row = [
+        index + 1,
+        this.escapeCsv(entry.author || ''),
+        entry.year || '',
+        this.escapeCsv(entry.title || ''),
+        this.escapeCsv(entry.source || ''),
+        entry.studyType || '',
+        this.escapeCsv(entry.technology || ''),
+        entry.context || '',
+        entry.qualityScore || '',
+        entry.rq1Relation || '',
+        entry.rq2Relation || '',
+        entry.rq3Relation || ''
+      ];
+      csv += row.join(',') + '\n';
+    });
+
+    return csv;
+  }
+
+  /**
+   * Escapar valores CSV
+   */
+  escapeCsv(value) {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  }
+
+  /**
+   * Generar README para exportación
+   */
+  generateExportReadme(article) {
+    return `# Scientific Article Export Package
+
+## Contents
+
+1. **article.tex** - LaTeX source file (ready to compile with pdflatex or Overleaf)
+2. **references.bib** - BibTeX references for automatic bibliography
+3. **rqs_data.csv** - Research Question Schema data (importable to Excel/R/Python)
+4. **charts/raster/** - All generated charts in PNG format (300 DPI)
+5. **charts/vector/** - All generated charts in PDF vector format (required by high-impact journals)
+6. **generate_charts.py** - Python script to regenerate/customize charts
+
+## Compilation Instructions
+
+### LaTeX
+\`\`\`bash
+pdflatex article.tex
+bibtex article
+pdflatex article.tex
+pdflatex article.tex
+\`\`\`
+
+Or use Overleaf: Upload all files to a new project.
+
+### Python Charts
+\`\`\`bash
+pip install matplotlib pandas numpy
+python generate_charts.py
+\`\`\`
+
+## Vector Graphics for Journals
+
+High-impact journals (IEEE, Elsevier, Springer, MDPI) require vector graphics (PDF/EPS).
+Use the files in \`charts/vector/\` for submission. The PDF files can be included directly
+in LaTeX with \\includegraphics{}.
+
+## Article Metadata
+
+- **Title**: ${article.title}
+- **Generated**: ${article.metadata?.generatedAt || new Date().toISOString()}
+- **Word Count**: ${article.metadata?.wordCount || 'N/A'}
+- **Included Studies**: ${article.metadata?.rqsEntriesCount || 'N/A'}
+- **PRISMA Compliant**: ${article.metadata?.prismaCompliant ? 'Yes' : 'No'}
+
+## Data Analysis
+
+The CSV file contains structured data for further analysis:
+- Import into Excel for pivot tables
+- Load into R/Python for statistical tests
+- Visualize with Tableau/PowerBI
+
+## Support
+
+For issues or questions about this export, consult the system documentation.
+`;
+  }
+
 }
 
 module.exports = ArticleController;
+

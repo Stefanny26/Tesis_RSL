@@ -31,4 +31,26 @@ router.get('/:projectId/article/versions/:versionId', (req, res) => controller.g
 // PUT /api/projects/:projectId/article/versions/:versionId - Actualizar versión
 router.put('/:projectId/article/versions/:versionId', (req, res) => controller.updateVersion(req, res));
 
+// ============================================================================
+// RUTAS DE EXPORTACIÓN
+// ============================================================================
+
+// GET /api/projects/:projectId/article/export/latex - Exportar LaTeX
+router.get('/:projectId/article/export/latex', (req, res) => controller.exportLatex(req, res));
+
+// GET /api/projects/:projectId/article/export/bibtex - Exportar BibTeX
+router.get('/:projectId/article/export/bibtex', (req, res) => controller.exportBibtex(req, res));
+
+// GET /api/projects/:projectId/article/export/data-csv - Exportar CSV
+router.get('/:projectId/article/export/data-csv', (req, res) => controller.exportDataCSV(req, res));
+
+// GET /api/projects/:projectId/article/export/charts-zip - Exportar gráficos ZIP (PNG + PDF vector)
+router.get('/:projectId/article/export/charts-zip', (req, res) => controller.exportChartsZip(req, res));
+
+// GET /api/projects/:projectId/article/export/python-scripts - Exportar scripts Python
+router.get('/:projectId/article/export/python-scripts', (req, res) => controller.exportPythonScripts(req, res));
+
+// GET /api/projects/:projectId/article/export/all-zip - Exportar paquete completo
+router.get('/:projectId/article/export/all-zip', (req, res) => controller.exportAllZip(req, res));
+
 module.exports = router;

@@ -55,17 +55,18 @@ const pdfUpload = multer({
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, `ref-${req.params.id}-${uniqueSuffix}.pdf`);
+      const ext = file.mimetype === 'text/plain' ? '.txt' : '.pdf';
+      cb(null, `ref-${req.params.id}-${uniqueSuffix}${ext}`);
     }
   }),
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB max para PDFs
+    fileSize: 50 * 1024 * 1024, // 50MB max
   },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
+    if (file.mimetype === 'application/pdf' || file.mimetype === 'text/plain') {
       cb(null, true);
     } else {
-      cb(new Error('Solo se permiten archivos PDF'));
+      cb(new Error('Solo se permiten archivos PDF o de texto'));
     }
   }
 });
