@@ -136,6 +136,7 @@ class GeneratePrismaContextUseCase {
           },
 
           searchQueries: protocol.searchQueries || [],
+          searchString: protocol.searchString || '',
 
           keyTerms: protocol.keyTerms || {}
         },

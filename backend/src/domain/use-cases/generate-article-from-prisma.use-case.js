@@ -562,10 +562,22 @@ Generate ONLY the introduction text in English:`;
     const searchQueries = prismaContext.protocol.searchQueries || [];
     const databases = prismaContext.protocol.databases || [];
     
+    // Mapa de IDs a nombres legibles
+    const DB_NAME_MAP = {
+      'ieee': 'IEEE Xplore',
+      'scopus': 'Scopus',
+      'acm': 'ACM Digital Library',
+      'pubmed': 'PubMed',
+      'wos': 'Web of Science',
+      'springer': 'Springer Link',
+      'sciencedirect': 'ScienceDirect',
+      'google_scholar': 'Google Scholar'
+    };
+
     // Para compatibilidad con código existente
     const dbNames = searchQueries.length > 0 
-      ? searchQueries.map(sq => sq.databaseName || sq.database).join(', ')
-      : databases.map(db => db.name || db).join(', ') || 'bases de datos electrónicas';
+      ? searchQueries.map(sq => DB_NAME_MAP[sq.database] || DB_NAME_MAP[sq.databaseId] || sq.databaseName || sq.database).join(', ')
+      : databases.map(db => db.name || db).join(', ') || 'electronic databases';
 
     let screePlot = '';
     if (charts.scree) {
@@ -575,29 +587,39 @@ Generate ONLY the introduction text in English:`;
 `;
     }
 
+    // Cadena de búsqueda general del protocolo (fallback)
+    const globalSearchString = prismaContext.protocol.searchString || '';
+
     // Generar tabla de búsquedas - SOLO markdown puro, sin títulos adicionales
     let searchChart = '';
     
     if (searchQueries.length > 0) {
-      const tableRows = searchQueries.map(sq => {
-        const dbName = sq.databaseName || sq.database || 'N/A';
-        const searchStr = sq.query || 'N/A';
-        return `| ${dbName} | ${searchStr} |`;
-      }).join('\n');
+      // Tenemos queries per-database: cruzar con databases reales (que tienen hits)
+      const dbsWithHits = new Set(databases.map(db => (db.name || db || '').toLowerCase()));
+      const tableRows = searchQueries
+        .filter(sq => {
+          // Incluir solo las bases de datos que realmente tienen referencias cargadas
+          const sqName = (DB_NAME_MAP[sq.database] || DB_NAME_MAP[sq.databaseId] || sq.databaseName || sq.database || '').toLowerCase();
+          return dbsWithHits.size === 0 || dbsWithHits.has(sqName);
+        })
+        .map(sq => {
+          const dbName = DB_NAME_MAP[sq.database] || DB_NAME_MAP[sq.databaseId] || sq.databaseName || sq.database || 'N/A';
+          const searchStr = sq.query || globalSearchString || 'N/A';
+          return `| ${dbName} | ${searchStr} |`;
+        }).join('\n');
 
-      searchChart = `| Database | Search String |
-|---------------|-------------------|
-${tableRows}`;
-    } else if (databases.length > 0) {
+      searchChart = tableRows ? `| Database | Search String |\n|---------------|-------------------|\n${tableRows}` : '';
+    }
+    
+    // Fallback: usar databases + cadena global del protocolo
+    if (!searchChart && databases.length > 0) {
       const tableRows = databases.map(db => {
         const dbName = db.name || db || 'N/A';
-        const searchStr = db.query || db.searchString || 'See protocol';
+        const searchStr = db.searchString || db.query || globalSearchString || 'See protocol';
         return `| ${dbName} | ${searchStr} |`;
       }).join('\n');
 
-      searchChart = `| Database | Search String |
-|---------------|-------------------|
-${tableRows}`;
+      searchChart = `| Database | Search String |\n|---------------|-------------------|\n${tableRows}`;
     }
 
     // Translate PICO and PRISMA items from Spanish to English
