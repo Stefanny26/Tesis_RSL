@@ -43,27 +43,38 @@ class GeneratePrismaContextUseCase {
       // 4. Analizar screening results del protocolo
       const screeningResults = protocol.screeningResults || {};
 
-      // 5. Contar referencias por estado
+      // 5. Contar referencias por estado — usando selectedForFullText del protocolo + manualReviewStatus
+      // Esto garantiza consistencia entre el frontend (screening page) y el backend (artículo)
       const identified = allReferences.length;
       const duplicates = allReferences.filter(ref =>
         ref.screeningStatus === 'duplicate'
       ).length;
       const afterDuplicateRemoval = identified - duplicates;
 
-      // Referencias excluidas en cribado inicial (título/resumen)
-      const excludedTitleAbstract = allReferences.filter(ref =>
-        ref.screeningStatus === 'excluded'
-      ).length;
+      // Determinar qué artículos fueron seleccionados para revisión manual (full-text)
+      const selectedForFullTextIds = new Set(protocol.selectedForFullText || []);
+      
+      // Si no hay selectedForFullText en el protocolo, inferir desde manualReviewStatus
+      if (selectedForFullTextIds.size === 0) {
+        allReferences.forEach(ref => {
+          if (ref.manualReviewStatus === 'included' || ref.manualReviewStatus === 'excluded') {
+            selectedForFullTextIds.add(ref.id);
+          }
+        });
+      }
 
-      // Referencias incluidas después del cribado inicial
-      const includedAfterScreening = allReferences.filter(ref =>
-        ref.screeningStatus === 'included' ||
-        ref.screeningStatus === 'fulltext_included'
-      ).length;
+      // Fase título/resumen: excluidos = los NO seleccionados para full-text (excluyendo duplicados)
+      const nonDuplicateRefs = allReferences.filter(ref => ref.screeningStatus !== 'duplicate');
+      const excludedTitleAbstract = selectedForFullTextIds.size > 0 
+        ? nonDuplicateRefs.filter(ref => !selectedForFullTextIds.has(ref.id)).length
+        : allReferences.filter(ref => ref.screeningStatus === 'excluded').length;
 
-      // Referencias excluidas en texto completo (si aplica)
+      // Fase full-text: evaluados = los seleccionados para revisión manual
+      const fullTextAssessedCount = selectedForFullTextIds.size;
+
+      // Excluidos en full-text = los que fueron revisados manualmente y excluidos
       const excludedFullTextRefs = allReferences.filter(ref =>
-        ref.screeningStatus === 'fulltext_excluded'
+        selectedForFullTextIds.has(ref.id) && ref.manualReviewStatus === 'excluded'
       );
       const excludedFullText = excludedFullTextRefs.length;
 
@@ -76,10 +87,9 @@ class GeneratePrismaContextUseCase {
         }
       });
 
-      // Referencias finales incluidas
+      // Referencias finales incluidas = revisadas manualmente como 'included'
       const finalIncluded = allReferences.filter(ref =>
-        ref.screeningStatus === 'included' ||
-        ref.screeningStatus === 'fulltext_included'
+        selectedForFullTextIds.has(ref.id) && ref.manualReviewStatus === 'included'
       ).length;
 
       // 6. Obtener información del método de cribado
@@ -142,12 +152,12 @@ class GeneratePrismaContextUseCase {
         },
 
         screening: {
-          // Números PRISMA
+          // Números PRISMA — consistentes con la sección "Resultados Detallado" del frontend
           identified: identified,
           duplicatesRemoved: duplicates,
           screenedTitleAbstract: afterDuplicateRemoval,
           excludedTitleAbstract: excludedTitleAbstract,
-          fullTextAssessed: includedAfterScreening,
+          fullTextAssessed: fullTextAssessedCount,
           excludedFullText: excludedFullText,
           exclusionReasons: exclusionReasons,
           includedFinal: finalIncluded,
@@ -158,7 +168,7 @@ class GeneratePrismaContextUseCase {
           // Campos para el artículo
           totalResults: identified,
           afterScreening: afterDuplicateRemoval,
-          fullTextRetrieved: allReferences.filter(r => r.screeningStatus === 'included' || r.screeningStatus === 'fulltext_included').length,
+          fullTextRetrieved: fullTextAssessedCount,
 
           // Datos del cribado híbrido si existen
           phase1: screeningResults.phase1 || null,

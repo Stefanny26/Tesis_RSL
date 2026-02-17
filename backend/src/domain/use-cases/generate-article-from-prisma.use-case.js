@@ -219,6 +219,11 @@ ${text}`;
       }
 
       console.log(`📊 Datos RQS disponibles: ${rqsEntries.length} entradas`);
+      console.log(`✅ ESTUDIOS CARGADOS DESDE DB:`);
+      rqsEntries.forEach((entry, idx) => {
+        console.log(`   S${idx + 1}: ${entry.author} (${entry.year}) - ${entry.title?.substring(0, 60)}...`);
+      });
+      console.log(`⚠️  GPT-4 DEBE USAR SOLO ESTOS ${rqsEntries.length} ESTUDIOS, NO PUEDE INVENTAR MÁS`);
 
       // 3. Calcular estadísticas detalladas RQS
       const rqsStats = this.calculateDetailedRQSStatistics(rqsEntries);
@@ -759,13 +764,22 @@ The synthesis was organized around the three research questions, integrating fin
     ]);
     console.log('✅ Results translation completed');
 
+    // Calcular correctamente los números PRISMA para evitar valores negativos
+    const totalIdentified = prismaContext.screening.identified || 0;
+    const duplicatesRemoved = prismaContext.screening.duplicatesRemoved || 0;
+    const afterDedup = prismaContext.screening.screenedTitleAbstract || (totalIdentified - duplicatesRemoved);
+    const excludedTitleAbstract = prismaContext.screening.excludedTitleAbstract || 0;
+    const fullTextAssessed = prismaContext.screening.fullTextAssessed || 0;
+    const excludedFullText = prismaContext.screening.excludedFullText || 0;
+    const finalIncluded = prismaContext.screening.includedFinal || rqsStats.total;
+
     return `## 3.1 Study Selection
 
 ${studySelection}
 
-Figure 2 presents the complete PRISMA flow diagram of the selection process. The initial search identified **${prismaContext.screening.totalResults ?? 'N/A'} records** across the consulted databases. After duplicate removal (n=${prismaContext.screening.duplicatesRemoved ?? 'N/A'}), **${prismaContext.screening.afterScreening ?? 'N/A'} unique records** were screened by title and abstract.
+Figure 2 presents the complete PRISMA flow diagram of the selection process. The initial search identified **${totalIdentified} records** across the consulted databases. After duplicate removal (n=${duplicatesRemoved}), **${afterDedup} unique records** were screened by title and abstract.
 
-Of these, **${prismaContext.screening.fullTextRetrieved ?? 'N/A'} articles** were retrieved for full-text evaluation. Finally, **${rqsStats.total} studies** met all inclusion criteria and were included in the qualitative synthesis.
+Of these, **${fullTextAssessed} articles** were retrieved for full-text evaluation. A total of **${excludedFullText} articles were excluded** after full-text assessment${Object.keys(prismaContext.screening.exclusionReasons || {}).length > 0 ? `, primarily due to: ${Object.entries(prismaContext.screening.exclusionReasons || {}).slice(0, 3).map(([reason, count]) => `${reason} (n=${count})`).join(', ')}` : ''}. Finally, **${finalIncluded} studies** met all inclusion criteria and were included in the qualitative synthesis.
 
 ${charts.prisma ? `![PRISMA 2020 Flow Diagram](${charts.prisma})` : '**[FIGURE 2: PRISMA 2020 Flow Diagram]**'}
 *Figure 2. PRISMA 2020 flow diagram of the study selection process.*
@@ -808,7 +822,7 @@ ${rq3Synthesis}
 
 ${charts.bubble_chart ? `\n### 3.4.4 Metrics and Technologies Mapping\n\n![Metrics vs Technologies Distribution](${charts.bubble_chart})\n*Figure 5. Distribution of reported metrics across different technologies. Bubble size represents the number of studies reporting each metric-technology combination. This visualization reveals which technologies have been most thoroughly evaluated and which metrics are most commonly used.*\n` : ''}
 
-${charts.technical_synthesis ? `\n### 3.4.5 Technical Performance Synthesis\n\n![Comparative Technical Metrics](${charts.technical_synthesis})\n*Figure 6. Comparative synthesis of technical performance metrics across included studies. This table summarizes quantitative evidence for latency, throughput, CPU usage, and memory consumption, enabling direct comparison between different approaches.*\n` : ''}`;
+${charts.technical_synthesis ? `\n### 3.4.5 Technical Performance Synthesis\n\n![Comparative Technical Metrics](${charts.technical_synthesis})\n*Figure 6. Comparative synthesis of quantitative metrics across included studies. This table summarizes the empirical evidence reported in each study, enabling direct comparison between different approaches and methodologies. Note: Metrics displayed are dynamically extracted from the actual reported data in each study.*\n` : ''}`;
   }
 
   /**
@@ -890,6 +904,8 @@ ${this.generateTable2Professional(rqsEntries)}`;
 
     const prompt = `Synthesize the findings of ${relevantStudies.length} studies that answered: "${prismaContext.protocol.researchQuestions[0]}"
 
+**⚠️ CRITICAL: You are ONLY allowed to mention these ${relevantStudies.length} studies. DO NOT invent or add any studies beyond this list:**
+
 **EVIDENCE EXTRACTED FROM STUDIES:**
 ${relevantStudies.map((study, i) => `
 Study S${i + 1} (${study.author}, ${study.year}):
@@ -920,13 +936,16 @@ Generate 2-3 academic paragraphs (400-500 words) following this structure:
 
 3. **Cross-study analysis**: Compare approaches or results across different contexts (industrial/academic/experimental). Highlight which conditions favor specific solutions.
 
-**CRITICAL REQUIREMENTS:**
-- Reference specific studies using citation style: "...as reported by S1, S3, and S7"
-- Include exact metrics when available (e.g., "S2 achieved 45ms latency")
-- DO NOT invent data not mentioned above
+**CRITICAL REQUIREMENTS - READ CAREFULLY:**
+- You have EXACTLY ${relevantStudies.length} study/studies. You CANNOT mention more than ${relevantStudies.length} study/studies.
+- The ONLY valid study IDs are: ${relevantStudies.map((_, i) => `S${i+1}`).join(', ')}
+- Reference specific studies using citation style: "...as reported by S1${relevantStudies.length > 1 ? ', S2' : ''}" (only use IDs from the list above)
+- Include ONLY metrics explicitly mentioned in the EVIDENCE section above
+- DO NOT invent any data, studies, authors, or findings beyond what is explicitly provided
+- DO NOT add studies like "S${relevantStudies.length + 1}" or any ID beyond the provided list
 - DO NOT include personal opinions or value judgments — report findings ONLY
 - Avoid evaluative language like "interesting", "noteworthy", "remarkable", "surprisingly"
-- Factual reporting only: "S1 and S4 reported X" NOT "Interestingly, S1 found..."
+- Factual reporting only: "S1 reported X" NOT "Interestingly, S1 found..."
 - If source evidence is in Spanish, translate and integrate naturally into English prose
 - Connect findings to Figure 5 (bubble chart) if metrics/technologies are discussed
 - Third person impersonal, formal Academic English
@@ -953,6 +972,9 @@ Respond with paragraphs only (no section headers):`;
     }
 
     const prompt = `Synthesize the findings of ${relevantStudies.length} studies for: "${prismaContext.protocol.researchQuestions[1]}"
+
+**⚠️ CRITICAL: You have EXACTLY ${relevantStudies.length} study/studies. DO NOT mention more than ${relevantStudies.length} study/studies.**
+**The ONLY valid study IDs are: ${relevantStudies.map((_, i) => `S${i+1}`).join(', ')}**
 
 **EVIDENCE:**
 ${relevantStudies.map((study, i) => `
@@ -983,10 +1005,11 @@ Generate 2-3 academic paragraphs (400-500 words) that:
 
 3. **Critical analysis**: Identify consensus areas vs. gaps. Mention if certain contexts are underrepresented.
 
-**REQUIREMENTS:**
-- Use study citations ("S1, S4, and S6 demonstrated...")
-- Include quantitative data when available
-- DO NOT invent information
+**REQUIREMENTS - STRICT VALIDATION:**
+- You CANNOT invent or mention studies beyond: ${relevantStudies.map((_, i) => `S${i+1}`).join(', ')}
+- Use study citations ("S1${relevantStudies.length > 1 ? ' and S2' : ''} demonstrated...")
+- Include ONLY quantitative data explicitly provided in EVIDENCE section
+- DO NOT invent information, metrics, or findings
 - DO NOT include personal opinions or value judgments — report data ONLY
 - Avoid evaluative language like "interesting", "noteworthy", "importantly"
 - Factual reporting: describe what each study found, not what you think about it
@@ -1016,6 +1039,9 @@ Respond with paragraphs only:`;
 
     const prompt = `Synthesize the findings of ${relevantStudies.length} studies for: "${prismaContext.protocol.researchQuestions[2]}"
 
+**⚠️ CRITICAL: You have EXACTLY ${relevantStudies.length} study/studies. DO NOT invent additional studies.**
+**The ONLY valid study IDs are: ${relevantStudies.map((_, i) => `S${i+1}`).join(', ')}**
+
 **EVIDENCE:**
 ${relevantStudies.map((study, i) => `
 S${i + 1} (${study.author}, ${study.year}):
@@ -1043,12 +1069,14 @@ Generate 2-3 academic paragraphs (400-500 words) that:
 
 3. **Critical discussion**: Analyze the strength of evidence. Mention if certain aspects are well-supported vs. under-researched.
 
-**REQUIREMENTS:**
+**REQUIREMENTS - NO HALLUCINATIONS:**
+- You have EXACTLY ${relevantStudies.length} studies. You CANNOT mention more.
+- Valid study IDs: ${relevantStudies.map((_, i) => `S${i+1}`).join(', ')} (NO OTHER IDs ALLOWED)
 - Prioritize evidence from high-quality studies
-- Reference studies with citations ("S2 and S5 identified...")
-- Include quantitative data when available
+- Reference studies with citations ("S1${relevantStudies.length > 1 ? ' and S2' : ''} identified...")
+- Include ONLY quantitative data explicitly provided above
 - Acknowledge limitations transparently
-- DO NOT invent data
+- DO NOT invent data, studies, or findings
 - DO NOT include personal opinions or value judgments — report data ONLY
 - Avoid evaluative language: "interesting", "noteworthy", "remarkably"
 - Factual synthesis only: what each study reported, not your interpretation
@@ -1569,20 +1597,25 @@ The authors declare that the PRISMA 2020 guidelines have been strictly followed 
         });
       }
 
-      // 4. TECHNICAL SYNTHESIS: Tabla comparativa de métricas por estudio
+      // 4. TECHNICAL SYNTHESIS: Tabla comparativa de métricas por estudio (DINÁMICA)
       if (entry.metrics && typeof entry.metrics === 'object' && Object.keys(entry.metrics).length > 0) {
         const studyLabel = (entry.author && entry.year) ? `${entry.author} ${entry.year}` : 'Unknown';
         const studyData = {
           study: studyLabel,
           tool: entry.technology || 'N/A',
-          latency: entry.metrics.latency || entry.metrics.responseTime || null,
-          throughput: entry.metrics.throughput || entry.metrics.tps || null,
-          cpu: entry.metrics.cpuUsage || entry.metrics.cpu || null,
-          memory: entry.metrics.memoryUsage || entry.metrics.memory || null
+          ...entry.metrics // Incluir TODAS las métricas dinámicamente
         };
         
-        // Solo agregar si tiene al menos una métrica no nula
-        if (studyData.latency || studyData.throughput || studyData.cpu || studyData.memory) {
+        // Solo agregar si tiene al menos una métrica (más allá de study y tool)
+        const metricsKeys = Object.keys(entry.metrics).filter(k => 
+          entry.metrics[k] !== null && 
+          entry.metrics[k] !== undefined && 
+          entry.metrics[k] !== '' &&
+          entry.metrics[k] !== 'N/A' &&
+          entry.metrics[k] !== 'Unknown'
+        );
+        
+        if (metricsKeys.length > 0) {
           chartData.technical_synthesis.studies.push(studyData);
         }
       }
@@ -1598,11 +1631,16 @@ The authors declare that the PRISMA 2020 guidelines have been strictly followed 
       });
     });
 
-    // Limitar technical_synthesis a top 15 estudios con más métricas
+    // Limitar technical_synthesis a top 15 estudios con más métricas (DINÁMICO)
     chartData.technical_synthesis.studies = chartData.technical_synthesis.studies
       .sort((a, b) => {
-        const countA = [a.latency, a.throughput, a.cpu, a.memory].filter(v => v !== null).length;
-        const countB = [b.latency, b.throughput, b.cpu, b.memory].filter(v => v !== null).length;
+        // Contar todas las métricas válidas (excepto 'study' y 'tool')
+        const countA = Object.entries(a).filter(([k, v]) => 
+          k !== 'study' && k !== 'tool' && v !== null && v !== undefined && v !== ''
+        ).length;
+        const countB = Object.entries(b).filter(([k, v]) => 
+          k !== 'study' && k !== 'tool' && v !== null && v !== undefined && v !== ''
+        ).length;
         return countB - countA;
       })
       .slice(0, 15);

@@ -354,20 +354,45 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
         let uploadedFiles: any[] = []
         try {
           const referencesResponse = await apiClient.getReferences(projectId)
-          if (referencesResponse && referencesResponse.length > 0) {
+          // La API devuelve { references: [...], stats: {...}, pagination: {...} }
+          console.log('📥 Respuesta de getReferences:', {
+            type: typeof referencesResponse,
+            hasReferences: !!referencesResponse?.references,
+            referencesCount: referencesResponse?.references?.length,
+            statsTotal: referencesResponse?.stats?.total
+          })
+          const refs = referencesResponse?.references || referencesResponse || []
+          const refsArray = Array.isArray(refs) ? refs : []
+          if (refsArray.length > 0) {
             // Agrupar referencias por fuente de base de datos
             const dbGroups: Record<string, any[]> = {}
-            referencesResponse.forEach((ref: any) => {
+            refsArray.forEach((ref: any) => {
               const source = ref.source || 'unknown'
               if (!dbGroups[source]) dbGroups[source] = []
               dbGroups[source].push(ref)
             })
             
-            // Convertir a formato uploadedFiles
+            // Mapeo inverso de nombre a ID de base de datos
+            const NAME_TO_ID: Record<string, string> = {
+              'IEEE Xplore': 'ieee',
+              'ACM Digital Library': 'acm',
+              'Scopus': 'scopus',
+              'PubMed': 'pubmed',
+              'Web of Science': 'wos',
+              'Springer': 'springer',
+              'ScienceDirect': 'sciencedirect',
+              'arXiv': 'arxiv',
+              'Google Scholar': 'google-scholar'
+            }
+            
+            // Convertir a formato uploadedFiles (compatible con step 6 y step 7)
             uploadedFiles = Object.entries(dbGroups).map(([dbName, refs]) => ({
               name: `${dbName}_export.bib`,
+              filename: `${dbName}_export.bib`,
               recordCount: refs.length,
               database: dbName,
+              databaseId: NAME_TO_ID[dbName] || dbName.toLowerCase().replace(/\s+/g, '-'),
+              databaseName: dbName,
               uploadedAt: new Date().toISOString()
             }))
             

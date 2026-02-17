@@ -52,6 +52,7 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
   const [fase2Unlocked, setFase2Unlocked] = useState(false)
   const [selectedForFullText, setSelectedForFullText] = useState<Set<string>>(new Set())
   const [screeningFinalized, setScreeningFinalized] = useState(false)
+  const [manualReviewCompleted, setManualReviewCompleted] = useState(false)
   const [isFinalizingScreening, setIsFinalizingScreening] = useState(false)
 
   // Cargar referencias del proyecto y protocolo (search queries) - EN PARALELO
@@ -99,6 +100,7 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
           }
           if (protocol?.selectedForFullText && Array.isArray(protocol.selectedForFullText) && protocol.selectedForFullText.length > 0) {
             setSelectedForFullText(new Set(protocol.selectedForFullText))
+            setManualReviewCompleted(true)
           } else if (refData?.references) {
             // Fallback: inferir selectedForFullText desde refs con manualReviewStatus
             const reviewedIds = (refData.references as any[]).filter(
@@ -106,6 +108,7 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
             ).map((r: any) => r.id)
             if (reviewedIds.length > 0) {
               setSelectedForFullText(new Set(reviewedIds))
+              setManualReviewCompleted(true)
             }
           }
           if (protocol?.screeningFinalized) {
@@ -802,9 +805,10 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                     try {
                       console.log('🔄 Procesando selección de artículos:', selectedIds)
                       
-                      // Marcar artículos como seleccionados para texto completo
+                      // Marcar artículos como seleccionados para texto completo y bloquear revisión
                       setSelectedForFullText(new Set(selectedIds))
                       setFase2Unlocked(true)
+                      setManualReviewCompleted(true)
                       
                       // Marcar artículos como 'pending' SOLO si no tienen decisión manual previa
                       await Promise.all(
@@ -872,7 +876,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                       description: `${selectedIds.length} artículo${selectedIds.length !== 1 ? 's' : ''} aprobado${selectedIds.length !== 1 ? 's' : ''} para inclusión final`,
                     })
                   }}
-                  isLocked={fase2Unlocked}
+                  isLocked={screeningFinalized || manualReviewCompleted}
                   onReferenceStatusChange={async (referenceId: string, status: 'included' | 'excluded' | 'pending', exclusionReason?: string) => {
                     try {
                       console.log(`🔄 Actualizando estado local de artículo ${referenceId} a ${status}`)

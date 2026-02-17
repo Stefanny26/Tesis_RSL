@@ -28,9 +28,9 @@ function ProtocolWizardContent() {
       case 3:
         return <TitlesStep />
       case 4:
-        return <ProtocolDefinitionStep />
-      case 5:
         return <CriteriaStep />
+      case 5:
+        return <ProtocolDefinitionStep />
       case 6:
         return <SearchPlanStep />
       case 7:

@@ -171,7 +171,10 @@ export function ImportReferencesButton({
         Formatos: CSV, RIS, BibTeX
       </p>
       <p className="text-xs text-amber-600 dark:text-amber-400 text-center font-medium">
-        Se validarán datos mínimos: título, autores, año, DOI y abstract
+        Campos obligatorios: título, autores, año, revista/conferencia y DOI
+      </p>
+      <p className="text-xs text-muted-foreground text-center">
+        Referencias sin estos datos serán rechazadas
       </p>
 
       {/* Diálogo de Alertas de Validación */}
@@ -185,10 +188,13 @@ export function ImportReferencesButton({
             <DialogDescription>
               {importSummary && (
                 <span className="block mt-1">
-                  De <strong>{importSummary.total}</strong> referencias procesadas: <strong>{importSummary.imported}</strong> importadas
-                  {importSummary.skipped > 0 && <>, <strong className="text-red-600">{importSummary.skipped} rechazadas</strong></>}
+                  De <strong>{importSummary.total}</strong> referencias procesadas: <strong className="text-green-600">{importSummary.imported}</strong> importadas
+                  {importSummary.skipped > 0 && <>, <strong className="text-red-600">{importSummary.skipped} rechazadas por datos incompletos</strong></>}
                 </span>
               )}
+              <span className="block mt-1 text-xs">
+                Campos obligatorios: título, autores, año, revista/conferencia y DOI.
+              </span>
             </DialogDescription>
           </DialogHeader>
           
@@ -226,23 +232,44 @@ export function ImportReferencesButton({
               </div>
             ))}
 
-            {/* Nota especial si hay abstracts faltantes */}
-            {validationWarnings.some(w => w.type === 'missing_abstract') && (
+            {/* Nota especial si hay referencias rechazadas */}
+            {validationWarnings.some(w => w.type === 'rejected') && (
               <div className="p-3 bg-red-50 border border-red-300 rounded-lg mt-4">
                 <h4 className="font-semibold text-red-900 text-sm flex items-center gap-1">
-                  ⚠️ Acción Requerida: Abstract Faltante
+                  ❌ Referencias Rechazadas
                 </h4>
                 <p className="text-xs text-red-800 mt-1">
-                  El <strong>Abstract (Resumen)</strong> es el campo que la IA utiliza para clasificar los artículos
-                  durante el cribado automático. Sin él, los artículos no podrán ser analizados correctamente.
+                  Las referencias sin <strong>título, autores, año, revista/conferencia o DOI</strong> fueron rechazadas
+                  para evitar datos incompletos y duplicados futuros.
                 </p>
                 <p className="text-xs text-red-800 mt-2 font-medium">
-                  Opciones para resolver:
+                  Para importar estas referencias:
                 </p>
                 <ul className="text-xs text-red-800 mt-1 space-y-1 pl-4 list-decimal">
-                  <li>Volver a descargar las referencias desde la base de datos incluyendo el abstract</li>
+                  <li>Vuelve a descargar desde la base de datos incluyendo todos los campos</li>
+                  <li>En Scopus/IEEE/WoS: verifica que la exportación incluya todos los metadatos</li>
+                  <li>Completa los datos faltantes en el archivo antes de reimportarlo</li>
+                </ul>
+              </div>
+            )}
+
+            {/* Nota especial si hay abstracts faltantes */}
+            {validationWarnings.some(w => w.type === 'missing_abstract') && (
+              <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg mt-4">
+                <h4 className="font-semibold text-amber-900 text-sm flex items-center gap-1">
+                  ⚠️ Acción Recomendada: Abstract Faltante
+                </h4>
+                <p className="text-xs text-amber-800 mt-1">
+                  El <strong>Abstract (Resumen)</strong> es el campo que la IA utiliza para clasificar los artículos
+                  durante el cribado automático. Sin él, la clasificación automática no será precisa.
+                </p>
+                <p className="text-xs text-amber-800 mt-2 font-medium">
+                  Opciones para resolver:
+                </p>
+                <ul className="text-xs text-amber-800 mt-1 space-y-1 pl-4 list-decimal">
                   <li>Buscar los artículos por DOI y copiar los abstracts manualmente</li>
-                  <li>En Scopus/IEEE: al exportar, asegúrate de incluir el campo "Abstract" en la exportación</li>
+                  <li>Volver a descargar incluyendo el campo "Abstract" en la exportación</li>
+                  <li>En Scopus/IEEE: al exportar, asegúrate de incluir los abstracts</li>
                 </ul>
               </div>
             )}

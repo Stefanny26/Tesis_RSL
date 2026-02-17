@@ -134,13 +134,17 @@ def draw_prisma(data, output_path):
     excluded_reasons = data.get('excluded_reasons', {})
     included = data.get('included', 0)
     
-    print(f"Ã°Å¸â€Â DEBUG draw_prisma - identified: {identified}", file=sys.stderr)
-    print(f"Ã°Å¸â€Â DEBUG draw_prisma - databases: {databases}", file=sys.stderr)
-    print(f"Ã°Å¸â€Â DEBUG draw_prisma - len(databases): {len(databases)}", file=sys.stderr)
-    print(f"Ã°Å¸â€Â DEBUG draw_prisma - screened: {screened}", file=sys.stderr)
-    print(f"Ã°Å¸â€Â DEBUG draw_prisma - excluded: {excluded}", file=sys.stderr)
-    print(f"Ã°Å¸â€Â DEBUG draw_prisma - assessed: {assessed}", file=sys.stderr)
-    print(f"Ã°Å¸â€Â DEBUG draw_prisma - included: {included}", file=sys.stderr)
+    # Usar excluded_fulltext si está disponible, de lo contrario calcularlo (evitando negativos)
+    excluded_fulltext = data.get('excluded_fulltext', max(0, assessed - included))
+    
+    print(f"[DEBUG] DEBUG draw_prisma - identified: {identified}", file=sys.stderr)
+    print(f"[DEBUG] DEBUG draw_prisma - databases: {databases}", file=sys.stderr)
+    print(f"[DEBUG] DEBUG draw_prisma - len(databases): {len(databases)}", file=sys.stderr)
+    print(f"[DEBUG] DEBUG draw_prisma - screened: {screened}", file=sys.stderr)
+    print(f"[DEBUG] DEBUG draw_prisma - excluded: {excluded}", file=sys.stderr)
+    print(f"[DEBUG] DEBUG draw_prisma - assessed: {assessed}", file=sys.stderr)
+    print(f"[DEBUG] DEBUG draw_prisma - excluded_fulltext: {excluded_fulltext}", file=sys.stderr)
+    print(f"[DEBUG] DEBUG draw_prisma - included: {included}", file=sys.stderr)
 
     # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Layout constants Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     PHASE_X, PHASE_W = 2, 7
@@ -235,8 +239,8 @@ def draw_prisma(data, output_path):
     assess_text = f'Reports assessed for eligibility\n(n = {assessed})'
     draw_box(MAIN_X, y - assess_h, MAIN_W, assess_h, assess_text, bg_color=BOX_MAIN, fontsize=8)
     
-    # Excluded with reasons (side)
-    total_exc = assessed - included
+    # Excluded with reasons (side) - usar excluded_fulltext ya calculado
+    total_exc = excluded_fulltext
     exc_reasons_lines = []
     
     if excluded_reasons and len(excluded_reasons) > 0:
@@ -684,12 +688,12 @@ def draw_bubble_chart(data, output_path):
 
 def draw_technical_synthesis(data, output_path):
     """
-    Technical Synthesis Table with Pandas.
+    Technical Synthesis Table with Pandas - DYNAMIC VERSION.
     Comparative table of metrics extracted from studies.
-    Format: Study | Tool | Latency | Throughput | CPU | Memory
+    Automatically adapts to ANY metrics present in the data.
+    Format: Study | Tool | [Dynamic Metrics columns]
     """
     studies_data = data.get('studies', [])
-    # studies_data = [{ study: "Smith 2021", tool: "Mongoose", latency: 45, throughput: 1200, cpu: 65, memory: 128 }, ...]
     
     if not studies_data or len(studies_data) == 0:
         print("Ã¢Å¡Â Ã¯Â¸Â  No hay datos tÃƒÂ©cnicos para sÃƒÂ­ntesis disponibles", file=sys.stderr)
@@ -710,34 +714,31 @@ def draw_technical_synthesis(data, output_path):
         print("Ã¢Å¡Â Ã¯Â¸Â  Columnas requeridas faltantes en datos tÃƒÂ©cnicos", file=sys.stderr)
         return
     
-    # Select columns to display
+    # DYNAMIC: Select ALL columns from data (except study and tool which are first)
     display_cols = ['study', 'tool']
-    optional_cols = ['latency', 'throughput', 'cpu', 'memory', 'accuracy']
-    for col in optional_cols:
-        if col in df.columns:
-            display_cols.append(col)
+    metric_cols = [col for col in df.columns if col not in ['study', 'tool']]
+    display_cols.extend(metric_cols)
     
+    # Filter out columns that are all null/empty
+    non_empty_cols = ['study', 'tool']
+    for col in metric_cols:
+        if df[col].notna().any() and not (df[col] == '').all():
+            non_empty_cols.append(col)
+    
+    display_cols = non_empty_cols
     df_display = df[display_cols].copy()
     
-    # Format column names
+    # DYNAMIC: Format column names generically
     col_labels = []
     for col in display_cols:
         if col == 'study':
             col_labels.append('Estudio')
         elif col == 'tool':
             col_labels.append('Herramienta')
-        elif col == 'latency':
-            col_labels.append('Latencia\n(ms)')
-        elif col == 'throughput':
-            col_labels.append('Throughput\n(ops/s)')
-        elif col == 'cpu':
-            col_labels.append('CPU\n(%)')
-        elif col == 'memory':
-            col_labels.append('Memoria\n(MB)')
-        elif col == 'accuracy':
-            col_labels.append('PrecisiÃƒÂ³n\n(%)')
         else:
-            col_labels.append(col.capitalize())
+            # Generic formatting: capitalize and replace underscores
+            formatted = col.replace('_', ' ').title()
+            col_labels.append(formatted)
     
     # Create figure
     fig_height = max(4, len(df_display) * 0.6 + 2)

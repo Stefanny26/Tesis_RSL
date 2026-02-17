@@ -51,18 +51,31 @@ class PythonGraphService {
                 console.error('❌ NO databases data available!');
             }
 
+            // Usar los campos correctos del contexto PRISMA
+            const totalIdentified = prismaData.identified || 0;
+            const duplicates = prismaData.duplicatesRemoved || 0;
+            const screened = prismaData.screenedTitleAbstract || (totalIdentified - duplicates);
+            const excludedTA = prismaData.excludedTitleAbstract || 0;
+            const fullTextAssessed = prismaData.fullTextAssessed || 0;
+            const excludedFullText = prismaData.excludedFullText || 0;
+            const finalIncluded = prismaData.includedFinal || 0;
+            
+            // Calcular retrieved como los que fueron seleccionados para evaluación
+            const fullTextRetrieved = fullTextAssessed;
+
             const inputData = {
                 prisma: {
-                    identified: prismaData.identified || 0,
+                    identified: totalIdentified,
                     databases: databases,
-                    duplicates: prismaData.duplicatesRemoved || 0,
-                    screened: prismaData.screenedTitleAbstract || 0,
-                    excluded: prismaData.excludedTitleAbstract || 0,
-                    retrieved: prismaData.fullTextRetrieved || ((prismaData.screenedTitleAbstract || 0) - (prismaData.excludedTitleAbstract || 0)),
+                    duplicates: duplicates,
+                    screened: screened,
+                    excluded: excludedTA,
+                    retrieved: fullTextRetrieved,
                     not_retrieved: 0,
-                    assessed: prismaData.fullTextAssessed || 0,
+                    assessed: fullTextAssessed,
+                    excluded_fulltext: excludedFullText,
                     excluded_reasons: prismaData.exclusionReasons || {},
-                    included: prismaData.includedFinal || 0
+                    included: finalIncluded
                 },
                 scree: {
                     scores: screeScores || []
@@ -126,27 +139,30 @@ class PythonGraphService {
                     // Convertir a URLs absolutas apuntando al backend
                     const backendUrl = process.env.BACKEND_URL || 'https://tesis-rsl-backend.onrender.com';
                     
+                    // Cache-busting: agregar timestamp para evitar que el navegador use versiones antiguas
+                    const timestamp = Date.now();
+                    
                     const urls = {};
                     // Gráficos originales
-                    if (results.prisma) urls.prisma = `${backendUrl}/uploads/charts/${results.prisma}`;
-                    if (results.scree) urls.scree = `${backendUrl}/uploads/charts/${results.scree}`;
-                    if (results.chart1) urls.chart1 = `${backendUrl}/uploads/charts/${results.chart1}`;
+                    if (results.prisma) urls.prisma = `${backendUrl}/uploads/charts/${results.prisma}?t=${timestamp}`;
+                    if (results.scree) urls.scree = `${backendUrl}/uploads/charts/${results.scree}?t=${timestamp}`;
+                    if (results.chart1) urls.chart1 = `${backendUrl}/uploads/charts/${results.chart1}?t=${timestamp}`;
                     
                     // 4 Nuevos gráficos académicos
                     if (results.temporal_distribution) {
-                        urls.temporal_distribution = `${backendUrl}/uploads/charts/${results.temporal_distribution}`;
+                        urls.temporal_distribution = `${backendUrl}/uploads/charts/${results.temporal_distribution}?t=${timestamp}`;
                     }
                     if (results.quality_assessment) {
-                        urls.quality_assessment = `${backendUrl}/uploads/charts/${results.quality_assessment}`;
+                        urls.quality_assessment = `${backendUrl}/uploads/charts/${results.quality_assessment}?t=${timestamp}`;
                     }
                     if (results.bubble_chart) {
-                        urls.bubble_chart = `${backendUrl}/uploads/charts/${results.bubble_chart}`;
+                        urls.bubble_chart = `${backendUrl}/uploads/charts/${results.bubble_chart}?t=${timestamp}`;
                     }
                     if (results.technical_synthesis) {
-                        urls.technical_synthesis = `${backendUrl}/uploads/charts/${results.technical_synthesis}`;
+                        urls.technical_synthesis = `${backendUrl}/uploads/charts/${results.technical_synthesis}?t=${timestamp}`;
                     }
 
-                    console.log('✅ URLs finales de gráficos:', urls);
+                    console.log('✅ URLs finales de gráficos (con cache-busting):', urls);
                     resolve(urls);
                 } catch (e) {
                     console.error('❌ Error parseando output de Python:', e);

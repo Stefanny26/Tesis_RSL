@@ -581,31 +581,7 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                             })}
                         </div>
 
-                        {/* Opción de agregar más artículos manualmente */}
-                        {!isLocked && sortedArticles.length > recommendedArticles.length && (
-                            <div className="space-y-2">
-                                <h5 className="text-sm font-medium text-muted-foreground">
-                                    ¿Deseas agregar artículos adicionales?
-                                </h5>
-                                <div className="space-y-2 border rounded-lg p-3 max-h-60 overflow-y-auto">
-                                    {sortedArticles.slice(recommendedArticles.length).map((ref: any, idx) => (
-                                        <div key={ref.id} className="flex items-start gap-2 p-2 hover:bg-muted rounded">
-                                            <Checkbox
-                                                checked={manuallySelected.has(ref.id)}
-                                                onCheckedChange={() => toggleManualSelection(ref.id)}
-                                            />
-                                            <div className="flex-1 text-xs">
-                                                <div className="font-medium">{ref.title}</div>
-                                                <div className="text-muted-foreground">
-                                                    {ref.authors?.[0] || 'Sin autor'} ({ref.year || 'S/A'}) •
-                                                    Similitud: {((ref.screeningScore || 0) * 100).toFixed(1)}%
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        
 
                         {/* Botón para proceder */}
                         {isLocked ? (
@@ -687,7 +663,7 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                             <Textarea
                                 value={pasteText}
                                 onChange={(e) => setPasteText(e.target.value)}
-                                placeholder={"(Opcional) Pega aquí los resultados del artículo desde el PDF:\n\n• Introducción y Objetivos\n• Metodología utilizada\n• Resultados principales y datos cuantitativos\n• Conclusiones y hallazgos clave\n\nPuedes incluir o excluir el artículo sin pegar texto."}
+                                placeholder={"Pega aquí los resultados del artículo desde el PDF:\n• Resultados principales y datos cuantitativos"}
                                 rows={12}
                                 className="resize-none font-mono text-sm"
                                 autoFocus

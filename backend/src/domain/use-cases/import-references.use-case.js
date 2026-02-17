@@ -145,29 +145,37 @@ class ImportReferencesUseCase {
           const validation = this.validateMinimumFields(refData);
           
           if (!validation.isValid) {
-            // Referencia rechazada: no tiene título (dato absolutamente mínimo)
-            console.log(`   ✗ Rechazada: ${refData.title || 'SIN TÍTULO'} - ${validation.missingRequired.join(', ')}`);
+            // Referencia rechazada: le faltan campos obligatorios
+            const titlePreview = refData.title ? refData.title.substring(0, 60) : 'SIN TÍTULO';
+            console.log(`   ✗ Rechazada: ${titlePreview} - Faltan: ${validation.missingRequired.join(', ')}`);
             results.skippedValidation++;
+            
+            // Registrar en detalle qué campo falta para cada referencia rechazada
             results.validationDetails.rejected.push({
               title: refData.title || 'Sin título',
               missingFields: validation.missingRequired
             });
+            
+            // También registrar cada campo faltante individualmente para el reporte
+            for (const field of validation.missingRequired) {
+              if (field === 'autores') {
+                results.validationDetails.missingAuthors.push(refData.title || 'Sin título');
+              } else if (field === 'año') {
+                results.validationDetails.missingYear.push(refData.title || 'Sin título');
+              } else if (field === 'DOI') {
+                results.validationDetails.missingDoi.push(refData.title || 'Sin título');
+              } else if (field === 'revista/conferencia') {
+                results.validationDetails.missingJournal.push(refData.title || 'Sin título');
+              }
+            }
             continue;
           }
           
-          // Registrar warnings por campos faltantes pero no bloqueantes
+          // Registrar warnings por campos no bloqueantes (abstract)
           if (validation.warnings.length > 0) {
             for (const warn of validation.warnings) {
               if (warn.field === 'abstract') {
                 results.validationDetails.missingAbstract.push(refData.title || 'Sin título');
-              } else if (warn.field === 'authors') {
-                results.validationDetails.missingAuthors.push(refData.title || 'Sin título');
-              } else if (warn.field === 'year') {
-                results.validationDetails.missingYear.push(refData.title || 'Sin título');
-              } else if (warn.field === 'doi') {
-                results.validationDetails.missingDoi.push(refData.title || 'Sin título');
-              } else if (warn.field === 'journal') {
-                results.validationDetails.missingJournal.push(refData.title || 'Sin título');
               }
             }
           }
@@ -238,60 +246,72 @@ class ImportReferencesUseCase {
 
     // ═══ RESUMEN DE VALIDACIÓN ═══
     const vd = results.validationDetails;
+    if (vd.rejected.length > 0) {
+      // Agrupar rechazadas por campos faltantes para mejor reporte
+      const rejectedSummary = {};
+      for (const r of vd.rejected) {
+        const key = r.missingFields.sort().join(', ');
+        if (!rejectedSummary[key]) rejectedSummary[key] = [];
+        rejectedSummary[key].push(r.title);
+      }
+      
+      results.warnings.push({
+        type: 'rejected',
+        severity: 'error',
+        count: vd.rejected.length,
+        message: `❌ ${vd.rejected.length} referencia(s) RECHAZADAS por datos incompletos. Campos obligatorios: título, autores, año, revista/conferencia y DOI.`,
+        articles: vd.rejected.map(r => `${r.title.substring(0, 70)}${r.title.length > 70 ? '...' : ''} → falta: ${r.missingFields.join(', ')}`).slice(0, 15),
+        details: rejectedSummary
+      });
+      console.log(`❌ RECHAZADAS: ${vd.rejected.length} referencias por datos incompletos`);
+      
+      // Desglose por campo faltante
+      if (vd.missingAuthors.length > 0) {
+        results.warnings.push({
+          type: 'missing_authors',
+          severity: 'error',
+          count: vd.missingAuthors.length,
+          message: `${vd.missingAuthors.length} referencia(s) sin autores. Necesarios para identificar duplicados y citación final.`,
+          articles: vd.missingAuthors.slice(0, 10)
+        });
+      }
+      if (vd.missingYear.length > 0) {
+        results.warnings.push({
+          type: 'missing_year',
+          severity: 'error',
+          count: vd.missingYear.length,
+          message: `${vd.missingYear.length} referencia(s) sin año de publicación. Crítico para verificar criterios de inclusión temporal.`,
+          articles: vd.missingYear.slice(0, 10)
+        });
+      }
+      if (vd.missingDoi.length > 0) {
+        results.warnings.push({
+          type: 'missing_doi',
+          severity: 'error',
+          count: vd.missingDoi.length,
+          message: `${vd.missingDoi.length} referencia(s) sin DOI. Identificador único necesario para localizar el artículo.`,
+          articles: vd.missingDoi.slice(0, 10)
+        });
+      }
+      if (vd.missingJournal.length > 0) {
+        results.warnings.push({
+          type: 'missing_journal',
+          severity: 'error',
+          count: vd.missingJournal.length,
+          message: `${vd.missingJournal.length} referencia(s) sin revista/conferencia. Necesario para validar literatura revisada por pares.`,
+          articles: vd.missingJournal.slice(0, 10)
+        });
+      }
+    }
     if (vd.missingAbstract.length > 0) {
       results.warnings.push({
         type: 'missing_abstract',
         severity: 'critical',
         count: vd.missingAbstract.length,
-        message: `⚠️ ${vd.missingAbstract.length} referencia(s) sin Abstract/Resumen. El sistema usa el abstract para clasificar artículos por IA. Sin él, la clasificación automática no será precisa.`,
-        articles: vd.missingAbstract.slice(0, 10) // Mostrar máx 10
+        message: `⚠️ ${vd.missingAbstract.length} referencia(s) importadas SIN Abstract/Resumen. El sistema usa el abstract para clasificar artículos por IA. Sin él, la clasificación automática no será precisa.`,
+        articles: vd.missingAbstract.slice(0, 10)
       });
-      console.log(`⚠️ ALERTA: ${vd.missingAbstract.length} referencias sin abstract`);
-    }
-    if (vd.missingAuthors.length > 0) {
-      results.warnings.push({
-        type: 'missing_authors',
-        severity: 'warning',
-        count: vd.missingAuthors.length,
-        message: `${vd.missingAuthors.length} referencia(s) sin autores. Necesarios para identificar duplicados y citación.`,
-        articles: vd.missingAuthors.slice(0, 10)
-      });
-    }
-    if (vd.missingYear.length > 0) {
-      results.warnings.push({
-        type: 'missing_year',
-        severity: 'warning',
-        count: vd.missingYear.length,
-        message: `${vd.missingYear.length} referencia(s) sin año de publicación. Crítico para verificar criterios de inclusión temporal.`,
-        articles: vd.missingYear.slice(0, 10)
-      });
-    }
-    if (vd.missingDoi.length > 0) {
-      results.warnings.push({
-        type: 'missing_doi',
-        severity: 'info',
-        count: vd.missingDoi.length,
-        message: `${vd.missingDoi.length} referencia(s) sin DOI. Útil para localizar el artículo original.`,
-        articles: vd.missingDoi.slice(0, 10)
-      });
-    }
-    if (vd.missingJournal.length > 0) {
-      results.warnings.push({
-        type: 'missing_journal',
-        severity: 'info',
-        count: vd.missingJournal.length,
-        message: `${vd.missingJournal.length} referencia(s) sin nombre de revista/conferencia.`,
-        articles: vd.missingJournal.slice(0, 10)
-      });
-    }
-    if (vd.rejected.length > 0) {
-      results.warnings.push({
-        type: 'rejected',
-        severity: 'error',
-        count: vd.rejected.length,
-        message: `${vd.rejected.length} referencia(s) rechazadas por falta de título (dato mínimo obligatorio).`,
-        articles: vd.rejected.map(r => `${r.title} (falta: ${r.missingFields.join(', ')})`).slice(0, 10)
-      });
+      console.log(`⚠️ ALERTA: ${vd.missingAbstract.length} referencias importadas sin abstract`);
     }
 
     return results;
@@ -299,6 +319,14 @@ class ImportReferencesUseCase {
 
   /**
    * Valida que una referencia tenga los datos mínimos obligatorios
+   * Para que una referencia sea válida en el Diagrama PRISMA necesita:
+   *   - Título (obligatorio): Para la primera fase de cribado
+   *   - Autores (obligatorio): Para identificar duplicados y citación final
+   *   - Año (obligatorio): Para verificar criterios de inclusión temporal
+   *   - Revista/Conferencia (obligatorio): Para validar literatura revisada por pares
+   *   - DOI (obligatorio): Identificador único, permite localizar el artículo si falta el abstract
+   *   - Abstract (advertencia): Crítico para IA pero no bloquea la importación
+   * 
    * @param {Object} refData - Datos de la referencia parseada
    * @returns {Object} - { isValid, missingRequired, warnings }
    */
@@ -309,63 +337,55 @@ class ImportReferencesUseCase {
       warnings: []
     };
 
-    // ═══ CAMPO OBLIGATORIO: Título ═══
-    // Sin título no se puede hacer absolutamente nada
+    // ═══ CAMPOS OBLIGATORIOS (bloquean la importación si faltan) ═══
+
+    // 1. Título - Sin título no se puede hacer absolutamente nada
     const title = refData.title?.trim();
     if (!title || title.length < 5) {
       result.isValid = false;
       result.missingRequired.push('título');
     }
 
-    // ═══ CAMPOS IMPORTANTES (warning si faltan, pero no bloquean) ═══
-
-    // Autores - necesarios para duplicados y citación
+    // 2. Autores - necesarios para identificar duplicados y citación final
     const authors = refData.authors;
     const hasAuthors = Array.isArray(authors) 
       ? authors.length > 0 && authors.some(a => a?.trim())
       : typeof authors === 'string' && authors.trim().length > 0;
     if (!hasAuthors) {
-      result.warnings.push({ 
-        field: 'authors', 
-        message: 'Sin autores - necesarios para identificar duplicados y citación final' 
-      });
+      result.isValid = false;
+      result.missingRequired.push('autores');
     }
 
-    // Año - crítico para criterio de inclusión temporal
+    // 3. Año - crítico para verificar criterio de inclusión temporal
     const year = refData.year;
     if (!year || (typeof year === 'number' && (year < 1900 || year > 2100))) {
-      result.warnings.push({ 
-        field: 'year', 
-        message: 'Sin año de publicación - crítico para verificar criterios de inclusión temporal' 
-      });
+      result.isValid = false;
+      result.missingRequired.push('año');
     }
 
-    // DOI - identificador único, permite localizar el artículo
-    const doi = refData.doi?.trim();
-    if (!doi) {
-      result.warnings.push({ 
-        field: 'doi', 
-        message: 'Sin DOI - útil para localizar el artículo original' 
-      });
-    }
-
-    // Journal/Conferencia - para validar literatura revisada por pares
+    // 4. Revista/Conferencia - para validar literatura revisada por pares
     const journal = refData.journal?.trim();
     if (!journal) {
-      result.warnings.push({ 
-        field: 'journal', 
-        message: 'Sin nombre de revista/conferencia - necesario para validar literatura revisada por pares' 
-      });
+      result.isValid = false;
+      result.missingRequired.push('revista/conferencia');
     }
 
-    // ═══ CAMPO CRÍTICO PARA IA: Abstract ═══
-    // El abstract es lo que usa la IA para clasificar artículos
-    // No bloquea la importación, pero genera alerta crítica
+    // 5. DOI - identificador único, permite localizar el artículo original
+    const doi = refData.doi?.trim();
+    if (!doi) {
+      result.isValid = false;
+      result.missingRequired.push('DOI');
+    }
+
+    // ═══ CAMPO CRÍTICO PARA IA (warning, no bloquea) ═══
+
+    // Abstract - lo que usa la IA para clasificar artículos
+    // No bloquea porque el DOI permite localizar el artículo manualmente
     const abstract = refData.abstract?.trim();
     if (!abstract || abstract.length < 20) {
       result.warnings.push({ 
         field: 'abstract', 
-        message: 'Sin Abstract/Resumen - EL SISTEMA USA EL ABSTRACT PARA CLASIFICAR ARTÍCULOS POR IA. Sin él, la clasificación automática no será precisa.' 
+        message: 'Sin Abstract/Resumen - EL SISTEMA USA EL ABSTRACT PARA CLASIFICAR ARTÍCULOS POR IA. Sin él, la clasificación automática no será precisa. Usa el DOI para buscar el abstract manualmente.' 
       });
     }
 
