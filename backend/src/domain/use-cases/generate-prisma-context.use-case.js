@@ -43,47 +43,48 @@ class GeneratePrismaContextUseCase {
       // 4. Analizar screening results del protocolo
       const screeningResults = protocol.screeningResults || {};
 
-      // 5. Contar referencias por estado — calculando desde el estado ACTUAL de las referencias
-      // Esto garantiza consistencia entre el frontend (screening page) y el backend (artículo)
+      // 5. Calcular estadísticas PRISMA — EXACTA LÓGICA del frontend (article/page.tsx)
+      // Esto garantiza consistencia entre el diagrama visual y el texto del artículo
       
       // Helper para obtener el status (compatible con diferentes esquemas de DB)
       const getStatus = (ref) => ref.status || ref.screeningStatus || ref.screening_status || 'pending';
       
-      // Contar duplicados (marcados con status='duplicate')
-      const duplicatesCount = allReferences.filter(ref => getStatus(ref) === 'duplicate').length;
+      // Referencias totales en la BD (excluyendo duplicados ya eliminados físicamente)
+      const totalRefs = allReferences.length;
       
-      // Total identificado = todas las referencias (incluyendo duplicados)
-      const identified = allReferences.length;
+      // Obtener stats de duplicados desde la BD
+      const stats = await this.referenceRepository.getScreeningStats(projectId);
+      const duplicates = stats.duplicates || 
+                        allReferences.filter(ref => ref.isDuplicate === true || ref.is_duplicate === true).length;
       
-      // Después de remover duplicados = referencias no marcadas como duplicados
-      const afterDuplicateRemoval = allReferences.filter(ref => getStatus(ref) !== 'duplicate').length;
+      // Excluidos en fase título/abstract
+      const excluded = allReferences.filter(ref => getStatus(ref) === 'excluded').length;
       
-      // Excluidos en fase de título/abstract (no contar duplicados)
-      const excludedTitleAbstract = allReferences.filter(ref => 
-        getStatus(ref) === 'excluded' && getStatus(ref) !== 'duplicate'
-      ).length;
-      
-      // Recuperados para evaluación de texto completo = después de dedup - excluidos en título/abstract
-      const fullTextAssessedCount = Math.max(0, afterDuplicateRemoval - excludedTitleAbstract);
+      // Incluidos finales
+      const included = allReferences.filter(ref => {
+        const st = getStatus(ref);
+        return st === 'included' || st === 'fulltext_included';
+      }).length;
       
       // Excluidos en fase de texto completo
-      const excludedFullTextRefs = allReferences.filter(ref => getStatus(ref) === 'fulltext_excluded');
-      const excludedFullText = excludedFullTextRefs.length;
+      const excludedFT = allReferences.filter(ref => getStatus(ref) === 'fulltext_excluded').length;
+      
+      // CÁLCULOS PRISMA (igual que frontend):
+      const afterDedup = totalRefs - duplicates;
+      const screenedOut = excluded;
+      const fullTextAssessed = afterDedup - screenedOut;
+      
+      // Total identificado (ANTES de eliminar duplicados)
+      const identified = totalRefs + duplicates;
       
       // Recopilar razones de exclusión en texto completo
       const exclusionReasons = {};
-      excludedFullTextRefs.forEach(ref => {
+      allReferences.filter(ref => getStatus(ref) === 'fulltext_excluded').forEach(ref => {
         if (ref.exclusionReason || ref.exclusion_reason) {
           const reason = (ref.exclusionReason || ref.exclusion_reason).trim();
           exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1;
         }
       });
-      
-      // Referencias finales incluidas
-      const finalIncluded = allReferences.filter(ref => {
-        const st = getStatus(ref);
-        return st === 'included' || st === 'fulltext_included';
-      }).length;
 
       // 6. Obtener información del método de cribado
       const screeningMethod = this.determineScreeningMethod(screeningResults);
@@ -147,21 +148,21 @@ class GeneratePrismaContextUseCase {
         screening: {
           // Números PRISMA — consistentes con la sección "Resultados Detallado" del frontend
           identified: identified,
-          duplicatesRemoved: duplicatesCount,
-          screenedTitleAbstract: afterDuplicateRemoval,
-          excludedTitleAbstract: excludedTitleAbstract,
-          fullTextAssessed: fullTextAssessedCount,
-          excludedFullText: excludedFullText,
+          duplicatesRemoved: duplicates,
+          screenedTitleAbstract: afterDedup,
+          excludedTitleAbstract: screenedOut,
+          fullTextAssessed: fullTextAssessed,
+          excludedFullText: excludedFT,
           exclusionReasons: exclusionReasons,
-          includedFinal: finalIncluded,
+          includedFinal: included,
 
           // Referencias reales por fuente (para PRISMA diagram)
           referencesBySource: referencesBySource,
 
           // Campos para el artículo
           totalResults: identified,
-          afterScreening: afterDuplicateRemoval,
-          fullTextRetrieved: fullTextAssessedCount,
+          afterScreening: afterDedup,
+          fullTextRetrieved: fullTextAssessed,
 
           // Datos del cribado híbrido si existen
           phase1: screeningResults.phase1 || null,
