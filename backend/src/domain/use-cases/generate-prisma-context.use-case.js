@@ -195,15 +195,15 @@ class GeneratePrismaContextUseCase {
       };
 
       console.log('✅ PRISMA Context generado exitosamente');
-      console.log(`📊 Referencias: ${identified} identificadas → ${finalIncluded} incluidas`);
+      console.log(`📊 Referencias: ${identified} identificadas → ${included} incluidas`);
 
       return {
         success: true,
         context: prismaContext,
         summary: {
           totalReferences: identified,
-          excluded: excludedTitleAbstract + excludedFullText,
-          included: finalIncluded,
+          excluded: screenedOut + excludedFT,
+          included: included,
           screeningComplete: protocol.fase2_unlocked || false
         }
       };
