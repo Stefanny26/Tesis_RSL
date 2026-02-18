@@ -43,54 +43,47 @@ class GeneratePrismaContextUseCase {
       // 4. Analizar screening results del protocolo
       const screeningResults = protocol.screeningResults || {};
 
-      // 5. Contar referencias por estado — usando selectedForFullText del protocolo + manualReviewStatus
+      // 5. Contar referencias por estado — calculando desde el estado ACTUAL de las referencias
       // Esto garantiza consistencia entre el frontend (screening page) y el backend (artículo)
-      const identified = allReferences.length;
-      const duplicates = allReferences.filter(ref =>
-        ref.screeningStatus === 'duplicate'
-      ).length;
-      const afterDuplicateRemoval = identified - duplicates;
-
-      // Determinar qué artículos fueron seleccionados para revisión manual (full-text)
-      const selectedForFullTextIds = new Set(protocol.selectedForFullText || []);
       
-      // Si no hay selectedForFullText en el protocolo, inferir desde manualReviewStatus
-      if (selectedForFullTextIds.size === 0) {
-        allReferences.forEach(ref => {
-          if (ref.manualReviewStatus === 'included' || ref.manualReviewStatus === 'excluded') {
-            selectedForFullTextIds.add(ref.id);
-          }
-        });
-      }
-
-      // Fase título/resumen: excluidos = los NO seleccionados para full-text (excluyendo duplicados)
-      const nonDuplicateRefs = allReferences.filter(ref => ref.screeningStatus !== 'duplicate');
-      const excludedTitleAbstract = selectedForFullTextIds.size > 0 
-        ? nonDuplicateRefs.filter(ref => !selectedForFullTextIds.has(ref.id)).length
-        : allReferences.filter(ref => ref.screeningStatus === 'excluded').length;
-
-      // Fase full-text: evaluados = los seleccionados para revisión manual
-      const fullTextAssessedCount = selectedForFullTextIds.size;
-
-      // Excluidos en full-text = los que fueron revisados manualmente y excluidos
-      const excludedFullTextRefs = allReferences.filter(ref =>
-        selectedForFullTextIds.has(ref.id) && ref.manualReviewStatus === 'excluded'
-      );
+      // Helper para obtener el status (compatible con diferentes esquemas de DB)
+      const getStatus = (ref) => ref.status || ref.screeningStatus || ref.screening_status || 'pending';
+      
+      // Contar duplicados (marcados con status='duplicate')
+      const duplicatesCount = allReferences.filter(ref => getStatus(ref) === 'duplicate').length;
+      
+      // Total identificado = todas las referencias (incluyendo duplicados)
+      const identified = allReferences.length;
+      
+      // Después de remover duplicados = referencias no marcadas como duplicados
+      const afterDuplicateRemoval = allReferences.filter(ref => getStatus(ref) !== 'duplicate').length;
+      
+      // Excluidos en fase de título/abstract (no contar duplicados)
+      const excludedTitleAbstract = allReferences.filter(ref => 
+        getStatus(ref) === 'excluded' && getStatus(ref) !== 'duplicate'
+      ).length;
+      
+      // Recuperados para evaluación de texto completo = después de dedup - excluidos en título/abstract
+      const fullTextAssessedCount = Math.max(0, afterDuplicateRemoval - excludedTitleAbstract);
+      
+      // Excluidos en fase de texto completo
+      const excludedFullTextRefs = allReferences.filter(ref => getStatus(ref) === 'fulltext_excluded');
       const excludedFullText = excludedFullTextRefs.length;
-
+      
       // Recopilar razones de exclusión en texto completo
       const exclusionReasons = {};
       excludedFullTextRefs.forEach(ref => {
-        if (ref.exclusionReason) {
-          const reason = ref.exclusionReason.trim();
+        if (ref.exclusionReason || ref.exclusion_reason) {
+          const reason = (ref.exclusionReason || ref.exclusion_reason).trim();
           exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1;
         }
       });
-
-      // Referencias finales incluidas = revisadas manualmente como 'included'
-      const finalIncluded = allReferences.filter(ref =>
-        selectedForFullTextIds.has(ref.id) && ref.manualReviewStatus === 'included'
-      ).length;
+      
+      // Referencias finales incluidas
+      const finalIncluded = allReferences.filter(ref => {
+        const st = getStatus(ref);
+        return st === 'included' || st === 'fulltext_included';
+      }).length;
 
       // 6. Obtener información del método de cribado
       const screeningMethod = this.determineScreeningMethod(screeningResults);
@@ -154,7 +147,7 @@ class GeneratePrismaContextUseCase {
         screening: {
           // Números PRISMA — consistentes con la sección "Resultados Detallado" del frontend
           identified: identified,
-          duplicatesRemoved: duplicates,
+          duplicatesRemoved: duplicatesCount,
           screenedTitleAbstract: afterDuplicateRemoval,
           excludedTitleAbstract: excludedTitleAbstract,
           fullTextAssessed: fullTextAssessedCount,
