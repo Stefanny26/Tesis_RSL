@@ -8,6 +8,8 @@ const ScreeningRecordRepository = require('../../infrastructure/repositories/scr
 const PythonGraphService = require('../../infrastructure/services/python-graph.service');
 const GenerateArticleFromPrismaUseCase = require('../../domain/use-cases/generate-article-from-prisma.use-case');
 const GeneratePrismaContextUseCase = require('../../domain/use-cases/generate-prisma-context.use-case');
+const ExtractRQSDataUseCase = require('../../domain/use-cases/extract-rqs-data.use-case');
+const ExtractFullTextDataUseCase = require('../../domain/use-cases/extract-fulltext-data.use-case');
 const AIService = require('../../infrastructure/services/ai.service');
 const ArticleVersion = require('../../domain/models/article-version.model');
 const latexTemplate = require('../../../templates/article-latex.template');
@@ -98,10 +100,24 @@ class ArticleController {
       console.log(`📄 Iniciando generación de artículo para proyecto ${projectId}`);
 
       // Crear use cases
+      const aiService = new AIService(req.userId);
+      
       const generateContextUseCase = new GeneratePrismaContextUseCase({
         protocolRepository: this.protocolRepository,
         referenceRepository: this.referenceRepository,
         projectRepository: this.projectRepository
+      });
+
+      const extractRQSDataUseCase = new ExtractRQSDataUseCase({
+        rqsEntryRepository: this.rqsEntryRepository,
+        referenceRepository: this.referenceRepository,
+        protocolRepository: this.protocolRepository,
+        aiService: aiService
+      });
+
+      const extractFullTextDataUseCase = new ExtractFullTextDataUseCase({
+        referenceRepository: this.referenceRepository,
+        aiService: aiService
       });
 
       const generateArticleUseCase = new GenerateArticleFromPrismaUseCase({
@@ -109,9 +125,12 @@ class ArticleController {
         protocolRepository: this.protocolRepository,
         rqsEntryRepository: this.rqsEntryRepository,
         screeningRecordRepository: this.screeningRecordRepository,
-        aiService: new AIService(req.userId),
+        referenceRepository: this.referenceRepository,
+        aiService: aiService,
         pythonGraphService: this.pythonGraphService,
-        generatePrismaContextUseCase: generateContextUseCase
+        generatePrismaContextUseCase: generateContextUseCase,
+        extractRQSDataUseCase: extractRQSDataUseCase,
+        extractFullTextDataUseCase: extractFullTextDataUseCase
       });
 
       const result = await generateArticleUseCase.execute(projectId);
@@ -188,10 +207,24 @@ class ArticleController {
       }
 
       // Crear use cases
+      const aiService = new AIService(req.userId);
+      
       const generateContextUseCase = new GeneratePrismaContextUseCase({
         protocolRepository: this.protocolRepository,
         referenceRepository: this.referenceRepository,
         projectRepository: this.projectRepository
+      });
+
+      const extractRQSDataUseCase = new ExtractRQSDataUseCase({
+        rqsEntryRepository: this.rqsEntryRepository,
+        referenceRepository: this.referenceRepository,
+        protocolRepository: this.protocolRepository,
+        aiService: aiService
+      });
+
+      const extractFullTextDataUseCase = new ExtractFullTextDataUseCase({
+        referenceRepository: this.referenceRepository,
+        aiService: aiService
       });
 
       const generateArticleUseCase = new GenerateArticleFromPrismaUseCase({
@@ -199,9 +232,12 @@ class ArticleController {
         protocolRepository: this.protocolRepository,
         rqsEntryRepository: this.rqsEntryRepository,
         screeningRecordRepository: this.screeningRecordRepository,
-        aiService: new AIService(req.userId),
+        referenceRepository: this.referenceRepository,
+        aiService: aiService,
         pythonGraphService: this.pythonGraphService,
-        generatePrismaContextUseCase: generateContextUseCase
+        generatePrismaContextUseCase: generateContextUseCase,
+        extractRQSDataUseCase: extractRQSDataUseCase,
+        extractFullTextDataUseCase: extractFullTextDataUseCase
       });
 
       // Validar PRISMA completo
@@ -466,10 +502,24 @@ class ArticleController {
       }
 
       // Generar artículo si no se ha generado aún
+      const aiService = new AIService(req.userId);
+      
       const generateContextUseCase = new GeneratePrismaContextUseCase({
         protocolRepository: this.protocolRepository,
         referenceRepository: this.referenceRepository,
         projectRepository: this.projectRepository
+      });
+
+      const extractRQSDataUseCase = new ExtractRQSDataUseCase({
+        rqsEntryRepository: this.rqsEntryRepository,
+        referenceRepository: this.referenceRepository,
+        protocolRepository: this.protocolRepository,
+        aiService: aiService
+      });
+
+      const extractFullTextDataUseCase = new ExtractFullTextDataUseCase({
+        referenceRepository: this.referenceRepository,
+        aiService: aiService
       });
 
       const generateArticleUseCase = new GenerateArticleFromPrismaUseCase({
@@ -477,9 +527,12 @@ class ArticleController {
         protocolRepository: this.protocolRepository,
         rqsEntryRepository: this.rqsEntryRepository,
         screeningRecordRepository: this.screeningRecordRepository,
-        aiService: new AIService(req.userId),
+        referenceRepository: this.referenceRepository,
+        aiService: aiService,
         pythonGraphService: this.pythonGraphService,
-        generatePrismaContextUseCase: generateContextUseCase
+        generatePrismaContextUseCase: generateContextUseCase,
+        extractRQSDataUseCase: extractRQSDataUseCase,
+        extractFullTextDataUseCase: extractFullTextDataUseCase
       });
 
       const result = await generateArticleUseCase.execute(projectId);
@@ -785,10 +838,24 @@ You can modify:
       }
 
       // Generar artículo
+      const aiService = new AIService(req.userId);
+      
       const generateContextUseCase = new GeneratePrismaContextUseCase({
         protocolRepository: this.protocolRepository,
         referenceRepository: this.referenceRepository,
         projectRepository: this.projectRepository
+      });
+
+      const extractRQSDataUseCase = new ExtractRQSDataUseCase({
+        rqsEntryRepository: this.rqsEntryRepository,
+        referenceRepository: this.referenceRepository,
+        protocolRepository: this.protocolRepository,
+        aiService: aiService
+      });
+
+      const extractFullTextDataUseCase = new ExtractFullTextDataUseCase({
+        referenceRepository: this.referenceRepository,
+        aiService: aiService
       });
 
       const generateArticleUseCase = new GenerateArticleFromPrismaUseCase({
@@ -796,9 +863,12 @@ You can modify:
         protocolRepository: this.protocolRepository,
         rqsEntryRepository: this.rqsEntryRepository,
         screeningRecordRepository: this.screeningRecordRepository,
-        aiService: new AIService(req.userId),
+        referenceRepository: this.referenceRepository,
+        aiService: aiService,
         pythonGraphService: this.pythonGraphService,
-        generatePrismaContextUseCase: generateContextUseCase
+        generatePrismaContextUseCase: generateContextUseCase,
+        extractRQSDataUseCase: extractRQSDataUseCase,
+        extractFullTextDataUseCase: extractFullTextDataUseCase
       });
 
       const result = await generateArticleUseCase.execute(projectId);

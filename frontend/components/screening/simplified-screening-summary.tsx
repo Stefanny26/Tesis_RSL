@@ -14,7 +14,10 @@ import {
     ClipboardPaste,
     Loader2,
     CheckCircle,
-    XCircle
+    XCircle,
+    Upload,
+    FileText,
+    X
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ApiClient } from "@/lib/api-client"
@@ -70,7 +73,7 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
     const [manuallySelected, setManuallySelected] = useState<Set<string>>(new Set())
     const [pasteDialogOpen, setPasteDialogOpen] = useState(false)
     const [pasteRefId, setPasteRefId] = useState<string | null>(null)
-    const [pasteText, setPasteText] = useState('')
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [isSavingPaste, setIsSavingPaste] = useState(false)
     const [decision, setDecision] = useState<'include' | 'exclude' | null>(null)
     const [exclusionReason, setExclusionReason] = useState('')
@@ -146,7 +149,7 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
 
         if (maxDerivativeIndex < top10Index) return Math.ceil(sortedArticles.length * 0.25)
         if (maxDerivativeIndex > top50Index) return Math.ceil(sortedArticles.length * 0.25)
-        
+
         return maxDerivativeIndex
     }, [sortedArticles, recommendedCutoff])
 
@@ -195,16 +198,13 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
         try {
             const apiClient = new ApiClient()
 
-            toast({ 
-                title: finalDecision === 'include' ? "Incluyendo artículo..." : "Excluyendo artículo...", 
-                description: pasteText.trim() ? "Subiendo texto al servidor" : "Guardando decisión" 
-            })
-            
-            // Solo subir texto si el usuario pegó contenido
-            if (pasteText.trim()) {
-                const blob = new Blob([pasteText], { type: 'text/plain' })
-                const file = new File([blob], `resultados-${pasteRefId}.txt`, { type: 'text/plain' })
-                await apiClient.uploadPdf(pasteRefId, file)
+            // Subir archivo PDF
+            if (selectedFile) {
+                toast({
+                    title: finalDecision === 'include' ? "Incluyendo artículo..." : "Excluyendo artículo...",
+                    description: `Subiendo archivo PDF (${(selectedFile.size / 1024).toFixed(1)} KB)`
+                })
+                await apiClient.uploadPdf(pasteRefId, selectedFile)
             }
 
             // Enviar decisión al backend usando endpoint existente
@@ -241,21 +241,21 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
             // Notificar cambio de estado al componente padre
             if (onReferenceStatusChange) {
                 onReferenceStatusChange(
-                    pasteRefId, 
-                    newStatus, 
+                    pasteRefId,
+                    newStatus,
                     finalDecision === 'exclude' ? exclusionReason : undefined
                 )
             }
 
-            toast({ 
-                title: finalDecision === 'include' ? " Artículo incluido" : " Artículo excluido", 
-                description: finalDecision === 'include' 
+            toast({
+                title: finalDecision === 'include' ? " Artículo incluido" : " Artículo excluido",
+                description: finalDecision === 'include'
                     ? "El artículo ha sido incluido para el análisis final - Se reflejará en el diagrama PRISMA"
-                    : "El artículo ha sido excluido de la revisión - Se reflejará en el diagrama PRISMA" 
+                    : "El artículo ha sido excluido de la revisión - Se reflejará en el diagrama PRISMA"
             })
 
             setPasteDialogOpen(false)
-            setPasteText('')
+            setSelectedFile(null)
             setPasteRefId(null)
             setDecision(null)
             setExclusionReason('')
@@ -479,7 +479,7 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                                 const isIncluded = reviewStatus === 'included'
                                 const isExcluded = reviewStatus === 'excluded'
                                 const isReviewed = isIncluded || isExcluded
-                                
+
                                 return (
                                     <Card key={ref.id} className={cn(
                                         "transition-all border-l-4",
@@ -559,18 +559,20 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                                                             onClick={(e) => {
                                                                 e.stopPropagation()
                                                                 setPasteRefId(ref.id)
-                                                                setPasteText('')
+                                                                setSelectedFile(null)
+                                                                setDecision(null)
+                                                                setExclusionReason('')
                                                                 setPasteDialogOpen(true)
                                                             }}
                                                             className={cn(
-                                                                "h-8 text-xs",
+                                                                "h-7 text-[10px] px-2 py-1",
                                                                 isIncluded && "border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950/60",
                                                                 isExcluded && "border-red-300 text-red-700 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-950/60"
                                                             )}
                                                         >
-                                                            {!isReviewed && <><ClipboardPaste className="h-3 w-3 mr-1" />Incluir / Excluir</>}
-                                                            {isIncluded && <><CheckCircle className="h-3 w-3 mr-1" />Cambiar decisión</>}
-                                                            {isExcluded && <><XCircle className="h-3 w-3 mr-1" />Cambiar decisión</>}
+                                                            {!isReviewed && <><ClipboardPaste className="h-2.5 w-2.5 mr-0.5" />Revisar</>}
+                                                            {isIncluded && <><CheckCircle className="h-2.5 w-2.5 mr-0.5" />Editar</>}
+                                                            {isExcluded && <><XCircle className="h-2.5 w-2.5 mr-0.5" />Editar</>}
                                                         </Button>
                                                     </div>
                                                 )}
@@ -581,7 +583,7 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                             })}
                         </div>
 
-                        
+
 
                         {/* Botón para proceder */}
                         {isLocked ? (
@@ -609,130 +611,229 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
             <Dialog open={pasteDialogOpen} onOpenChange={(open) => {
                 if (!isSavingPaste) {
                     setPasteDialogOpen(open)
-                    if (!open) { 
-                        setPasteText('')
+                    if (!open) {
+                        setSelectedFile(null)
                         setPasteRefId(null)
                         setDecision(null)
                         setExclusionReason('')
                     }
                 }
             }}>
-                <DialogContent className="w-[98vw] max-w-[1800px] max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl">📄 Cargar Resultados del Texto Completo</DialogTitle>
-                        <DialogDescription>
-                            Revisa la información del artículo y pega los resultados encontrados en el PDF
-                        </DialogDescription>
-                    </DialogHeader>
-                    
-                    {/* Información del artículo */}
-                    {pasteRefId && (() => {
-                        const ref = recommendedArticles.find((r: any) => r.id === pasteRefId) || 
-                                     sortedArticles.find((r: any) => r.id === pasteRefId)
-                        if (!ref) return null
-                        
-                        return (
-                            <div className="border rounded-lg p-4 bg-muted/30 space-y-3 mb-4">
-                                <div>
-                                    <h3 className="font-semibold text-base mb-2">{ref.title}</h3>
-                                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                                        <span><strong>Autores:</strong> {ref.authors?.length > 0 ? ref.authors.join(', ') : 'Sin autores'}</span>
-                                        {ref.year && <span><strong>Año:</strong> {ref.year}</span>}
-                                        {ref.journal && <span><strong>Revista:</strong> {ref.journal}</span>}
-                                        {ref.doi && <span><strong>DOI:</strong> {ref.doi}</span>}
+                <DialogContent className="w-[95vw] max-w-[1400px] h-[90vh] flex flex-col p-0 gap-0 !max-w-none">                    <DialogHeader className="px-6 pt-4 pb-3 border-b bg-muted/30">
+                    <DialogTitle className="text-lg">📄 Cargar Resultados del Texto Completo</DialogTitle>
+                    <DialogDescription className="text-xs">
+                        Sube el PDF del artículo
+                    </DialogDescription>
+                </DialogHeader>
+
+                    <div className="flex-1 overflow-hidden flex flex-row">
+                        {/* COLUMNA IZQUIERDA: Gestión del Documento (80%) */}
+                        <div className="w-[80%] border-r bg-muted/10 overflow-y-auto">
+                            {pasteRefId && (() => {
+                                const ref = recommendedArticles.find((r: any) => r.id === pasteRefId) ||
+                                    sortedArticles.find((r: any) => r.id === pasteRefId)
+                                if (!ref) return null
+
+                                return (
+                                    <div className="p-8">
+                                        <div className="max-w-6xl mx-auto space-y-6">
+                                            {/* Título */}
+                                            <div>
+                                                <h2 className="text-3xl font-bold tracking-tight leading-tight mb-4">
+                                                    {ref.title}
+                                                </h2>
+
+                                                {/* Autores */}
+                                                <div className="text-sm text-muted-foreground mb-4">
+                                                    <span className="font-medium text-foreground">Autores:</span>{' '}
+                                                    {ref.authors?.length > 0 ? ref.authors.join(', ') : 'Sin autores'}
+                                                </div>
+
+                                                {/* Badges */}
+                                                <div className="flex flex-wrap gap-2">
+                                                    {ref.year && (
+                                                        <Badge variant="outline" className="text-xs">
+                                                            📅 Año: {ref.year}
+                                                        </Badge>
+                                                    )}
+                                                    {ref.journal && (
+                                                        <Badge variant="outline" className="text-xs">
+                                                            📚 {ref.journal}
+                                                        </Badge>
+                                                    )}
+                                                    {ref.screeningScore && (
+                                                        <Badge variant="secondary" className="text-xs">
+                                                            🎯 Similitud: {(ref.screeningScore * 100).toFixed(1)}%
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Resumen del artículo */}
+                                            {ref.abstract && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-px bg-border flex-1" />
+                                                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                                            Resumen
+                                                        </h4>
+                                                        <div className="h-px bg-border flex-1" />
+                                                    </div>
+                                                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                                                        <p className="text-sm leading-relaxed text-foreground/90 text-justify">
+                                                            {ref.abstract}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
+                                )
+                            })()}
+                        </div>
+
+                        {/* COLUMNA DERECHA: Información del Artículo (70%) */}
+                        <div className="flex-1 overflow-y-auto">
+                            <div className="p-6 space-y-6">
+                                <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
+                                    📎 Gestión del Documento
+                                </h4>
+
+                                {/* Área de carga de PDF */}
+                                <div className="space-y-3">
+                                    <label className="text-xs font-medium block text-muted-foreground">
+                                        Archivo PDF del Artículo <span className="text-muted-foreground">(opcional)</span>
+                                    </label>
+
+                                    {!selectedFile ? (
+                                        <label
+                                            htmlFor="pdf-upload"
+                                            className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-background hover:bg-muted/40 transition-colors"
+                                        >
+                                            <div className="flex flex-col items-center justify-center py-4">
+                                                <Upload className="w-10 h-10 mb-2 text-muted-foreground" />
+                                                <p className="mb-1 text-xs text-center px-2">
+                                                    <span className="font-semibold">Click para seleccionar</span><br />o arrastra aquí
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">PDF (máx 10MB)</p>
+                                            </div>
+                                            <input
+                                                id="pdf-upload"
+                                                type="file"
+                                                className="hidden"
+                                                accept=".pdf,application/pdf"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0]
+                                                    if (file) {
+                                                        if (file.size > 10 * 1024 * 1024) {
+                                                            toast({
+                                                                title: "Archivo muy grande",
+                                                                description: "El archivo no debe superar 10MB",
+                                                                variant: "destructive"
+                                                            })
+                                                            return
+                                                        }
+                                                        setSelectedFile(file)
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                    ) : (
+                                        <div className="border rounded-lg p-3 bg-green-50 dark:bg-green-950/20 space-y-2">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-start gap-2 flex-1 min-w-0">
+                                                    <FileText className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium text-sm text-green-900 dark:text-green-100 truncate">
+                                                            {selectedFile.name}
+                                                        </p>
+                                                        <p className="text-xs text-green-700 dark:text-green-300 mt-0.5">
+                                                            {(selectedFile.size / 1024).toFixed(1)} KB
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setSelectedFile(null)}
+                                                    className="h-6 w-6 p-0 flex-shrink-0"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                            <p className="text-xs text-green-700 dark:text-green-300 flex items-center gap-1">
+                                                <CheckCircle className="h-3 w-3" />
+                                                Listo para subir
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <Alert className="py-1.5">
+                                        <Info className="h-3 w-3" />
+                                        <AlertDescription className="text-xs">
+                                            El PDF se guardará para análisis posterior.
+                                        </AlertDescription>
+                                    </Alert>
                                 </div>
-                                
-                                {ref.abstract && (
-                                    <div>
-                                        <p className="text-xs font-medium text-muted-foreground mb-1">Abstract:</p>
-                                        <p className="text-xs text-muted-foreground leading-relaxed max-h-24 overflow-y-auto">
-                                            {ref.abstract}
+
+                                {/* Campo de razón de exclusión */}
+                                {decision === 'exclude' && (
+                                    <div className="border-l-4 border-destructive bg-destructive/5 p-3 rounded-lg space-y-2">
+                                        <label className="text-xs font-medium text-destructive block">
+                                            ⚠️ Razón de Exclusión <span className="text-destructive">*</span>
+                                        </label>
+                                        <Textarea
+                                            value={exclusionReason}
+                                            onChange={(e) => setExclusionReason(e.target.value)}
+                                            placeholder="Explica por qué excluyes este artículo (mínimo 10 caracteres)..."
+                                            rows={4}
+                                            className="resize-none text-xs bg-background"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            {exclusionReason.length} caracteres • Mínimo 10
                                         </p>
                                     </div>
                                 )}
                             </div>
-                        )
-                    })()}
-                    
-                    <div className="space-y-3">
-                        <div>
-                            <label className="text-sm font-medium mb-2 block">
-                                Resultados del Artículo <span className="text-muted-foreground text-xs">(opcional)</span>
-                            </label>
-                            <Textarea
-                                value={pasteText}
-                                onChange={(e) => setPasteText(e.target.value)}
-                                placeholder={"Pega aquí los resultados del artículo desde el PDF:\n• Resultados principales y datos cuantitativos"}
-                                rows={12}
-                                className="resize-none font-mono text-sm"
-                                autoFocus
-                            />
-                            <div className="flex items-center justify-between mt-2">
-                                <p className="text-xs text-muted-foreground">
-                                    {pasteText.length > 0 ? `${pasteText.length} caracteres • ${pasteText.split(/\s+/).length} palabras` : 'Puedes incluir/excluir sin pegar texto'}
-                                </p>
-                                {pasteText.length > 0 && (
-                                    <Badge variant="default" className="text-xs">
-                                        ✓ Contenido adjuntado
-                                    </Badge>
-                                )}
-                            </div>
                         </div>
-
-                        {/* Campo de razón de exclusión - aparece solo cuando se selecciona excluir */}
-                        {decision === 'exclude' && (
-                            <div className="border-l-4 border-destructive bg-destructive/5 p-4 rounded-lg space-y-2">
-                                <label className="text-sm font-medium text-destructive block">
-                                    Razón de Exclusión <span className="text-destructive">*</span>
-                                </label>
-                                <Textarea
-                                    value={exclusionReason}
-                                    onChange={(e) => setExclusionReason(e.target.value)}
-                                    placeholder="Explica brevemente por qué este artículo debe ser excluido (ej: 'No cumple criterios de inclusión', 'Metodología inadecuada', 'Datos insuficientes')..."
-                                    rows={3}
-                                    className="resize-none text-sm bg-background"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    {exclusionReason.length} caracteres • Mínimo 10 caracteres
-                                </p>
-                            </div>
-                        )}
                     </div>
-                    
-                    <DialogFooter className="gap-2">
+
+                    <DialogFooter className="gap-2 px-6 py-3 border-t bg-muted/30">
                         <Button
                             variant="outline"
-                            onClick={() => { 
+                            onClick={() => {
                                 setPasteDialogOpen(false)
-                                setPasteText('')
+                                setSelectedFile(null)
                                 setPasteRefId(null)
                                 setDecision(null)
                                 setExclusionReason('')
                             }}
                             disabled={isSavingPaste}
+                            size="sm"
                         >
                             Cancelar
                         </Button>
-                        
+
                         {!decision ? (
                             <>
                                 <Button
                                     variant="default"
                                     onClick={() => setDecision('include')}
                                     disabled={isSavingPaste}
-                                    className="min-w-[120px]"
+                                    className="min-w-[110px]"
+                                    size="sm"
                                 >
-                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
                                     Incluir
                                 </Button>
                                 <Button
                                     variant="destructive"
                                     onClick={() => setDecision('exclude')}
                                     disabled={isSavingPaste}
-                                    className="min-w-[120px]"
+                                    className="min-w-[110px]"
+                                    size="sm"
                                 >
-                                    <XCircle className="h-4 w-4 mr-2" />
+                                    <XCircle className="h-3.5 w-3.5 mr-1.5" />
                                     Excluir
                                 </Button>
                             </>
@@ -753,19 +854,20 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                                         isSavingPaste ||
                                         (decision === 'exclude' && exclusionReason.trim().length < 10)
                                     }
-                                    className="min-w-[160px]"
+                                    className="min-w-[150px]"
+                                    size="sm"
                                 >
                                     {isSavingPaste ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
                                             Guardando...
                                         </>
                                     ) : (
                                         <>
                                             {decision === 'include' ? (
-                                                <><CheckCircle className="h-4 w-4 mr-2" /> Confirmar Inclusión</>
+                                                <><CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Confirmar Inclusión</>
                                             ) : (
-                                                <><XCircle className="h-4 w-4 mr-2" /> Confirmar Exclusión</>
+                                                <><XCircle className="h-3.5 w-3.5 mr-1.5" /> Confirmar Exclusión</>
                                             )}
                                         </>
                                     )}

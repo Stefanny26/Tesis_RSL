@@ -116,6 +116,9 @@ class ProtocolRepository {
       // Referencias seleccionadas para full-text
       selectedForFullText: 'selected_for_full_text',
       
+      // Revisión manual finalizada
+      manualReviewFinalized: 'manual_review_finalized',
+      
       // Screening finalizado
       screeningFinalized: 'screening_finalized',
       

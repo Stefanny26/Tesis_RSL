@@ -100,7 +100,10 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
           }
           if (protocol?.selectedForFullText && Array.isArray(protocol.selectedForFullText) && protocol.selectedForFullText.length > 0) {
             setSelectedForFullText(new Set(protocol.selectedForFullText))
-            setManualReviewCompleted(true)
+            // NO marcar como completada automáticamente - solo si hay flag explícito
+            if (protocol?.manualReviewFinalized === true) {
+              setManualReviewCompleted(true)
+            }
           } else if (refData?.references) {
             // Fallback: inferir selectedForFullText desde refs con manualReviewStatus
             const reviewedIds = (refData.references as any[]).filter(
@@ -108,7 +111,7 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
             ).map((r: any) => r.id)
             if (reviewedIds.length > 0) {
               setSelectedForFullText(new Set(reviewedIds))
-              setManualReviewCompleted(true)
+              // NO marcar como completada automáticamente
             }
           }
           if (protocol?.screeningFinalized) {
@@ -805,10 +808,10 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                     try {
                       console.log('🔄 Procesando selección de artículos:', selectedIds)
                       
-                      // Marcar artículos como seleccionados para texto completo y bloquear revisión
+                      // Marcar artículos como seleccionados para texto completo
                       setSelectedForFullText(new Set(selectedIds))
                       setFase2Unlocked(true)
-                      setManualReviewCompleted(true)
+                      // NO marcar como completada aquí - el usuario aún debe revisar todos
                       
                       // Marcar artículos como 'pending' SOLO si no tienen decisión manual previa
                       await Promise.all(
@@ -864,10 +867,14 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                       })
                     }
                     
-                    // Guardar en el protocolo (incluir selectedForFullText para persistencia)
+                    // Marcar revisión como completada y bloquear ediciones futuras
+                    setManualReviewCompleted(true)
+                    
+                    // Guardar en el protocolo (incluir selectedForFullText + flag de finalización)
                     apiClient.updateProtocol(params.id, { 
                       fase2Unlocked: true,
-                      selectedForFullText: selectedIds 
+                      selectedForFullText: selectedIds,
+                      manualReviewFinalized: true  // <-- Persistir que el usuario completó la revisión
                     })
                       .catch(err => console.warn('No se pudo actualizar el protocolo:', err))
                     

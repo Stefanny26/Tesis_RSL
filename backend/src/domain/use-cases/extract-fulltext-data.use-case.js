@@ -37,6 +37,10 @@ class ExtractFullTextDataUseCase {
    */
   async extractStructuredData(text, referenceMetadata, isAbstractOnly = false) {
     const sourceType = isAbstractOnly ? 'abstract' : 'full text';
+    const resultsInstruction = isAbstractOnly 
+      ? 'IMPORTANT: You are analyzing ONLY the abstract. Extract what you can, but indicate when information is not available in the abstract.' 
+      : '⚠️ CRITICAL: Prioritize extraction from the RESULTS, FINDINGS, or EVALUATION sections. Look for quantitative data, performance metrics, statistical evidence, and empirical findings reported by the authors.';
+    
     const prompt = `You are analyzing a scientific article for data extraction in a systematic literature review.
 
 Article Metadata:
@@ -45,7 +49,7 @@ Article Metadata:
 - Year: ${referenceMetadata.year || 'Not specified'}
 - Source: ${isAbstractOnly ? 'ABSTRACT ONLY (no full text available)' : 'FULL TEXT'}
 
-${isAbstractOnly ? 'IMPORTANT: You are analyzing ONLY the abstract. Extract what you can, but indicate when information is not available in the abstract.' : ''}
+${resultsInstruction}
 
 Extract the following information from the ${sourceType}:
 
@@ -53,9 +57,11 @@ Extract the following information from the ${sourceType}:
 2. Research Context: (e.g., Industry, Academia, Healthcare, Software development)
 3. Methodology: Brief description of the research method used
 4. Variables/Constructs: Main variables or constructs measured or analyzed
-5. Metrics Used: Specific metrics or measurements reported
-6. Key Findings: 3-5 main findings (factual, not interpretative)
+5. Metrics Used: Specific metrics or measurements reported (WITH VALUES if available)
+6. Key Findings: 3-5 main findings from RESULTS section (factual, quantitative when possible)
 7. Limitations: Any limitations explicitly mentioned by the authors
+
+${!isAbstractOnly ? '🔍 SEARCH STRATEGY: Scan for section headers like "Results", "Findings", "Experimental Results", "Evaluation", "Performance Analysis". Extract quantitative data, percentages, comparisons, and statistical significance.' : ''}
 
 Respond ONLY with valid JSON in this exact format:
 {
@@ -63,15 +69,16 @@ Respond ONLY with valid JSON in this exact format:
   "context": "string",
   "methodology": "string",
   "variables": ["string"],
-  "metrics": ["string"],
-  "key_findings": ["string"],
+  "metrics": ["string with values if available"],
+  "key_findings": ["string with quantitative data when possible"],
   "limitations": ["string"]
 }
 
 Do NOT add any text before or after the JSON. Extract factual information only, do not interpret or evaluate.`;
 
     try {
-      const textToAnalyze = text.substring(0, 6000);
+      // Aumentar límite para capturar sección de resultados (típicamente después de intro/metodología)
+      const textToAnalyze = text.substring(0, 20000);
       
       // Combinar prompt con el texto a analizar
       const fullPrompt = `${prompt}\n\nTEXT TO ANALYZE:\n${textToAnalyze}`;
@@ -109,6 +116,19 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
   }
 
   /**
+   * Convierte fullTextUrl (URL del backend) a ruta de archivo local
+   */
+  getLocalPdfPath(fullTextUrl) {
+    if (!fullTextUrl) return null;
+    
+    // Extraer filename de la URL: http://localhost:3001/uploads/fulltext-results/ref-xxx.pdf
+    const filename = fullTextUrl.split('/').pop();
+    
+    // Construir ruta local desde backend root
+    return path.resolve(__dirname, '../../../uploads/fulltext-results/', filename);
+  }
+
+  /**
    * Procesa un PDF individual o abstract si no hay PDF
    * Según instrucción del tutor: si no hay PDF, analizar solo el abstract
    */
@@ -129,25 +149,26 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
       let isAbstractOnly = false;
       let source;
 
-      // 2. Verificar si hay PDF cargado
-      if (reference.pdfPath) {
-        const fullPath = path.resolve(__dirname, '../../../', reference.pdfPath);
+      // 2. Verificar si hay PDF cargado (usando fullTextUrl)
+      if (reference.fullTextUrl) {
+        const fullPath = this.getLocalPdfPath(reference.fullTextUrl);
         
-        if (fs.existsSync(fullPath)) {
+        if (fullPath && fs.existsSync(fullPath)) {
           // Caso 1: Hay PDF completo disponible
-          console.log(`Extrayendo texto completo de: ${reference.title}`);
+          console.log(`📄 Extrayendo texto completo de: ${reference.title}`);
           textToAnalyze = await this.extractTextFromPDF(fullPath);
           source = 'full_text';
+          console.log(`✅ Texto extraído: ${textToAnalyze?.length || 0} caracteres`);
         } else {
-          // PDF path existe pero archivo no encontrado, usar abstract
-          console.log(`PDF no encontrado, analizando abstract de: ${reference.title}`);
+          // PDF URL existe pero archivo no encontrado, usar abstract
+          console.log(`⚠️ PDF no encontrado en ${fullPath}, analizando abstract de: ${reference.title}`);
           textToAnalyze = reference.abstract || '';
           isAbstractOnly = true;
           source = 'abstract_only';
         }
       } else {
         // Caso 2: No hay PDF, analizar solo abstract (instrucción del tutor)
-        console.log(`No hay PDF, analizando abstract de: ${reference.title}`);
+        console.log(`ℹ️ No hay PDF cargado, analizando abstract de: ${reference.title}`);
         textToAnalyze = reference.abstract || '';
         isAbstractOnly = true;
         source = 'abstract_only';
@@ -204,7 +225,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
       const includedReferences = references.filter(ref => 
         (ref.screeningStatus === 'included' || 
          ref.screeningStatus === 'fulltext_included') &&
-        (ref.pdfPath || ref.abstract) // Acepta con PDF o con abstract
+        (ref.fullTextUrl || ref.abstract) // Acepta con PDF (fullTextUrl) o con abstract
       );
 
       if (includedReferences.length === 0) {
@@ -216,7 +237,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
         };
       }
 
-      const withPDF = includedReferences.filter(ref => ref.pdfPath).length;
+      const withPDF = includedReferences.filter(ref => ref.fullTextUrl).length;
       const abstractOnly = includedReferences.length - withPDF;
 
       console.log(`Procesando ${includedReferences.length} referencias (${withPDF} con PDF completo, ${abstractOnly} solo abstract)...`);

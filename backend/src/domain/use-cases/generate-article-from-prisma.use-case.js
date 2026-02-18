@@ -40,17 +40,23 @@ class GenerateArticleFromPrismaUseCase {
     protocolRepository,
     rqsEntryRepository,
     screeningRecordRepository,
+    referenceRepository,
     aiService,
     pythonGraphService,
-    generatePrismaContextUseCase
+    generatePrismaContextUseCase,
+    extractRQSDataUseCase,
+    extractFullTextDataUseCase
   }) {
     this.prismaItemRepository = prismaItemRepository;
     this.protocolRepository = protocolRepository;
     this.rqsEntryRepository = rqsEntryRepository;
     this.screeningRecordRepository = screeningRecordRepository;
+    this.referenceRepository = referenceRepository;
     this.aiService = aiService;
     this.pythonGraphService = pythonGraphService;
     this.generatePrismaContextUseCase = generatePrismaContextUseCase;
+    this.extractRQSDataUseCase = extractRQSDataUseCase;
+    this.extractFullTextDataUseCase = extractFullTextDataUseCase;
   }
 
   /**
@@ -201,6 +207,57 @@ ${text}`;
 
       // 1. Validar PRISMA completo
       await this.validatePrismaComplete(projectId);
+
+      // 1.5. 🆕 EXTRACCIÓN AUTOMÁTICA DE DATOS DE PDFs
+      console.log(`\n🔍 PASO 1.5: Extracción automática de datos de PDFs cargados`);
+      
+      // Verificar si hay PDFs para procesar
+      if (this.referenceRepository && this.extractFullTextDataUseCase && this.extractRQSDataUseCase) {
+        try {
+          // Obtener referencias incluidas
+          const allReferences = await this.referenceRepository.findByProject(projectId);
+          const includedReferences = allReferences.filter(ref => 
+            ref.screeningStatus === 'included' || ref.screeningStatus === 'fulltext_included'
+          );
+          
+          const refsWithPDF = includedReferences.filter(ref => ref.fullTextUrl);
+          
+          console.log(`   📊 Referencias incluidas: ${includedReferences.length}`);
+          console.log(`   📄 Con PDFs cargados: ${refsWithPDF.length}`);
+          
+          if (refsWithPDF.length > 0) {
+            // 1.5.1. Extraer datos generales de PDFs (para artículo)
+            console.log(`   🔄 Extrayendo datos de texto completo...`);
+            try {
+              const fullTextResult = await this.extractFullTextDataUseCase.processProjectPDFs(projectId);
+              console.log(`   ✅ Datos de texto completo extraídos: ${fullTextResult.processed}/${fullTextResult.total}`);
+            } catch (extractError) {
+              console.warn(`   ⚠️ Error en extracción de texto completo (continuando):`, extractError.message);
+            }
+            
+            // 1.5.2. Extraer datos RQS estructurados (para tablas RQS)
+            console.log(`   🔄 Extrayendo datos RQS estructurados...`);
+            try {
+              const rqsResult = await this.extractRQSDataUseCase.execute(projectId);
+              console.log(`   ✅ Datos RQS extraídos: ${rqsResult.extracted} estudios procesados`);
+              if (rqsResult.errors > 0) {
+                console.warn(`   ⚠️ Errores en extracción RQS: ${rqsResult.errors} estudios fallaron`);
+              }
+            } catch (rqsError) {
+              console.warn(`   ⚠️ Error en extracción RQS (continuando):`, rqsError.message);
+            }
+          } else {
+            console.log(`   ℹ️ No hay PDFs cargados. Generando artículo solo con abstracts.`);
+          }
+        } catch (extractionError) {
+          console.warn(`   ⚠️ Error en proceso de extracción automática:`, extractionError.message);
+          console.warn(`   ℹ️ Continuando con datos existentes...`);
+        }
+      } else {
+        console.log(`   ⚠️ Use cases de extracción no disponibles, omitiendo extracción automática`);
+      }
+      
+      console.log(`\n📊 PASO 2: Cargando datos existentes de la base de datos...`);
 
       // 2. Obtener datos
       const prismaItems = await this.prismaItemRepository.findAllByProject(projectId);

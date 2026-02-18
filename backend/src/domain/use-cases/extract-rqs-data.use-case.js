@@ -155,20 +155,37 @@ class ExtractRQSDataUseCase {
   }
 
   /**
+   * Convierte fullTextUrl (URL del backend) a ruta de archivo local
+   */
+  getLocalPdfPath(fullTextUrl) {
+    if (!fullTextUrl) return null;
+    
+    // Extraer filename de la URL: http://localhost:3001/uploads/fulltext-results/ref-xxx.pdf
+    const filename = fullTextUrl.split('/').pop();
+    
+    // Construir ruta local desde backend root
+    return path.resolve(__dirname, '../../../uploads/fulltext-results/', filename);
+  }
+
+  /**
    * Extraer datos RQS de una referencia usando IA
    */
   async extractFromReference(reference, researchQuestions) {
     // Intentar leer PDF completo si está disponible
     let fullText = null;
-    if (reference.fullTextPath || reference.pdfPath) {
-      const pdfPath = reference.fullTextPath || reference.pdfPath;
-      const fullPath = path.resolve(__dirname, '../../../', pdfPath);
+    if (reference.fullTextUrl) {
+      const fullPath = this.getLocalPdfPath(reference.fullTextUrl);
       
-      if (fs.existsSync(fullPath)) {
+      if (fullPath && fs.existsSync(fullPath)) {
+        console.log(`📄 Leyendo PDF para RQS: ${reference.title?.substring(0, 50)}...`);
         fullText = await this.extractTextFromPDF(fullPath);
+        console.log(`✅ PDF leído exitosamente (${fullText?.length || 0} caracteres)`);
       } else {
-        console.warn(`⚠️ PDF no encontrado en: ${fullPath}`);
+        console.warn(`⚠️ PDF no encontrado en: ${fullPath || 'ruta no generada'}`);
+        console.warn(`   URL original: ${reference.fullTextUrl}`);
       }
+    } else {
+      console.log(`ℹ️ No hay PDF cargado para: ${reference.title?.substring(0, 50)}...`);
     }
 
     const systemPrompt = this.getSystemPrompt();
@@ -330,7 +347,7 @@ FORMATO DE SALIDA: JSON estricto, sin texto adicional.`;
     ).join('\n');
 
     const contentSource = fullText 
-      ? `**TEXTO COMPLETO DEL PDF:**\n${fullText.substring(0, 15000)}...\n\n(Texto truncado para análisis)` 
+      ? `**TEXTO COMPLETO DEL PDF:**\n${fullText.substring(0, 15000)}...\n\n(Texto truncado para análisis)\n\n⚠️ **PRIORIZA LA SECCIÓN DE RESULTADOS:** Busca específicamente en las secciones "Results", "Findings", "Experimental Results", "Evaluation" del artículo para extraer datos cuantitativos, métricas y evidencia empírica.` 
       : `**ABSTRACT:** ${reference.abstract || 'No disponible'}`;
 
     return `Extrae datos estructurados (RQS) del siguiente estudio:

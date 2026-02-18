@@ -52,6 +52,9 @@ class Protocol {
     // Screening finalizado
     this.screeningFinalized = data.screening_finalized || data.screeningFinalized || false;
     
+    // Revisión manual finalizada explícitamente por el usuario
+    this.manualReviewFinalized = data.manual_review_finalized || data.manualReviewFinalized || false;
+    
     // PRISMA desbloqueado
     this.prismaUnlocked = data.prisma_unlocked || data.prismaUnlocked || false;
     
@@ -95,6 +98,7 @@ class Protocol {
       fase2Unlocked: this.fase2Unlocked,
       selectedForFullText: this.selectedForFullText,
       screeningFinalized: this.screeningFinalized,
+      manualReviewFinalized: this.manualReviewFinalized,
       prismaUnlocked: this.prismaUnlocked,
       completed: this.completed,
       createdAt: this.createdAt,
@@ -140,6 +144,7 @@ class Protocol {
       fase2_unlocked: this.fase2Unlocked,
       selected_for_full_text: safeStringify(this.selectedForFullText),
       screening_finalized: this.screeningFinalized,
+      manual_review_finalized: this.manualReviewFinalized,
       prisma_unlocked: this.prismaUnlocked,
       completed: this.completed,
       created_at: this.createdAt,
