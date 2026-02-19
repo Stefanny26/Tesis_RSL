@@ -52,8 +52,31 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
   const [fase2Unlocked, setFase2Unlocked] = useState(false)
   const [selectedForFullText, setSelectedForFullText] = useState<Set<string>>(new Set())
   const [screeningFinalized, setScreeningFinalized] = useState(false)
-  const [manualReviewCompleted, setManualReviewCompleted] = useState(false)
   const [isFinalizingScreening, setIsFinalizingScreening] = useState(false)
+
+  // Helper: Verificar si TODOS los artículos seleccionados han sido revisados manualmente
+  const areAllArticlesReviewed = (): boolean => {
+    if (selectedForFullText.size === 0) return false
+    
+    const selectedIds = Array.from(selectedForFullText)
+    const selectedRefs = references.filter(r => selectedIds.includes(r.id))
+    
+    // Todos deben tener manualReviewStatus = 'included' o 'excluded' (NO 'pending' ni null)
+    const allReviewed = selectedRefs.every(ref => 
+      ref.manualReviewStatus === 'included' || ref.manualReviewStatus === 'excluded'
+    )
+    
+    // Debug
+    const pendingCount = selectedRefs.filter(ref => 
+      !ref.manualReviewStatus || ref.manualReviewStatus === 'pending'
+    ).length
+    
+    if (pendingCount > 0) {
+      console.log(`⚠️ Todavía hay ${pendingCount} artículo(s) pendiente(s) de revisión manual`)
+    }
+    
+    return allReviewed
+  }
 
   // Cargar referencias del proyecto y protocolo (search queries) - EN PARALELO
   useEffect(() => {
@@ -100,10 +123,6 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
           }
           if (protocol?.selectedForFullText && Array.isArray(protocol.selectedForFullText) && protocol.selectedForFullText.length > 0) {
             setSelectedForFullText(new Set(protocol.selectedForFullText))
-            // NO marcar como completada automáticamente - solo si hay flag explícito
-            if (protocol?.manualReviewFinalized === true) {
-              setManualReviewCompleted(true)
-            }
           } else if (refData?.references) {
             // Fallback: inferir selectedForFullText desde refs con manualReviewStatus
             const reviewedIds = (refData.references as any[]).filter(
@@ -438,24 +457,8 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
             throw new Error('Formato de respuesta del backend inválido')
           }
           
-          // Guardar resultado para mostrar estadísticas
-          setLastScreeningResult(result)
-          
-          // Recargar TODAS las referencias para obtener los resultados actualizados
-          const refData = await apiClient.getAllReferences(params.id)
-          setReferences(refData.references || [])
-          setStats(refData.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
-          
-          // Recargar protocolo para verificar si fase2 fue desbloqueada
-          try {
-            const protocol = await apiClient.getProtocol(params.id)
-            if (protocol?.fase2Unlocked) {
-              setFase2Unlocked(true)
-              console.log('🔓 Fase 2 (PRISMA) desbloqueada por el backend')
-            }
-          } catch (err) {
-            console.warn('No se pudo verificar el estado del protocolo:', err)
-          }
+          // Usar handleScreeningComplete para recargar datos y limpiar estados
+          await handleScreeningComplete(result)
           
           const { included, excluded, reviewManual, phase1, phase2 } = result.summary
           
@@ -532,6 +535,21 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
               setLastScreeningResult(protocol.screeningResults)
               console.log('✅ Resultados de screening cargados desde protocolo')
             }
+          }
+          
+          // 🧹 IMPORTANTE: Resetear estados locales basados en el protocolo recargado
+          // Si selectedForFullText está vacío, significa que hubo una re-ejecución y se limpiaron los datos previos
+          if (!protocol.selectedForFullText || protocol.selectedForFullText.length === 0) {
+            console.log('🧹 Limpiando estados locales (re-ejecución detectada)...')
+            setSelectedForFullText(new Set())
+            setScreeningFinalized(false)
+            setFase2Unlocked(protocol.fase2Unlocked || false)
+          } else {
+            // Si hay selectedForFullText, restaurar del protocolo
+            setSelectedForFullText(new Set(protocol.selectedForFullText))
+            setManualReviewCompleted(protocol.manualReviewFinalized || false)
+            setScreeningFinalized(protocol.screeningFinalized || false)
+            setFase2Unlocked(protocol.fase2Unlocked || false)
           }
           
           // Actualizar estado de fase2Unlocked
@@ -867,14 +885,10 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                       })
                     }
                     
-                    // Marcar revisión como completada y bloquear ediciones futuras
-                    setManualReviewCompleted(true)
-                    
-                    // Guardar en el protocolo (incluir selectedForFullText + flag de finalización)
+                    // Guardar en el protocolo los artículos seleccionados
                     apiClient.updateProtocol(params.id, { 
                       fase2Unlocked: true,
-                      selectedForFullText: selectedIds,
-                      manualReviewFinalized: true  // <-- Persistir que el usuario completó la revisión
+                      selectedForFullText: selectedIds
                     })
                       .catch(err => console.warn('No se pudo actualizar el protocolo:', err))
                     
@@ -883,7 +897,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                       description: `${selectedIds.length} artículo${selectedIds.length !== 1 ? 's' : ''} aprobado${selectedIds.length !== 1 ? 's' : ''} para inclusión final`,
                     })
                   }}
-                  isLocked={screeningFinalized || manualReviewCompleted}
+                  isLocked={areAllArticlesReviewed()}
                   onReferenceStatusChange={async (referenceId: string, status: 'included' | 'excluded' | 'pending', exclusionReason?: string) => {
                     try {
                       console.log(`🔄 Actualizando estado local de artículo ${referenceId} a ${status}`)
@@ -1004,9 +1018,10 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                 })
                 
                 const prismaStats = {
-                  identified: totalRefs + (stats.duplicates || 0), // Total antes de eliminar duplicados
+                  // CORRECCIÓN: identified debe ser el total REAL de referencias (no sumar duplicates)
+                  identified: totalRefs,
                   duplicates: stats.duplicates || 0, // Duplicados detectados y marcados
-                  afterDedup: totalRefs, // Referencias únicas después de eliminar duplicados
+                  afterDedup: totalRefs - (stats.duplicates || 0), // Referencias después de eliminar duplicados
                   screenedTitleAbstract: screenedInPhase1 > 0 ? screenedInPhase1 : totalRefs,
                   excludedTitleAbstract: excludedInPhase1,
                   fullTextAssessed: selectedForReview.length,

@@ -4,20 +4,14 @@ import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
 import {
     ArrowRight,
     Info,
-    ClipboardPaste,
-    Loader2,
     CheckCircle,
     XCircle,
     Upload,
-    FileText,
-    X
+    FileText
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ApiClient } from "@/lib/api-client"
@@ -68,11 +62,9 @@ interface SimplifiedScreeningSummaryProps {
     isLocked?: boolean
 }
 
-export function SimplifiedScreeningSummary({ projectId, result, onProceedToManualReview, onReferenceStatusChange, isLocked = false }: SimplifiedScreeningSummaryProps) {
+export function SimplifiedScreeningSummary({ projectId, result, onProceedToManualReview, onReferenceStatusChange, isLocked = false }: Readonly<SimplifiedScreeningSummaryProps>) {
     const { toast } = useToast()
-    const [manuallySelected, setManuallySelected] = useState<Set<string>>(new Set())
-    const [pasteDialogOpen, setPasteDialogOpen] = useState(false)
-    const [pasteRefId, setPasteRefId] = useState<string | null>(null)
+    const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [isSavingPaste, setIsSavingPaste] = useState(false)
     const [decision, setDecision] = useState<'include' | 'exclude' | null>(null)
@@ -157,34 +149,34 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
     const recommendedCount = elbowIndex
     const recommendedArticles = sortedArticles.slice(0, Math.min(recommendedCount, sortedArticles.length))
 
-    // Obtener artículos seleccionados (recomendados + manualmente agregados)
+    // Obtener artículos seleccionados (todos los recomendados)
     const getSelectedArticles = () => {
-        // Selección automática: artículos recomendados + manualmente agregados
-        const baseSelection = new Set<string>(recommendedArticles.map(art => art.id))
-
-        // Agregar selecciones manuales adicionales
-        manuallySelected.forEach(id => baseSelection.add(id))
-
-        return Array.from(baseSelection)
+        return recommendedArticles.map(art => art.id)
     }
 
     const handleProceed = () => {
         const selectedIds = getSelectedArticles()
+        
+        // Validar que todos los artículos recomendados tengan una decisión manual
+        const pendingArticles = recommendedArticles.filter(art => 
+            !reviewedArticles.has(art.id)
+        )
+        
+        if (pendingArticles.length > 0) {
+            toast({
+                title: "⚠️ Revisión incompleta",
+                description: `Debes revisar los ${pendingArticles.length} artículo(s) pendiente(s) antes de continuar. Cada artículo debe ser marcado como Incluido o Excluido.`,
+                variant: "destructive",
+                duration: 6000
+            })
+            return
+        }
+        
         onProceedToManualReview(selectedIds)
     }
 
-    const toggleManualSelection = (refId: string) => {
-        const newSelected = new Set(manuallySelected)
-        if (newSelected.has(refId)) {
-            newSelected.delete(refId)
-        } else {
-            newSelected.add(refId)
-        }
-        setManuallySelected(newSelected)
-    }
-
     const handleSavePastedResults = async (finalDecision: 'include' | 'exclude') => {
-        if (!pasteRefId) return
+        if (!selectedArticleId) return
         if (finalDecision === 'exclude' && !exclusionReason.trim()) {
             toast({
                 title: "Razón de exclusión requerida",
@@ -204,14 +196,14 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                     title: finalDecision === 'include' ? "Incluyendo artículo..." : "Excluyendo artículo...",
                     description: `Subiendo archivo PDF (${(selectedFile.size / 1024).toFixed(1)} KB)`
                 })
-                await apiClient.uploadPdf(pasteRefId, selectedFile)
+                await apiClient.uploadPdf(selectedArticleId, selectedFile)
             }
 
             // Enviar decisión al backend usando endpoint existente
             const token = localStorage.getItem("token")
             const mappedStatus = finalDecision === 'include' ? 'included' : 'excluded'
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/references/${pasteRefId}/screening`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/references/${selectedArticleId}/screening`,
                 {
                     method: "PUT",
                     headers: {
@@ -234,14 +226,14 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
             const newStatus = finalDecision === 'include' ? 'included' as const : 'excluded' as const
             setReviewedArticles(prev => {
                 const updated = new Map(prev)
-                updated.set(pasteRefId, newStatus)
+                updated.set(selectedArticleId, newStatus)
                 return updated
             })
 
             // Notificar cambio de estado al componente padre
             if (onReferenceStatusChange) {
                 onReferenceStatusChange(
-                    pasteRefId,
+                    selectedArticleId,
                     newStatus,
                     finalDecision === 'exclude' ? exclusionReason : undefined
                 )
@@ -254,9 +246,7 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                     : "El artículo ha sido excluido de la revisión - Se reflejará en el diagrama PRISMA"
             })
 
-            setPasteDialogOpen(false)
             setSelectedFile(null)
-            setPasteRefId(null)
             setDecision(null)
             setExclusionReason('')
         } catch (error: any) {
@@ -269,6 +259,11 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
             setIsSavingPaste(false)
         }
     }
+
+    // Obtener el artículo seleccionado
+    const selectedArticle = selectedArticleId 
+        ? [...recommendedArticles].find((r: any) => r.id === selectedArticleId)
+        : null
 
     return (
         <div className="space-y-4">
@@ -412,14 +407,17 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                 </CardContent>
             </Card>
 
-            {/* Selección Automática del Top Recomendado */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Artículos Recomendados para Revisión Manual</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+            {/* Diseño estilo Rayyan: Lista + Panel de Detalles */}
+            <Card className="overflow-hidden">
+                <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">Artículos Recomendados para Revisión Manual</CardTitle>
+                        <Badge className="bg-purple-600">
+                            RECOMENDADO POR IA
+                        </Badge>
+                    </div>
                     {isLocked && (
-                        <Alert className="border-blue-400 bg-blue-50 dark:!bg-blue-950/60 dark:border-blue-700">
+                        <Alert className="border-blue-400 bg-blue-50 dark:!bg-blue-950/60 dark:border-blue-700 mt-3">
                             <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                             <AlertDescription className="text-sm text-blue-800 dark:text-blue-200">
                                 La revisión manual ha sido completada. Los artículos y sus decisiones están bloqueados.
@@ -427,165 +425,342 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                         </Alert>
                     )}
                     {!isLocked && (
-                        <Alert>
+                        <Alert className="mt-3">
                             <Info className="h-4 w-4" />
                             <AlertDescription className="text-sm">
                                 El sistema ha identificado automáticamente los <strong>{recommendedArticles.length} artículos más relevantes</strong> según el análisis del punto de inflexión (codo).
-                                Estos artículos serán revisados manualmente. Puedes agregar artículos adicionales si lo deseas.
+                                Haz clic en un artículo para revisarlo.
                             </AlertDescription>
                         </Alert>
                     )}
+                </CardHeader>
 
-                    {/* Mostrar artículos recomendados automáticamente */}
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-sm">Artículos seleccionados ({getSelectedArticles().length})</h4>
-                            <Badge className="bg-purple-600">
-                                RECOMENDADO POR IA
-                            </Badge>
-                        </div>
-
-                        {/* Progreso de revisión */}
-                        {(() => {
-                            const reviewed = recommendedArticles.filter((r: any) => getReviewStatus(r.id) !== 'pending').length
-                            const includedCount = recommendedArticles.filter((r: any) => getReviewStatus(r.id) === 'included').length
-                            const excludedCount = recommendedArticles.filter((r: any) => getReviewStatus(r.id) === 'excluded').length
-                            const total = recommendedArticles.length
-                            const pct = total > 0 ? Math.round((reviewed / total) * 100) : 0
-                            return (
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-muted-foreground">Progreso de revisión:</span>
-                                        <span className="font-medium">
-                                            {reviewed}/{total} revisados ({pct}%)
-                                            {includedCount > 0 && <span className="text-green-600 dark:text-green-400 ml-2"> {includedCount} incluidos</span>}
-                                            {excludedCount > 0 && <span className="text-red-600 dark:text-red-400 ml-2"> {excludedCount} excluidos</span>}
-                                        </span>
-                                    </div>
-                                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                                        <div className="h-full flex">
-                                            <div className="bg-green-500 transition-all" style={{ width: `${total > 0 ? (includedCount / total) * 100 : 0}%` }} />
-                                            <div className="bg-red-500 transition-all" style={{ width: `${total > 0 ? (excludedCount / total) * 100 : 0}%` }} />
-                                        </div>
+                <CardContent className="p-0">
+                    {/* Progreso de revisión */}
+                    {(() => {
+                        const reviewed = recommendedArticles.filter((r: any) => getReviewStatus(r.id) !== 'pending').length
+                        const includedCount = recommendedArticles.filter((r: any) => getReviewStatus(r.id) === 'included').length
+                        const excludedCount = recommendedArticles.filter((r: any) => getReviewStatus(r.id) === 'excluded').length
+                        const total = recommendedArticles.length
+                        const pct = total > 0 ? Math.round((reviewed / total) * 100) : 0
+                        return (
+                            <div className="px-6 pb-3 space-y-2">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Progreso de revisión:</span>
+                                    <span className="font-medium">
+                                        {reviewed}/{total} revisados ({pct}%)
+                                        {includedCount > 0 && <span className="text-green-600 dark:text-green-400 ml-2">{includedCount} incluidos</span>}
+                                        {excludedCount > 0 && <span className="text-red-600 dark:text-red-400 ml-2">{excludedCount} excluidos</span>}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                                    <div className="h-full flex">
+                                        <div className="bg-green-500 transition-all" style={{ width: `${total > 0 ? (includedCount / total) * 100 : 0}%` }} />
+                                        <div className="bg-red-500 transition-all" style={{ width: `${total > 0 ? (excludedCount / total) * 100 : 0}%` }} />
                                     </div>
                                 </div>
-                            )
-                        })()}
+                            </div>
+                        )
+                    })()}
 
-                        {/* Lista de artículos recomendados */}
-                        <div className="space-y-2 border dark:border-slate-700 rounded-lg p-3 max-h-96 overflow-y-auto">
-                            {recommendedArticles.map((ref: any, idx) => {
-                                const reviewStatus = getReviewStatus(ref.id)
-                                const isIncluded = reviewStatus === 'included'
-                                const isExcluded = reviewStatus === 'excluded'
-                                const isReviewed = isIncluded || isExcluded
+                    {/* Layout de dos columnas estilo Rayyan */}
+                    <div className="flex border-t">
+                        {/* COLUMNA IZQUIERDA: Lista de artículos (35%) */}
+                        <div className="w-[35%] border-r overflow-y-auto" style={{ height: '600px' }}>
+                            <div className="divide-y">
+                                {recommendedArticles.map((ref: any, idx) => {
+                                    const reviewStatus = getReviewStatus(ref.id)
+                                    const isIncluded = reviewStatus === 'included'
+                                    const isExcluded = reviewStatus === 'excluded'
+                                    const isReviewed = isIncluded || isExcluded
+                                    const isSelected = selectedArticleId === ref.id
 
-                                return (
-                                    <Card key={ref.id} className={cn(
-                                        "transition-all border-l-4",
-                                        isIncluded && "border-l-green-500 bg-green-50/60 dark:!bg-green-950/80 dark:border-l-green-400 dark:border-green-800",
-                                        isExcluded && "border-l-red-500 bg-red-50/60 dark:!bg-red-950/80 dark:border-l-red-400 dark:border-red-800",
-                                        !isReviewed && "border-l-sky-400 bg-sky-50/60 dark:!bg-sky-950/70 dark:border-l-sky-400 dark:border-sky-800"
-                                    )}>
-                                        <CardContent className="p-4">
+                                    return (
+                                        <button
+                                            key={ref.id}
+                                            type="button"
+                                            onClick={() => setSelectedArticleId(ref.id)}
+                                            className={cn(
+                                                "w-full p-4 cursor-pointer transition-all hover:bg-muted/50 border-l-4 text-left",
+                                                isSelected && "bg-muted/80",
+                                                isIncluded && "border-l-green-500 bg-green-50/30 dark:bg-green-950/20",
+                                                isExcluded && "border-l-red-500 bg-red-50/30 dark:bg-red-950/20",
+                                                !isReviewed && "border-l-blue-400"
+                                            )}
+                                        >
                                             <div className="flex items-start gap-3">
-                                                {/* Número con color según estado */}
+                                                {/* Indicador visual */}
                                                 <div className={cn(
-                                                    "rounded-full w-8 h-8 flex items-center justify-center font-bold text-xs flex-shrink-0",
+                                                    "rounded-full w-7 h-7 flex items-center justify-center font-bold text-xs flex-shrink-0",
                                                     isIncluded && "bg-green-600 text-white",
                                                     isExcluded && "bg-red-600 text-white",
-                                                    !isReviewed && "bg-sky-400 text-white"
+                                                    !isReviewed && "bg-blue-400 text-white"
                                                 )}>
                                                     {isIncluded && <CheckCircle className="h-4 w-4" />}
                                                     {isExcluded && <XCircle className="h-4 w-4" />}
                                                     {!isReviewed && (idx + 1)}
                                                 </div>
 
-                                                {/* Contenido */}
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className={cn(
-                                                        "font-semibold text-sm mb-1",
+                                                        "font-semibold text-sm mb-1 line-clamp-2",
                                                         isExcluded && "line-through opacity-60"
                                                     )}>
                                                         {ref.title}
                                                     </h3>
 
-                                                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
-                                                        <span>
-                                                            {ref.authors?.[0] || 'Sin autor'} {ref.authors && ref.authors.length > 1 ? 'et al.' : ''}
-                                                        </span>
-                                                        {ref.year && (
-                                                            <>
-                                                                <span>{'\u2022'}</span>
-                                                                <span>{ref.year}</span>
-                                                            </>
-                                                        )}
+                                                    <div className="text-xs text-muted-foreground mb-1">
+                                                        {ref.authors?.[0] || 'Sin autor'} {ref.authors && ref.authors.length > 1 ? 'et al.' : ''}
+                                                        {ref.year && ` • ${ref.year}`}
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 mt-2">
                                                         {ref.screeningScore && (
-                                                            <>
-                                                                <span>{'\u2022'}</span>
-                                                                <Badge variant="outline" className="text-xs h-5">
-                                                                    Similitud: {(ref.screeningScore * 100).toFixed(1)}%
-                                                                </Badge>
-                                                            </>
+                                                            <Badge variant="outline" className="text-xs h-5">
+                                                                {(ref.screeningScore * 100).toFixed(0)}%
+                                                            </Badge>
+                                                        )}
+                                                        {isIncluded && (
+                                                            <Badge className="bg-green-600 text-xs h-5">
+                                                                Incluido
+                                                            </Badge>
+                                                        )}
+                                                        {isExcluded && (
+                                                            <Badge className="bg-red-600 text-xs h-5">
+                                                                Excluido
+                                                            </Badge>
                                                         )}
                                                     </div>
-
-                                                    {/* Badge de estado */}
-                                                    {isIncluded && (
-                                                        <Badge variant="default" className="bg-green-600 text-xs h-5">
-                                                            <CheckCircle className="h-3 w-3 mr-1" />
-                                                            Incluido
-                                                        </Badge>
-                                                    )}
-                                                    {isExcluded && (
-                                                        <Badge variant="default" className="bg-red-600 text-xs h-5">
-                                                            <XCircle className="h-3 w-3 mr-1" />
-                                                            Excluido{ref.exclusionReason ? `: ${ref.exclusionReason}` : ''}
-                                                        </Badge>
-                                                    )}
-                                                    {!isReviewed && (
-                                                        <Badge variant="outline" className="text-xs h-5 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600">
-                                                            Pendiente de revisión
-                                                        </Badge>
-                                                    )}
                                                 </div>
-
-                                                {/* Acciones */}
-                                                {!isLocked && (
-                                                    <div className="flex flex-col gap-2 flex-shrink-0">
-                                                        <Button
-                                                            size="sm"
-                                                            variant={isReviewed ? "outline" : "default"}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation()
-                                                                setPasteRefId(ref.id)
-                                                                setSelectedFile(null)
-                                                                setDecision(null)
-                                                                setExclusionReason('')
-                                                                setPasteDialogOpen(true)
-                                                            }}
-                                                            className={cn(
-                                                                "h-7 text-[10px] px-2 py-1",
-                                                                isIncluded && "border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950/60",
-                                                                isExcluded && "border-red-300 text-red-700 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-950/60"
-                                                            )}
-                                                        >
-                                                            {!isReviewed && <><ClipboardPaste className="h-2.5 w-2.5 mr-0.5" />Revisar</>}
-                                                            {isIncluded && <><CheckCircle className="h-2.5 w-2.5 mr-0.5" />Editar</>}
-                                                            {isExcluded && <><XCircle className="h-2.5 w-2.5 mr-0.5" />Editar</>}
-                                                        </Button>
-                                                    </div>
-                                                )}
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                )
-                            })}
+                                        </button>
+                                    )
+                                })}
+                            </div>
                         </div>
 
+                        {/* COLUMNA DERECHA: Panel de detalles (65%) */}
+                        <div className="w-[65%] overflow-y-auto bg-muted/10" style={{ height: '600px' }}>
+                            {selectedArticle ? (
+                                <div className="p-6 space-y-6">
+                                    {/* Encabezado del artículo */}
+                                    <div>
+                                        <h2 className="text-xl font-bold mb-3">{selectedArticle.title}</h2>
+                                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                            <span className="font-medium">
+                                                {selectedArticle.authors?.[0] || 'Sin autor'} 
+                                                {selectedArticle.authors && selectedArticle.authors.length > 1 ? ' et al.' : ''}
+                                            </span>
+                                            {selectedArticle.year && <span>• {selectedArticle.year}</span>}
+                                            {selectedArticle.journal && <span>• {selectedArticle.journal}</span>}
+                                        </div>
+                                        {selectedArticle.screeningScore && (
+                                            <div className="mt-3">
+                                                <Badge variant="outline" className="text-sm">
+                                                    Similitud con protocolo: {(selectedArticle.screeningScore * 100).toFixed(1)}%
+                                                </Badge>
+                                            </div>
+                                        )}
+                                    </div>
 
+                                    {/* Resumen */}
+                                    {selectedArticle.abstract && (
+                                        <div>
+                                            <h3 className="font-semibold mb-2">Resumen</h3>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                {selectedArticle.abstract}
+                                            </p>
+                                        </div>
+                                    )}
 
-                        {/* Botón para proceder */}
+                                    {/* Análisis de IA */}
+                                    {selectedArticle.screeningReasoning && (
+                                        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                            <div className="flex items-start gap-2 mb-2">
+                                                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                                                <h3 className="font-semibold text-blue-900 dark:text-blue-100">Análisis de IA</h3>
+                                            </div>
+                                            <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                                                {selectedArticle.screeningReasoning}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Decisión de revisión */}
+                                    {!isLocked && (
+                                        <div className="space-y-4">
+                                            <h3 className="font-semibold">Decisión de Revisión</h3>
+                                            
+                                            {/* Sección de carga de PDF (compacta) */}
+                                            <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+                                                <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium">Cargar Texto Completo (PDF)</p>
+                                                    {selectedFile && (
+                                                        <p className="text-xs text-muted-foreground truncate">
+                                                            {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    accept=".pdf"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0]
+                                                        if (file) {
+                                                            if (file.type !== 'application/pdf') {
+                                                                toast({
+                                                                    title: "Tipo de archivo no válido",
+                                                                    description: "Solo se permiten archivos PDF",
+                                                                    variant: "destructive"
+                                                                })
+                                                                return
+                                                            }
+                                                            setSelectedFile(file)
+                                                        }
+                                                    }}
+                                                    className="hidden"
+                                                    id="pdf-upload"
+                                                />
+                                                <label htmlFor="pdf-upload">
+                                                    <Button type="button" variant="outline" size="sm" className="cursor-pointer" asChild>
+                                                        <span>
+                                                            <Upload className="h-4 w-4 mr-2" />
+                                                            {selectedFile ? 'Cambiar' : 'Seleccionar'}
+                                                        </span>
+                                                    </Button>
+                                                </label>
+                                            </div>
+
+                                            {/* Botones de decisión (siempre visibles) */}
+                                            {!decision && (
+                                                <div className="flex gap-3">
+                                                    <Button
+                                                        onClick={() => setDecision('include')}
+                                                        className="flex-1 bg-green-600 hover:bg-green-700"
+                                                        size="lg"
+                                                    >
+                                                        <CheckCircle className="mr-2 h-5 w-5" />
+                                                        Incluir
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => setDecision('exclude')}
+                                                        className="flex-1 bg-red-600 hover:bg-red-700"
+                                                        size="lg"
+                                                    >
+                                                        <XCircle className="mr-2 h-5 w-5" />
+                                                        Excluir
+                                                    </Button>
+                                                </div>
+                                            )}
+
+                                            {/* Confirmación después de decidir */}
+                                            {decision && (
+                                                <div className="space-y-3">
+                                                    <Alert className={decision === 'include' ? 'border-green-500' : 'border-red-500'}>
+                                                        <AlertDescription>
+                                                            Has seleccionado: <strong>{decision === 'include' ? 'Incluir' : 'Excluir'}</strong> este artículo
+                                                        </AlertDescription>
+                                                    </Alert>
+
+                                                    {decision === 'exclude' && (
+                                                        <div>
+                                                            <label htmlFor="exclusion-reason" className="text-sm font-medium mb-2 block">
+                                                                Razón de exclusión (requerido)
+                                                            </label>
+                                                            <textarea
+                                                                id="exclusion-reason"
+                                                                value={exclusionReason}
+                                                                onChange={(e) => setExclusionReason(e.target.value)}
+                                                                placeholder="Especifica por qué este artículo debe ser excluido..."
+                                                                className="w-full min-h-[100px] p-3 border rounded-lg resize-none"
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            onClick={() => {
+                                                                setDecision(null)
+                                                                setExclusionReason('')
+                                                                setSelectedFile(null)
+                                                            }}
+                                                            variant="outline"
+                                                            disabled={isSavingPaste}
+                                                        >
+                                                            Cancelar
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleSavePastedResults(decision)}
+                                                            disabled={isSavingPaste || (decision === 'exclude' && !exclusionReason.trim())}
+                                                            className="flex-1"
+                                                        >
+                                                            {isSavingPaste ? (
+                                                                <>Guardando...</>
+                                                            ) : (
+                                                                <>Confirmar {decision === 'include' ? 'Inclusión' : 'Exclusión'}</>
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Mostrar estado si ya fue revisado */}
+                                    {getReviewStatus(selectedArticle.id) !== 'pending' && (
+                                        <Alert className={getReviewStatus(selectedArticle.id) === 'included' ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : 'border-red-500 bg-red-50 dark:bg-red-950/30'}>
+                                            <CheckCircle className="h-4 w-4" />
+                                            <AlertDescription>
+                                                Este artículo ya fue revisado: <strong>{getReviewStatus(selectedArticle.id) === 'included' ? 'Incluido' : 'Excluido'}</strong>
+                                                {selectedArticle.exclusionReason && (
+                                                    <span className="block mt-1 text-sm">Razón: {selectedArticle.exclusionReason}</span>
+                                                )}
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-center p-6">
+                                    <div>
+                                        <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                                        <h3 className="text-lg font-semibold mb-2">Selecciona un artículo</h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Haz clic en un artículo de la lista para ver sus detalles y tomar una decisión
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Botón para proceder */}
+                    <div className="p-6 border-t space-y-3">
+                        {/* Contador de progreso */}
+                        {!isLocked && (() => {
+                            const totalArticles = getSelectedArticles().length
+                            const reviewedCount = recommendedArticles.filter(art => reviewedArticles.has(art.id)).length
+                            const pendingCount = totalArticles - reviewedCount
+                            
+                            return (
+                                <div className={cn(
+                                    "text-sm flex items-center justify-between p-3 rounded-lg border",
+                                    pendingCount > 0 
+                                        ? "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-200"
+                                        : "bg-green-50 border-green-200 text-green-800 dark:bg-green-950/30 dark:border-green-700 dark:text-green-200"
+                                )}>
+                                    <span className="font-medium">
+                                        Progreso de revisión: {reviewedCount} de {totalArticles} artículos
+                                    </span>
+                                    {pendingCount > 0 && (
+                                        <Badge variant="outline" className="bg-white dark:bg-slate-800">
+                                            {pendingCount} pendientes
+                                        </Badge>
+                                    )}
+                                </div>
+                            )
+                        })()}
+                        
                         {isLocked ? (
                             <div className="w-full text-center py-3 px-4 rounded-lg bg-green-50 border border-green-300 dark:!bg-green-950/60 dark:border-green-700">
                                 <p className="text-sm font-medium text-green-700 dark:text-green-300 flex items-center justify-center gap-2">
@@ -606,277 +781,6 @@ export function SimplifiedScreeningSummary({ projectId, result, onProceedToManua
                     </div>
                 </CardContent>
             </Card>
-
-            {/* Diálogo para cargar resultados de PDF */}
-            <Dialog open={pasteDialogOpen} onOpenChange={(open) => {
-                if (!isSavingPaste) {
-                    setPasteDialogOpen(open)
-                    if (!open) {
-                        setSelectedFile(null)
-                        setPasteRefId(null)
-                        setDecision(null)
-                        setExclusionReason('')
-                    }
-                }
-            }}>
-                <DialogContent className="w-[95vw] max-w-[1400px] h-[90vh] flex flex-col p-0 gap-0 !max-w-none">                    <DialogHeader className="px-6 pt-4 pb-3 border-b bg-muted/30">
-                    <DialogTitle className="text-lg">📄 Cargar Resultados del Texto Completo</DialogTitle>
-                    <DialogDescription className="text-xs">
-                        Sube el PDF del artículo
-                    </DialogDescription>
-                </DialogHeader>
-
-                    <div className="flex-1 overflow-hidden flex flex-row">
-                        {/* COLUMNA IZQUIERDA: Gestión del Documento (80%) */}
-                        <div className="w-[80%] border-r bg-muted/10 overflow-y-auto">
-                            {pasteRefId && (() => {
-                                const ref = recommendedArticles.find((r: any) => r.id === pasteRefId) ||
-                                    sortedArticles.find((r: any) => r.id === pasteRefId)
-                                if (!ref) return null
-
-                                return (
-                                    <div className="p-8">
-                                        <div className="max-w-6xl mx-auto space-y-6">
-                                            {/* Título */}
-                                            <div>
-                                                <h2 className="text-3xl font-bold tracking-tight leading-tight mb-4">
-                                                    {ref.title}
-                                                </h2>
-
-                                                {/* Autores */}
-                                                <div className="text-sm text-muted-foreground mb-4">
-                                                    <span className="font-medium text-foreground">Autores:</span>{' '}
-                                                    {ref.authors?.length > 0 ? ref.authors.join(', ') : 'Sin autores'}
-                                                </div>
-
-                                                {/* Badges */}
-                                                <div className="flex flex-wrap gap-2">
-                                                    {ref.year && (
-                                                        <Badge variant="outline" className="text-xs">
-                                                            📅 Año: {ref.year}
-                                                        </Badge>
-                                                    )}
-                                                    {ref.journal && (
-                                                        <Badge variant="outline" className="text-xs">
-                                                            📚 {ref.journal}
-                                                        </Badge>
-                                                    )}
-                                                    {ref.screeningScore && (
-                                                        <Badge variant="secondary" className="text-xs">
-                                                            🎯 Similitud: {(ref.screeningScore * 100).toFixed(1)}%
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Resumen del artículo */}
-                                            {ref.abstract && (
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="h-px bg-border flex-1" />
-                                                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                                            Resumen
-                                                        </h4>
-                                                        <div className="h-px bg-border flex-1" />
-                                                    </div>
-                                                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                                                        <p className="text-sm leading-relaxed text-foreground/90 text-justify">
-                                                            {ref.abstract}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )
-                            })()}
-                        </div>
-
-                        {/* COLUMNA DERECHA: Información del Artículo (70%) */}
-                        <div className="flex-1 overflow-y-auto">
-                            <div className="p-6 space-y-6">
-                                <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
-                                    📎 Gestión del Documento
-                                </h4>
-
-                                {/* Área de carga de PDF */}
-                                <div className="space-y-3">
-                                    <label className="text-xs font-medium block text-muted-foreground">
-                                        Archivo PDF del Artículo <span className="text-muted-foreground">(opcional)</span>
-                                    </label>
-
-                                    {!selectedFile ? (
-                                        <label
-                                            htmlFor="pdf-upload"
-                                            className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-background hover:bg-muted/40 transition-colors"
-                                        >
-                                            <div className="flex flex-col items-center justify-center py-4">
-                                                <Upload className="w-10 h-10 mb-2 text-muted-foreground" />
-                                                <p className="mb-1 text-xs text-center px-2">
-                                                    <span className="font-semibold">Click para seleccionar</span><br />o arrastra aquí
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">PDF (máx 10MB)</p>
-                                            </div>
-                                            <input
-                                                id="pdf-upload"
-                                                type="file"
-                                                className="hidden"
-                                                accept=".pdf,application/pdf"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0]
-                                                    if (file) {
-                                                        if (file.size > 10 * 1024 * 1024) {
-                                                            toast({
-                                                                title: "Archivo muy grande",
-                                                                description: "El archivo no debe superar 10MB",
-                                                                variant: "destructive"
-                                                            })
-                                                            return
-                                                        }
-                                                        setSelectedFile(file)
-                                                    }
-                                                }}
-                                            />
-                                        </label>
-                                    ) : (
-                                        <div className="border rounded-lg p-3 bg-green-50 dark:bg-green-950/20 space-y-2">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-start gap-2 flex-1 min-w-0">
-                                                    <FileText className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-sm text-green-900 dark:text-green-100 truncate">
-                                                            {selectedFile.name}
-                                                        </p>
-                                                        <p className="text-xs text-green-700 dark:text-green-300 mt-0.5">
-                                                            {(selectedFile.size / 1024).toFixed(1)} KB
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setSelectedFile(null)}
-                                                    className="h-6 w-6 p-0 flex-shrink-0"
-                                                >
-                                                    <X className="h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                            <p className="text-xs text-green-700 dark:text-green-300 flex items-center gap-1">
-                                                <CheckCircle className="h-3 w-3" />
-                                                Listo para subir
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    <Alert className="py-1.5">
-                                        <Info className="h-3 w-3" />
-                                        <AlertDescription className="text-xs">
-                                            El PDF se guardará para análisis posterior.
-                                        </AlertDescription>
-                                    </Alert>
-                                </div>
-
-                                {/* Campo de razón de exclusión */}
-                                {decision === 'exclude' && (
-                                    <div className="border-l-4 border-destructive bg-destructive/5 p-3 rounded-lg space-y-2">
-                                        <label className="text-xs font-medium text-destructive block">
-                                            ⚠️ Razón de Exclusión <span className="text-destructive">*</span>
-                                        </label>
-                                        <Textarea
-                                            value={exclusionReason}
-                                            onChange={(e) => setExclusionReason(e.target.value)}
-                                            placeholder="Explica por qué excluyes este artículo (mínimo 10 caracteres)..."
-                                            rows={4}
-                                            className="resize-none text-xs bg-background"
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            {exclusionReason.length} caracteres • Mínimo 10
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <DialogFooter className="gap-2 px-6 py-3 border-t bg-muted/30">
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setPasteDialogOpen(false)
-                                setSelectedFile(null)
-                                setPasteRefId(null)
-                                setDecision(null)
-                                setExclusionReason('')
-                            }}
-                            disabled={isSavingPaste}
-                            size="sm"
-                        >
-                            Cancelar
-                        </Button>
-
-                        {!decision ? (
-                            <>
-                                <Button
-                                    variant="default"
-                                    onClick={() => setDecision('include')}
-                                    disabled={isSavingPaste}
-                                    className="min-w-[110px]"
-                                    size="sm"
-                                >
-                                    <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                                    Incluir
-                                </Button>
-                                <Button
-                                    variant="destructive"
-                                    onClick={() => setDecision('exclude')}
-                                    disabled={isSavingPaste}
-                                    className="min-w-[110px]"
-                                    size="sm"
-                                >
-                                    <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                                    Excluir
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => { setDecision(null); setExclusionReason('') }}
-                                    disabled={isSavingPaste}
-                                    size="sm"
-                                >
-                                    ← Cambiar decisión
-                                </Button>
-                                <Button
-                                    variant={decision === 'include' ? 'default' : 'destructive'}
-                                    onClick={() => handleSavePastedResults(decision)}
-                                    disabled={
-                                        isSavingPaste ||
-                                        (decision === 'exclude' && exclusionReason.trim().length < 10)
-                                    }
-                                    className="min-w-[150px]"
-                                    size="sm"
-                                >
-                                    {isSavingPaste ? (
-                                        <>
-                                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                                            Guardando...
-                                        </>
-                                    ) : (
-                                        <>
-                                            {decision === 'include' ? (
-                                                <><CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Confirmar Inclusión</>
-                                            ) : (
-                                                <><XCircle className="h-3.5 w-3.5 mr-1.5" /> Confirmar Exclusión</>
-                                            )}
-                                        </>
-                                    )}
-                                </Button>
-                            </>
-                        )}
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     )
 }

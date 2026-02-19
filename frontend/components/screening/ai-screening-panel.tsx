@@ -197,32 +197,38 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
             </div>
           </div>
 
-          {/* Botón de acción */}
-          <Button 
-            onClick={handleRunScreening} 
-            disabled={isRunning || totalReferences === 0 || method === 'llm'} 
-            className="w-full"
-            size="lg"
-          >
-            {isRunning ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Procesando...
-              </>
-            ) : method === 'llm' ? (
-              "⚠️ Cuota de API Agotada"
-            ) : pendingReferences === 0 ? (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Re-ejecutar Cribado Híbrido
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Ejecutar Cribado Híbrido
-              </>
-            )}
-          </Button>
+          {/* Botón de acción — SOLO se muestra si hay pendientes (no se permite re-ejecutar) */}
+          {pendingReferences > 0 && (
+            <Button 
+              onClick={handleRunScreening} 
+              disabled={isRunning || totalReferences === 0 || method === 'llm'} 
+              className="w-full"
+              size="lg"
+            >
+              {isRunning ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Procesando...
+                </>
+              ) : method === 'llm' ? (
+                "⚠️ Cuota de API Agotada"
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Ejecutar Cribado Híbrido
+                </>
+              )}
+            </Button>
+          )}
+          {pendingReferences === 0 && !isRunning && (
+            <div className="w-full p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-center">
+              <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-400">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-semibold">Cribado completado</span>
+              </div>
+              <p className="text-xs text-green-600 dark:text-green-500 mt-1">Todas las referencias han sido procesadas. Continúe con la Fase 2.</p>
+            </div>
+          )}
 
           {method === 'llm' && (
             <Alert variant="destructive">

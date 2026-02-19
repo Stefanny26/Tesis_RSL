@@ -49,7 +49,7 @@ const getProjectReferences = async (req, res) => {
       included: await referenceRepository.countByProject(projectId, { screeningStatus: 'included' }),
       excluded: await referenceRepository.countByProject(projectId, { screeningStatus: 'excluded' }),
       maybe: await referenceRepository.countByProject(projectId, { screeningStatus: 'maybe' }),
-      duplicates: await referenceRepository.countByProject(projectId, { isDuplicate: true })
+      duplicates: 0 // La columna is_duplicate no existe en la BD, siempre es 0
     };
 
     res.status(200).json({

@@ -60,48 +60,67 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
       setStatus(statusData.data || statusData)
 
       // Cargar stats de screening para diagrama PRISMA
+      // IMPORTANTE: Usa la MISMA lógica que screening/page.tsx y generate-prisma-context.use-case.js
+      //   - selectedForFullText (del protocolo) = referencias seleccionadas para revisión manual
+      //   - manualReviewStatus = decisión de revisión manual (included/excluded)
+      //   - Las NO seleccionadas = excluidas en fase título/abstract
+      //   - Las seleccionadas con manualReviewStatus='excluded' → excluidas en full-text
+      //   - Las seleccionadas con manualReviewStatus='included' → incluidas finales
       try {
-        const refsData = await apiClient.getReferences(params.id, { limit: 10000 })
+        const [refsData, protocol] = await Promise.all([
+          apiClient.getReferences(params.id, { limit: 10000 }),
+          apiClient.getProtocol(params.id).catch(() => null)
+        ])
         const allRefs = refsData?.references || []
-        const stats = refsData?.stats || {}
         const totalRefs = allRefs.length
 
-        // API devuelve campo "status" (no screeningStatus)
-        const getStatus = (r: any) => r.status || r.screeningStatus || r.screening_status || 'pending'
+        // Duplicados: 0 (no hay columna is_duplicate en la BD)
+        const duplicates = 0
+        const afterDedup = totalRefs - duplicates
 
-        // Los duplicados se marcan con isDuplicate: true, no con un status especial
-        const duplicates = stats.duplicates || allRefs.filter((r: any) => r.isDuplicate === true).length
-        const excluded = allRefs.filter((r: any) => getStatus(r) === 'excluded').length
-        const included = allRefs.filter((r: any) => {
-          const st = getStatus(r)
-          return st === 'included' || st === 'fulltext_included'
-        }).length
-        const excludedFT = allRefs.filter((r: any) => getStatus(r) === 'fulltext_excluded').length
-        
-        // Databases
+        // selectedForFullText del protocolo = referencias seleccionadas para revisión manual
+        const selectedForFullTextIds: string[] = protocol?.selectedForFullText || protocol?.selected_for_full_text || []
+        const selectedForFullTextSet = new Set(selectedForFullTextIds)
+
+        // Referencias seleccionadas para revisión de texto completo
+        const selectedRefs = allRefs.filter((r: any) => selectedForFullTextSet.has(r.id))
+        const fullTextAssessed = selectedRefs.length
+
+        // Excluidos en fase título/abstract = total tras dedup - seleccionados para full-text
+        const screenedOut = afterDedup - fullTextAssessed
+
+        // Usar manualReviewStatus para las decisiones de revisión manual
+        const getManualStatus = (r: any) => r.manualReviewStatus || r.manual_review_status || null
+        const included = selectedRefs.filter((r: any) => getManualStatus(r) === 'included').length
+        const excludedFT = selectedRefs.filter((r: any) => getManualStatus(r) === 'excluded').length
+
+        // Databases (filtrar Unknown)
         const dbMap: Record<string, number> = {}
         allRefs.forEach((r: any) => {
           const src = (r.source || 'Unknown').trim()
           dbMap[src] = (dbMap[src] || 0) + 1
         })
-        const databases = Object.entries(dbMap).map(([name, hits]) => ({ name, hits }))
+        const databases = Object.entries(dbMap)
+          .filter(([name]) => name !== 'Unknown')
+          .map(([name, hits]) => ({ name, hits }))
 
-        // Exclusion reasons
+        // Exclusion reasons de la revisión manual
         const exclusionReasons: Record<string, number> = {}
-        allRefs.filter((r: any) => getStatus(r) === 'fulltext_excluded').forEach((r: any) => {
+        selectedRefs.filter((r: any) => getManualStatus(r) === 'excluded').forEach((r: any) => {
           if (r.exclusionReason || r.exclusion_reason) {
             const reason = (r.exclusionReason || r.exclusion_reason).trim()
             exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1
           }
         })
 
-        // fullTextAssessed = los que NO fueron excluidos en título/abstract (no duplicados, no excluidos)
-        const afterDedup = totalRefs - duplicates
-        const screenedOut = excluded
-        const fullTextAssessed = afterDedup - screenedOut
+        console.log('📊 Article PRISMA stats (same logic as screening page):', {
+          identified: totalRefs, duplicates, afterDedup, screenedOut,
+          fullTextAssessed, excludedFT, included,
+          selectedForFullTextIds: selectedForFullTextIds.length
+        })
 
         setPrismaStats({
-          identified: totalRefs + duplicates, // Total antes de eliminar duplicados
+          identified: totalRefs,
           duplicates,
           afterDedup,
           screenedTitleAbstract: afterDedup,

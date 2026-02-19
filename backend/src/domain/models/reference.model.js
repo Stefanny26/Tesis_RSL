@@ -34,6 +34,7 @@ class Reference {
     this.screeningStatus = data.screening_status || data.screeningStatus || 'pending';
     this.screeningScore = data.screening_score || data.screeningScore;
     this.exclusionReason = data.exclusion_reason || data.exclusionReason;
+    this.isDuplicate = data.is_duplicate || data.isDuplicate || false;
     
     // IA y clasificación
     this.aiClassification = data.ai_classification || data.aiClassification;
@@ -88,6 +89,7 @@ class Reference {
       status: this.screeningStatus,
       screeningScore: this.screeningScore,
       exclusionReason: this.exclusionReason,
+      isDuplicate: this.isDuplicate,
       aiClassification: this.aiClassification,
       aiConfidenceScore: this.aiConfidenceScore,
       aiReasoning: this.aiReasoning,
@@ -127,6 +129,7 @@ class Reference {
       screening_status: this.screeningStatus,
       screening_score: this.screeningScore,
       exclusion_reason: this.exclusionReason,
+      is_duplicate: this.isDuplicate,
       ai_classification: this.aiClassification,
       ai_confidence_score: this.aiConfidenceScore,
       ai_reasoning: this.aiReasoning,

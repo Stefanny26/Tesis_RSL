@@ -163,8 +163,11 @@ class RunProjectScreeningUseCase {
       // Obtener referencias pendientes
       let references = await this.referenceRepository.getPendingReferences(projectId);
       
+      // Flag para indicar si es una re-ejecución
+      const isRerun = references.length === 0;
+      
       // Si no hay referencias pendientes, re-ejecutar sobre TODAS las referencias (sin límite de paginación)
-      if (references.length === 0) {
+      if (isRerun) {
         console.log(`[HYBRID] No hay referencias pendientes. Obteniendo TODAS las referencias para re-ejecución...`);
         references = await this.referenceRepository.findByProject(projectId);
         console.log(`[HYBRID] Encontradas ${references.length} referencias totales para re-análisis`);
@@ -181,6 +184,34 @@ class RunProjectScreeningUseCase {
               reviewManual: 0
             }
           };
+        }
+        
+        // ⚠️ IMPORTANTE: Al re-ejecutar, LIMPIAR todos los estados previos
+        console.log(`[HYBRID] 🧹 LIMPIANDO estados previos de revisión manual...`);
+        try {
+          // 1. Resetear manual_review_status y manual_review_notes en TODAS las referencias
+          const database = require('../../config/database');
+          await database.query(`
+            UPDATE "references"
+            SET manual_review_status = NULL,
+                manual_review_notes = NULL
+            WHERE project_id = $1
+          `, [projectId]);
+          console.log(`[HYBRID] ✅ Referencias reseteadas: manual_review_status y manual_review_notes eliminados`);
+          
+          // 2. Limpiar selectedForFullText y flags de finalización en protocolo
+          const ProtocolRepository = require('../../infrastructure/repositories/protocol.repository');
+          const protocolRepository = new ProtocolRepository();
+          await protocolRepository.update(projectId, {
+            selectedForFullText: [],
+            manualReviewFinalized: false,
+            screeningFinalized: false,
+            fase2Unlocked: false // Se desbloqueará al finalizar el cribado
+          });
+          console.log(`[HYBRID] ✅ Protocolo reseteado: selectedForFullText limpiado, flags de finalización eliminados`);
+        } catch (resetError) {
+          console.error(`[HYBRID] ⚠️  Error al limpiar estados previos:`, resetError.message);
+          // Continuar de todas formas
         }
       } else {
         console.log(`[HYBRID] Encontradas ${references.length} referencias pendientes`);

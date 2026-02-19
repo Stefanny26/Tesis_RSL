@@ -45,9 +45,16 @@ const BOX_STYLES = {
 export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
   const retrieved = stats.fullTextAssessed
   const notRetrieved = 0
+  // Total de bases de datos = suma de todas las fuentes conocidas
+  // Si hay databases con desglose, usar la suma; sino usar identified
   const totalDatabases = stats.databases
     ? stats.databases.reduce((s, d) => s + d.hits, 0)
     : stats.identified
+  // Registros/Archivos (otras fuentes no-DB) = identified - totalDatabases
+  // Solo es > 0 si hay fuentes que no aparecen en el desglose (e.g. "Unknown")
+  const otherSources = stats.databases 
+    ? Math.max(0, stats.identified - totalDatabases)
+    : 0
 
   return (
     <Card className="border-0 shadow-none bg-transparent overflow-hidden">
@@ -92,7 +99,7 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                     </p>
                   )}
                   <p className="text-sm ml-3 mt-1">
-                    Registros/Archivos (n&nbsp;=&nbsp;{stats.identified})
+                    Registros/Archivos (n&nbsp;=&nbsp;{otherSources})
                   </p>
                 </Box>
               </div>

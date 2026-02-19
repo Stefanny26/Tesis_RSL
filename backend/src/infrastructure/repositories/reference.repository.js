@@ -105,7 +105,7 @@ class ReferenceRepository {
       'screeningStatus', 'aiClassification', 'aiConfidenceScore', 'aiReasoning',
       'manualReviewStatus', 'manualReviewNotes', 'reviewedBy', 'reviewedAt',
       'fullTextAvailable', 'fullTextUrl', 'screeningScore', 'aiDecision', 'exclusionReason',
-      'fullTextData', 'fullTextExtracted', 'fullTextExtractedAt'
+      'fullTextData', 'fullTextExtracted', 'fullTextExtractedAt', 'isDuplicate'
     ];
 
     const fieldMap = {
@@ -124,7 +124,8 @@ class ReferenceRepository {
       exclusionReason: 'exclusion_reason',
       fullTextData: 'full_text_data',
       fullTextExtracted: 'full_text_extracted',
-      fullTextExtractedAt: 'full_text_extracted_at'
+      fullTextExtractedAt: 'full_text_extracted_at',
+      isDuplicate: 'is_duplicate'
     };
 
     for (const field of allowedFields) {
@@ -325,7 +326,6 @@ class ReferenceRepository {
         COUNT(*) FILTER (WHERE screening_status = 'included') as included,
         COUNT(*) FILTER (WHERE screening_status = 'excluded') as excluded,
         COUNT(*) FILTER (WHERE screening_status = 'pending') as pending,
-        COUNT(*) FILTER (WHERE screening_status = 'duplicate') as duplicates,
         COUNT(DISTINCT source) as sources,
         AVG(CASE WHEN ai_confidence_score IS NOT NULL THEN ai_confidence_score ELSE NULL END) as avg_confidence,
         COUNT(*) FILTER (WHERE ai_classification IS NOT NULL) as ai_reviewed
@@ -341,7 +341,7 @@ class ReferenceRepository {
       included: parseInt(stats.included) || 0,
       excluded: parseInt(stats.excluded) || 0,
       pending: parseInt(stats.pending) || 0,
-      duplicates: parseInt(stats.duplicates) || 0,
+      duplicates: 0, // La columna is_duplicate no existe, por lo tanto no hay duplicados marcados
       sources: parseInt(stats.sources) || 0,
       avgConfidence: parseFloat(stats.avg_confidence) || 0,
       aiReviewed: parseInt(stats.ai_reviewed) || 0

@@ -1,3 +1,4 @@
+import React from "react"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -155,13 +156,29 @@ export function ArticleEditor({ version, onContentChange, disabled = false, pris
   // Markdown components for Results section: replaces PRISMA chart images with React component
   const resultsMarkdownComponents: Components = {
     ...markdownComponents,
-    img: ({ node, ...props }: any) => {
-      if (prismaStats && props.alt?.toLowerCase().includes('prisma')) {
+    // Fix HTML nesting: check AST node before transformation
+    p: ({ node, children, ...props }: any) => {
+      // Check AST node for img child with PRISMA alt text
+      const hasPrismaImg = node?.children?.some((child: any) => 
+        child.type === 'element' && 
+        child.tagName === 'img' && 
+        child.properties?.alt?.toLowerCase().includes('prisma')
+      )
+      
+      if (hasPrismaImg && prismaStats) {
         return (
           <div className="my-6">
             <PrismaFlowDiagram stats={prismaStats} />
           </div>
         )
+      }
+      
+      return <MarkdownParagraph node={node} {...props}>{children}</MarkdownParagraph>
+    },
+    img: ({ node, ...props }: any) => {
+      // Skip rendering if it's a PRISMA image (handled by p component above)
+      if (prismaStats && props.alt?.toLowerCase().includes('prisma')) {
+        return null
       }
       return <MarkdownImage node={node} {...props} />
     }

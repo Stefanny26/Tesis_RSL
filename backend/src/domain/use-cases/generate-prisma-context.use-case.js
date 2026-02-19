@@ -43,47 +43,73 @@ class GeneratePrismaContextUseCase {
       // 4. Analizar screening results del protocolo
       const screeningResults = protocol.screeningResults || {};
 
-      // 5. Calcular estadísticas PRISMA — EXACTA LÓGICA del frontend (article/page.tsx)
-      // Esto garantiza consistencia entre el diagrama visual y el texto del artículo
+      // 5. Calcular estadísticas PRISMA — SINGLE SOURCE OF TRUTH
+      // Este es el ÚNICO lugar donde se calculan las estadísticas PRISMA
+      // Todos los demás componentes deben consumir estos valores
+      //
+      // LÓGICA CORRECTA (debe coincidir con el frontend screening/page.tsx):
+      //   - selectedForFullText (del protocolo) = referencias seleccionadas para revisión manual
+      //   - manualReviewStatus = decisión de revisión manual (included/excluded)
+      //   - Las NO seleccionadas = excluidas en fase título/abstract
+      //   - Las seleccionadas con manualReviewStatus = 'excluded' → excluidas en full-text
+      //   - Las seleccionadas con manualReviewStatus = 'included' → incluidas finales
       
-      // Helper para obtener el status (compatible con diferentes esquemas de DB)
-      const getStatus = (ref) => ref.status || ref.screeningStatus || ref.screening_status || 'pending';
+      // Referencias totales en la BD
+      const totalRefsInDB = allReferences.length;
       
-      // Referencias totales en la BD (excluyendo duplicados ya eliminados físicamente)
-      const totalRefs = allReferences.length;
+      // Duplicados: la columna is_duplicate no existe en la BD, siempre es 0
+      const duplicates = 0;
       
-      // Obtener stats de duplicados desde la BD
-      const stats = await this.referenceRepository.getScreeningStats(projectId);
-      const duplicates = stats.duplicates || 
-                        allReferences.filter(ref => ref.isDuplicate === true || ref.is_duplicate === true).length;
+      // Identificados = total de referencias
+      const identified = totalRefsInDB;
       
-      // Excluidos en fase título/abstract
-      const excluded = allReferences.filter(ref => getStatus(ref) === 'excluded').length;
+      // Después de eliminar duplicados
+      const afterDedup = identified - duplicates;
       
-      // Incluidos finales
-      const included = allReferences.filter(ref => {
-        const st = getStatus(ref);
-        return st === 'included' || st === 'fulltext_included';
+      // === USAR selectedForFullText del protocolo (misma lógica que el frontend) ===
+      const selectedForFullTextIds = protocol.selectedForFullText || [];
+      const selectedForFullTextSet = new Set(selectedForFullTextIds);
+      
+      // Referencias seleccionadas para revisión de texto completo
+      const selectedRefs = allReferences.filter(ref => selectedForFullTextSet.has(ref.id));
+      
+      // Full-text assessed = cuántos se seleccionaron para revisión manual
+      const fullTextAssessed = selectedRefs.length;
+      
+      // Excluidos en fase título/abstract = total tras dedup - seleccionados para full-text
+      const screenedOut = afterDedup - fullTextAssessed;
+      
+      // Usar manualReviewStatus para las decisiones de revisión manual
+      const getManualStatus = (ref) => ref.manualReviewStatus || ref.manual_review_status || null;
+      
+      // Incluidos finales = seleccionados con manualReviewStatus = 'included'
+      const included = selectedRefs.filter(ref => getManualStatus(ref) === 'included').length;
+      
+      // Excluidos en full-text = seleccionados con manualReviewStatus = 'excluded'
+      const excludedFT = selectedRefs.filter(ref => getManualStatus(ref) === 'excluded').length;
+      
+      // Pendientes = seleccionados SIN decisión manual
+      const pending = selectedRefs.filter(ref => {
+        const ms = getManualStatus(ref);
+        return !ms || ms === 'pending';
       }).length;
       
-      // Excluidos en fase de texto completo
-      const excludedFT = allReferences.filter(ref => getStatus(ref) === 'fulltext_excluded').length;
+      console.log('📊 PRISMA CALCULATIONS (Single Source of Truth):');
+      console.log('  identified:', identified);
+      console.log('  duplicates:', duplicates);
+      console.log('  afterDedup:', afterDedup);
+      console.log('  selectedForFullText:', selectedForFullTextIds.length);
+      console.log('  screenedOut (title/abstract):', screenedOut, '=', afterDedup, '-', fullTextAssessed);
+      console.log('  fullTextAssessed:', fullTextAssessed);
+      console.log('  excludedFT (manual review):', excludedFT);
+      console.log('  included (manual review):', included);
+      console.log('  pending (no decision yet):', pending);
       
-      // CÁLCULOS PRISMA (igual que frontend):
-      const afterDedup = totalRefs - duplicates;
-      const screenedOut = excluded;
-      const fullTextAssessed = afterDedup - screenedOut;
-      
-      // Total identificado (ANTES de eliminar duplicados)
-      const identified = totalRefs + duplicates;
-      
-      // Recopilar razones de exclusión en texto completo
+      // Recopilar razones de exclusión de la revisión manual
       const exclusionReasons = {};
-      allReferences.filter(ref => getStatus(ref) === 'fulltext_excluded').forEach(ref => {
-        if (ref.exclusionReason || ref.exclusion_reason) {
-          const reason = (ref.exclusionReason || ref.exclusion_reason).trim();
-          exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1;
-        }
+      selectedRefs.filter(ref => getManualStatus(ref) === 'excluded').forEach(ref => {
+        const reason = (ref.exclusionReason || ref.exclusion_reason || 'Sin razón especificada').trim();
+        exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1;
       });
 
       // 6. Obtener información del método de cribado
