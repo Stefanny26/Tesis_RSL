@@ -70,6 +70,37 @@ class PrismaItemRepository {
   }
 
   /**
+   * Obtener estadísticas de cumplimiento PRISMA para múltiples proyectos (batch)
+   * Retorna un mapa { projectId: { total, completed, percentage } }
+   */
+  async getComplianceStatsBatch(projectIds) {
+    if (!projectIds || projectIds.length === 0) return {};
+
+    const query = `
+      SELECT 
+        project_id,
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE completed = true) as completed
+      FROM prisma_items
+      WHERE project_id = ANY($1)
+      GROUP BY project_id
+    `;
+    const result = await database.query(query, [projectIds]);
+    
+    const statsMap = {};
+    for (const row of result.rows) {
+      const total = parseInt(row.total) || 0;
+      const completed = parseInt(row.completed) || 0;
+      statsMap[row.project_id] = {
+        total,
+        completed,
+        percentage: total > 0 ? Math.round((completed / 27) * 100) : 0
+      };
+    }
+    return statsMap;
+  }
+
+  /**
    * Crear o actualizar ítem PRISMA (upsert)
    */
   async upsert(prismaItemData) {

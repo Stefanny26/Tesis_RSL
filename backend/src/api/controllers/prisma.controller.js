@@ -189,6 +189,9 @@ class PrismaController {
         message: 'Ítem PRISMA actualizado exitosamente',
         data: { item: updatedItem.toJSON() }
       });
+
+      // Sincronizar compliance al proyecto (fire-and-forget)
+      this._syncComplianceToProject(projectId);
     } catch (error) {
       console.error('Error actualizando ítem PRISMA:', error);
       res.status(500).json({
@@ -242,6 +245,9 @@ class PrismaController {
         message: 'Contenido actualizado exitosamente',
         data: { item: updatedItem.toJSON() }
       });
+
+      // Sincronizar compliance al proyecto (fire-and-forget)
+      this._syncComplianceToProject(projectId);
     } catch (error) {
       console.error('Error actualizando contenido PRISMA:', error);
       res.status(500).json({
@@ -284,6 +290,9 @@ class PrismaController {
           validation: result.validation
         }
       });
+
+      // Sincronizar compliance al proyecto (fire-and-forget)
+      this._syncComplianceToProject(projectId);
     } catch (error) {
       console.error('Error validando ítem con IA:', error);
       res.status(500).json({
@@ -468,6 +477,9 @@ class PrismaController {
         data: result,
         message: `Bloques ${block} completados exitosamente`
       });
+
+      // Sincronizar compliance al proyecto (fire-and-forget)
+      this._syncComplianceToProject(projectId);
 
     } catch (error) {
       console.error('❌ Error completando bloques PRISMA:', error);
@@ -842,7 +854,24 @@ class PrismaController {
     }));
 
     await this.prismaItemRepository.upsertBatch(items);
-    console.log('✅ 27 ítems PRISMA inicializados');
+  }
+
+  /**
+   * Sincronizar el porcentaje de cumplimiento PRISMA al proyecto
+   * Se llama después de cualquier mutación de ítems PRISMA
+   */
+  async _syncComplianceToProject(projectId) {
+    try {
+      const stats = await this.prismaItemRepository.getComplianceStats(projectId);
+      const completed = parseInt(stats.completed) || 0;
+      const percentage = Math.round((completed / 27) * 100);
+      await this.projectRepository.updateStatistics(projectId, {
+        prismaCompliancePercentage: percentage
+      });
+    } catch (error) {
+      // No fallar silenciosamente pero no bloquear la operación principal
+      console.error('Error sincronizando PRISMA compliance al proyecto:', error);
+    }
   }
 }
 
