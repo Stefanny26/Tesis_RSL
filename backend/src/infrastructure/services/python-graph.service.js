@@ -75,6 +75,8 @@ class PythonGraphService {
                     assessed: fullTextAssessed,
                     excluded_fulltext: excludedFullText,
                     excluded_reasons: prismaData.exclusionReasons || {},
+                    screening_exclusion_reasons: prismaData.screeningExclusionReasons || {},
+                    protocol_exclusion_criteria: prismaData.protocolExclusionCriteria || [],
                     included: finalIncluded
                 },
                 scree: {

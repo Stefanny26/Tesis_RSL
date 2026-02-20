@@ -105,12 +105,39 @@ class GeneratePrismaContextUseCase {
       console.log('  included (manual review):', included);
       console.log('  pending (no decision yet):', pending);
       
-      // Recopilar razones de exclusión de la revisión manual
+      // Recopilar razones de exclusión de la revisión manual (full-text)
       const exclusionReasons = {};
       selectedRefs.filter(ref => getManualStatus(ref) === 'excluded').forEach(ref => {
         const reason = (ref.exclusionReason || ref.exclusion_reason || 'Sin razón especificada').trim();
         exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1;
       });
+
+      // Desglose de motivos de exclusión en cribado título/abstract (Fase 1)
+      const screeningExclusionReasons = {};
+      const notSelectedRefs = allReferences.filter(ref => !selectedForFullTextSet.has(ref.id));
+      notSelectedRefs.forEach(ref => {
+        const excReason = (ref.exclusionReason || ref.exclusion_reason || '').trim();
+        const aiClass = ref.aiClassification || ref.ai_classification || ref.classification_method || '';
+        const matchedCriteria = ref.matchedCriteria || ref.matched_criteria || [];
+        
+        if (excReason) {
+          screeningExclusionReasons[excReason] = (screeningExclusionReasons[excReason] || 0) + 1;
+        } else if (Array.isArray(matchedCriteria) && matchedCriteria.length > 0) {
+          matchedCriteria.forEach(criteria => {
+            const reason = `No cumple: ${String(criteria).trim()}`;
+            screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1;
+          });
+        } else if (aiClass === 'exclude') {
+          const reason = 'No cumple criterios de inclusión (IA)';
+          screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1;
+        } else {
+          const reason = 'Baja relevancia temática (score insuficiente)';
+          screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1;
+        }
+      });
+
+      // Criterios de exclusión del protocolo (para mostrar categorías aun cuando n=0)
+      const protocolExclusionCriteria = protocol.exclusionCriteria || [];
 
       // 6. Obtener información del método de cribado
       const screeningMethod = this.determineScreeningMethod(screeningResults);
@@ -180,6 +207,8 @@ class GeneratePrismaContextUseCase {
           fullTextAssessed: fullTextAssessed,
           excludedFullText: excludedFT,
           exclusionReasons: exclusionReasons,
+          screeningExclusionReasons: screeningExclusionReasons,
+          protocolExclusionCriteria: protocolExclusionCriteria,
           includedFinal: included,
 
           // Referencias reales por fuente (para PRISMA diagram)

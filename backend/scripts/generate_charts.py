@@ -132,6 +132,8 @@ def draw_prisma(data, output_path):
     not_retrieved = data.get('not_retrieved', 0)
     assessed = data.get('assessed', 0)
     excluded_reasons = data.get('excluded_reasons', {})
+    screening_exclusion_reasons = data.get('screening_exclusion_reasons', {})
+    protocol_exclusion_criteria = data.get('protocol_exclusion_criteria', [])
     included = data.get('included', 0)
     
     # Usar excluded_fulltext si está disponible, de lo contrario calcularlo (evitando negativos)
@@ -156,7 +158,7 @@ def draw_prisma(data, output_path):
     y = 94  # Start from top
 
     # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â YELLOW HEADER Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-    draw_header(MAIN_X, y, MAIN_W, 3, 'Identification of new studies via databases and registers')
+    draw_header(MAIN_X, y, MAIN_W, 3, 'New studies via databases and registers')
     y -= 4
 
     # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â IDENTIFICATION PHASE Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
@@ -204,12 +206,23 @@ def draw_prisma(data, output_path):
     scr_text = f'Records screened\n(title and abstract)\n(n = {screened})'
     draw_box(MAIN_X, y - scr_h, MAIN_W, scr_h, scr_text, bg_color=BOX_MAIN, fontsize=8)
     
-    # Excluded records (side)
+    # Excluded records (side) with breakdown by reasons
     exc_scr_h = 6
     exc_scr_y = y - scr_h/2 - exc_scr_h/2
-    exc_text = f'Records excluded\n(n = {excluded})'
-    draw_box(EXCL_X, exc_scr_y, EXCL_W, exc_scr_h, exc_text, 
-             bg_color=BOX_EXCLUDED, fontsize=7.5)
+    
+    if screening_exclusion_reasons and len(screening_exclusion_reasons) > 0:
+        exc_lines = [f'Records excluded (n = {excluded})']
+        exc_lines.append('')
+        for reason, count in screening_exclusion_reasons.items():
+            exc_lines.append(f'  {reason} (n = {count})')
+        exc_scr_h = max(6, len(exc_lines) * 1.3 + 3)
+        exc_scr_y = y - scr_h/2 - exc_scr_h/2
+        draw_box(EXCL_X, exc_scr_y, EXCL_W, exc_scr_h, '\n'.join(exc_lines),
+                 bg_color=BOX_EXCLUDED, fontsize=7, align='left')
+    else:
+        exc_text = f'Records excluded\n(n = {excluded})'
+        draw_box(EXCL_X, exc_scr_y, EXCL_W, exc_scr_h, exc_text, 
+                 bg_color=BOX_EXCLUDED, fontsize=7.5)
     ax.plot([MAIN_X + MAIN_W, EXCL_X], [y - scr_h/2, exc_scr_y + exc_scr_h/2],
             color=ARROW_COLOR, linewidth=1.2)
     
@@ -249,9 +262,19 @@ def draw_prisma(data, output_path):
         exc_reasons_lines.append('')  # blank line
         for reason, count in excluded_reasons.items():
             exc_reasons_lines.append(f'  {reason} (n = {count})')
+    elif protocol_exclusion_criteria and len(protocol_exclusion_criteria) > 0:
+        # Show protocol criteria with n=0 each
+        exc_reasons_lines.append(f'Reports excluded (n = {total_exc})')
+        exc_reasons_lines.append('')
+        for criteria in protocol_exclusion_criteria:
+            exc_reasons_lines.append(f'  {criteria} (n = 0)')
     else:
         if total_exc > 0:
             exc_reasons_lines.append(f'Reports excluded\n(n = {total_exc})')
+        else:
+            exc_reasons_lines.append(f'Reports excluded (n = 0)')
+            exc_reasons_lines.append('')
+            exc_reasons_lines.append('  No reports excluded at this stage')
     
     exc_ft_h = max(7, len(exc_reasons_lines) * 1.3 + 3)
     exc_ft_y = y - assess_h/2 - exc_ft_h/2

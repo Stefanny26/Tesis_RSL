@@ -1008,7 +1008,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                 
                 console.log('🔍 DEBUG - Databases array for PRISMA:', databases)
                 
-                // Collect exclusion reasons from excluded references
+                // Collect exclusion reasons from manual review (full-text phase)
                 const exclusionReasons: Record<string, number> = {}
                 excludedManual.forEach((ref) => {
                   if (ref.exclusionReason) {
@@ -1016,6 +1016,30 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                     exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1
                   }
                 })
+
+                // Desglose de motivos de exclusión en cribado título/abstract (Fase 1)
+                const screeningExclusionReasons: Record<string, number> = {}
+                const notSelectedRefs = classifiedRefs.filter(r => !selectedForFullText.has(r.id))
+                notSelectedRefs.forEach((ref) => {
+                  if (ref.exclusionReason) {
+                    const reason = ref.exclusionReason.trim()
+                    screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
+                  } else if (ref.matchedCriteria && ref.matchedCriteria.length > 0) {
+                    ref.matchedCriteria.forEach((criteria: string) => {
+                      const reason = `No cumple: ${criteria.trim()}`
+                      screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
+                    })
+                  } else if (ref.aiClassification === 'exclude') {
+                    const reason = 'No cumple criterios de inclusión (IA)'
+                    screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
+                  } else {
+                    const reason = 'Baja relevancia temática (score insuficiente)'
+                    screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
+                  }
+                })
+
+                // Criterios de exclusión del protocolo
+                const protocolExclusionCriteria = project?.protocol?.exclusionCriteria || []
                 
                 const prismaStats = {
                   // CORRECCIÓN: identified debe ser el total REAL de referencias (no sumar duplicates)
@@ -1029,7 +1053,9 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                   includedFinal: includedRefs.length,
                   pendingReview: pendingReview.length,
                   databases: databases.length > 0 ? databases : undefined,
-                  exclusionReasons: Object.keys(exclusionReasons).length > 0 ? exclusionReasons : undefined
+                  exclusionReasons: Object.keys(exclusionReasons).length > 0 ? exclusionReasons : undefined,
+                  screeningExclusionReasons: Object.keys(screeningExclusionReasons).length > 0 ? screeningExclusionReasons : undefined,
+                  protocolExclusionCriteria: protocolExclusionCriteria.length > 0 ? protocolExclusionCriteria : undefined
                 }
 
                 return (
@@ -1146,16 +1172,51 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <PrismaFlowDiagram stats={{
-                      identified: totalRefs,
-                      duplicates: 0,
-                      afterDedup: totalRefs,
-                      screenedTitleAbstract: classifiedRefs.length > 0 ? classifiedRefs.length : totalRefs,
-                      excludedTitleAbstract: classifiedRefs.length - selectedRefs.length,
-                      fullTextAssessed: selectedRefs.length,
-                      excludedFullText: excludedManualRefs.length,
-                      includedFinal: includedRefs.length,
-                    }} />
+                    <PrismaFlowDiagram stats={(() => {
+                      // Desglose de motivos de exclusión en cribado título/abstract
+                      const scrExcReasons: Record<string, number> = {}
+                      const notSelectedClassified = classifiedRefs.filter(r => !selectedForFullText.has(r.id))
+                      notSelectedClassified.forEach((ref) => {
+                        if (ref.exclusionReason) {
+                          const reason = ref.exclusionReason.trim()
+                          scrExcReasons[reason] = (scrExcReasons[reason] || 0) + 1
+                        } else if (ref.matchedCriteria && ref.matchedCriteria.length > 0) {
+                          ref.matchedCriteria.forEach((criteria: string) => {
+                            const reason = `No cumple: ${criteria.trim()}`
+                            scrExcReasons[reason] = (scrExcReasons[reason] || 0) + 1
+                          })
+                        } else if (ref.aiClassification === 'exclude') {
+                          const reason = 'No cumple criterios de inclusión (IA)'
+                          scrExcReasons[reason] = (scrExcReasons[reason] || 0) + 1
+                        } else {
+                          const reason = 'Baja relevancia temática (score insuficiente)'
+                          scrExcReasons[reason] = (scrExcReasons[reason] || 0) + 1
+                        }
+                      })
+
+                      // Razones de exclusión manual (full-text)
+                      const manualExcReasons: Record<string, number> = {}
+                      excludedManualRefs.forEach((ref) => {
+                        if (ref.exclusionReason) {
+                          const reason = ref.exclusionReason.trim()
+                          manualExcReasons[reason] = (manualExcReasons[reason] || 0) + 1
+                        }
+                      })
+
+                      return {
+                        identified: totalRefs,
+                        duplicates: 0,
+                        afterDedup: totalRefs,
+                        screenedTitleAbstract: classifiedRefs.length > 0 ? classifiedRefs.length : totalRefs,
+                        excludedTitleAbstract: classifiedRefs.length - selectedRefs.length,
+                        fullTextAssessed: selectedRefs.length,
+                        excludedFullText: excludedManualRefs.length,
+                        includedFinal: includedRefs.length,
+                        screeningExclusionReasons: Object.keys(scrExcReasons).length > 0 ? scrExcReasons : undefined,
+                        exclusionReasons: Object.keys(manualExcReasons).length > 0 ? manualExcReasons : undefined,
+                        protocolExclusionCriteria: exclusionCriteria.length > 0 ? exclusionCriteria : undefined,
+                      }
+                    })()} />
                     <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/50 rounded-lg space-y-2">
                       <h4 className="font-semibold text-blue-900 dark:text-blue-200">Descripción del proceso de selección:</h4>
                       <p className="text-sm text-blue-800 dark:text-blue-300">

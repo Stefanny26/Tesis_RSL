@@ -836,6 +836,8 @@ ${studySelection}
 
 Figure 2 presents the complete PRISMA flow diagram of the selection process. The initial search identified **${totalIdentified} records** across the consulted databases. After duplicate removal (n=${duplicatesRemoved}), **${afterDedup} unique records** were screened by title and abstract.
 
+During title and abstract screening, **${excludedTitleAbstract} records were excluded**${Object.keys(prismaContext.screening.screeningExclusionReasons || {}).length > 0 ? `: ${Object.entries(prismaContext.screening.screeningExclusionReasons || {}).slice(0, 5).map(([reason, count]) => `${reason} (n=${count})`).join('; ')}` : ''}.
+
 Of these, **${fullTextAssessed} articles** were retrieved for full-text evaluation. A total of **${excludedFullText} articles were excluded** after full-text assessment${Object.keys(prismaContext.screening.exclusionReasons || {}).length > 0 ? `, primarily due to: ${Object.entries(prismaContext.screening.exclusionReasons || {}).slice(0, 3).map(([reason, count]) => `${reason} (n=${count})`).join(', ')}` : ''}. Finally, **${finalIncluded} studies** met all inclusion criteria and were included in the qualitative synthesis.
 
 ${charts.prisma ? `![PRISMA 2020 Flow Diagram](${charts.prisma})` : '**[FIGURE 2: PRISMA 2020 Flow Diagram]**'}

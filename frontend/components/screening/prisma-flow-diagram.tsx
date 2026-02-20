@@ -15,6 +15,10 @@ interface PrismaFlowDiagramProps {
     pendingReview?: number
     databases?: Array<{ name: string; hits: number }>
     exclusionReasons?: Record<string, number>
+    /** Desglose de motivos de exclusión en cribado título/abstract (Fase 1) */
+    screeningExclusionReasons?: Record<string, number>
+    /** Criterios de exclusión del protocolo (para mostrar categorías aun cuando n=0) */
+    protocolExclusionCriteria?: string[]
   }
 }
 
@@ -65,7 +69,7 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
               ENCABEZADO DORADO
               ══════════════════════════════════════════ */}
           <Box variant="header" className="text-center font-bold text-base mb-4 rounded">
-            Identificación de nuevos estudios vía bases de datos y archivos
+            Nuevos estudios vía bases de datos y archivos
           </Box>
 
           {/* ══════════════════════════════════════════
@@ -147,12 +151,26 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                 }
                 mainVariant="cribBox"
                 side={
-                  <>
-                    <p className="text-sm font-semibold">Registros excluidos**</p>
-                    <p className="text-base font-bold mt-1">
+                  <div className="text-left">
+                    <p className="text-sm font-semibold mb-1">Registros excluidos**</p>
+                    <p className="text-sm font-bold mb-1 ml-3">
                       (n&nbsp;=&nbsp;{stats.excludedTitleAbstract})
                     </p>
-                  </>
+                    {stats.screeningExclusionReasons &&
+                    Object.keys(stats.screeningExclusionReasons).length > 0 ? (
+                      Object.entries(stats.screeningExclusionReasons).map(([reason, count]) => (
+                        <p className="text-xs ml-3" key={reason}>
+                          {reason} (n&nbsp;=&nbsp;{count})
+                        </p>
+                      ))
+                    ) : (
+                      stats.excludedTitleAbstract > 0 && (
+                        <p className="text-xs ml-3 text-muted-foreground">
+                          Excluidos por cribado automático de título y abstract
+                        </p>
+                      )
+                    )}
+                  </div>
                 }
                 sideVariant="cribSide"
               />
@@ -201,18 +219,33 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                 side={
                   <div className="text-left">
                     <p className="text-sm font-semibold mb-1">Publicaciones excluidas:</p>
-                    {stats.exclusionReasons &&
-                    Object.keys(stats.exclusionReasons).length > 0 ? (
-                      Object.entries(stats.exclusionReasons).map(([reason, count]) => (
-                        <p className="text-sm ml-3" key={reason}>
-                          {reason} (n&nbsp;=&nbsp;{count})
-                        </p>
-                      ))
-                    ) : (
-                      <p className="text-sm ml-3">
-                        Total (n&nbsp;=&nbsp;{stats.excludedFullText})
-                      </p>
-                    )}
+                    <p className="text-sm font-bold ml-3 mb-1">
+                      Total (n&nbsp;=&nbsp;{stats.excludedFullText})
+                    </p>
+                    {(() => {
+                      if (stats.exclusionReasons && Object.keys(stats.exclusionReasons).length > 0) {
+                        return Object.entries(stats.exclusionReasons).map(([reason, count]) => (
+                          <p className="text-xs ml-3" key={reason}>
+                            {reason} (n&nbsp;=&nbsp;{count})
+                          </p>
+                        ))
+                      }
+                      if (stats.protocolExclusionCriteria && stats.protocolExclusionCriteria.length > 0) {
+                        return stats.protocolExclusionCriteria.map((criteria) => (
+                          <p className="text-xs ml-3 text-muted-foreground" key={criteria}>
+                            {criteria} (n&nbsp;=&nbsp;0)
+                          </p>
+                        ))
+                      }
+                      if (stats.excludedFullText === 0) {
+                        return (
+                          <p className="text-xs ml-3 text-muted-foreground">
+                            No se excluyeron publicaciones en esta fase
+                          </p>
+                        )
+                      }
+                      return null
+                    })()}
                   </div>
                 }
                 sideVariant="cribSide"

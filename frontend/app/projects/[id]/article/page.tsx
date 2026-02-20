@@ -104,7 +104,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
           .filter(([name]) => name !== 'Unknown')
           .map(([name, hits]) => ({ name, hits }))
 
-        // Exclusion reasons de la revisión manual
+        // Exclusion reasons de la revisión manual (full-text)
         const exclusionReasons: Record<string, number> = {}
         selectedRefs.filter((r: any) => getManualStatus(r) === 'excluded').forEach((r: any) => {
           if (r.exclusionReason || r.exclusion_reason) {
@@ -112,6 +112,32 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1
           }
         })
+
+        // Desglose de motivos de exclusión en cribado título/abstract
+        const screeningExclusionReasons: Record<string, number> = {}
+        const classifiedRefs = allRefs.filter((r: any) => r.aiClassification || r.ai_classification)
+        const notSelectedRefs = classifiedRefs.filter((r: any) => !selectedForFullTextSet.has(r.id))
+        notSelectedRefs.forEach((r: any) => {
+          const excReason = r.exclusionReason || r.exclusion_reason
+          if (excReason) {
+            const reason = excReason.trim()
+            screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
+          } else if (r.matchedCriteria && r.matchedCriteria.length > 0) {
+            r.matchedCriteria.forEach((criteria: string) => {
+              const reason = `No cumple: ${criteria.trim()}`
+              screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
+            })
+          } else if ((r.aiClassification || r.ai_classification) === 'exclude') {
+            const reason = 'No cumple criterios de inclusión (IA)'
+            screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
+          } else {
+            const reason = 'Baja relevancia temática (score insuficiente)'
+            screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
+          }
+        })
+
+        // Criterios de exclusión del protocolo
+        const protocolExclusionCriteria: string[] = protocol?.exclusionCriteria || protocol?.exclusion_criteria || []
 
         console.log('📊 Article PRISMA stats (same logic as screening page):', {
           identified: totalRefs, duplicates, afterDedup, screenedOut,
@@ -129,7 +155,9 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
           excludedFullText: excludedFT,
           includedFinal: included,
           databases: databases.length > 0 ? databases : undefined,
-          exclusionReasons: Object.keys(exclusionReasons).length > 0 ? exclusionReasons : undefined
+          exclusionReasons: Object.keys(exclusionReasons).length > 0 ? exclusionReasons : undefined,
+          screeningExclusionReasons: Object.keys(screeningExclusionReasons).length > 0 ? screeningExclusionReasons : undefined,
+          protocolExclusionCriteria: protocolExclusionCriteria.length > 0 ? protocolExclusionCriteria : undefined
         })
       } catch (e) {
         console.error('Error loading PRISMA stats for article:', e)
