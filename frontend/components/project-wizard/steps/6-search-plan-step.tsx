@@ -254,8 +254,6 @@ export function SearchPlanStep() {
       setLoadingDatabases(true)
       
       try {
-        })
-        
         const result = await apiClient.request('/api/ai/detect-research-area', {
           method: 'POST',
           body: JSON.stringify({
