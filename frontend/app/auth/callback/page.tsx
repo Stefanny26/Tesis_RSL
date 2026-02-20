@@ -1,48 +1,48 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { apiClient } from '@/lib/api-client'
+import { useAuth } from '@/lib/auth-context'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { refreshUser } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const processedRef = useRef(false)
 
   useEffect(() => {
+    // Evitar doble ejecución en React StrictMode
+    if (processedRef.current) return
+    processedRef.current = true
+
     const handleCallback = async () => {
       try {
-        console.log('🔄 Iniciando callback de OAuth...')
-        
         // Obtener el token de la URL
         const token = searchParams.get('token')
-        console.log('Token recibido:', token ? 'Sí ✅' : 'No ❌')
         
         if (!token) {
           throw new Error('No se recibió token de autenticación')
         }
 
         // Guardar el token
-        console.log('💾 Guardando token...')
         apiClient.setToken(token)
 
-        // Obtener los datos del usuario para verificar
-        console.log('👤 Obteniendo datos del usuario...')
-        const userData = await apiClient.getMe()
-        console.log('✅ Usuario obtenido:', userData)
+        // Cargar usuario en el AuthContext (valida token con backend)
+        await refreshUser()
 
-        // Limpiar la URL
+        // Limpiar la URL (no exponer token en historial del navegador)
         window.history.replaceState({}, '', '/dashboard')
 
         // Esperar un momento antes de redirigir para asegurar que todo está guardado
         await new Promise(resolve => setTimeout(resolve, 100))
 
-        // Redirigir al dashboard con reemplazo de ruta (no agregar al historial)
-        console.log('🚀 Redirigiendo al dashboard...')
+        // Redirigir al dashboard
         router.replace('/dashboard')
       } catch (err: any) {
-        console.error('❌ Error en callback de OAuth:', err)
         setError(err.message || 'Error al procesar autenticación')
+        apiClient.clearToken()
         
         // Redirigir al login después de 3 segundos
         setTimeout(() => {
@@ -52,7 +52,7 @@ export default function AuthCallbackPage() {
     }
 
     handleCallback()
-  }, [searchParams, router])
+  }, [searchParams, router, refreshUser])
 
   if (error) {
     return (

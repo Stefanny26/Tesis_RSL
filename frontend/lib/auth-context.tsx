@@ -16,6 +16,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   loginWithGoogle: () => void
   logout: () => void
+  refreshUser: () => Promise<void>
   isLoading: boolean
 }
 
@@ -27,8 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Cargar usuario al iniciar
-    loadUser()
+    // Solo intentar cargar usuario si hay un token guardado
+    const token = apiClient.getToken()
+    if (token) {
+      loadUser()
+    } else {
+      setIsLoading(false)
+    }
   }, [])
 
   const loadUser = async () => {
@@ -36,8 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = await apiClient.getMe()
       setUser(userData)
     } catch (error) {
-      // Si falla, limpiar token
+      // Si falla, limpiar token inválido
       apiClient.clearToken()
+      setUser(null)
     } finally {
       setIsLoading(false)
     }
@@ -70,17 +77,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   //   }
   // }
 
+  const refreshUser = async () => {
+    try {
+      setIsLoading(true)
+      const userData = await apiClient.getMe()
+      setUser(userData)
+    } catch (error) {
+      apiClient.clearToken()
+      setUser(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const logout = () => {
     apiClient.clearToken()
     setUser(null)
-    // Forzar redirección completa a la página inicial (no usar router.push para evitar caché)
+    // Forzar redirección completa al login (no usar router.push para evitar caché de sesión)
     if (typeof window !== 'undefined') {
-      window.location.href = '/'
+      window.location.href = '/login'
     }
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithGoogle, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, loginWithGoogle, logout, refreshUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

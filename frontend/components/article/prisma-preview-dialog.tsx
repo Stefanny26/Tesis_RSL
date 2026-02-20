@@ -95,8 +95,6 @@ export function PrismaPreviewDialog({ projectId, open, onOpenChange }: PrismaPre
     try {
       setLoading(true)
       const response = await apiClient.request(`/api/projects/${projectId}/prisma`, { method: 'GET' })
-      console.log('PRISMA Response:', response)
-      
       if (response.success && response.data) {
         setItems(response.data.items || [])
       }

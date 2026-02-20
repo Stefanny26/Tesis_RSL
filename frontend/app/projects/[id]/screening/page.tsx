@@ -72,7 +72,7 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
     ).length
     
     if (pendingCount > 0) {
-      console.log(`⚠️ Todavía hay ${pendingCount} artículo(s) pendiente(s) de revisión manual`)
+      // Pending reviews exist but we continue processing
     }
     
     return allReviewed
@@ -84,19 +84,15 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
       setIsLoading(true)
       setError(null)
       try {
-        console.log('🔄 Cargando datos del proyecto en paralelo...')
-        
         // Cargar proyecto, referencias y protocolo en paralelo (3 llamadas simultáneas)
         const [projectData, refData, protocol] = await Promise.all([
           apiClient.getProject(params.id),
           apiClient.getAllReferences(params.id),
           apiClient.getProtocol(params.id).catch(err => {
-            console.log("No se pudo cargar el protocolo (probablemente no existe aún)")
             return null
           })
         ])
         
-        console.log(`✅ Referencias cargadas: ${refData.references?.length || 0}`)
         setProject(projectData)
         setReferences(refData.references || [])
         setStats(refData.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
@@ -114,7 +110,6 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
             if (protocol.screeningResults.summary?.phase1 && protocol.screeningResults.summary?.phase2) {
               setLastScreeningResult(protocol.screeningResults)
             } else {
-              console.warn('Resultados de screening en formato antiguo, se ignorarán:', protocol.screeningResults)
               setLastScreeningResult(null)
             }
           }
@@ -160,7 +155,6 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
       const refData = await apiClient.getAllReferences(params.id)
       setReferences(refData.references || [])
       setStats(refData.stats || { total: 0, pending: 0, included: 0, excluded: 0 })
-      console.log('🔄 Referencias recargadas:', refData.references?.length)
     } catch (err) {
       console.error('Error recargando referencias:', err)
     }
@@ -207,11 +201,6 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
       const selectedIds = new Set(referenceIds)
       const notSelectedRefs = classifiedRefs.filter(r => !selectedIds.has(r.id))
       
-      console.log(`📊 Selección de ${phase}:`)
-      console.log(`   ✅ Seleccionadas para revisión: ${referenceIds.length}`)
-      console.log(`   ❌ Auto-excluidas: ${notSelectedRefs.length}`)
-      console.log(`   📋 Total clasificadas: ${classifiedRefs.length}`)
-      
       // 3. Primero revertir el estado de los artículos previamente seleccionados
       const previouslySelected = Array.from(selectedForFullText)
       if (previouslySelected.length > 0) {
@@ -227,7 +216,6 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
       
       // 5. AUTOMÁTICAMENTE EXCLUIR las referencias NO seleccionadas
       if (notSelectedRefs.length > 0) {
-        console.log(`🔄 Excluyendo automáticamente ${notSelectedRefs.length} referencias...`)
         await Promise.all(notSelectedRefs.map(ref => 
           apiClient.updateReferenceStatus(ref.id, { 
             status: 'excluded',
@@ -257,7 +245,7 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
           selectedForFullText: referenceIds
         })
       } catch (protocolError) {
-        console.warn('No se pudo guardar selectedForFullText en protocolo:', protocolError)
+        // Non-critical: protocol persistence is best-effort; screening proceeds with local state
       }
 
       // 9. Actualizar stats
@@ -445,12 +433,9 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
 
       if (method === 'embeddings') {
         // Método HÍBRIDO: Embeddings + ChatGPT para zona gris
-        console.log(`🚀 Iniciando cribado híbrido para ${totalRefs} referencias...`)
         const result = await apiClient.runScreeningEmbeddings(params.id, { threshold })
         
         if (result.success && result.summary) {
-          console.log('📊 Resultado del cribado recibido:', result)
-          
           // Validar formato antes de guardar
           if (!result.summary.phase1 || !result.summary.phase2) {
             console.error('❌ Error: resultado sin phase1 o phase2', result)
@@ -510,11 +495,8 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
   // Nueva función para manejar completado del SSE
   const handleScreeningComplete = async (resultData?: any) => {
     try {
-      console.log('🔄 Recargando datos después del cribado SSE...', resultData)
-      
       // Si recibimos datos del SSE, guardarlos inmediatamente
       if (resultData) {
-        console.log('💾 Guardando resultado del SSE:', resultData)
         setLastScreeningResult(resultData)
       }
       
@@ -527,20 +509,16 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
       try {
         const protocol = await apiClient.getProtocol(params.id)
         if (protocol) {
-          console.log('📋 Protocolo recargado:', protocol)
-          
           // Actualizar screeningResults si están presentes
           if (protocol.screeningResults) {
             if (protocol.screeningResults.summary?.phase1 && protocol.screeningResults.summary?.phase2) {
               setLastScreeningResult(protocol.screeningResults)
-              console.log('✅ Resultados de screening cargados desde protocolo')
             }
           }
           
           // 🧹 IMPORTANTE: Resetear estados locales basados en el protocolo recargado
           // Si selectedForFullText está vacío, significa que hubo una re-ejecución y se limpiaron los datos previos
           if (!protocol.selectedForFullText || protocol.selectedForFullText.length === 0) {
-            console.log('🧹 Limpiando estados locales (re-ejecución detectada)...')
             setSelectedForFullText(new Set())
             setScreeningFinalized(false)
             setFase2Unlocked(protocol.fase2Unlocked || false)
@@ -555,8 +533,6 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
           // Actualizar estado de fase2Unlocked
           if (protocol.fase2Unlocked) {
             setFase2Unlocked(true)
-            console.log('🔓 Fase 2 (PRISMA) desbloqueada')
-            
             // Mostrar toast informativo
             toast({
               title: "✅ Screening completado",
@@ -566,10 +542,9 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
           }
         }
       } catch (protocolErr) {
-        console.warn('No se pudo recargar el protocolo:', protocolErr)
+        // Non-critical: protocol update is best-effort; outer error handler covers critical failures
       }
       
-      console.log('✅ Datos actualizados después del cribado')
     } catch (error) {
       console.error('❌ Error recargando datos:', error)
       toast({
@@ -824,8 +799,6 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                   }} 
                   onProceedToManualReview={async (selectedIds: string[]) => {
                     try {
-                      console.log('🔄 Procesando selección de artículos:', selectedIds)
-                      
                       // Marcar artículos como seleccionados para texto completo
                       setSelectedForFullText(new Set(selectedIds))
                       setFase2Unlocked(true)
@@ -855,8 +828,6 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                         })
                       )
                       
-                      console.log('✅ Artículos actualizados, cambiando a pestaña PRISMA')
-                      
                       // Ir directamente al diagrama PRISMA
                       setActiveTab("prisma")
                       
@@ -870,9 +841,8 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                         try {
                           const refData = await apiClient.getAllReferences(params.id)
                           setReferences(refData.references || [])
-                          console.log('✅ Referencias recargadas después de selección')
                         } catch (error) {
-                          console.warn('⚠️ Error al recargar referencias:', error)
+                          // Non-critical: delayed sync refresh; user can manually reload if needed
                         }
                       }, 1000)
                       
@@ -890,7 +860,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                       fase2Unlocked: true,
                       selectedForFullText: selectedIds
                     })
-                      .catch(err => console.warn('No se pudo actualizar el protocolo:', err))
+                      .catch(() => {})
                     
                     toast({
                       title: "✅ Revisión manual completada",
@@ -900,8 +870,6 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                   isLocked={areAllArticlesReviewed()}
                   onReferenceStatusChange={async (referenceId: string, status: 'included' | 'excluded' | 'pending', exclusionReason?: string) => {
                     try {
-                      console.log(`🔄 Actualizando estado local de artículo ${referenceId} a ${status}`)
-                      
                       // NO llamar al backend aquí — handleSavePastedResults ya guardó con manualReviewStatus
                       // Solo actualizar estado local inmediatamente
                       setReferences(prevRefs => 
@@ -911,8 +879,6 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                           : ref
                         )
                       )
-                      
-                      console.log(`✅ Estado local actualizado: ${referenceId} -> ${status}`)
                       
                     } catch (error) {
                       console.error('❌ Error al actualizar estado del artículo:', error)
@@ -973,16 +939,6 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                 const pendingReview = selectedForReview.filter(r => !r.manualReviewStatus || r.manualReviewStatus === 'pending')
                 
                 // DEBUG: Imprimir valores para diagnóstico
-                console.log('🔍 PRISMA DEBUG:', {
-                  totalRefs,
-                  selectedForFullTextSize: selectedForFullText.size,
-                  selectedForReview: selectedForReview.length,
-                  pendingReview: pendingReview.length,
-                  excludedManual: excludedManual.length,
-                  includedRefs: includedRefs.length,
-                  selectedIds: Array.from(selectedForFullText)
-                })
-                
                 // Calcular referencias procesadas en Fase 1 (las que tienen clasificación de IA)
                 const screenedInPhase1 = classifiedRefs.length
                 // CORRECCIÓN: Excluidas = Total clasificadas - Seleccionadas para revisión
@@ -996,17 +952,12 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                   databaseCounts[source] = (databaseCounts[source] || 0) + 1
                 })
                 
-                console.log('🔍 DEBUG - Database Counts:', databaseCounts)
-                console.log('🔍 DEBUG - Sample reference sources:', references.slice(0, 3).map(r => ({ title: r.title?.substring(0, 30), source: r.source })))
-                
                 const databases = Object.entries(databaseCounts)
                   .filter(([name]) => name !== 'Unknown') // No mostrar fuentes desconocidas
                   .map(([name, hits]) => ({
                   name,
                   hits
                 }))
-                
-                console.log('🔍 DEBUG - Databases array for PRISMA:', databases)
                 
                 // Collect exclusion reasons from manual review (full-text phase)
                 const exclusionReasons: Record<string, number> = {}
@@ -1770,10 +1721,7 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                             })
                             
                             // 2. Generar automáticamente todo el contenido de PRISMA
-                            console.log('🔄 Iniciando autocompletado de PRISMA...')
                             const prismaResponse = await apiClient.completePrismaByBlocks(params.id, 'all')
-                            
-                            console.log('✅ Respuesta de PRISMA:', prismaResponse)
                             
                             if (prismaResponse.success) {
                               toast({

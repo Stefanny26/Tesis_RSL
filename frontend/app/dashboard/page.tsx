@@ -23,7 +23,11 @@ export default function DashboardPage() {
   // Protección de ruta: redirigir si no hay usuario
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace('/login')
+      // Verificar si hay token antes de redirigir (podría estar en proceso de carga)
+      const hasToken = apiClient.getToken()
+      if (!hasToken) {
+        router.replace('/login')
+      }
     }
   }, [user, authLoading, router])
 

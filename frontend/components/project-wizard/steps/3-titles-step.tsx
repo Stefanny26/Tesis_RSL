@@ -54,10 +54,6 @@ export function TitlesStep() {
         data.pico,
         data.aiProvider
       )
-
-      console.log('Respuesta del backend:', result)
-      console.log('Títulos recibidos:', result?.titles)
-
       if (result && result.titles) {
         // Procesar títulos con traducción automática
         const processedTitles = result.titles.map((t: any) => {
@@ -78,9 +74,6 @@ export function TitlesStep() {
             wordCount: t.wordCount || 0
           }
         })
-
-        console.log('Títulos procesados:', processedTitles)
-
         updateData({ generatedTitles: processedTitles })
 
         toast({
@@ -113,8 +106,6 @@ export function TitlesStep() {
   // Función para crear proyecto como borrador temprano en el proceso
   const createProjectDraft = async (selectedTitle: string) => {
     try {
-      console.log('📝 Creando proyecto como borrador...')
-      
       const projectData = {
         title: selectedTitle,
         description: data.projectDescription,
@@ -126,8 +117,6 @@ export function TitlesStep() {
       
       if (result.success && result.data?.project?.id) {
         const projectId = result.data.project.id
-        console.log('✅ Proyecto borrador creado con ID:', projectId)
-        
         // Actualizar wizard data con el projectId
         updateData({ 
           projectId: projectId, 
@@ -183,7 +172,6 @@ export function TitlesStep() {
       
       // Usar updateProtocol para guardar/actualizar el protocolo
       await apiClient.updateProtocol(projectId, protocolData)
-      console.log('✅ Protocolo inicial guardado')
     } catch (error) {
       console.error('Error guardando protocolo inicial:', error)
     }

@@ -238,17 +238,10 @@ export function SearchPlanStep() {
   const [editingQueries, setEditingQueries] = useState<Set<string>>(new Set())
 
   // 🔍 LOG INICIAL
-  console.log('📊 SearchPlanStep - Estado inicial:', {
-    researchArea: data.researchArea,
-    projectDescription: data.projectDescription,
-    projectName: data.projectName
-  })
-
   // Cargar bases de datos filtradas por área de investigación
   useEffect(() => {
     const fetchDatabasesByArea = async () => {
       if (!data.researchArea) {
-        console.warn('⚠️ No hay researchArea definido. Data completo:', JSON.stringify(data, null, 2))
         toast({
           title: "⚠️ Falta seleccionar área",
           description: "Por favor, volvé al Paso 1 y seleccioná un área de investigación del dropdown",
@@ -258,14 +251,9 @@ export function SearchPlanStep() {
         setLoadingDatabases(false)
         return
       }
-
-      console.log('🔍 Cargando bases de datos para área:', data.researchArea)
       setLoadingDatabases(true)
       
       try {
-        console.log('📡 Enviando petición a backend:', {
-          researchArea: data.researchArea,
-          description: data.projectDescription?.substring(0, 50)
         })
         
         const result = await apiClient.request('/api/ai/detect-research-area', {
@@ -275,9 +263,6 @@ export function SearchPlanStep() {
             description: data.projectDescription
           })
         })
-        
-        console.log('✅ Respuesta del backend:', result)
-        
         if (result.success && result.data) {
           setDetectedArea(result.data.detectedArea)
           setAvailableDatabases(result.data.databases.map((db: any) => ({
@@ -289,9 +274,6 @@ export function SearchPlanStep() {
             requiresPremium: db.requiresPremium || false,
             premiumNote: db.premiumNote || null
           })))
-          
-          console.log('📊 Área detectada:', result.data.detectedArea)
-          console.log('📚 Bases de datos disponibles:', result.data.databases.length)
         }
       } catch (error) {
         console.error('⚠️ Error llamando al backend, usando bases de datos locales:', error)
@@ -300,9 +282,6 @@ export function SearchPlanStep() {
         const localDatabases = getLocalDatabasesByArea(data.researchArea)
         setDetectedArea(data.researchArea)
         setAvailableDatabases(localDatabases)
-        
-        console.log('✅ Usando bases de datos locales:', localDatabases.length)
-        
         toast({
           title: "📚 Bases de datos cargadas",
           description: `Se cargaron ${localDatabases.length} bases de datos para ${ACADEMIC_DATABASES[data.researchArea]?.name || data.researchArea}`,
@@ -366,17 +345,10 @@ export function SearchPlanStep() {
   const createTemporaryProjectForImport = async () => {
     // Verificar si ya existe projectId (creado en step 3)
     if (data.projectId) {
-      console.log('✅ Usando proyecto existente:', data.projectId)
       return data.projectId
     }
 
     // Si no existe proyecto, significa que el usuario se saltó el step 3 o hubo un error
-    console.log('⚠️ No hay proyecto creado. Faltan datos:', {
-      projectId: data.projectId,
-      selectedTitle: data.selectedTitle,
-      projectName: data.projectName
-    })
-    
     throw new Error('Debes seleccionar un título en el paso anterior para crear el proyecto antes de importar referencias')
   }
 
@@ -395,8 +367,6 @@ export function SearchPlanStep() {
 
   // Función para eliminar una base de datos ya seleccionada
   const removeDatabaseFromSelection = (databaseId: string) => {
-    console.log('🗑️ Eliminando base de datos de la selección:', databaseId)
-    
     // Validar que no sea la última base de datos
     if (selectedDatabases.length === 1) {
       toast({
@@ -476,18 +446,6 @@ export function SearchPlanStep() {
         title: "🔄 Generando cadenas de búsqueda...",
         description: `Para ${selectedDatabases.length} bases de datos`
       })
-
-      console.log('📡 Llamando a generateSearchQueries...')
-      console.log('📊 Datos enviados:')
-      console.log('   - Bases de datos:', selectedDatabases)
-      console.log('   - Términos del protocolo:', data.protocolTerms)
-      console.log('   - PICO:', data.pico)
-      console.log('   - Área de investigación:', data.researchArea)
-      console.log('   - Matriz Is/Not:', data.matrixIsNot)
-      console.log('   - Título RSL seleccionado:', data.selectedTitle)
-      console.log('   - 📅 Año inicio:', data.yearStart, '(tipo:', typeof data.yearStart, ')')
-      console.log('   - 📅 Año fin:', data.yearEnd, '(tipo:', typeof data.yearEnd, ')')
-      
       const result = await apiClient.generateSearchQueries(
         data.protocolTerms,
         data.pico,
@@ -498,17 +456,9 @@ export function SearchPlanStep() {
         data.yearEnd,
         data.selectedTitle
       )
-
-      console.log('📥 Respuesta de generateSearchQueries:', result)
-      console.log('📝 Queries recibidas:', result?.queries)
-      
       // Log de cada query individual
       if (result?.queries) {
         result.queries.forEach((q: any, i: number) => {
-          console.log(`\n   Query ${i + 1} (${q.database}):`)
-          console.log(`   - Texto: ${q.query}`)
-          console.log(`   - Longitud: ${q.query?.length} caracteres`)
-          console.log(`   - Explicación: ${q.explanation}`)
         })
       }
 
@@ -534,11 +484,8 @@ export function SearchPlanStep() {
             resultCount: null,
             hasAPI: matchedDb?.hasAPI || false
           }
-          console.log('📝 Query formateada:', formatted)
           return formatted
         })
-        
-        console.log('💾 Guardando queries:', formattedQueries)
         setQueries(formattedQueries)
         
         // También actualizar el wizard context

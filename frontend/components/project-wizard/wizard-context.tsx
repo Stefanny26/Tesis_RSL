@@ -211,31 +211,13 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
 
   // Función para determinar el paso actual basado en los datos cargados
   const determineCurrentStep = (loadedData: Partial<WizardData>): number => {
-    console.log('📊 Determinando paso actual basado en datos:', {
-      hasProjectName: !!loadedData.projectName,
-      hasProjectDescription: !!loadedData.projectDescription,
-      hasPico: !!(loadedData.pico?.population && loadedData.pico?.intervention),
-      hasMatrix: !!(loadedData.matrixIsNot?.is?.length || loadedData.matrixIsNot?.isNot?.length),
-      hasTitle: !!loadedData.selectedTitle,
-      hasCriteria: !!(loadedData.inclusionCriteria?.length || loadedData.exclusionCriteria?.length),
-      hasTerms: !!(loadedData.protocolDefinition && 
-                   (loadedData.protocolDefinition.technologies?.length ||
-                    loadedData.protocolDefinition.applicationDomain?.length ||
-                    loadedData.protocolDefinition.studyType?.length ||
-                    loadedData.protocolDefinition.thematicFocus?.length)),
-      hasSearchPlan: !!(loadedData.searchPlan?.databases?.length),
-      hasReferences: !!(loadedData.searchPlan?.uploadedFiles?.length)
-    })
-
     // Step 7: Si tiene referencias cargadas -> Paso de revisión/finalización (PrismaCheckStep)
     if (loadedData.searchPlan?.uploadedFiles?.length && loadedData.searchPlan.uploadedFiles.length > 0) {
-      console.log('📚 Referencias detectadas, dirigiendo a step 7 (PrismaCheckStep)')
       return 7
     }
 
     // Step 6: Si tiene plan de búsqueda configurado -> Carga de referencias (SearchPlanStep)
     if (loadedData.searchPlan?.databases?.length && loadedData.searchPlan.databases.length > 0) {
-      console.log('🔍 Plan de búsqueda detectado, dirigiendo a step 6 (SearchPlanStep)')
       return 6
     }
 
@@ -245,19 +227,16 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
          loadedData.protocolDefinition.applicationDomain?.length ||
          loadedData.protocolDefinition.studyType?.length ||
          loadedData.protocolDefinition.thematicFocus?.length)) {
-      console.log('🏷️ Términos del protocolo detectados, dirigiendo a step 5 (ProtocolDefinitionStep)')
       return 5
     }
 
     // Step 4: Si tiene criterios definidos -> Definición de términos (CriteriaStep completado, ir a ProtocolDefinitionStep)
     if (loadedData.inclusionCriteria?.length || loadedData.exclusionCriteria?.length) {
-      console.log('✅ Criterios detectados, dirigiendo a step 5 (siguiente: ProtocolDefinitionStep)')
       return 5
     }
 
     // Step 3: Si tiene título seleccionado -> Criterios (TitlesStep completado, ir a CriteriaStep)
     if (loadedData.selectedTitle && loadedData.selectedTitle.trim()) {
-      console.log('📝 Título detectado, dirigiendo a step 4 (siguiente: CriteriaStep)')
       return 4
     }
 
@@ -265,18 +244,15 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
     if ((loadedData.pico?.population || loadedData.pico?.intervention || 
          loadedData.pico?.comparison || loadedData.pico?.outcome) ||
         (loadedData.matrixIsNot?.is?.length || loadedData.matrixIsNot?.isNot?.length)) {
-      console.log('🎯 Marco PICO/Matriz detectado, dirigiendo a step 3 (siguiente: TitlesStep)')
       return 3
     }
 
     // Step 1: Si tiene información básica del proyecto -> Continuar desde tema (ProposalStep completado, ir a PicoMatrixStep)
     if (loadedData.projectName || loadedData.projectDescription) {
-      console.log('📄 Información básica detectada, dirigiendo a step 2 (siguiente: PicoMatrixStep)')
       return 2
     }
 
     // Default: Empezar desde el principio
-    console.log('🆕 Sin información previa, empezando desde step 1')
     return 1
   }
 
@@ -293,7 +269,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
             
             // Aumentar tiempo de vida del borrador de 24h a 7 días
             if (ageMinutes < 10080) { // 7 días en minutos
-              console.log('📥 Restaurando borrador local (guardado hace', Math.round(ageMinutes), 'minutos)')
               setData(prev => ({ 
                 ...prev, 
                 ...parsed.data,
@@ -303,19 +278,16 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
               
               // Si el borrador tiene projectId, cargar también del servidor
               if (parsed.data.projectId) {
-                console.log('🔄 Borrador tiene projectId, sincronizando con servidor...')
                 try {
                   const serverProtocol = await apiClient.getProtocol(parsed.data.projectId)
                   if (serverProtocol) {
                     // Combinar datos locales (más recientes) con servidor (respaldo)
-                    console.log('✅ Datos del servidor obtenidos, combinando con borrador local')
                   }
                 } catch (serverError) {
-                  console.warn('⚠️ No se pudo sincronizar con servidor, usando borrador local')
+                  // Non-critical: server fetch failed; local draft data is used as fallback
                 }
               }
             } else {
-              console.log('🧹 Borrador local expirado (más de 7 días), limpiando')
               localStorage.removeItem('wizard-draft')
             }
           }
@@ -329,8 +301,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
       }
       
       try {
-        console.log('🔍 Cargando protocolo existente para proyecto:', projectId)
-        
         // Si no se pasó projectData, cargar los datos del proyecto primero
         let projectInfo = projectData
         if (!projectInfo) {
@@ -341,26 +311,17 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
               description: projectResponse.description || projectResponse.data?.project?.description || "",
               researchArea: projectResponse.researchArea || projectResponse.data?.project?.researchArea || ""
             }
-            console.log('📦 Datos del proyecto cargados:', projectInfo)
           } catch (err) {
             console.error('Error cargando datos del proyecto:', err)
           }
         }
         
         const protocol = await apiClient.getProtocol(projectId)
-        console.log('📋 Protocolo recibido:', protocol)
-        
         // Cargar referencias existentes del proyecto
         let uploadedFiles: any[] = []
         try {
           const referencesResponse = await apiClient.getReferences(projectId)
           // La API devuelve { references: [...], stats: {...}, pagination: {...} }
-          console.log('📥 Respuesta de getReferences:', {
-            type: typeof referencesResponse,
-            hasReferences: !!referencesResponse?.references,
-            referencesCount: referencesResponse?.references?.length,
-            statsTotal: referencesResponse?.stats?.total
-          })
           const refs = referencesResponse?.references || referencesResponse || []
           const refsArray = Array.isArray(refs) ? refs : []
           if (refsArray.length > 0) {
@@ -395,8 +356,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
               databaseName: dbName,
               uploadedAt: new Date().toISOString()
             }))
-            
-            console.log('📚 Referencias cargadas:', uploadedFiles.length, 'archivos')
           }
         } catch (err) {
           console.error('Error cargando referencias:', err)
@@ -498,7 +457,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
           
           // Determinar el paso actual basado en qué información está disponible
           const determinedStep = determineCurrentStep(loadedData)
-          console.log('✅ Protocolo cargado en wizard, estableciendo step:', determinedStep)
           setCurrentStep(determinedStep)
           
           // Marcar como inicializado para permitir auto-guardado
@@ -525,10 +483,7 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
           
           if (projectDetails?.data?.project?.status === 'temporary' || 
               projectDetails?.data?.project?.title?.startsWith('[TEMPORAL]')) {
-            
-            console.log('🧹 Eliminando proyecto temporal al abandonar wizard:', data.projectId)
             await apiClient.deleteProject(data.projectId)
-            console.log('✅ Proyecto temporal eliminado exitosamente')
           }
         } catch (error) {
           console.error('❌ Error al eliminar proyecto temporal:', error)
@@ -589,7 +544,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
           version: '2.0' // Versionar para futures migraciones
         }
         localStorage.setItem(key, JSON.stringify(draftData))
-        console.log('💾 Progreso guardado en localStorage (step', currentStep, ')')
       } catch (error) {
         console.error('Error guardando en localStorage:', error)
       }
@@ -605,8 +559,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
         // Programar nuevo guardado con menos delay para mejor UX
         const timeoutId = setTimeout(async () => {
           try {
-            console.log('📡 Iniciando auto-guardado en servidor...')
-            
             // Construir datos del protocolo incremental
             const protocolUpdates: any = {}
             
@@ -649,9 +601,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
               ...protocolUpdates,
               lastSaved: new Date().toISOString()
             })
-            
-            console.log('✅ Auto-guardado exitoso en servidor')
-            
             // También actualizar datos básicos del proyecto si han cambiado
             if (updates.selectedTitle || updates.projectDescription || updates.researchArea) {
               await apiClient.updateProject(newData.projectId, {
@@ -660,7 +609,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
                 researchArea: newData.researchArea,
                 status: 'draft' // Mantener como borrador hasta step 7
               })
-              console.log('✅ Datos del proyecto actualizados')
             }
             
           } catch (error) {
@@ -683,7 +631,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
     // Limpiar también localStorage
     try {
       localStorage.removeItem('wizard-draft')
-      console.log('🧹 Wizard reset completo - limpiando localStorage')
     } catch (error) {
       console.error('Error limpiando localStorage:', error)
     }
@@ -816,7 +763,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
         
         // Forzar guardado inmediato (sin debouncing) para cambios estructurales
         await apiClient.updateProtocol(data.projectId, protocolUpdates)
-        console.log('✅ Datos limpiados y sincronizados con el servidor')
       } catch (error) {
         console.error('❌ Error limpiando datos en el servidor:', error)
         // Mantener cambios locales aunque falle el servidor
@@ -833,7 +779,6 @@ export function WizardProvider({ children, projectId, projectData }: WizardProvi
         version: '2.0'
       }
       localStorage.setItem(key, JSON.stringify(draftData))
-      console.log('💾 Estado limpio guardado en localStorage (step', currentStep, ')')
     } catch (error) {
       console.error('Error actualizando localStorage tras limpiar:', error)
     }

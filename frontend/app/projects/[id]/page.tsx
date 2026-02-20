@@ -33,10 +33,6 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         ])
 
         if (protocol) {
-          console.log('🔍 Protocolo cargado completo:', protocol)
-          console.log('🔍 Search Strategy:', protocol?.searchStrategy)
-          console.log('🔍 Search String:', protocol?.searchStrategy?.searchString)
-          console.log('🔍 Databases:', protocol?.databases)
           data.protocol = protocol
         }
 
@@ -264,10 +260,6 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
                   {/* Estrategia de Búsqueda */}
                   {(() => {
-                    console.log('🔍 Rendering Search Strategy:', project.protocol.searchStrategy)
-                    console.log('🔍 Has searchString?:', !!project.protocol.searchStrategy?.searchString)
-                    console.log('🔍 searchQueries:', project.protocol.searchStrategy?.searchQueries)
-                    console.log('🔍 Full protocol object:', project.protocol)
                     return null
                   })()}
                   {(project.protocol.searchStrategy?.searchQueries?.length > 0 || project.protocol.searchQueries?.length > 0 || project.protocol.searchStrategy || project.protocol.databases || project.protocol.searchString) && (

@@ -27,8 +27,6 @@ function WizardContent() {
       
       // Si ya existe un proyecto temporal (creado en paso 6), actualizarlo
       if (data.projectId) {
-        console.log('🔄 Actualizando proyecto temporal a definitivo:', data.projectId)
-        
         const updatePayload = {
           title: data.projectName, // Quitar prefijo [TEMPORAL]
           description: data.projectDescription || "Proyecto de revisión sistemática",
@@ -45,8 +43,6 @@ function WizardContent() {
         })
       } else {
         // Si NO existe proyecto, crear uno nuevo
-        console.log('📝 Creando nuevo proyecto')
-        
         const payload = {
           title: data.projectName,
           description: data.projectDescription || "Proyecto de revisión sistemática",
@@ -214,9 +210,8 @@ export default function NewProjectWizardPage() {
   if (!projectId) {
     try {
       localStorage.removeItem('wizard-draft')
-      console.log('🧹 Proyecto nuevo detectado - limpiando wizard draft')
     } catch (e) {
-      console.warn('⚠️ No se pudo limpiar localStorage:', e)
+      // Non-critical: localStorage may be unavailable (e.g., private browsing)
     }
   }
   

@@ -54,24 +54,19 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
       // Paso 1: Ejecutar análisis de similitudes automáticamente (5% del progreso)
       setCurrentPhase('Analizando similitudes con Elbow Method...');
       setProgress(2);
-      console.log('🔍 Paso 1: Ejecutando análisis de similitudes...');
       try {
         const analysisResult = await apiClient.analyzeSimilarityDistribution(projectId);
         if (analysisResult?.data) {
           onAnalysisComplete(analysisResult.data);
           setProgress(5);
-          console.log('✅ Análisis de similitudes completado');
         }
       } catch (analysisError) {
-        console.warn('⚠️ No se pudo ejecutar el análisis de similitudes, continuando con cribado...', analysisError);
         setProgress(5);
       }
 
       // Paso 2: Ejecutar el cribado híbrido con SSE para progreso en tiempo real
       setCurrentPhase('Iniciando cribado automático...');
       setProgress(10);
-      console.log('🤖 Paso 2: Conectando con servidor para cribado en tiempo real...');
-      
       // Construir URL del endpoint SSE con token
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = localStorage.getItem('token');
@@ -84,8 +79,6 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📡 Evento SSE recibido:', data);
-
           switch (data.type) {
             case 'phase':
               // Actualizar fase y progreso
@@ -110,7 +103,6 @@ export function AIScreeningPanel({ totalReferences, pendingReferences, projectId
 
             case 'complete':
               // Proceso completado
-              console.log('✅ Cribado completado:', data.data);
               setProgress(100);
               setCurrentPhase('✅ Cribado completado exitosamente');
               eventSource.close();

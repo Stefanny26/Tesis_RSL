@@ -139,12 +139,6 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
         // Criterios de exclusión del protocolo
         const protocolExclusionCriteria: string[] = protocol?.exclusionCriteria || protocol?.exclusion_criteria || []
 
-        console.log('📊 Article PRISMA stats (same logic as screening page):', {
-          identified: totalRefs, duplicates, afterDedup, screenedOut,
-          fullTextAssessed, excludedFT, included,
-          selectedForFullTextIds: selectedForFullTextIds.length
-        })
-
         setPrismaStats({
           identified: totalRefs,
           duplicates,
@@ -371,7 +365,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
       try {
         await apiClient.extractRQSData(params.id)
       } catch (error) {
-        console.log('RQS ya extraído o no necesario:', error)
+        // Non-critical: RQS extraction is optional pre-step; article generation proceeds regardless
       }
 
       const response = await apiClient.generateArticle(params.id)

@@ -100,13 +100,6 @@ export function PicoMatrixStep() {
         'arquitectura-diseño': 'Arquitectura, Diseño y Urbanismo'
       }
       const areaTexto = data.researchArea ? areaMap[data.researchArea] : undefined
-
-      console.log('📤 DEBUG - Enviando al backend:')
-      console.log('   - Nombre:', data.projectName)
-      console.log('   - Área:', areaTexto, '(valor original:', data.researchArea, ')')
-      console.log('   - Año inicio:', data.yearStart, '(tipo:', typeof data.yearStart, ')')
-      console.log('   - Año fin:', data.yearEnd, '(tipo:', typeof data.yearEnd, ')')
-
       const result = await apiClient.generateProtocolAnalysis(
         data.projectName,
         data.projectDescription,
@@ -151,9 +144,6 @@ export function PicoMatrixStep() {
           justificacion: `ES: ${pico.outcomes?.justificacion || 'Los resultados esperados están claramente definidos'}`
         }
       ]
-
-      console.log('🔍 DEBUG - Tabla unificada generada:', tablaUnificada);
-
       updateData({
         pico: {
           population: pico.population?.descripcion || "",
@@ -168,9 +158,6 @@ export function PicoMatrixStep() {
         },
         aiProvider: 'chatgpt'
       })
-
-      console.log('✅ DEBUG - Datos actualizados en wizard con tabla unificada');
-
       toast({
         title: "✅ Generado exitosamente",
         description: "Tabla unificada PICO + Es/No Es creada. Revisa los resultados."

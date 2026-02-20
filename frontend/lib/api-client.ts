@@ -39,8 +39,14 @@ class ApiClient {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       
-      // También limpiar la cookie
-      document.cookie = 'authToken=; path=/; max-age=0'
+      // Limpiar cookie de forma agresiva (múltiples paths y dominios)
+      document.cookie = 'authToken=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'authToken=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
+      // También limpiar para el dominio actual sin path específico
+      document.cookie = 'authToken=; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      
+      // Limpiar sessionStorage también
+      try { sessionStorage.clear() } catch { /* ignore */ }
     }
   }
 
@@ -112,15 +118,11 @@ class ApiClient {
     const data = await this.request('/api/auth/me')
     const user = data.data.user
     
-    console.log('🔍 Datos del usuario desde backend:', user)
-    
     // Mapear 'name' a 'fullName' si es necesario
     const mappedUser = {
       ...user,
       fullName: user.fullName || user.name || user.email?.split('@')[0] || 'Usuario'
     }
-    
-    console.log('✅ Usuario mapeado:', mappedUser)
     
     return mappedUser
   }
