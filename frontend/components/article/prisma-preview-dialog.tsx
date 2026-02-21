@@ -27,12 +27,17 @@ interface PrismaItem {
   section: string
   completed: boolean
   content: string | null
-  content_type: 'automated' | 'human' | 'hybrid' | 'pending'
-  data_source: string | null
-  automated_content: string | null
-  last_human_edit: string | null
-  ai_validated: boolean
-  ai_suggestions: string | null
+  content_type?: 'automated' | 'human' | 'hybrid' | 'pending'
+  contentType?: 'automated' | 'human' | 'hybrid' | 'pending'
+  data_source?: string | null
+  dataSource?: string | null
+  automated_content?: string | null
+  automatedContent?: string | null
+  last_human_edit?: string | null
+  lastHumanEdit?: string | null
+  ai_validated?: boolean
+  aiValidation?: { validated: boolean; suggestions: string | null; issues: string[] }
+  ai_suggestions?: string | null
 }
 
 const PRISMA_ITEM_NAMES: Record<number, string> = {
@@ -186,9 +191,16 @@ export function PrismaPreviewDialog({ projectId, open, onOpenChange }: PrismaPre
                           {sectionItems.map(item => {
                             const itemNum = item.item_number || item.itemNumber || 0
                             const itemName = PRISMA_ITEM_NAMES[itemNum] || `Ítem ${itemNum}`
-                            const contentType = item.content_type === 'automated' ? 'Automático' :
-                                              item.content_type === 'human' ? 'Manual' :
-                                              item.content_type === 'hybrid' ? 'Híbrido' : 'Pendiente'
+                            const rawContentType = item.content_type || item.contentType || 'pending'
+                            const contentTypeMap: Record<string, string> = {
+                              automated: 'Automático',
+                              human: 'Manual',
+                              hybrid: 'Híbrido',
+                              pending: item.completed ? 'Automático' : 'Pendiente'
+                            }
+                            const contentType = contentTypeMap[rawContentType] || 'Pendiente'
+                            const dataSource = item.data_source || item.dataSource
+                            const isCompleted = contentType !== 'Pendiente'
                             
                             return (
                               <div 
@@ -205,7 +217,10 @@ export function PrismaPreviewDialog({ projectId, open, onOpenChange }: PrismaPre
                                     <span className="text-sm font-semibold text-muted-foreground">
                                       Ítem #{itemNum}
                                     </span>
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge 
+                                      variant={isCompleted ? 'default' : 'outline'} 
+                                      className={`text-xs ${isCompleted ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                                    >
                                       {contentType}
                                     </Badge>
                                   </div>
@@ -217,10 +232,10 @@ export function PrismaPreviewDialog({ projectId, open, onOpenChange }: PrismaPre
                                       {item.content}
                                     </p>
                                   )}
-                                  {item.data_source && (
+                                  {dataSource && (
                                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 flex items-center gap-1">
                                       <span>📍</span>
-                                      <span>Fuente: {item.data_source}</span>
+                                      <span>Fuente: {dataSource}</span>
                                     </p>
                                   )}
                                 </div>

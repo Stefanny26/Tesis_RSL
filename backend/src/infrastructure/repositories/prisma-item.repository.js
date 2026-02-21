@@ -258,6 +258,9 @@ class PrismaItemRepository {
         newContentType = 'human';
       }
       lastHumanEdit = new Date();
+    } else if (!markAsHumanEdited && content && currentItem.contentType === 'pending') {
+      // System/AI-generated content should be marked as automated
+      newContentType = 'automated';
     }
 
     const query = `
