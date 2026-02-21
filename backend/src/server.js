@@ -231,7 +231,7 @@ class Server {
       await verifyPythonEnvironment();
 
       // Iniciar servidor HTTP
-      this.app.listen(this.port, () => {
+      const server = this.app.listen(this.port, () => {
         console.log('');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log('🚀 Servidor iniciado exitosamente');
@@ -249,6 +249,10 @@ class Server {
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log('');
       });
+
+      // ✅ Extender timeout del servidor a 10 minutos (generación de artículo con IA)
+      server.timeout = 600000;        // 10 min total
+      server.keepAliveTimeout = 620000; // ligeramente mayor que timeout
 
       // Manejo de señales para cierre graceful
       process.on('SIGTERM', () => this.shutdown());

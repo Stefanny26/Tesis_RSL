@@ -368,15 +368,40 @@ ${text}`;
       console.log('📸 Usando URLs directas para imágenes en lugar de base64');
       const chartPathsForArticle = chartPaths; // Usar URLs directas
 
+      // ✅ OPTIMIZACIÓN: Generar secciones en lotes paralelos para reducir tiempo total
+      console.log('📝 Generando secciones del artículo (paralelo por lotes)...');
+
+      // Lote 1: abstract + keywords + introduction (independientes)
+      const [abstract, keywords, introduction] = await Promise.all([
+        this.generateProfessionalAbstract(prismaMapping, prismaContext, rqsStats),
+        this.generateKeywords(prismaContext, rqsStats),
+        this.generateProfessionalIntroduction(prismaMapping, prismaContext, rqsEntries)
+      ]);
+      console.log('   ✅ Lote 1 completado: abstract, keywords, introduction');
+
+      // Lote 2: methods + results (independientes)
+      const [methods, results] = await Promise.all([
+        this.generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries, chartPathsForArticle),
+        this.generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats, chartPathsForArticle)
+      ]);
+      console.log('   ✅ Lote 2 completado: methods, results');
+
+      // Lote 3: discussion + conclusions (independientes)
+      const [discussion, conclusions] = await Promise.all([
+        this.generateProfessionalDiscussion(prismaMapping, prismaContext, rqsStats, rqsEntries),
+        this.generateProfessionalConclusions(prismaMapping, prismaContext, rqsStats)
+      ]);
+      console.log('   ✅ Lote 3 completado: discussion, conclusions');
+
       const article = {
         title: articleTitle,
-        abstract: await this.generateProfessionalAbstract(prismaMapping, prismaContext, rqsStats),
-        keywords: await this.generateKeywords(prismaContext, rqsStats),
-        introduction: await this.generateProfessionalIntroduction(prismaMapping, prismaContext, rqsEntries),
-        methods: await this.generateProfessionalMethods(prismaMapping, prismaContext, rqsEntries, chartPathsForArticle),
-        results: await this.generateProfessionalResults(prismaMapping, prismaContext, rqsEntries, rqsStats, chartPathsForArticle),
-        discussion: await this.generateProfessionalDiscussion(prismaMapping, prismaContext, rqsStats, rqsEntries),
-        conclusions: await this.generateProfessionalConclusions(prismaMapping, prismaContext, rqsStats),
+        abstract,
+        keywords,
+        introduction,
+        methods,
+        results,
+        discussion,
+        conclusions,
         references: this.generateProfessionalReferences(prismaContext, rqsEntries),
         declarations: this.generateDeclarations(prismaContext),
         metadata: {

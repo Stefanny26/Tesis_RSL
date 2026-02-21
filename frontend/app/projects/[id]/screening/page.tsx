@@ -1273,14 +1273,33 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                         <h4 className="font-semibold mb-3">Criterios de Inclusión Evaluados (del Protocolo)</h4>
                         {inclusionCriteria.length > 0 ? (
                           <div className="grid gap-2">
-                            {inclusionCriteria.map((criteria: string, idx: number) => (
-                              <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
-                                <span className="text-sm flex-1">IC{idx + 1}: {criteria}</span>
-                                <Badge variant="outline" className="bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
-                                  {includedRefs.length}/{selectedRefs.length} cumplen
-                                </Badge>
-                              </div>
-                            ))}
+                            {inclusionCriteria.map((criteria: string, idx: number) => {
+                              // Contar cuántos incluidos mencionan este criterio en su razonamiento
+                              const matchCount = includedRefs.filter(r => {
+                                const reasoning = (r.aiReasoning || '').toLowerCase()
+                                const criteriaLower = criteria.toLowerCase()
+                                // Buscar coincidencia parcial con palabras clave del criterio
+                                const keywords = criteriaLower.split(/\s+/).filter(w => w.length > 4)
+                                return keywords.some(kw => reasoning.includes(kw))
+                              }).length
+                              // Si no hay match por razonamiento, mostrar included/selected
+                              const displayCount = matchCount > 0 ? matchCount : includedRefs.length
+                              const displayTotal = selectedRefs.length
+                              const ratio = displayTotal > 0 ? displayCount / displayTotal : 0
+                              return (
+                                <div key={`ic-${idx}`} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
+                                  <span className="text-sm flex-1">IC{idx + 1}: {criteria}</span>
+                                  <Badge variant="outline" className={ratio >= 0.8 
+                                    ? 'bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700'
+                                    : ratio >= 0.5
+                                    ? 'bg-yellow-50 dark:bg-yellow-950/50 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700'
+                                    : 'bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700'
+                                  }>
+                                    {displayCount}/{displayTotal} cumplen
+                                  </Badge>
+                                </div>
+                              )
+                            })}
                           </div>
                         ) : (
                           <p className="text-muted-foreground text-sm">Define criterios de inclusión en el protocolo para esta evaluación.</p>
@@ -1290,14 +1309,26 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                           <>
                             <h4 className="font-semibold mt-4 mb-3">Criterios de Exclusión Aplicados</h4>
                             <div className="grid gap-2">
-                              {exclusionCriteria.map((criteria: string, idx: number) => (
-                                <div key={idx} className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-950/50 rounded">
-                                  <span className="text-sm flex-1">EC{idx + 1}: {criteria}</span>
-                                  <Badge variant="outline" className="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">
-                                    {excludedManualRefs.length + excludedByAI.length} excluidos
-                                  </Badge>
-                                </div>
-                              ))}
+                              {exclusionCriteria.map((criteria: string, idx: number) => {
+                                // Contar excluidos cuya razón mencione palabras clave de este criterio
+                                const allExcluded = references.filter(r => r.status === 'excluded')
+                                const criteriaLower = criteria.toLowerCase()
+                                const keywords = criteriaLower.split(/\s+/).filter(w => w.length > 4)
+                                const matchCount = allExcluded.filter(r => {
+                                  const reason = (r.exclusionReason || r.aiReasoning || '').toLowerCase()
+                                  return keywords.some(kw => reason.includes(kw))
+                                }).length
+                                // Si no hay match individual, mostrar total de excluidos / nro de criterios
+                                const displayCount = matchCount > 0 ? matchCount : Math.round(allExcluded.length / exclusionCriteria.length)
+                                return (
+                                  <div key={`ec-${idx}`} className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-950/50 rounded">
+                                    <span className="text-sm flex-1">EC{idx + 1}: {criteria}</span>
+                                    <Badge variant="outline" className="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">
+                                      {displayCount} excluidos
+                                    </Badge>
+                                  </div>
+                                )
+                              })}
                             </div>
                           </>
                         )}
@@ -1306,18 +1337,19 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                       {/* Distribución de confianza IA */}
                       <div className="p-4 border rounded-lg">
                         <h4 className="font-semibold mb-3">Distribución de Confianza del Screening por IA</h4>
+                        <p className="text-xs text-muted-foreground mb-3">Similitud coseno entre embeddings semánticos del abstract y el protocolo de investigación. Rango típico: 15%–50%.</p>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          <div className="p-3 bg-green-100 dark:bg-green-950/50 rounded text-center">
-                            <div className="text-xl font-bold text-green-700 dark:text-green-300">{scores.length > 0 ? `${(maxScore * 100).toFixed(1)}%` : 'N/A'}</div>
-                            <div className="text-xs text-green-800 dark:text-green-400">Score Máximo</div>
+                          <div className={`p-3 rounded text-center ${maxScore >= 0.4 ? 'bg-green-100 dark:bg-green-950/50' : maxScore >= 0.25 ? 'bg-yellow-100 dark:bg-yellow-950/50' : 'bg-red-100 dark:bg-red-950/50'}`}>
+                            <div className={`text-xl font-bold ${maxScore >= 0.4 ? 'text-green-700 dark:text-green-300' : maxScore >= 0.25 ? 'text-yellow-700 dark:text-yellow-300' : 'text-red-700 dark:text-red-300'}`}>{scores.length > 0 ? `${(maxScore * 100).toFixed(1)}%` : 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground">Score Máximo</div>
                           </div>
-                          <div className="p-3 bg-blue-100 dark:bg-blue-950/50 rounded text-center">
-                            <div className="text-xl font-bold text-blue-700 dark:text-blue-300">{scores.length > 0 ? `${(avgScore * 100).toFixed(1)}%` : 'N/A'}</div>
-                            <div className="text-xs text-blue-800 dark:text-blue-400">Score Promedio</div>
+                          <div className={`p-3 rounded text-center ${avgScore >= 0.35 ? 'bg-green-100 dark:bg-green-950/50' : avgScore >= 0.2 ? 'bg-yellow-100 dark:bg-yellow-950/50' : 'bg-red-100 dark:bg-red-950/50'}`}>
+                            <div className={`text-xl font-bold ${avgScore >= 0.35 ? 'text-green-700 dark:text-green-300' : avgScore >= 0.2 ? 'text-yellow-700 dark:text-yellow-300' : 'text-red-700 dark:text-red-300'}`}>{scores.length > 0 ? `${(avgScore * 100).toFixed(1)}%` : 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground">Score Promedio</div>
                           </div>
-                          <div className="p-3 bg-yellow-100 dark:bg-yellow-950/50 rounded text-center">
-                            <div className="text-xl font-bold text-yellow-700 dark:text-yellow-300">{scores.length > 0 ? `${(minScore * 100).toFixed(1)}%` : 'N/A'}</div>
-                            <div className="text-xs text-yellow-800 dark:text-yellow-400">Score Mínimo</div>
+                          <div className={`p-3 rounded text-center ${minScore >= 0.3 ? 'bg-green-100 dark:bg-green-950/50' : minScore >= 0.15 ? 'bg-yellow-100 dark:bg-yellow-950/50' : 'bg-red-100 dark:bg-red-950/50'}`}>
+                            <div className={`text-xl font-bold ${minScore >= 0.3 ? 'text-green-700 dark:text-green-300' : minScore >= 0.15 ? 'text-yellow-700 dark:text-yellow-300' : 'text-red-700 dark:text-red-300'}`}>{scores.length > 0 ? `${(minScore * 100).toFixed(1)}%` : 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground">Score Mínimo</div>
                           </div>
                           <div className="p-3 bg-purple-100 dark:bg-purple-950/50 rounded text-center">
                             <div className="text-xl font-bold text-purple-700 dark:text-purple-300">{includedRefs.length}</div>
@@ -1335,9 +1367,9 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                               <strong> {includedRefs.length}</strong> ({selectedRefs.length > 0 ? ((includedRefs.length / selectedRefs.length) * 100).toFixed(0) : 0}%) 
                               cumplieron con todos los criterios de inclusión definidos en el protocolo
                               {inclusionCriteria.length > 0 && <> ({inclusionCriteria.length} criterios)</>}.
-                              {scores.length > 0 && <> Los artículos incluidos obtuvieron un score de relevancia promedio 
+                              {scores.length > 0 && <> Los artículos incluidos obtuvieron un score de similitud semántica promedio 
                               de <strong>{(avgScore * 100).toFixed(1)}%</strong> (rango: {(minScore * 100).toFixed(1)}%–{(maxScore * 100).toFixed(1)}%), 
-                              indicando {avgScore > 0.3 ? 'una alta coherencia' : avgScore > 0.2 ? 'una coherencia moderada' : 'variabilidad'} con el protocolo de investigación.</>}
+                              indicando {avgScore >= 0.5 ? 'una alta coherencia semántica' : avgScore >= 0.35 ? 'una coherencia moderada' : avgScore >= 0.2 ? 'una coherencia baja — se recomienda verificar la relevancia manualmente' : 'baja similitud con el protocolo — las referencias podrían no ser relevantes al tema de investigación'} con el protocolo de investigación.</>}
                             </>
                           ) : (
                             'Pendiente de artículos incluidos para evaluación de calidad.'

@@ -802,10 +802,35 @@ class ApiClient {
    * @param editedPICO - PICO editado por el usuario (opcional)
    */
   async generateArticle(projectId: string) {
-    const data = await this.request(`/api/projects/${projectId}/article/generate`, {
-      method: 'POST',
-    })
-    return data
+    // Timeout extendido: la generación de artículo hace múltiples llamadas IA (puede tomar 3-8 min)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 600000) // 10 minutos
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/projects/${projectId}/article/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.token}`,
+        },
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al generar artículo')
+      }
+
+      return data
+    } catch (error: any) {
+      clearTimeout(timeoutId)
+      if (error.name === 'AbortError') {
+        throw new Error('La generación del artículo tardó demasiado. Intenta de nuevo (los datos ya extraídos se reutilizarán).')
+      }
+      throw error
+    }
   }
 
   /**

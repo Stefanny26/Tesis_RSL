@@ -237,37 +237,69 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
         };
       }
 
-      const withPDF = includedReferences.filter(ref => ref.fullTextUrl).length;
-      const abstractOnly = includedReferences.length - withPDF;
+      // ✅ OPTIMIZACIÓN: Saltar referencias ya extraídas previamente
+      const pendingReferences = includedReferences.filter(ref => !ref.fullTextExtracted);
+      const alreadyExtracted = includedReferences.length - pendingReferences.length;
 
-      console.log(`Procesando ${includedReferences.length} referencias (${withPDF} con PDF completo, ${abstractOnly} solo abstract)...`);
+      const withPDF = pendingReferences.filter(ref => ref.fullTextUrl).length;
+      const abstractOnly = pendingReferences.length - withPDF;
 
-      // 2. Procesar cada referencia secuencialmente (evitar rate limits)
+      console.log(`📊 Total incluidas: ${includedReferences.length}, ya extraídas: ${alreadyExtracted}, pendientes: ${pendingReferences.length}`);
+      
+      if (pendingReferences.length === 0) {
+        console.log(`✅ Todas las referencias ya fueron extraídas previamente, saltando paso de extracción`);
+        return {
+          success: true,
+          total: includedReferences.length,
+          processed: 0,
+          skipped: alreadyExtracted,
+          errors: 0,
+          withFullText: 0,
+          abstractOnly: 0,
+          results: []
+        };
+      }
+
+      console.log(`Procesando ${pendingReferences.length} referencias pendientes (${withPDF} con PDF completo, ${abstractOnly} solo abstract)...`);
+
+      // 2. Procesar en lotes paralelos de 5 (balance entre velocidad y rate limits)
+      const BATCH_SIZE = 5;
       const results = [];
       let processed = 0;
       let errors = 0;
 
-      for (const reference of includedReferences) {
-        try {
-          const result = await this.processSinglePDF(reference.id, projectId);
-          results.push(result);
-          processed++;
-        } catch (error) {
-          console.error(`Error en ${reference.title}:`, error.message);
-          results.push({
-            success: false,
-            referenceId: reference.id,
-            title: reference.title,
-            error: error.message
-          });
-          errors++;
+      for (let i = 0; i < pendingReferences.length; i += BATCH_SIZE) {
+        const batch = pendingReferences.slice(i, i + BATCH_SIZE);
+        console.log(`   🔄 Lote ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(pendingReferences.length / BATCH_SIZE)}: procesando ${batch.length} referencias...`);
+        
+        const batchResults = await Promise.allSettled(
+          batch.map(reference => this.processSinglePDF(reference.id, projectId))
+        );
+        
+        for (let j = 0; j < batchResults.length; j++) {
+          const result = batchResults[j];
+          if (result.status === 'fulfilled') {
+            results.push(result.value);
+            processed++;
+          } else {
+            console.error(`Error en ${batch[j].title}:`, result.reason?.message);
+            results.push({
+              success: false,
+              referenceId: batch[j].id,
+              title: batch[j].title,
+              error: result.reason?.message
+            });
+            errors++;
+          }
         }
         
-        // Pequeña pausa entre llamadas a IA
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Pausa entre lotes para evitar rate limits
+        if (i + BATCH_SIZE < pendingReferences.length) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
       }
 
-      console.log(`Procesamiento completo: ${processed} exitosos, ${errors} errores`);
+      console.log(`Procesamiento completo: ${processed} exitosos, ${errors} errores, ${alreadyExtracted} saltados`);
       console.log(`   - Con PDF completo: ${withPDF}`);
       console.log(`   - Solo abstract: ${abstractOnly}`);
 
@@ -275,6 +307,7 @@ Do NOT add any text before or after the JSON. Extract factual information only, 
         success: true,
         total: includedReferences.length,
         processed,
+        skipped: alreadyExtracted,
         errors,
         withFullText: withPDF,
         abstractOnly: abstractOnly,
