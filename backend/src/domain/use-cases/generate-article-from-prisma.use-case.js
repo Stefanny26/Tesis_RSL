@@ -472,6 +472,9 @@ STUDY CONTEXT:
 - Total articles identified: ${prismaContext.screening.totalResults ?? 'N/A'}
 - Articles after screening: ${prismaContext.screening.afterScreening ?? 'N/A'}
 - Final included studies: ${prismaContext.screening.includedFinal ?? rqsStats.total}
+- AI screening method: Hybrid (Phase 1: semantic embeddings, Phase 2: LLM grey-zone analysis)
+${prismaContext.screening.phase1 ? `- Phase 1 results: ${prismaContext.screening.phase1.highConfidenceInclude} high-confidence includes, ${prismaContext.screening.phase1.highConfidenceExclude} excludes, ${prismaContext.screening.phase1.greyZone} grey-zone` : ''}
+${prismaContext.screening.phase2 ? `- Phase 2 results: ${prismaContext.screening.phase2.included} included, ${prismaContext.screening.phase2.excluded} excluded, ${prismaContext.screening.phase2.manual} manual review` : ''}
 
 PROCESSED RQS DATA (${rqsStats.total} studies):
 - Study types: ${JSON.stringify(rqsStats.studyTypes)}
@@ -746,26 +749,31 @@ ${searchChart}
 
 The complete strategies for all databases are available in the supplementary material.
 
-## 2.4 AI-Assisted Screening Prioritization
+## 2.4 AI-Assisted Hybrid Screening
 
-To optimize the screening process and reduce manual effort without compromising recall, a hybrid approach combining artificial intelligence with human expert review was implemented. Each downloaded reference was processed through a semantic similarity model that computed a relevance score in the range [0, 1], where values closer to 1 indicate higher relevance with respect to the predefined inclusion criteria.
+To optimize the screening process and reduce manual effort without compromising recall, a two-phase hybrid approach combining artificial intelligence with human expert review was implemented.
 
-The resulting scores were sorted in descending order and plotted as a scree curve (Figure 1). The **elbow method** (knee-point detection) was applied to this curve to identify the optimal inflection point — the threshold below which the marginal gain in relevant study recovery diminishes sharply. This technique, borrowed from unsupervised clustering validation, provides an objective and reproducible criterion for prioritizing which references undergo full manual review first.
+**Phase 1 — Semantic Similarity Ranking (Embeddings):** Each downloaded reference was processed through a semantic similarity model (text-embedding-ada-002, OpenAI) that computed a cosine similarity score in the range [0, 1] against a vector representation of the predefined PICO-based inclusion criteria. ${prismaContext.screening.phase1 ? `The model processed ${prismaContext.screening.phase1.highConfidenceInclude + prismaContext.screening.phase1.highConfidenceExclude + prismaContext.screening.phase1.greyZone} references with an average similarity score of ${(prismaContext.screening.phase1.avgSimilarity * 100).toFixed(1)}%. Using adaptive percentile thresholds${prismaContext.screening.similarityThresholds ? ` (upper: ${(prismaContext.screening.similarityThresholds.embeddings * 100).toFixed(1)}%)` : ''}, references were triaged into three categories: **${prismaContext.screening.phase1.highConfidenceInclude} high-confidence includes** (above upper threshold), **${prismaContext.screening.phase1.highConfidenceExclude} high-confidence excludes** (below lower threshold), and **${prismaContext.screening.phase1.greyZone} grey-zone references** requiring further analysis.` : 'References were triaged into three categories based on adaptive percentile thresholds: high-confidence includes, high-confidence excludes, and grey-zone references requiring further analysis.'}
+
+**Phase 2 — LLM-Based Grey Zone Analysis (ChatGPT):** ${prismaContext.screening.phase2 ? `The ${prismaContext.screening.phase2.analyzed} grey-zone references were individually evaluated by a large language model (${prismaContext.screening.phase2.method || 'GPT-4'}) prompted with the PICO criteria and inclusion/exclusion rules. The LLM classified each reference as: **${prismaContext.screening.phase2.included} included**, **${prismaContext.screening.phase2.excluded} excluded**, and **${prismaContext.screening.phase2.manual} flagged for manual review** by the principal investigator.` : 'Grey-zone references were individually evaluated by a large language model prompted with the PICO criteria and inclusion/exclusion rules, classifying each as included, excluded, or flagged for manual review.'}
+
+The resulting scores were sorted in descending order and plotted as a scree curve (Figure 1). The **elbow method** (knee-point detection) was applied to this curve to identify the optimal inflection point — the threshold below which the marginal gain in relevant study recovery diminishes sharply. ${prismaContext.screening.cutoffMethod ? `The cutoff method employed was **${prismaContext.screening.cutoffMethod}**.` : ''}
 
 ${screePlot || '**[FIGURE 1: Scree Plot — Distribution of AI relevance scores with elbow point]**\n*Figure 1. Distribution of semantic relevance scores sorted in descending order. The vertical line marks the elbow point used as the prioritization threshold.*'}
 
-**Rationale for elbow-based prioritization**: The elbow method mitigates potential algorithmic bias by ensuring that the cut-off point is data-driven rather than arbitrarily set. References above the threshold were prioritized for manual review, while those below it were still reviewed but in a second pass, ensuring no relevant study was excluded solely based on the algorithmic score. This two-pass strategy balances screening efficiency with comprehensiveness, a critical requirement for PRISMA-compliant reviews.
+**Rationale for hybrid approach**: The two-phase design leverages the complementary strengths of embedding-based similarity (fast, deterministic ranking) and LLM-based analysis (contextual understanding of eligibility criteria). The elbow method mitigates potential algorithmic bias by ensuring that the cut-off point is data-driven rather than arbitrarily set. References above the threshold were prioritized for manual review, while those below it were still reviewed in a second pass, ensuring no relevant study was excluded solely based on the algorithmic score.
 
-It is important to emphasize that the AI scores were used exclusively for **prioritization**, not for inclusion/exclusion decisions. All final inclusion/exclusion decisions were made by human reviewers applying the predefined PICO-based eligibility criteria.
+It is important to emphasize that the AI scores were used exclusively for **prioritization and triage**, not for final inclusion/exclusion decisions. All final decisions were made by human reviewers applying the predefined PICO-based eligibility criteria.
 
 ## 2.5 Selection Process
 
 ${selectionProcess}
 
-The process followed three phases:
-1. **Duplicate removal**: The bibliographic manager ${prismaContext.screening.method || 'specialized software'} was used to identify and remove duplicate references.
-2. **Title and abstract screening**: Two independent reviewers evaluated titles and abstracts independently. Disagreements were resolved through consensus or, when necessary, by consulting a third reviewer.
-3. **Full-text review**: Articles that passed the initial screening were retrieved in full text and evaluated against the complete eligibility criteria.
+The process followed four phases:
+1. **Duplicate removal**: Automated deduplication identified and removed duplicate references across databases.
+2. **AI-assisted prioritization**: The hybrid screening system (Phase 1: embeddings + Phase 2: LLM) processed all unique references to compute relevance scores and triage classifications (see Section 2.4).
+3. **Title and abstract screening**: References prioritized by the AI system were evaluated by the principal investigator using the predefined PICO-based criteria. The AI classifications served as decision support, with the human reviewer making all final decisions.
+4. **Full-text review**: Articles that passed the initial screening were retrieved in full text and evaluated against the complete eligibility criteria, including assessment of methodological quality.
 
 ## 2.6 Data Extraction Using the RQS Schema
 
@@ -860,6 +868,8 @@ The synthesis was organized around the three research questions, integrating fin
 ${studySelection}
 
 Figure 2 presents the complete PRISMA flow diagram of the selection process. The initial search identified **${totalIdentified} records** across the consulted databases. After duplicate removal (n=${duplicatesRemoved}), **${afterDedup} unique records** were screened by title and abstract.
+
+${prismaContext.screening.phase1 ? `The AI-assisted hybrid screening (Section 2.4) processed all ${afterDedup} unique records. In Phase 1, the embedding model classified ${prismaContext.screening.phase1.highConfidenceInclude} references as high-confidence includes, ${prismaContext.screening.phase1.highConfidenceExclude} as high-confidence excludes, and ${prismaContext.screening.phase1.greyZone} as grey-zone.${prismaContext.screening.phase2 ? ` In Phase 2, the LLM analyzed the ${prismaContext.screening.phase2.analyzed} grey-zone references, classifying ${prismaContext.screening.phase2.included} as included, ${prismaContext.screening.phase2.excluded} as excluded, and ${prismaContext.screening.phase2.manual} for manual review.` : ''} All AI classifications were subsequently validated by the principal investigator.` : ''}
 
 During title and abstract screening, **${excludedTitleAbstract} records were excluded**${Object.keys(prismaContext.screening.screeningExclusionReasons || {}).length > 0 ? `: ${Object.entries(prismaContext.screening.screeningExclusionReasons || {}).slice(0, 5).map(([reason, count]) => `${reason} (n=${count})`).join('; ')}` : ''}.
 

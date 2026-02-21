@@ -220,8 +220,9 @@ class GeneratePrismaContextUseCase {
           fullTextRetrieved: fullTextAssessed,
 
           // Datos del cribado híbrido si existen
-          phase1: screeningResults.phase1 || null,
-          phase2: screeningResults.phase2 || null,
+          // Los datos se guardan en screeningResults.summary.phase1/phase2 (run-project-screening)
+          phase1: screeningResults.summary?.phase1 || screeningResults.phase1 || null,
+          phase2: screeningResults.summary?.phase2 || screeningResults.phase2 || null,
           hybridMethod: screeningResults.method === 'hybrid',
 
           // Metodología
