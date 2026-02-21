@@ -97,19 +97,28 @@ const MarkdownHeading4 = ({ node, ...props }: any) => (
   />
 )
 
-const MarkdownParagraph = ({ node, ...props }: any) => (
-  <p
-    {...props}
-    className="mb-2 text-foreground"
-    style={{
-      fontFamily: serifFont,
-      fontSize: '12pt',
-      lineHeight: '1.6',
-      textAlign: 'justify',
-      textIndent: '1.5em',
-    }}
-  />
-)
+const MarkdownParagraph = ({ node, children, ...props }: any) => {
+  // If paragraph contains an image, render as div to avoid <figure> inside <p> hydration error
+  const hasImage = node?.children?.some((child: any) =>
+    child.type === 'element' && child.tagName === 'img'
+  )
+  if (hasImage) {
+    return <div className="mb-2 text-foreground" style={{ fontFamily: serifFont, fontSize: '12pt', lineHeight: '1.6', textAlign: 'justify' }}>{children}</div>
+  }
+  return (
+    <p
+      {...props}
+      className="mb-2 text-foreground"
+      style={{
+        fontFamily: serifFont,
+        fontSize: '12pt',
+        lineHeight: '1.6',
+        textAlign: 'justify',
+        textIndent: '1.5em',
+      }}
+    >{children}</p>
+  )
+}
 
 const MarkdownListItem = ({ node, ...props }: any) => (
   <li
