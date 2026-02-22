@@ -124,14 +124,14 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
           } else if (r.matchedCriteria && r.matchedCriteria.length > 0) {
             r.matchedCriteria.forEach((criteria: string) => {
-              const reason = `No cumple: ${criteria.trim()}`
+              const reason = `Does not meet: ${criteria.trim()}`
               screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
             })
           } else if ((r.aiClassification || r.ai_classification) === 'exclude') {
-            const reason = 'No cumple criterios de inclusión (IA)'
+            const reason = 'Does not meet inclusion criteria (AI)'
             screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
           } else {
-            const reason = 'Baja relevancia temática (score insuficiente)'
+            const reason = 'Low thematic relevance (insufficient score)'
             screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
           }
         })

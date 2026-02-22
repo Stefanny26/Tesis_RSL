@@ -106,9 +106,34 @@ class GeneratePrismaContextUseCase {
       console.log('  pending (no decision yet):', pending);
       
       // Recopilar razones de exclusión de la revisión manual (full-text)
+      // Translate common Spanish reasons to English for consistent PRISMA display
+      const REASON_TRANSLATE = {
+        'no es relevante': 'Not relevant',
+        'no relevante': 'Not relevant',
+        'sin razón especificada': 'No reason specified',
+        'no cumple criterios de inclusión (ia)': 'Does not meet inclusion criteria (AI)',
+        'baja relevancia temática (score insuficiente)': 'Low thematic relevance (insufficient score)',
+        'duplicado': 'Duplicate',
+        'fuera de rango temporal': 'Outside temporal range',
+        'no cumple criterios de inclusión': 'Does not meet inclusion criteria',
+        'idioma no admitido': 'Unsupported language',
+        'sin acceso al texto completo': 'Full text not available',
+        'datos insuficientes': 'Insufficient data',
+        'no es un estudio primario': 'Not a primary study',
+        'fuera del alcance': 'Out of scope',
+        'metodología inadecuada': 'Inadequate methodology',
+      };
+      const translateReason = (r) => {
+        const key = r.toLowerCase().trim();
+        if (REASON_TRANSLATE[key]) return REASON_TRANSLATE[key];
+        if (key.startsWith('no cumple:')) return `Does not meet: ${r.substring(10).trim()}`;
+        return r;
+      };
+
       const exclusionReasons = {};
       selectedRefs.filter(ref => getManualStatus(ref) === 'excluded').forEach(ref => {
-        const reason = (ref.exclusionReason || ref.exclusion_reason || 'Sin razón especificada').trim();
+        const rawReason = (ref.exclusionReason || ref.exclusion_reason || 'No reason specified').trim();
+        const reason = translateReason(rawReason);
         exclusionReasons[reason] = (exclusionReasons[reason] || 0) + 1;
       });
 
@@ -124,14 +149,14 @@ class GeneratePrismaContextUseCase {
           screeningExclusionReasons[excReason] = (screeningExclusionReasons[excReason] || 0) + 1;
         } else if (Array.isArray(matchedCriteria) && matchedCriteria.length > 0) {
           matchedCriteria.forEach(criteria => {
-            const reason = `No cumple: ${String(criteria).trim()}`;
+            const reason = `Does not meet: ${String(criteria).trim()}`;
             screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1;
           });
         } else if (aiClass === 'exclude') {
-          const reason = 'No cumple criterios de inclusión (IA)';
+          const reason = 'Does not meet inclusion criteria (AI)';
           screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1;
         } else {
-          const reason = 'Baja relevancia temática (score insuficiente)';
+          const reason = 'Low thematic relevance (insufficient score)';
           screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1;
         }
       });
@@ -369,7 +394,7 @@ class GeneratePrismaContextUseCase {
         searchString,
         hits
       };
-    }).filter(db => db.hits > 0); // Descartar bases de datos sin referencias cargadas
+    }); // Mantener TODAS las bases de datos configuradas (incluso sin hits)
   }
 
   /**

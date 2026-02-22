@@ -830,7 +830,7 @@ Each chart is automatically saved in two formats:
 3. **chart1_search** — Database search strategy table
 4. **temporal_distribution** — Publication year distribution
 5. **quality_assessment** — Methodological quality assessment
-6. **bubble_chart** — Metrics vs Technologies mapping
+6. **bubble_chart** — Thematic keyword concentration in included studies
 7. **technical_synthesis** — Comparative technical performance table
 
 ## Customization

@@ -69,25 +69,25 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
               ENCABEZADO DORADO
               ══════════════════════════════════════════ */}
           <Box variant="header" className="text-center font-bold text-base mb-4 rounded">
-            Nuevos estudios vía bases de datos y archivos
+            New studies via databases and registers
           </Box>
 
           {/* ══════════════════════════════════════════
               FASE: IDENTIFICACIÓN
               ══════════════════════════════════════════ */}
           <div className="flex" style={{ gap: W.gap }}>
-            <PhaseLabel label="Identificación" />
+            <PhaseLabel label="Identification" />
 
             {/* Contenido principal + flecha + lateral */}
             <div className="flex-1 flex items-stretch" style={{ gap: W.gap }}>
               {/* Caja principal */}
               <div className="flex-1">
                 <Box variant="idBox" className="h-full flex flex-col justify-center">
-                  <p className="text-sm font-semibold mb-1">Registros identificados desde*:</p>
+                  <p className="text-sm font-semibold mb-1">Records identified from*:</p>
                   {stats.databases && stats.databases.length > 0 ? (
                     <>
                       <p className="text-sm ml-3">
-                        Bases de Datos (n&nbsp;=&nbsp;{totalDatabases})
+                        Databases (n&nbsp;=&nbsp;{totalDatabases})
                       </p>
                       <ul className="text-xs ml-6 space-y-0.5 mt-0.5 list-disc">
                         {stats.databases.map((db) => (
@@ -99,11 +99,11 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                     </>
                   ) : (
                     <p className="text-sm ml-3">
-                      Bases de Datos (n&nbsp;=&nbsp;{stats.identified})
+                      Databases (n&nbsp;=&nbsp;{stats.identified})
                     </p>
                   )}
                   <p className="text-sm ml-3 mt-1">
-                    Registros/Archivos (n&nbsp;=&nbsp;{otherSources})
+                    Registers (n&nbsp;=&nbsp;{otherSources})
                   </p>
                 </Box>
               </div>
@@ -114,15 +114,15 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
               <div style={{ width: W.side, minWidth: W.side }}>
                 <Box variant="idSide" className="h-full flex flex-col justify-center">
                   <p className="text-sm font-semibold mb-1">
-                    Registros eliminados antes del cribado:
+                    Records removed before screening:
                   </p>
-                  <p className="text-sm ml-3">Duplicados (n&nbsp;=&nbsp;{stats.duplicates})</p>
+                  <p className="text-sm ml-3">Duplicates (n&nbsp;=&nbsp;{stats.duplicates})</p>
                   <p className="text-sm ml-3">
-                    Registros señalados como inelegibles por herramientas de automatización
+                    Records marked as ineligible by automation tools
                     (k&nbsp;=&nbsp;0)
                   </p>
                   <p className="text-sm ml-3">
-                    Registros eliminados por otras razones (n&nbsp;=&nbsp;0)
+                    Records removed for other reasons (n&nbsp;=&nbsp;0)
                   </p>
                 </Box>
               </div>
@@ -136,14 +136,14 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
               FASE: CRIBADO  (3 filas, 1 barra lateral)
               ══════════════════════════════════════════ */}
           <div className="flex" style={{ gap: W.gap }}>
-            <PhaseLabel label="Cribado" />
+            <PhaseLabel label="Screening" />
 
             <div className="flex-1 flex flex-col" style={{ gap: 0 }}>
               {/* ── Fila 1: Registros cribados ── */}
               <Row
                 main={
                   <>
-                    <p className="text-sm font-semibold">Registros cribados</p>
+                    <p className="text-sm font-semibold">Records screened</p>
                     <p className="text-base font-bold mt-1">
                       (n&nbsp;=&nbsp;{stats.screenedTitleAbstract})
                     </p>
@@ -152,7 +152,7 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                 mainVariant="cribBox"
                 side={
                   <div className="text-left">
-                    <p className="text-sm font-semibold mb-1">Registros excluidos**</p>
+                    <p className="text-sm font-semibold mb-1">Records excluded**</p>
                     <p className="text-sm font-bold mb-1 ml-3">
                       (n&nbsp;=&nbsp;{stats.excludedTitleAbstract})
                     </p>
@@ -166,7 +166,7 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                     ) : (
                       stats.excludedTitleAbstract > 0 && (
                         <p className="text-xs ml-3 text-muted-foreground">
-                          Excluidos por cribado automático de título y abstract
+                          Excluded by automated title and abstract screening
                         </p>
                       )
                     )}
@@ -182,7 +182,7 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                 main={
                   <>
                     <p className="text-sm font-semibold">
-                      Publicaciones recuperadas para evaluación
+                      Reports retrieved for assessment
                     </p>
                     <p className="text-base font-bold mt-1">
                       (n&nbsp;=&nbsp;{retrieved})
@@ -192,7 +192,7 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                 mainVariant="cribBox"
                 side={
                   <>
-                    <p className="text-sm font-semibold">Publicaciones no recuperadas</p>
+                    <p className="text-sm font-semibold">Reports not retrieved</p>
                     <p className="text-base font-bold mt-1">
                       (n&nbsp;=&nbsp;{notRetrieved})
                     </p>
@@ -208,7 +208,7 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                 main={
                   <>
                     <p className="text-sm font-semibold">
-                      Publicaciones evaluadas para elegibilidad
+                      Reports assessed for eligibility
                     </p>
                     <p className="text-base font-bold mt-1">
                       (n&nbsp;=&nbsp;{stats.fullTextAssessed})
@@ -218,7 +218,7 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                 mainVariant="cribBox"
                 side={
                   <div className="text-left">
-                    <p className="text-sm font-semibold mb-1">Publicaciones excluidas:</p>
+                    <p className="text-sm font-semibold mb-1">Reports excluded:</p>
                     <p className="text-sm font-bold ml-3 mb-1">
                       Total (n&nbsp;=&nbsp;{stats.excludedFullText})
                     </p>
@@ -240,7 +240,7 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
                       if (stats.excludedFullText === 0) {
                         return (
                           <p className="text-xs ml-3 text-muted-foreground">
-                            No se excluyeron publicaciones en esta fase
+                            No reports were excluded at this stage
                           </p>
                         )
                       }
@@ -260,16 +260,16 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
               FASE: INCLUIDOS
               ══════════════════════════════════════════ */}
           <div className="flex" style={{ gap: W.gap }}>
-            <PhaseLabel label="Incluidos" />
+            <PhaseLabel label="Included" />
 
             <div className="flex-1">
               <Box variant="inclBox" className="text-center py-4">
                 <p className="text-sm font-semibold">
-                  Nuevos estudios incluidos en la revisión
+                  New studies included in review
                   (n&nbsp;=&nbsp;{stats.includedFinal})
                 </p>
                 <p className="text-sm mt-0.5">
-                  Registros de nuevos estudios incluidos
+                  Records of new included studies
                   (n&nbsp;=&nbsp;{stats.includedFinal})
                 </p>
               </Box>
@@ -279,16 +279,16 @@ export function PrismaFlowDiagram({ stats }: PrismaFlowDiagramProps) {
           {/* ── Notas al pie ── */}
           <div className="mt-6 text-xs text-gray-500 dark:text-gray-400 space-y-1 leading-relaxed">
             <p>
-              * Considere, si es factible hacerlo, informar del número de registros o citas
-              identificados en cada base de datos o registros buscados (en lugar del número total
-              encontrados en todas la base de datos/o bases de registros).
+              * Consider, if feasible, reporting the number of records identified from each
+              database or register searched (rather than the total number across all
+              databases/registers).
             </p>
             <p>
-              ** Si se utilizaron herramientas de aprendizaje automático, indique cuántos registros
-              fueron excluidos por humanos y cuántos fueron excluidos por estas herramientas.
+              ** If automation tools were used, indicate how many records were excluded by a
+              human and how many were excluded by automation tools.
             </p>
             <p className="italic mt-2">
-              Diagrama basado en las directrices PRISMA 2020 (Page et al., 2021).
+              Diagram based on PRISMA 2020 guidelines (Page et al., 2021).
             </p>
           </div>
         </div>

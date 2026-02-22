@@ -99,7 +99,9 @@ export default function ScreeningPage({ params }: { params: { id: string } }) {
 
         // Procesar protocolo si existe
         if (protocol) {
-          if (protocol?.searchPlan?.searchQueries) {
+          if (protocol?.searchStrategy?.searchQueries) {
+            setSearchQueries(protocol.searchStrategy.searchQueries)
+          } else if (protocol?.searchPlan?.searchQueries) {
             setSearchQueries(protocol.searchPlan.searchQueries)
           }
           if (protocol?.keyTerms) {
@@ -977,14 +979,14 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                     screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
                   } else if (ref.matchedCriteria && ref.matchedCriteria.length > 0) {
                     ref.matchedCriteria.forEach((criteria: string) => {
-                      const reason = `No cumple: ${criteria.trim()}`
+                      const reason = `Does not meet: ${criteria.trim()}`
                       screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
                     })
                   } else if (ref.aiClassification === 'exclude') {
-                    const reason = 'No cumple criterios de inclusión (IA)'
+                    const reason = 'Does not meet inclusion criteria (AI)'
                     screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
                   } else {
-                    const reason = 'Baja relevancia temática (score insuficiente)'
+                    const reason = 'Low thematic relevance (insufficient score)'
                     screeningExclusionReasons[reason] = (screeningExclusionReasons[reason] || 0) + 1
                   }
                 })
@@ -1711,38 +1713,11 @@ Total: ${included} incluidas, ${excluded} excluidas${reviewManual > 0 ? `, ${rev
                         onClick={async () => {
                           setIsFinalizingScreening(true)
                           try {
-                            // 0. Limpiar protocolo: descartar bases de datos sin referencias cargadas
-                            const databasesWithRefs: Record<string, number> = {}
-                            references.forEach((ref) => {
-                              const source = ref.source || 'Unknown'
-                              databasesWithRefs[source] = (databasesWithRefs[source] || 0) + 1
-                            })
-                            const activeDatabaseNames = Object.keys(databasesWithRefs)
-                            
-                            // Filtrar searchQueries y databases del protocolo
-                            const cleanedQueries = searchQueries.filter((q: any) => {
-                              const dbName = q.databaseName || q.databaseId || ''
-                              return activeDatabaseNames.some(name =>
-                                name.toLowerCase().includes(dbName.toLowerCase()) ||
-                                dbName.toLowerCase().includes(name.toLowerCase())
-                              )
-                            })
-
-                            // 1. Guardar estado de finalización + bases de datos limpias
+                            // Solo marcar estado de finalización — NO sobrescribir databases ni searchQueries
+                            // Los datos originales del protocolo (wizard) deben preservarse intactos
                             await apiClient.updateProtocol(params.id, {
                               screeningFinalized: true,
                               prismaUnlocked: true,
-                              analysisCompleted: true,
-                              databases: activeDatabaseNames,
-                              searchQueries: cleanedQueries.map((q: any) => ({
-                                ...q,
-                                resultsCount: databasesWithRefs[
-                                  activeDatabaseNames.find(name =>
-                                    name.toLowerCase().includes((q.databaseName || q.databaseId || '').toLowerCase()) ||
-                                    (q.databaseName || q.databaseId || '').toLowerCase().includes(name.toLowerCase())
-                                  ) || ''
-                                ] || q.resultsCount || 0
-                              }))
                             })
                             
                             setScreeningFinalized(true)
