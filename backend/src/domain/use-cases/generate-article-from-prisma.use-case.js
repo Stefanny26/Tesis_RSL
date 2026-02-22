@@ -2009,26 +2009,30 @@ The authors declare that the PRISMA 2020 guidelines have been strictly followed 
         chartData.quality_assessment.partial[3]++;
       }
 
-      // 3. TECHNICAL SYNTHESIS: Tabla comparativa de métricas por estudio (DINÁMICA)
-      if (entry.metrics && typeof entry.metrics === 'object' && Object.keys(entry.metrics).length > 0) {
+      // 3. TECHNICAL SYNTHESIS: Tabla comparativa por estudio (usa TODOS los campos RQS disponibles)
+      {
         const studyLabel = (entry.author && entry.year) ? `${entry.author} ${entry.year}` : 'Unknown';
+        const getRQLabel = (rel) => rel === 'yes' ? '✓' : rel === 'partial' ? '○' : '✗';
         const studyData = {
           study: studyLabel,
           tool: entry.technology || 'N/A',
-          ...entry.metrics
+          type: entry.studyType || 'N/A',
+          context: entry.context || 'N/A',
+          RQ1: getRQLabel(entry.rq1Relation),
+          RQ2: getRQLabel(entry.rq2Relation),
+          RQ3: getRQLabel(entry.rq3Relation),
+          quality: entry.qualityScore || 'N/A'
         };
-        
-        const metricsKeys = Object.keys(entry.metrics).filter(k => 
-          entry.metrics[k] !== null && 
-          entry.metrics[k] !== undefined && 
-          entry.metrics[k] !== '' &&
-          entry.metrics[k] !== 'N/A' &&
-          entry.metrics[k] !== 'Unknown'
-        );
-        
-        if (metricsKeys.length > 0) {
-          chartData.technical_synthesis.studies.push(studyData);
+
+        // Also spread any real metrics if available
+        if (entry.metrics && typeof entry.metrics === 'object') {
+          const validMetrics = Object.entries(entry.metrics).filter(([k, v]) =>
+            v !== null && v !== undefined && v !== '' && v !== 'N/A' && v !== 'Unknown'
+          );
+          validMetrics.forEach(([k, v]) => { studyData[k] = v; });
         }
+
+        chartData.technical_synthesis.studies.push(studyData);
       }
     });
 
@@ -2120,18 +2124,18 @@ The authors declare that the PRISMA 2020 guidelines have been strictly followed 
     }
 
     // Limitar technical_synthesis a top 15 estudios con más métricas (DINÁMICO)
-    chartData.technical_synthesis.studies = chartData.technical_synthesis.studies
-      .sort((a, b) => {
-        // Contar todas las métricas válidas (excepto 'study' y 'tool')
-        const countA = Object.entries(a).filter(([k, v]) => 
-          k !== 'study' && k !== 'tool' && v !== null && v !== undefined && v !== ''
-        ).length;
-        const countB = Object.entries(b).filter(([k, v]) => 
-          k !== 'study' && k !== 'tool' && v !== null && v !== undefined && v !== ''
-        ).length;
-        return countB - countA;
-      })
-      .slice(0, 15);
+      chartData.technical_synthesis.studies = chartData.technical_synthesis.studies
+        .sort((a, b) => {
+          // Contar todas las columnas válidas (excepto 'study' y 'tool')
+          const countA = Object.entries(a).filter(([k, v]) => 
+            k !== 'study' && k !== 'tool' && v !== null && v !== undefined && v !== '' && v !== 'N/A' && v !== 'Unknown'
+          ).length;
+          const countB = Object.entries(b).filter(([k, v]) => 
+            k !== 'study' && k !== 'tool' && v !== null && v !== undefined && v !== '' && v !== 'N/A' && v !== 'Unknown'
+          ).length;
+          return countB - countA;
+        })
+        .slice(0, 15);
 
     return chartData;
   }
