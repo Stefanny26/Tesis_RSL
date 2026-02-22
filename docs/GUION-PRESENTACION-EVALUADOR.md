@@ -1,34 +1,74 @@
-﻿# GUIÓN DE PRESENTACIÓN  DEFENSA DE TESIS
-**Autoras**: Stefanny Hernández & Adriana González  
-**Tutor**: Ing. Paulo Galarza, MSc.  
-**Tiempo total disponible**: 40 minutos
+﻿# GUIÓN DE PRESENTACIÓN — DEFENSA DE TESIS
+**Autoras**: Stefanny Mishel Hernández Buenaño & Adriana Pamela González Orellana
+**Tutor**: Ing. Paulo Galarza, MSc.
+**Tiempo total disponible**: 50 minutos (30 min exposición + 20 min preguntas del tribunal)
 
 ---
 
-##  DISTRIBUCIÓN DE TIEMPO
+## RÚBRICA DE EVALUACIÓN — COMPONENTE EXPOSICIÓN ORAL
 
-| Sección | Minutos |
-|---------|---------|
-| 1. Introducción + Problema | 5 min |
-| 2. Objetivos | 2 min |
-| 3. Marco Teórico | 5 min |
-| 4. Metodología | 5 min |
-| 5. Diseño + Arquitectura | 10 min |
-| 6. Resultados | 8 min |
-| 7. Conclusiones | 3 min |
-| 8. Preguntas del tribunal | 2 min buffer |
+> El tribunal evalúa los siguientes rubros (escala 0–20 cada uno):
+
+| Aspecto evaluado | Lo cubro en... |
+|------------------|----------------|
+| **Exposición de objetivos** | Sección 2 — Objetivos |
+| **Descripción de la metodología aplicada** | Sección 4 — Metodología (DSR + Scrum) |
+| **Presentación de los resultados alcanzados** | Sección 7 — Resultados |
+| **Conclusiones y recomendaciones** | Sección 8 — Conclusiones |
+| **Respuestas a las interrogantes del tribunal** | Sección 9 — Preguntas |
+
+> **Ponderación**: 40% de la nota final.
 
 ---
 
-## 1. INTRODUCCIÓN (5 min)
+## EQUIPO SCRUM DEL PROYECTO
 
-### Hook de apertura (15 seg)
-> *"Saben cuánto tarda en promedio completar una revisión sistemática de literatura? Entre 4 y 12 meses. Nosotros lo redujimos a 2-4 semanas sin sacrificar rigor metodológico."*
+| Rol | Responsable |
+|-----|-------------|
+| Stakeholder | Ing. Germán Rodríguez |
+| Product Owner | Ing. Paulo Galarza |
+| Scrum Master | Ing. Paulo Galarza |
+| Development Team | Stefanny Mishel Hernández Buenaño |
+| Development Team | Adriana Pamela González Orellana |
 
-### El problema en 3 puntos
-- Las RSL son el gold standard de investigación científica: sintetizan evidencia de múltiples estudios bajo un protocolo riguroso
-- El estándar PRISMA 2020 exige cumplir **27 ítems obligatorios**  muchos investigadores no los conocen o los omiten
-- Las herramientas existentes (Covidence, Rayyan) ayudan con el cribado, pero **ninguna genera el artículo completo ni valida PRISMA automáticamente**
+---
+
+## DISTRIBUCIÓN DE ROLES EN LA EXPOSICIÓN
+
+| Bloque | Sección | Quién expone | Tiempo |
+|--------|---------|-------------|--------|
+| A | 1. Introducción + Problema | **Stefanny** | 4 min |
+| A | 2. Objetivos | **Stefanny** | 3 min |
+| A | 3. Marco Teórico | **Stefanny** | 4 min |
+| A | 4. Metodología | **Stefanny** | 4 min |
+| B | 5. Arquitectura del sistema | **Adriana** | 5 min |
+| B | 6. Fases del sistema (demo) | **Adriana** | 6 min |
+| B | 7. Resultados | **Adriana** | 3 min |
+| B | 8. Conclusiones y cierre | **Adriana** | 1 min |
+| — | 9. Preguntas del tribunal | **Ambas** | 20 min |
+| **Total** | | | **50 min** |
+
+> **Regla de oro:** cada una habla solo de su bloque. Si el tribunal pregunta algo del bloque de la otra, esa persona responde; si es pregunta general, cualquiera inicia y la otra complementa.
+
+---
+
+---
+
+# BLOQUE A — STEFANNY (15 minutos)
+
+---
+
+## 1. INTRODUCCIÓN (4 min) — STEFANNY
+
+### Frase de apertura (decir mirando al tribunal)
+> *"¿Saben cuánto tiempo tarda en completarse una revisión sistemática de literatura? Entre cuatro y doce meses. Nosotras lo redujimos a dos o cuatro semanas, sin sacrificar rigor metodológico."*
+
+### Contextualizamos el problema (sin jerga técnica)
+Antes de explicar el sistema, necesitamos que el tribunal entienda **qué es lo que automatizamos**:
+
+- Una **revisión sistemática de literatura (RSL)** es una investigación en la que se recopila, filtra y sintetiza el conocimiento publicado sobre un tema, siguiendo reglas internacionales muy estrictas.
+- Esas reglas se llaman **PRISMA 2020** y obligan a cumplir 27 ítems documentados; si falta uno, la publicación puede ser rechazada por las revistas científicas.
+- Las herramientas que existen hoy (Covidence, Rayyan) ayudan a organizar referencias, pero **ninguna genera el artículo completo ni verifica automáticamente esos 27 ítems**.
 
 ### La brecha que llenamos
 | Herramienta | Cribado | Genera artículo | Valida PRISMA |
@@ -38,215 +78,282 @@
 
 ---
 
-## 2. OBJETIVOS (2 min)
+## 2. OBJETIVOS (3 min) — STEFANNY
 
 ### Objetivo General
-> Desarrollar un sistema web para la gestión automatizada de revisiones sistemáticas de literatura con validación de cumplimiento del estándar PRISMA 2020 mediante inteligencia artificial.
+> *"El objetivo general de este trabajo fue desarrollar un sistema web que automatice el proceso completo de una revisión sistemática de literatura, desde la idea inicial hasta el borrador del artículo científico, con validación del estándar PRISMA 2020 mediante inteligencia artificial."*
 
-### Objetivos Específicos
-- **OE1**: Diseñar la arquitectura del sistema y el modelo Entidad-Relación (MER)
-- **OE2**: Implementar el módulo de gestión y cribado con asistente IA para PICO y cadenas de búsqueda
-- **OE3**: Desarrollar la carga y filtrado semiautomático de referencias (CSV) usando LLM MiniLM-L6-v2
-- **OE4**: Implementar la validación secuencial de los 27 ítems PRISMA 2020  AI Gatekeeper
-- **OE5**: Implementar la generación automática del borrador del artículo científico
+### Objetivos Específicos — leer y señalar en la diapositiva
+- **OE1**: Diseñar la arquitectura del sistema y el modelo Entidad-Relación (la base de datos)
+- **OE2**: Implementar el módulo de protocolo PICO con asistente de IA que genera cadenas de búsqueda
+- **OE3**: Desarrollar el cribado semiautomático de referencias usando el modelo de lenguaje MiniLM-L6-v2
+- **OE4**: Implementar el validador secuencial de los 27 ítems PRISMA 2020 — el AI Gatekeeper
+- **OE5**: Implementar la generación automática del borrador del artículo científico y su exportación
+
+> *"Al finalizar, Adriana mostrará cómo cada uno de estos objetivos se traduce en una fase concreta del sistema."*
 
 ---
 
-## 3. MARCO TEÓRICO (5 min)
+## 3. MARCO TEÓRICO (4 min) — STEFANNY
 
-### Qué es una RSL?
-- Investigación secundaria: sintetiza evidencia de estudios primarios under un protocolo explícito y reproducible
-- PRISMA 2020: guía internacional con **27 ítems obligatorios** para garantizar calidad metodológica
+> **Consejo:** usar analogías simples, no asumir que el tribunal conoce los términos técnicos.
 
-### Qué es un LLM?  Explicar con analogía
-> *"Un LLM (Modelo de Lenguaje de Gran Escala) es un modelo de IA entrenado con billones de textos. No piensa, pero aprendió patrones del lenguaje y puede seguir instrucciones muy específicas para generar texto coherente. Imaginen un asistente que leyó toda Internet y puede redactar una sección de artículo científico si le das las reglas exactas de PRISMA y los datos de tu proyecto."*
+### ¿Qué es una RSL? (analogía rápida)
+> *"Imaginen que quieren saber si tomar café realmente mejora la concentración. No basta con leer un solo artículo; hay que revisar todos los estudios publicados sobre ese tema, compararlos y sacar una conclusión basada en la evidencia acumulada. Eso es una RSL. PRISMA 2020 es la lista de verificación que garantiza que lo hicieron correctamente."*
+
+### ¿Qué es un LLM? (analogía sencilla)
+> *"Un LLM —Modelo de Lenguaje de Gran Escala— es un programa entrenado con miles de millones de textos. No piensa, pero aprendió los patrones del lenguaje y puede redactar texto coherente si le damos instrucciones precisas. En el sistema usamos dos modelos de IA con roles distintos:"*
 
 **En el sistema usamos 2 tipos de IA:**
-| Modelo | Función | Costo |
-|--------|---------|-------|
-| ChatGPT gpt-4o-mini | Genera PICO, cadenas de búsqueda y artículo | API OpenAI |
-| MiniLM-L6-v2 | Embeddings para similitud semántica en cribado | Local (gratis) |
+| Modelo de IA | ¿Qué hace en el sistema? | ¿Dónde corre? |
+|-------------|--------------------------|---------------|
+| ChatGPT gpt-4o-mini | Genera el protocolo PICO, las cadenas de búsqueda y el borrador del artículo | API de OpenAI (en la nube) |
+| MiniLM-L6-v2 | Mide qué tan relevante es cada referencia para el protocolo del investigador | En el servidor del proyecto (gratuito) |
 
-### Qué son los Embeddings?
-> *"Transformamos cada resumen de referencia en un vector de números de 384 dimensiones. Los artículos similares quedan cerca en ese espacio matemático. El sistema mide la distancia entre el protocolo PICO y cada referencia  si están cerca, la referencia es relevante."*
+### ¿Qué son los Embeddings? (para tribunal no técnico)
+> *"Cada resumen de artículo se convierte en una lista de 384 números — un vector. Los artículos sobre temas similares quedan cerca entre sí en ese espacio matemático. El sistema mide la distancia entre el protocolo del investigador y cada referencia: si están cerca, la referencia es relevante."*
 
-### Técnica RAG
-> *"RAG combina recuperación de datos con generación de lenguaje. El sistema recupera los datos reales del proyecto (protocolo, estadísticas de cribado, referencias) y los inyecta en el prompt del LLM. Así el modelo genera usando solo datos reales, no inventa."*
+### Técnica RAG (en una frase)
+> *"RAG significa que la IA no inventa: primero recupera los datos reales del proyecto —estadísticas de cribado, referencias incluidas, protocolo— y luego los usa para generar el texto. Sin datos reales, no escribe nada."*
 
 ---
 
-## 4. METODOLOGÍA (5 min)
+## 4. METODOLOGÍA (4 min) — STEFANNY
 
-### Por qué Design Science Research (DSR)?
-> *"DSR de Hevner (2004) es la metodología estándar para proyectos cuyo resultado es un artefacto tecnológico. No medimos un fenómeno, construimos y evaluamos un sistema. DSR nos estructura en 6 pasos: identificar el problema, definir objetivos, diseñar el artefacto, demostrarlo, evaluarlo con métricas y comunicar resultados. Nuestro trabajo cumple los 6."*
+### Design Science Research (DSR) — por qué la elegimos
+> *"DSR de Hevner (2004) es la metodología estándar en ingeniería de sistemas cuando el resultado del trabajo es un artefacto tecnológico, no una hipótesis teórica. Define 6 pasos: identificar el problema, definir objetivos, diseñar el artefacto, demostrarlo, evaluarlo y comunicar los resultados. Nuestro trabajo cumple los 6 pasos documentados."*
 
-**Si preguntan: "Por qué no investigación experimental pura?"**
-> *"La investigación experimental estudia fenómenos ya existentes bajo condiciones controladas. DSR es apropiado cuando el objetivo es CREAR algo nuevo para resolver un problema práctico documentado. Aquí creamos el sistema; las métricas (F1-Score, SUS, Lighthouse) son la evaluación del artefacto, no de una hipótesis teórica."*
+> **Si preguntan "¿por qué no investigación experimental?"**
+> *"La investigación experimental estudia fenómenos que ya existen. DSR es apropiado cuando creamos algo nuevo para resolver un problema real. Las métricas —F1-Score, SUS, Lighthouse— son la evaluación del artefacto, no de una hipótesis."*
 
 ### Por qué Scrum?
-- Los requerimientos evolucionaron durante el desarrollo  planes rígidos habrían fallado
-- Sprints cortos = validación continua con el tutor
-- **5 Sprints, Oct 2025  Feb 2026, 520 horas totales**
+- Los requerimientos evolucionaron durante el desarrollo — planes rígidos habrían fallado
+- Sprints cortos permitieron validación continua con el tutor
+- **5 Sprints, octubre 2025 – febrero 2026, 520 horas totales**
 
-| Sprint | Entregable |
-|--------|-----------|
+**Equipo Scrum:**
+| Rol | Responsable |
+|-----|-------------|
+| Stakeholder | Ing. Germán Rodríguez |
+| Product Owner | Ing. Paulo Galarza |
+| Scrum Master | Ing. Paulo Galarza |
+| Development Team | Stefanny Hernández + Adriana González |
+
+| Sprint | Entregable principal |
+|--------|----------------------|
 | S1 | Arquitectura + MER + requerimientos |
 | S2 | Frontend + Backend + módulo PICO |
 | S3 | Cribado con MiniLM + AI Gatekeeper |
-| S4 | Generación artículo + exportación |
+| S4 | Generación del artículo + exportación |
 | S5 | 91 pruebas + despliegue en producción |
 
----
-
-## 5. DISEÑO Y ARQUITECTURA (10 min)
-
-### Arquitectura de 3 capas  MOSTRAR DIAGRAMA
-
-| Capa | Tecnología | Despliegue |
-|------|-----------|------------|
-| Presentación | Next.js 14 + React + TypeScript | Vercel |
-| Lógica de negocio | Node.js + Express + Clean Architecture | Render |
-| Datos | PostgreSQL 15 + pgvector | Cloud |
-
-### Por qué PostgreSQL?
-> *"Necesitábamos dos capacidades en la misma base de datos: relaciones estructuradas entre proyectos, protocolos y referencias, Y búsqueda vectorial para los embeddings de cribado. PostgreSQL con la extensión pgvector es el único gestor relacional open-source maduro que ofrece ambas."*
-
-**Si preguntan "por qué no MongoDB o Pinecone?"**
-> *"MongoDB es documental y pierde integridad referencial entre las 9 entidades del dominio  crítico cuando actualizamos múltiples tablas en una transacción. Pinecone es excelente para vectores pero requeriría una segunda BD para los datos relacionales, duplicando complejidad y costo operacional. PostgreSQL + pgvector resuelve todo con transacciones ACID garantizadas."*
-
-### Flujo del sistema  MOSTRAR DIAGRAMA DE FASES
-
-**FASE 1  Protocolo PICO**
-- Input: idea inicial + área de investigación
-- Output: análisis PICO + criterios inclusión/exclusión + cadenas de búsqueda (generados por ChatGPT)
-
-**FASE 2  Cribado de referencias**
-- Input: archivo CSV/BibTeX con referencias
-- Proceso: detección duplicados  embeddings MiniLM (similitud semántica)  ChatGPT (criterios explícitos)
-- Output: referencias clasificadas como incluidas/excluidas
-
-**FASE 3  Extracción de datos (RQS)**
-- LLM extrae metodología, resultados y limitaciones de cada referencia incluida
-
-**FASE 4  AI Gatekeeper PRISMA** 
-> *"Esta es la innovación principal. El Gatekeeper ejecuta 27 prompts en secuencia  uno por ítem PRISMA. Cada prompt contiene las reglas exactas del estándar, todos los datos del proyecto y la instrucción 'usa solo estos datos, no inventes'. En 2-3 minutos: borrador completo del artículo científico."*
-
-**FASE 5  Artículo y Exportación**
-- Interfaz tipo Google Docs para edición
-- Exportación: Word, PDF, LaTeX
+> **Transición a Adriana:** *"Ya explicamos el problema, los objetivos, la base teórica y la metodología. Adriana nos va a mostrar cómo todo eso se construyó en el sistema."*
 
 ---
 
-## 6. RESULTADOS (8 min)
+---
 
-### Números clave  MEMORIZAR ESTOS
-
-| Métrica | Valor | Contexto |
-|---------|-------|---------|
-| Pruebas funcionales aprobadas | **91/91 (100%)** | Jest + Supertest |
-| FCP (primera carga) | **88 ms** | Top 1% mundial; umbral Google: 1.8 s |
-| LCP (contenido principal) | **432 ms** | Top 5% mundial; umbral Google: 2.5 s |
-| Accesibilidad (Lighthouse) | **98/100** | Cumple WCAG 2.1 nivel AA |
-| Usabilidad (SUS Score) | **84.5/100** | Percentil 90 = Excelente |
-| F1-Score cribado IA | **0.863** | Supera umbral científico 0.80 |
-| Costo por proyecto | **$0.082 USD** | vs Covidence $20-40/mes |
-| Reducción de tiempo | **85%** | 4-12 meses  2-4 semanas |
-
-### Precisión del cribado
-- Dataset: 200 referencias etiquetadas manualmente (100 rel. + 100 no rel.)
-- F1-Score **0.863 supera el umbral científico de 0.80**  precisión confiable
-
-### Usabilidad
-- 5 participantes: estudiantes de maestría y doctorado
-- Score promedio: **84.5/100 = Excelente (percentil 90)**
-- Cita real: *"Nunca había hecho una RSL. Con este sistema la completé en 3 semanas."*
+# BLOQUE B — ADRIANA (15 minutos)
 
 ---
 
-## 7. CONCLUSIONES (3 min)
+---
 
-### Los 3 números que lo resumen
+## 5. ARQUITECTURA DEL SISTEMA (5 min) — ADRIANA
+
+### Estructura de 3 capas — señalar diagrama
+> *"El sistema se divide en tres capas independientes: la interfaz que ve el usuario, la lógica que procesa los datos, y la base de datos donde se guarda todo."*
+
+| Capa | Tecnología | ¿Dónde está desplegado? |
+|------|-----------|------------------------|
+| Presentación (lo que ve el usuario) | Next.js 14 + React + TypeScript | Vercel |
+| Lógica del negocio (lo que procesa) | Node.js + Express + Clean Architecture | Render |
+| Datos (lo que guarda) | PostgreSQL 15 + pgvector | Base de datos en la nube |
+
+### ¿Por qué PostgreSQL y no otra base de datos?
+> *"Necesitábamos que la base de datos hiciera dos cosas a la vez: guardar relaciones entre proyectos, usuarios y referencias —como cualquier base de datos relacional— y además buscar por similitud semántica entre los embeddings del cribado. PostgreSQL con la extensión pgvector es el único motor relacional open-source maduro que hace ambas cosas con transacciones garantizadas."*
+
+> **Si preguntan "¿por qué no MongoDB o Pinecone?"**
+> *"MongoDB es documental y pierde integridad entre las 9 entidades del dominio. Pinecone solo maneja vectores y requeriría una segunda base de datos para los datos relacionales, duplicando la complejidad. PostgreSQL + pgvector resuelve todo en un solo sistema."*
+
+---
+
+## 6. FASES DEL SISTEMA — DEMO (6 min) — ADRIANA
+
+> *"El sistema tiene tres fases. El investigador las recorre en orden: primero define qué va a buscar, luego filtra lo que encontró, y finalmente obtiene el borrador del artículo."*
+
+---
+
+### FASE 1 — Protocolo PICO
+
+**¿Qué hace el investigador? (4 datos de entrada):**
+1. **Idea** de investigación (un párrafo libre)
+2. **Descripción** del contexto del problema
+3. **Área** de conocimiento
+4. **Año** de inicio del estudio
+
+**¿Qué genera el sistema automáticamente?**
+Con esos cuatro datos, ChatGPT produce:
+- **Marca PICO y matriz Es / No es** — define con precisión qué entra y qué no en el estudio
+- **5 opciones de título** — el investigador elige el que mejor describe su trabajo
+- **Terminología clave** — tecnologías relevantes y dominio del problema
+- **Criterios de inclusión y exclusión** — las reglas para filtrar referencias
+- **Cadenas de búsqueda** — consultas listas para PubMed, Scopus, Web of Science, etc.
+
+**Cierre de la fase:**
+El investigador copia las cadenas de búsqueda, las usa en las bases académicas y luego **importa las referencias encontradas** al sistema (formatos CSV, RIS, BibTeX). El sistema genera un resumen completo del protocolo con todos los datos definidos.
+
+---
+
+### FASE 2 — Cribado de Referencias
+
+**¿Qué hace el investigador?**
+Hace clic en **"Ejecutar cribado"**. A partir de ahí el sistema trabaja solo.
+
+**¿Qué hace el sistema?**
+1. **Detecta y elimina duplicados** automáticamente
+2. **MiniLM mide similitud semántica** entre cada resumen y el protocolo PICO — si supera el umbral, la referencia es relevante
+3. **ChatGPT aplica los criterios** de inclusión/exclusión a las referencias en zona gris
+4. Clasifica cada referencia como **incluida** o **excluida** con justificación
+
+**Revisión manual (trabajo del investigador):**
+El investigador abre cada referencia, lee el resumen, puede subir el PDF del artículo completo, y confirma o cambia la decisión del sistema. Cuando termina, cierra esta sección.
+
+**Resultados visibles al investigador:**
+- **Diagrama PRISMA actualizado** — muestra cuántas referencias entraron, cuántas se descartaron y por qué
+- **Estadísticas globales** — cifras del protocolo comparadas con los resultados del cribado
+
+**Al cerrar el cribado:**
+El sistema completa internamente los 27 ítems PRISMA y realiza la extracción de datos RQS de cada referencia incluida. Luego redirige automáticamente al artículo.
+
+---
+
+### FASE 3 — Artículo Científico
+
+**¿Qué hace el sistema?**
+Recopila toda la información de las fases anteriores —protocolo, estadísticas de cribado, datos RQS— y genera el **borrador completo del artículo científico** en 2 a 3 minutos.
+
+> *"Esto es posible gracias al AI Gatekeeper: ejecuta 27 prompts en secuencia, uno por ítem PRISMA, con los datos reales del proyecto. No inventa nada."*
+
+**¿Qué puede hacer el investigador?**
+- Editar el borrador en una interfaz tipo Google Docs
+- Cada cambio queda guardado como versión independiente
+- Exportar el trabajo completo listo para publicación:
+
+| Archivo exportado | Para qué sirve |
+|-------------------|----------------|
+| LaTeX (.tex) | Redacción en Overleaf o Texmaker |
+| BibTeX (.bib) | Bibliografía automática en cualquier editor |
+| CSV de datos | Los datos RQS para análisis estadístico |
+| Gráficos PNG + PDF | Figuras en alta resolución para journals (300 DPI) |
+| Scripts Python | Código para regenerar o personalizar gráficos |
+| Paquete ZIP completo | Todo lo anterior en un solo archivo |
+
+---
+
+## 7. RESULTADOS (3 min) — ADRIANA
+
+### Los 8 números clave — señalar en diapositiva
+
+| Métrica | Valor | Referencia |
+|---------|-------|-----------|
+| Pruebas funcionales aprobadas | **91 / 91 (100%)** | Jest + Supertest |
+| Primera carga (FCP) | **88 ms** | Umbral Google: 1800 ms — top 1% mundial |
+| Carga del contenido principal (LCP) | **432 ms** | Umbral Google: 2500 ms — top 5% mundial |
+| Accesibilidad | **98 / 100** | Cumple WCAG 2.1 nivel AA |
+| Usabilidad (SUS Score) | **84.5 / 100** | Percentil 90 = Excelente |
+| F1-Score del cribado IA | **0.863** | Supera umbral científico de 0.80 |
+| Costo por proyecto completo | **$0.082 USD** | vs. Covidence: $20–40/mes |
+| Reducción de tiempo | **85%** | 4–12 meses → 2–4 semanas |
+
+### Cribado IA — F1-Score 0.863
+> *"Evaluamos el cribado con 200 referencias etiquetadas manualmente: 100 relevantes y 100 no relevantes. Un F1-Score de 0.863 supera el umbral científico aceptado de 0.80, lo que confirma que el sistema clasifica con precisión confiable."*
+
+### Usabilidad — SUS 84.5
+> *"Evaluamos la experiencia de usuario con 5 participantes: estudiantes de maestría y doctorado. Un puntaje de 84.5 equivale al percentil 90 en la escala SUS —calificación de 'Excelente'. Un participante comentó: 'Nunca había hecho una RSL. Con este sistema la completé en 3 semanas.'"*
+
+> **Si preguntan por qué solo 5 participantes:** *"Nielsen (1993) establece que 5 participantes detectan el 85% de los problemas de usabilidad. El objetivo fue validación del concepto, no un estudio a gran escala."*
+
+---
+
+## 8. CONCLUSIONES Y RECOMENDACIONES (1 min) — ADRIANA
+
+### Los 3 números que resumen el trabajo
 
 | # | Número | Qué significa |
 |---|--------|--------------|
-| 1 | **85%** | Reducción de tiempo (meses  semanas) |
-| 2 | **27/27** | Ítems PRISMA generados automáticamente |
+| 1 | **85%** | Reducción de tiempo: meses → semanas |
+| 2 | **27 / 27** | Ítems PRISMA generados y validados automáticamente |
 | 3 | **$0.08** | Costo por proyecto completo |
 
 ### Cumplimiento de objetivos
-- OE1  Arquitectura + MER documentados y validados
-- OE2  Módulo PICO + cadenas de búsqueda con ChatGPT
-- OE3  Cribado con MiniLM, F1-Score = 0.863
-- OE4  AI Gatekeeper: 27 prompts especializados
-- OE5  Borrador artículo en 2-3 minutos
+- ✅ OE1 — Arquitectura de 3 capas + MER con 9 entidades documentado y validado
+- ✅ OE2 — Módulo PICO con asistente ChatGPT; genera cadenas de búsqueda
+- ✅ OE3 — Cribado con MiniLM; F1-Score = 0.863
+- ✅ OE4 — AI Gatekeeper: 27 prompts en secuencia con reglas PRISMA
+- ✅ OE5 — Borrador del artículo en 2–3 minutos; exportación en 6 formatos
 
-### Limitaciones (decirlas antes de que las pregunten)
-- Dependencia de OpenAI API  mitigado con arquitectura patrón Strategy (cambiar proveedor solo editando el adaptador)
-- Sin integración directa con bases académicas  el usuario importa manualmente
-- TBT de 599ms supera umbral de 300ms  trabajo futuro: code splitting
+### Limitaciones (mencionarlas antes de que las señale el tribunal)
+- **Dependencia de OpenAI API** — mitigado con patrón Strategy: cambiar de proveedor de IA requiere editar solo el adaptador, sin tocar el núcleo del sistema
+- **Sin integración directa con bases académicas** — el investigador importa las referencias manualmente; es trabajo futuro
+- **TBT de 599 ms supera el umbral de 300 ms** — trabajo futuro: code splitting del frontend
 
----
+### Recomendación principal
+> *"Se recomienda integrar conectores directos con PubMed y Scopus, e incorporar LLMs open-source locales como Llama para reducir la dependencia de APIs de pago."*
 
-##  CÓMO EXPLICAR CADA OBJETIVO  EJEMPLOS LISTOS
-
-### OE1  Arquitectura y MER (texto para decir)
-> *"El primer objetivo fue diseñar la base estructural del sistema. Elaboramos el diagrama de arquitectura de 3 capas y el Modelo Entidad-Relación que define cómo interactúan las 9 entidades del dominio: usuario, proyecto, protocolo, referencia, decisión de cribado, RQS, artículo y versionado. Por qué importa? Porque el AI Gatekeeper necesita leer del protocolo, del cribado y de las RQS en una sola operación. Sin un MER bien diseñado, esas relaciones no existen y el sistema no funciona. El diseño fue validado con el tutor antes de escribir código de negocio."*
-
-**Apuntar a**: diagrama ER en diapositiva
-
-### OE2  Módulo PICO con IA
-> *"El usuario llega al sistema solo con una idea. ChatGPT le propone 5 temas especializados, el usuario elige uno, y el asistente construye automáticamente el análisis PICO completo con términos clave, criterios de inclusión y exclusión, y cadenas de búsqueda para varias bases de datos."*
-
-### OE3  Cribado con MiniLM
-> *"El cribado es la fase más propensa a sesgos humanos. Automatizamos con dos capas: MiniLM mide similitud semántica entre cada resumen y el protocolo PICO  si supera el umbral, pasa. Los que quedan en zona gris los analiza ChatGPT aplicando los criterios del protocolo. El F1-Score de 0.863 confirma que la precisión es confiable."*
-
-### OE4  AI Gatekeeper
-> *"El Gatekeeper no es un formulario que el usuario llena. Es un proceso interno que:  recopila todos los datos del proyecto, ejecuta 27 prompts en secuencia con las reglas exactas de PRISMA, y valida que cada ítem esté completo. El usuario recibe el borrador en 2-3 minutos, listo para revisar."*
-
-### OE5  Generación del artículo
-> *"El borrador llega en una interfaz de edición donde el investigador puede modificar, agregar criterio científico y exportar en Word, PDF o LaTeX. La IA hace la estructura; el investigador hace el pensamiento crítico."*
+### Cierre (decir mirando al tribunal)
+> *"En resumen: construimos el primer sistema documentado que automatiza el flujo completo de una revisión sistemática de literatura, desde el protocolo PICO hasta el borrador del artículo con validación PRISMA integrada. 85% menos tiempo. 27 ítems automatizados. $0.08 por proyecto. El código está en GitHub, disponible para la comunidad académica. Muchas gracias — quedamos a disposición del tribunal."*
 
 ---
 
-##  PREGUNTAS Y RESPUESTAS CORTAS
+---
 
-**Por qué DSR y no otra metodología?**
-> "DSR es el estándar cuando el resultado es un artefacto tecnológico  no una hipótesis teórica. Nos estructura para: identificar el problema, diseñar, evaluar y comunicar. Nuestro trabajo cumple sus 6 pasos documentados."
+# SECCIÓN 9 — PREGUNTAS DEL TRIBUNAL (20 minutos) — AMBAS
 
-**Por qué PostgreSQL y no MongoDB/Pinecone?**
-> "Necesitamos relaciones estructuradas Y búsqueda vectorial en la misma base de datos. MongoDB pierde integridad relacional. Pinecone es solo vectorial y requeriría una segunda BD. PostgreSQL + pgvector resuelve ambas con transacciones ACID."
-
-**Cómo evitan que la IA invente datos?**
-> "Tres capas: temperatura baja (0.3), prompts que dicen explícitamente 'usa solo los datos del contexto, no inventes', y técnica RAG que solo inyecta datos reales del proyecto. Más la revisión final del usuario."
-
-**Por qué ChatGPT y no Gemini o Llama?**
-> "Gemini fue inconsistente en prompts de 1000+ tokens. Llama requiere GPU costosa y tarda 10-15 segundos. ChatGPT gpt-4o-mini: $0.15/millón de tokens, 2-4 segundos de respuesta, seguimiento preciso de instrucciones. La arquitectura permite cambiar de proveedor editando solo el adaptador."
-
-**Por qué solo 5 participantes en SUS?**
-> "Nielsen (1993) establece que 5 participantes detectan el 85% de los problemas de usabilidad. El objetivo fue validación de concepto, no estudio a gran escala. Los resultados (84.5/100, percentil 90) son consistentes."
-
-**El sistema reemplaza al investigador?**
-> "No. Genera la estructura y el borrador; el investigador aporta juicio crítico, interpretación y responsabilidad del contenido. La IA automatiza lo repetitivo; el investigador hace lo que la IA no puede: pensar."
+> **Protocolo:** escuchar la pregunta completa → identificar de qué bloque es (A = Stefanny, B = Adriana) → esa persona responde primero → la otra complementa si es necesario.
 
 ---
 
-##  CIERRE  60 SEGUNDOS
+## Banco de respuestas preparadas
 
-> *"En resumen: construimos el primer sistema documentado que automatiza el flujo completo de una RSL, desde el protocolo PICO hasta el borrador del artículo con validación PRISMA integrada.*
-> *85% menos tiempo. 27 ítems automatizados. $0.08 por proyecto.*
-> *El código está en GitHub, disponible para la comunidad académica.*
-> *Muchas gracias. Quedamos a disposición para sus preguntas."*
+**¿Por qué DSR y no investigación experimental?** _(Stefanny)_
+> *"DSR es el estándar cuando el resultado es un artefacto tecnológico. La investigación experimental estudia fenómenos que ya existen; aquí construimos algo nuevo para resolver un problema real. Las métricas son la evaluación del artefacto, no de una hipótesis."*
+
+**¿Por qué PostgreSQL y no MongoDB o Pinecone?** _(Adriana)_
+> *"Necesitamos relaciones estructuradas Y búsqueda vectorial en la misma base de datos con transacciones ACID. MongoDB pierde integridad relacional. Pinecone es solo vectorial y requeriría una segunda base de datos. PostgreSQL + pgvector resuelve ambas necesidades en un sistema único."*
+
+**¿Cómo evitan que la IA invente datos?** _(Ambas)_
+> *"Tres capas: temperatura baja (0.3) para reducir variabilidad, prompts con la instrucción explícita 'usa solo los datos del contexto, no inventes', y técnica RAG que inyecta únicamente datos reales del proyecto. La revisión final siempre es del investigador."*
+
+**¿Por qué ChatGPT y no Gemini o Llama?** _(Ambas)_
+> *"Gemini fue inconsistente en prompts largos de más de 1000 tokens. Llama requiere GPU costosa y tarda 10 a 15 segundos. ChatGPT gpt-4o-mini cuesta $0.15 por millón de tokens, responde en 2 a 4 segundos y sigue instrucciones complejas con precisión. La arquitectura permite cambiar de proveedor editando solo el adaptador."*
+
+**¿Por qué solo 5 participantes en el estudio SUS?** _(Adriana)_
+> *"Nielsen (1993) establece que 5 participantes detectan el 85% de los problemas de usabilidad. El objetivo fue validación de concepto, no un estudio epidemiológico. El resultado —84.5/100, percentil 90— es consistente con la literatura."*
+
+**¿El sistema reemplaza al investigador?** _(Ambas)_
+> *"No. Genera la estructura y el borrador; el investigador aporta juicio crítico, interpretación de resultados y responsabilidad intelectual del contenido. La IA automatiza lo repetitivo; el investigador hace lo que la IA no puede: pensar."*
+
+**¿Qué pasa si OpenAI sube los precios o deja de funcionar?** _(Adriana)_
+> *"La arquitectura usa el patrón Strategy en la capa de infraestructura. Cambiar de proveedor requiere crear un nuevo adaptador e indicarlo en la configuración; el núcleo del sistema no cambia. Es trabajo futuro implementar un adaptador para Gemini o Claude."*
+
+**Si el investigador importa referencias manualmente, ¿dónde está la automatización?** _(Adriana)_
+> *"La importación es el único paso manual porque implica acceder a bases académicas con credenciales institucionales. Todo lo demás —detección de duplicados, cribado, extracción RQS, generación del artículo, validación PRISMA— es completamente automático."*
+
+**¿Por qué el rol de Stakeholder corresponde al Ing. Germán Rodríguez?** _(Stefanny)_
+> *"En Scrum, el Stakeholder representa los intereses externos al equipo: usuarios finales, beneficiarios del sistema, o el contexto institucional. El Ing. Rodríguez cumple ese rol orientando el alcance del trabajo desde la perspectiva de la carrera, mientras el Product Owner —Ing. Galarza— gestiona el backlog y las prioridades del producto."*
 
 ---
 
-##  CHECKLIST FINAL
+## CHECKLIST ANTES DE ENTRAR
 
-- [ ] Diagramas cargados: arquitectura, flujo de fases, ER
-- [ ] Métricas memorizadas: FCP 88ms, F1=0.863, SUS=84.5, $0.082, 91/91 pruebas
+- [ ] Diapositivas cargadas: portada, brecha de herramientas, equipo Scrum, arquitectura 3 capas, flujo de fases, diagrama ER, métricas
+- [ ] Métricas memorizadas: FCP 88 ms · LCP 432 ms · F1 = 0.863 · SUS = 84.5 · 91/91 pruebas · $0.082
 - [ ] GitHub abierto en pestaña del navegador
 - [ ] Tesis impresa con objetivos marcados
-- [ ] Cronometrar presentación: objetivo  38 minutos
-- [ ] Practicar respuestas a preguntas del tribunal
+- [ ] Cronometrar la exposición: objetivo 28 minutos (2 de margen)
+- [ ] Practicar respuestas del banco de preguntas en voz alta
+- [ ] Confirmar quién habla en cada bloque y respetar el orden
 
 ---
-*Actualizado: Febrero 2026  Objetivos según versión final de tesis*
+*Actualizado: Febrero 2026 — Rúbrica ESPE · Equipo Scrum completo con Stakeholder · Fases corregidas · Distribución en pareja Stefanny / Adriana*
