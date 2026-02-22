@@ -73,7 +73,17 @@ class ApiClient {
       headers,
     })
 
-    const data = await response.json()
+    // Parse response safely — handle empty/truncated responses
+    let data: any
+    try {
+      const text = await response.text()
+      data = text.trim() ? JSON.parse(text.trim()) : {}
+    } catch {
+      if (!response.ok) {
+        throw new Error(`Error del servidor (${response.status})`)
+      }
+      data = {}
+    }
 
     if (!response.ok) {
       throw new Error(data.message || 'Error en la petición')
@@ -817,9 +827,17 @@ class ApiClient {
       })
 
       clearTimeout(timeoutId)
-      const data = await response.json()
 
-      if (!response.ok) {
+      // Read as text first, then parse — handles chunked responses with leading whitespace
+      const text = await response.text()
+      let data: any
+      try {
+        data = JSON.parse(text.trim())
+      } catch {
+        throw new Error('Respuesta inválida del servidor. Intente nuevamente.')
+      }
+
+      if (!response.ok && !data.success) {
         throw new Error(data.message || 'Error al generar artículo')
       }
 
