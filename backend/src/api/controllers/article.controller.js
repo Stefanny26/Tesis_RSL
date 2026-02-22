@@ -85,6 +85,7 @@ class ArticleController {
    * Generar artículo científico completo desde PRISMA cerrado
    */
   async generate(req, res) {
+    let keepAliveInterval = null;
     try {
       const { projectId } = req.params;
 
@@ -102,12 +103,26 @@ class ArticleController {
       // ✅ Extender timeout del request a 10 minutos (artículo hace muchas llamadas IA)
       if (req.setTimeout) req.setTimeout(600000);
       if (res.setTimeout) res.setTimeout(600000);
-      // Prevent proxy/load-balancer timeout by keeping connection alive
-      const keepAliveInterval = setInterval(() => {
-        if (!res.headersSent) {
-          res.write(''); // no-op to keep connection alive
+
+      // ✅ Keep connection alive for Render proxy (30s idle timeout)
+      // Strategy: Set Content-Type upfront, write space chars periodically
+      // (JSON.parse ignores leading whitespace), then end with actual JSON body
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Transfer-Encoding': 'chunked'
+      });
+
+      keepAliveInterval = setInterval(() => {
+        try {
+          if (!res.writableEnded) {
+            res.write(' '); // Space keeps connection alive; JSON.parse ignores leading whitespace
+          }
+        } catch (e) {
+          // Connection already closed, clear interval
+          clearInterval(keepAliveInterval);
         }
-      }, 25000);
+      }, 20000); // Every 20 seconds (well under Render's 30s timeout)
 
       // Crear use cases
       const aiService = new AIService(req.userId);
@@ -159,7 +174,8 @@ class ArticleController {
         declarations: article.declarations || ''
       };
 
-      res.status(200).json({
+      // ✅ Use res.end() since headers already sent via writeHead
+      const responseBody = JSON.stringify({
         success: true,
         data: {
           title: article.title,
@@ -168,25 +184,32 @@ class ArticleController {
         },
         message: 'Artículo científico generado exitosamente'
       });
+      res.end(responseBody);
 
     } catch (error) {
-      clearInterval(keepAliveInterval);
+      if (keepAliveInterval) clearInterval(keepAliveInterval);
       console.error('❌ Error generando artículo:', error);
 
-      // Error específico si PRISMA incompleto
-      if (error.message.includes('PRISMA incompleto')) {
-        return res.status(400).json({
-          success: false,
-          message: error.message,
-          code: 'PRISMA_INCOMPLETE'
-        });
-      }
-
-      res.status(500).json({
+      const errorResponse = {
         success: false,
-        message: 'Error al generar artículo científico',
-        error: error.message
-      });
+        message: error.message?.includes('PRISMA incompleto')
+          ? error.message
+          : 'Error al generar artículo científico',
+        error: error.message,
+        ...(error.message?.includes('PRISMA incompleto') ? { code: 'PRISMA_INCOMPLETE' } : {})
+      };
+
+      // If headers already sent (streaming started), end with error JSON
+      if (res.headersSent) {
+        try {
+          res.end(JSON.stringify(errorResponse));
+        } catch (e) {
+          res.end();
+        }
+      } else {
+        const statusCode = error.message?.includes('PRISMA incompleto') ? 400 : 500;
+        res.status(statusCode).json(errorResponse);
+      }
     }
   }
 
